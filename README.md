@@ -1,32 +1,33 @@
 # gradcode
 
-A T3 Code-shaped app for the PhD hunt. Every thread is a Claude Code session (Claude Agent
-SDK) and treg is its tool belt. Two jobs: find professors who can fund a student, and find the
-money behind them. It runs on the Mac mini on top of `~/Personal/gradhunt`'s data, so Scout,
-the cloud outreach routine and the current dashboard keep working while this grows.
+A T3 Code-shaped app for anyone hunting a funded degree. Every thread is a Claude Code session
+on your own subscription, with free sources (NSF, NIH RePORTER, OpenAlex, CSRankings, faculty
+pages) and optional paid lookups through treg. It finds professors who can fund you and the money
+behind them, by your preferences: degree, places, fields, funding floor, detail level and loops.
+Siam's install also reads hq and `~/Personal/gradhunt`, so Scout and the cloud outreach routine
+keep working.
 
-Phase 1 is design only. Mocks and the full spec: [docs/mocks/phase1.html](docs/mocks/phase1.html).
+Design and the full spec: [docs/mocks/phase1.html](docs/mocks/phase1.html) (round 2).
 
 ## Done (v1)
 
-| #   | Done when                                                                                                                                                                                                                                                             | Check                                                                            |
-| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| 1   | **Threads.** Start, rename, resume and stop threads. Each is a Claude Code session that streams text and tool calls. It runs on the Mac mini, so closing the laptop never stops a hunt, and it survives a server restart.                                             | Close the laptop mid-turn, reopen from the phone, and the thread has kept going. |
-| 2   | **The sidebar is an inbox.** Threads that need you come first: Approval (amber), Input (indigo), Done and unread. Working rows fade back. Settle and Snooze appear on hover. Settled and Snoozed shelves start collapsed. Untouched threads auto-settle after 3 days. | End of day: every thread is settled, snoozed or working.                         |
-| 3   | **Threads settle themselves.** A thread settles once nothing waits on you: every proposal reviewed, no approval pending. Optional auto-accept rules (verified email, official source, fit 4+) let a hunt finish unseen.                                               | Review the last proposal and the thread drops into Settled.                      |
-| 4   | **Queue and steer.** A message sent mid-turn waits and goes out after the next tool call. Steer sends it now.                                                                                                                                                         | The agent picks up a steered message within one tool call.                       |
-| 5   | **Scoped threads.** A thread can be about a school, a professor or a search, and opening one loads that record into context. Start one with `@` or from any row.                                                                                                      | "Ask about Lybarger" answers from the record without fetching it again.          |
-| 6   | **treg in view.** Every call shows its endpoint, price, time and result. Thread spend and treg balance are always on screen. Calls over $0.01 ask first, and each thread has a hard cap.                                                                              | A $0.0245 Prospeo lookup raises an approval.                                     |
-| 7   | **Results are records.** The agent reports through typed tools (`propose_professor`, `propose_program`, `propose_grant`). Proposals land in Review as field diffs. Accept writes through `scout.py`; reject records the reason in `excluded.json`.                    | Accept 3 and reject 1. Scout's next nightly run sees all four.                   |
-| 8   | **Professor finder.** Search by niche and school, or say "next school in the queue". Candidates fill a table: fit, recruiting evidence, money, email check, contact rule. Keep, drop, dig deeper or draft from any row.                                               | "health NLP at GMU, UIC, Arizona" returns rows that all link sources.            |
-| 9   | **Funding finder.** NSF and NIH awards by topic at tracked schools (free APIs), with PI, amount, end date, months left after Fall 2027, and whether the PI is in the sheet. One click adds a PI. Program funding sits beside it.                                      | "language model" at UMD shows Ge Gao's CAREER award as not in the sheet yet.     |
-| 10  | **Professor page.** Every fact links its source: interests, recent works, grants, recruiting quote, contact rule, email check, threads, draft state.                                                                                                                  | Every field opens its source.                                                    |
-| 11  | **Facts guard.** The agent reads hq facts and the Scout spec and claims nothing hq lacks. A draft only shows after `scout.py lint-drafts` passes.                                                                                                                     | A draft that cites a test score fails lint in the UI.                            |
-| 12  | **Polish bar.** Every action is in the ⌘K palette and the app is keyboard-first. Motion follows the spec in the mocks. Nothing animates forever, and reduced motion turns every transition off.                                                                       | A full morning of triage without touching the mouse.                             |
+| #   | Done when                                                                                                                                                                                 | Check                                                                               |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| 1   | **First run in five minutes.** Finds your Claude Code login. Free sources need no keys; a treg key is optional.                                                                           | A fresh Mac with no keys has a first hunt running in five minutes.                  |
+| 2   | **Profile from a CV.** The agent drafts each fact with its source; you confirm it. Drafts and fit use confirmed facts only. Siam's install reads hq.                                      | An unconfirmed fact never appears in a draft.                                       |
+| 3   | **Hunt preferences.** Degree types, intake, places, fields and adjacent domains, funding floor, test rules, schools per sweep, what matters most. Every turn and loop reads them.         | Raise the funding floor and the next sweep stops proposing partly funded programs.  |
+| 4   | **Detail level.** Brief, Standard or Deep, per install and per thread: columns, evidence depth, cost per row.                                                                             | Brief shows 5 columns and costs less per row than Deep.                             |
+| 5   | **Threads and the inbox sidebar.** Stream, stop, resume; settle, snooze, auto-settle; queue and steer. Runs on the host, so closing the laptop never stops a hunt.                        | End of day: every thread is settled, snoozed or working.                            |
+| 6   | **Results and row actions.** Every thread has a Results grid. Select rows and run Find emails, Check money, Taking students? or Draft from the dock; cells fill in place with their cost. | Select 3 rows, Find emails: three cells fill and spend rises by exactly their cost. |
+| 7   | **Records and Review.** Field diffs; accept writes to the local store (through `scout.py` on Siam's install). Auto-accept is off. A rejected row never comes back.                        | Reject a professor; the next sweep doesn't propose them again.                      |
+| 8   | **Finders and pages.** Professor finder, funding finder (NSF and NIH awards, months left after your intake), professor pages with every fact sourced.                                     | Every field opens its source.                                                       |
+| 9   | **Loops.** Recurring hunts you configure: what, when, scope, budget, autonomy. Each run is a thread that settles once reviewed.                                                           | A nightly sweep runs with the laptop closed and waits in the morning.               |
+| 10  | **Spend you control.** Every call priced; paid actions over $0.01 ask; caps per thread, per loop run, per day.                                                                            | A loop stops at its cap and says why.                                               |
+| 11  | **Your data stays yours.** One local SQLite file, CSV import and export, no telemetry.                                                                                                    | Export, wipe, import: nothing lost.                                                 |
+| 12  | **Polish bar.** T3 Code's feel: ⌘K for everything, keyboard-first, one-shot motion, nothing animates forever.                                                                             | A full morning of triage without the mouse.                                         |
 
-**Not in v1:** sending mail and inbox sync (the cloud routine keeps both), the send queue and
-Conversations (the current dashboard keeps them until v2 ports them), auth, a phone layout
-beyond reading and approving, hosting, more than one user.
+**Not in v1:** sending mail for other users (Siam's install keeps the cloud routine), a hosted
+service, a phone app beyond reading and approving, providers other than Claude, shared hunts.
 
 ## Shape
 

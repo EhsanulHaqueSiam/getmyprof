@@ -277,6 +277,31 @@ export function Sidebar() {
   }, [recordsVersion]);
 
   const s = shelves(threads, now);
+  const order = [...s.main, ...s.working];
+
+  // j/k walk the visible threads in sidebar order; s snoozes the open one until tomorrow morning.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (
+        e.target instanceof HTMLElement &&
+        e.target.closest("input, textarea, select, [contenteditable]")
+      )
+        return;
+      const current = "threadId" in params ? params.threadId : undefined;
+      const i = order.findIndex((t) => t.id === current);
+      if (e.key === "j" || e.key === "k") {
+        const next = order[e.key === "j" ? i + 1 : i <= 0 ? 0 : i - 1] ?? order[0];
+        if (next) void navigate({ to: "/t/$threadId", params: { threadId: next.id } });
+      }
+      const tomorrow = snoozePresets().find((p) => p.label === "Tomorrow morning");
+      if (e.key === "s" && current && tomorrow)
+        void call("threads.snooze", { id: current, until: tomorrow.until.toISOString() });
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [order, params, navigate]);
+
   const review = threads.reduce((n, t) => n + t.pendingReview, 0);
   const today = threads
     .filter((t) => now - Date.parse(t.updatedAt) < 864e5)

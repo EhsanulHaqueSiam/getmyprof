@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>gradcode · phase 1: what done looks like</title>
+<style>
+:root{--fg:#f1f3f7;--fg2:#d4d4d8;--mut:#a3a3a3;--dim:#737373;--faint:#4a4a4a;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.12);--input:rgba(255,255,255,.18);--hov:#191a1d;--sel:rgba(241,243,247,.07);--pri:oklch(.571 .21 264);--pri2:oklch(.74 .14 264);--ok:#34d399;--warn:#fbbf24;--err:#f87171;--info:#60a5fa;--ind:#a5b4fc;--ease:cubic-bezier(.32,.72,0,1);--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;--mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:#000}
+body{background:#000;color:var(--fg);font:14px/1.55 var(--sans);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+a{color:inherit;text-decoration:none}
+.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.i.sm{width:14px;height:14px}.i.xs{width:12px;height:12px}
+.mono{font-family:var(--mono)}.tn{font-variant-numeric:tabular-nums}
+.mut{color:var(--mut)}.dim{color:var(--dim)}.ok{color:var(--ok)}.warn{color:var(--warn)}.err{color:var(--err)}.info{color:var(--info)}.ind{color:var(--ind)}.fgc{color:var(--fg)}
+
+/* document */
+.bar{position:sticky;top:0;z-index:20;background:rgba(0,0,0,.86);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.bar .in{max-width:1380px;margin:0 auto;padding:0 20px;height:44px;display:flex;align-items:center;gap:20px;font-size:13px}
+.bar b{font-weight:600;white-space:nowrap}
+.bar nav{display:flex;gap:16px;color:var(--mut);overflow-x:auto;white-space:nowrap}
+.bar nav a{transition:color 120ms}.bar nav a:hover{color:var(--fg)}
+.doc{max-width:1380px;margin:0 auto;padding:0 20px 120px}
+h1{font-size:22px;font-weight:600;letter-spacing:-.015em;margin:40px 0 8px}
+h2{font-size:16px;font-weight:600;letter-spacing:-.01em;margin:64px 0 14px;scroll-margin-top:64px}
+h2 .n{color:var(--dim);font-weight:500;margin-right:8px;font-variant-numeric:tabular-nums}
+h3{font-size:13.5px;font-weight:600;margin:28px 0 10px}
+.doc p{max-width:86ch;color:var(--fg2)}.doc p+p{margin-top:8px}
+.doc ul.pl{margin:10px 0 0 18px;max-width:86ch;color:var(--fg2)}.doc ul.pl li{margin:4px 0}.doc ul.pl li::marker{color:var(--dim)}
+.doc b{color:var(--fg);font-weight:600}
+.spec{width:100%;border-collapse:collapse;font-size:13px}
+.spec th{text-align:left;font-weight:500;color:var(--mut);font-size:12px;padding:8px 14px 8px 0;border-bottom:1px solid var(--line2);white-space:nowrap}
+.spec td{padding:9px 14px 9px 0;border-bottom:1px solid var(--line);vertical-align:top;color:var(--fg2)}
+.spec td.n{color:var(--dim);width:30px;font-variant-numeric:tabular-nums}
+.spec td.c{color:var(--mut);width:32%}
+.spec code,.doc p code{font:12px var(--mono);color:var(--fg);background:rgba(255,255,255,.05);padding:1px 5px;border-radius:5px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+@media(max-width:960px){.cols{grid-template-columns:1fr}}
+.vh{display:flex;align-items:baseline;gap:10px;margin:44px 0 12px;flex-wrap:wrap}
+.vh .k{font:600 12px/20px var(--mono);width:22px;height:22px;text-align:center;border:1px solid var(--line2);border-radius:6px;color:var(--fg)}
+.vh .t{font-weight:600}
+.vh .s{color:var(--mut);font-size:13px}
+.vh .rec{color:var(--ok);font-size:12px}
+.scroll{overflow-x:auto;padding-bottom:8px}
+.note{color:var(--mut);font-size:12.5px;margin-top:10px;max-width:96ch}
+.try{display:flex;gap:18px;flex-wrap:wrap;color:var(--mut);font-size:12.5px;margin:0 0 12px}
+.try span::before{content:"→ ";color:var(--faint)}
+
+/* window + shared app atoms */
+.win{min-width:1240px;border:1px solid var(--line2);border-radius:12px;overflow:hidden;background:#000;position:relative;box-shadow:0 40px 90px -50px rgba(0,0,0,1)}
+.ib{width:28px;height:28px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;color:var(--mut);cursor:pointer;transition:background-color 120ms,color 120ms,scale 100ms ease-out;flex:none}
+.ib:hover{background:var(--hov);color:var(--fg)}.ib:active{scale:.94}.ib.on{background:var(--hov);color:var(--fg)}
+.btn{height:28px;padding:0 10px;border-radius:8px;border:1px solid var(--line2);color:var(--fg);font-size:12.5px;font-weight:500;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:background-color 120ms,border-color 120ms,color 120ms,scale 100ms ease-out;white-space:nowrap;background:transparent;user-select:none}
+.btn:hover{background:var(--hov)}.btn:active{scale:.97}
+.btn.pri{background:var(--pri);border-color:transparent;color:#fff;box-shadow:inset 0 1px rgba(255,255,255,.16)}
+.btn.pri:hover{background:oklch(.62 .2 264)}
+.btn.gh{border-color:transparent;color:var(--mut)}.btn.gh:hover{color:var(--fg)}
+.btn.sm{height:24px;padding:0 8px;font-size:12px;border-radius:7px}
+.kbd{font:11px var(--mono);color:var(--dim);letter-spacing:.02em}
+.btn.pri .kbd{color:rgba(255,255,255,.6)}
+.lights{display:flex;gap:7px;margin-right:4px}.lights i{width:11px;height:11px;border-radius:50%;background:#2b2b2e}
+.clp{display:grid;grid-template-rows:1fr;transition:grid-template-rows 220ms var(--ease),opacity 200ms var(--ease);overflow:hidden}
+.clp>*{min-height:0;overflow:hidden}
+.clp.out{grid-template-rows:0fr;opacity:0}
+.new-in{animation:fadeup 160ms ease-out both}
+@keyframes fadeup{from{opacity:0;translate:0 4px}}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+
+/* sidebar (T3 shape) */
+.app{display:grid;grid-template-columns:252px minmax(0,1fr) 392px;grid-template-rows:minmax(0,1fr);height:840px;font-size:13px;transition:grid-template-columns 240ms var(--ease)}
+.app.nopanel{grid-template-columns:252px minmax(0,1fr) 0px}
+.sb{border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0;padding:0 8px 8px;overflow:hidden}
+.sb-top{height:44px;display:flex;align-items:center;gap:6px;padding:0 4px 0 6px;flex:none}
+.brand{font-weight:600;font-size:13px;letter-spacing:-.01em;margin-right:auto}
+.nv{display:flex;flex-direction:column;gap:1px;margin:2px 0 4px}
+.nv a{height:30px;display:flex;align-items:center;gap:9px;padding:0 8px;border-radius:8px;color:var(--fg2);transition:background-color 120ms,color 120ms;cursor:pointer}
+.nv a:hover{background:var(--hov);color:var(--fg)}
+.nv a .i{color:var(--mut)}
+.nv a .c{margin-left:auto;color:var(--dim);font-size:12px;font-variant-numeric:tabular-nums}
+.nv a .c.pri{color:var(--pri2)}
+.nv a .kbd{margin-left:auto}
+.ph{display:flex;align-items:center;gap:6px;height:30px;padding:0 8px;color:var(--mut);font-size:12px;font-weight:500;margin-top:6px}
+.ph .i{color:var(--dim)}
+.ph .end{margin-left:auto;display:flex;gap:0}
+.rows{display:flex;flex-direction:column;gap:1px}
+.row{height:30px;display:flex;align-items:center;gap:8px;padding:0 8px;border-radius:8px;position:relative;transition:background-color 120ms,opacity 160ms;cursor:default}
+.row:hover{background:var(--hov)}
+.row.active{background:var(--sel)}.row.active:hover{background:var(--hov)}
+.row .dot{width:6px;height:6px;border-radius:50%;flex:none;margin-left:-2px}
+.row.unread .dot{background:var(--fg)}
+.row .tt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--fg2)}
+.row.active .tt{color:var(--fg)}
+.row.unread .tt{color:var(--fg);font-weight:600}
+.row .st{font-size:11.5px;display:flex;align-items:center;gap:4px;transition:opacity 120ms;white-space:nowrap;font-variant-numeric:tabular-nums}
+.row .acts{position:absolute;right:3px;top:4px;display:flex;gap:1px;opacity:0;pointer-events:none;transition:opacity 120ms;background:linear-gradient(90deg,transparent,var(--hov) 14px);padding-left:18px}
+.row:hover .acts{opacity:1;pointer-events:auto}.row:hover .st{opacity:0}
+.row .acts .ib{width:22px;height:22px;border-radius:6px}
+.row.recede{opacity:.62}.row.recede:hover{opacity:1}
+.shelf .sh{display:flex;align-items:center;gap:6px;height:28px;padding:0 8px;color:var(--dim);font-size:12px;cursor:pointer;border-radius:8px;margin-top:8px;transition:color 120ms;user-select:none}
+.shelf .sh:hover{color:var(--mut)}
+.shelf .sh .chev{transition:rotate 200ms var(--ease)}
+.shelf.collapsed .sh .chev{rotate:-90deg}
+.shelf .sh .c{font-variant-numeric:tabular-nums}
+.shelf.collapsed .rows>.clp:not(.keep){display:none}
+.sb-f{margin-top:auto;border-top:1px solid var(--line);padding:8px 0 0;display:flex;flex-direction:column;gap:1px;font-size:12px;flex:none}
+.sb-f a{display:flex;align-items:center;gap:8px;height:30px;padding:0 8px;border-radius:8px;color:var(--fg2);transition:background-color 120ms;cursor:pointer}
+.sb-f a:hover{background:var(--hov)}
+.sb-f a .i{color:var(--mut)}
+.sb-f .r{margin-left:auto;color:var(--dim);font-variant-numeric:tabular-nums}
+.okdot{width:6px;height:6px;border-radius:50%;background:var(--ok);flex:none}
+
+/* main thread */
+.mn{display:flex;flex-direction:column;min-width:0;min-height:0;position:relative}
+.tb{height:44px;display:flex;align-items:center;gap:10px;padding:0 10px 0 20px;flex:none}
+.tb .title{font-weight:600;font-size:13px;white-space:nowrap}
+.tb .scope{display:inline-flex;align-items:center;gap:5px;color:var(--mut);font-size:12px;white-space:nowrap}
+.tb .sp{margin-left:auto;display:flex;align-items:center;gap:2px}
+.spend{font:12px var(--mono);color:var(--mut);padding:0 8px;white-space:nowrap}
+.chat{flex:1;overflow:auto;padding:10px 24px 0}
+.col{max-width:46rem;margin:0 auto;display:flex;flex-direction:column;gap:18px;padding-bottom:20px}
+.u{align-self:flex-end;max-width:86%;background:var(--hov);border-radius:18px;padding:9px 14px;font-size:14px;line-height:1.55;color:var(--fg)}
+.u-meta{align-self:flex-end;font-size:11px;color:var(--dim);margin-top:-13px;padding-right:8px}
+.wl-h{display:flex;align-items:center;gap:6px;color:var(--mut);font-size:12.5px;height:26px;cursor:pointer;width:max-content;transition:color 120ms;user-select:none}
+.wl-h:hover{color:var(--fg2)}
+.wl-h .chev{transition:rotate 200ms var(--ease)}
+.wl.shut .wl-h .chev{rotate:-90deg}
+.wl-b{border-left:1px solid var(--line);margin-left:7px;padding-left:14px;display:flex;flex-direction:column}
+.tr{display:grid;grid-template-columns:16px minmax(0,1fr) auto;align-items:center;gap:10px;height:26px;font-size:12.5px;color:var(--mut)}
+.tr>.i{color:var(--dim)}
+.tr .l{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tr .l b{font-weight:500;color:var(--fg2)}
+.tr .l .q{font-family:var(--mono);font-size:11.5px;color:var(--dim)}
+.tr .m{font:11.5px var(--mono);color:var(--dim);white-space:nowrap}
+.tr .m .c{color:var(--mut)}
+.as{font-size:14px;line-height:1.65;color:var(--fg)}
+.as p+p,.as p+table,.as table+p{margin-top:12px}
+.as b{font-weight:600}
+.mt{width:100%;border-collapse:collapse;font-size:12.5px}
+.mt th{color:var(--dim);font-weight:500;text-align:left;padding:6px 12px 6px 0;border-bottom:1px solid var(--line2);font-size:11.5px;white-space:nowrap}
+.mt td{padding:7px 12px 7px 0;border-bottom:1px solid var(--line);color:var(--fg2);white-space:nowrap;line-height:1.4}
+.mt td .s{color:var(--dim)}
+.fit{font:600 12px var(--mono);color:var(--fg)}.fit.f4{color:var(--mut)}
+.sys{display:flex;align-items:center;gap:10px;color:var(--dim);font-size:12px}
+.sys::before,.sys::after{content:"";height:1px;background:var(--line);flex:1}
+.cw{padding:0 24px 16px;flex:none;display:flex;flex-direction:column;gap:8px}
+.cw>*{width:100%;max-width:46rem;margin:0 auto}
+.ap{border:1px solid rgba(251,191,36,.22);background:rgba(251,191,36,.035);border-radius:14px;padding:11px 12px 10px 14px}
+.ap-h{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:500;color:var(--warn)}
+.ap-h .r{margin-left:auto;color:var(--dim);font-weight:400}
+.ap-b{margin-top:6px;font-size:13px;color:var(--fg)}
+.ap-b .mono{font-size:12px}
+.ap-why{font-size:12px;color:var(--mut);margin-top:2px}
+.ap-a{display:flex;justify-content:flex-end;gap:6px;margin-top:10px}
+.cmp{border:1px solid var(--line2);border-radius:20px;background:#0a0a0a;box-shadow:0 14px 32px -18px rgba(0,0,0,.75)}
+.qd{display:flex;align-items:center;gap:8px;padding:7px 8px 7px 14px;border-bottom:1px solid var(--line);font-size:12.5px}
+.qd .lbl{color:var(--dim);font-size:11.5px;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.qd .txt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg2)}
+.ta{padding:12px 16px 4px;min-height:50px;color:var(--dim);font-size:14px}
+.ctb{display:flex;align-items:center;gap:2px;padding:4px 8px 8px}
+.chip{height:26px;padding:0 8px;border-radius:8px;display:inline-flex;align-items:center;gap:5px;color:var(--mut);font-size:12px;cursor:pointer;transition:background-color 120ms,color 120ms;white-space:nowrap}
+.chip:hover{background:var(--hov);color:var(--fg)}
+.chip .i{width:14px;height:14px}
+.chip .i.xs{width:12px;height:12px;color:var(--dim)}
+.send{margin-left:auto;width:30px;height:30px;border-radius:50%;background:var(--fg);color:#000;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:scale 100ms ease-out,opacity 120ms;flex:none}
+.send:active{scale:.94}
+.send.stop{background:transparent;color:var(--fg);border:1px solid var(--line2)}
+.send.stop .i{width:12px;height:12px;fill:currentColor}
+
+/* right panel */
+.rp{border-left:1px solid var(--line);min-width:0;overflow:hidden}
+.rp-in{width:392px;display:flex;flex-direction:column;height:100%}
+.tabs{height:44px;display:flex;align-items:center;gap:2px;padding:0 8px;flex:none;border-bottom:1px solid var(--line)}
+.tab{height:28px;padding:0 10px;border-radius:8px;display:inline-flex;align-items:center;gap:6px;color:var(--mut);font-size:12.5px;cursor:pointer;transition:background-color 120ms,color 120ms;user-select:none}
+.tab:hover{color:var(--fg)}.tab.on{background:var(--hov);color:var(--fg)}
+.tab .c{font-size:11px;color:var(--pri2);font-variant-numeric:tabular-nums}
+.pane{flex:1;overflow:auto;display:none}.pane.on{display:block}
+.rv-h{display:flex;align-items:center;gap:6px;padding:12px 12px 10px 14px;font-size:12.5px;color:var(--mut)}
+.rv-h b{color:var(--fg);font-weight:600;margin-right:auto}
+.pr{padding:12px 14px;border-top:1px solid var(--line);transition:background-color 260ms}
+.pr.ok{background:rgba(52,211,153,.06)}.pr.no{background:rgba(248,113,113,.06)}
+.pr-h{display:flex;align-items:baseline;gap:8px}
+.pr-h .nm{font-weight:600;font-size:13px}
+.pr-h .sc{color:var(--dim);font-size:12px}
+.pr-h .k{margin-left:auto;color:var(--dim);font-size:11.5px}
+.df{margin-top:8px;font:11.5px/1.7 var(--mono);border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+.df div{padding:1px 10px;white-space:pre-wrap;word-break:break-word}
+.df .a{background:rgba(52,211,153,.07);color:#bbf7d0}
+.df .d{background:rgba(248,113,113,.07);color:#fecaca}
+.df .a::before{content:"+ ";color:var(--ok)}.df .d::before{content:"- ";color:var(--err)}
+.src{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--dim);margin-top:7px}
+.pr-a{display:flex;gap:6px;justify-content:flex-end;align-items:center;margin-top:8px;min-height:24px;font-size:12px}
+.rv-f{padding:12px 14px;border-top:1px solid var(--line);color:var(--dim);font-size:11.5px;display:flex;gap:14px;flex-wrap:wrap}
+.empty{padding:48px 20px;text-align:center;color:var(--dim);font-size:12.5px}
+.empty b{display:block;color:var(--fg2);font-weight:500;font-size:13px;margin-bottom:2px}
+.pp{padding:14px}
+.pp h4{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.pp .sub{color:var(--mut);font-size:12px;margin-top:1px}
+.facts{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;margin-top:8px;color:var(--mut)}
+.facts b{color:var(--fg);font-weight:600}
+.kv{margin-top:14px;display:grid;grid-template-columns:86px minmax(0,1fr);gap:8px 12px;font-size:12.5px}
+.kv dt{color:var(--dim)}
+.kv dd{color:var(--fg2)}
+.kv dd .s{color:var(--dim);font-size:11.5px;display:block}
+blockquote{border-left:2px solid var(--line2);padding:2px 0 2px 10px;color:var(--fg2);font-size:12.5px}
+mark{background:rgba(251,191,36,.16);color:var(--fg);border-radius:3px;padding:0 2px}
+.excerpt{margin:12px 14px;font-size:13px;line-height:1.7;color:var(--fg2)}
+.srch{padding:12px 14px 0;font-size:12px;color:var(--mut);display:flex;align-items:center;gap:6px}
+
+/* B: sheet + dock */
+.appB{display:grid;grid-template-columns:52px minmax(0,1fr) 372px;grid-template-rows:minmax(0,1fr);height:780px;font-size:13px}
+.rail{border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0}
+.rail .sp{flex:1}
+.tbar{height:44px;display:flex;align-items:center;gap:10px;padding:0 12px 0 16px;flex:none}
+.tbar .title{font-weight:600}
+.srchbox{margin-left:auto;height:28px;width:240px;border:1px solid var(--line2);border-radius:8px;display:flex;align-items:center;gap:6px;padding:0 8px;color:var(--dim);font-size:12.5px}
+.views{display:flex;gap:2px;padding:0 10px 8px;flex:none}
+.flt{display:flex;gap:6px;padding:8px 16px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);flex:none}
+.dd{height:26px;padding:0 8px;border:1px solid var(--line2);border-radius:7px;display:inline-flex;align-items:center;gap:5px;color:var(--mut);font-size:12px;white-space:nowrap}
+.dd b{color:var(--fg);font-weight:500}
+.gridw{flex:1;overflow:auto}
+.grid{width:100%;border-collapse:collapse;font-size:12.5px}
+.grid th{position:sticky;top:0;background:#000;text-align:left;font-weight:500;color:var(--dim);font-size:11.5px;padding:7px 10px;border-bottom:1px solid var(--line2);white-space:nowrap;z-index:1}
+.grid td{padding:0 10px;height:34px;border-bottom:1px solid var(--line);white-space:nowrap;color:var(--fg2);max-width:230px;overflow:hidden;text-overflow:ellipsis}
+.grid td.nm{color:var(--fg);font-weight:500}
+.grid tr:hover td{background:rgba(255,255,255,.025)}
+.grid tr.sel td{background:oklch(.571 .21 264 / .07)}
+.grid td.chg{box-shadow:inset 2px 0 var(--pri);background:oklch(.571 .21 264 / .13)!important;color:var(--fg)}
+.cb{width:14px;height:14px;border:1px solid var(--input);border-radius:4px;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
+.cb.on{background:var(--fg);border-color:var(--fg);color:#000}
+.cb .i{width:10px;height:10px;stroke-width:3}
+.stb{height:38px;border-top:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 10px 0 16px;font-size:12px;color:var(--mut);flex:none}
+.stb .r{margin-left:auto;display:flex;gap:6px;align-items:center}
+.dock{border-left:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
+.dock .chat{padding:8px 16px 0}
+.dock .col{gap:14px}
+.dock .cw{padding:0 12px 12px}
+.dock .as{font-size:13px}
+.dock .u{font-size:13px}
+.dock ul{margin:6px 0 0 16px}.dock li{margin:4px 0}.dock li::marker{color:var(--dim)}
+
+/* C: research grid */
+.appC{display:grid;grid-template-columns:232px minmax(0,1fr);grid-template-rows:minmax(0,1fr);height:780px;font-size:13px}
+.qbar{margin:4px 16px 12px;border:1px solid var(--line2);border-radius:14px;background:#0a0a0a;display:flex;align-items:center;gap:10px;padding:7px 7px 7px 14px;flex:none}
+.qbar .qt{flex:1;color:var(--fg);font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qbar .qt .sep{color:var(--faint);margin:0 6px}
+.qbar .est{font:11.5px var(--mono);color:var(--dim);white-space:nowrap}
+.gC th .src2{display:block;font:400 10.5px var(--mono);color:var(--faint);margin-top:1px}
+.gC td{height:38px}
+.run{color:var(--info);display:inline-flex;align-items:center;gap:5px}
+.qd2{color:var(--faint)}
+.no2{color:var(--dim)}
+.gC tr.x td{opacity:.45}
+.addcol{color:var(--dim);display:inline-flex;align-items:center;gap:4px}
+
+/* screens */
+.solo{height:600px;display:flex;flex-direction:column}
+.start{flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 24px}
+.start .in{width:100%;max-width:46rem;margin:0 auto}
+.start h5{font-size:20px;font-weight:600;letter-spacing:-.015em}
+.start .sub{color:var(--mut);font-size:13px;margin-top:2px}
+.starters{margin:18px 0 18px;display:flex;flex-direction:column}
+.starter{display:grid;grid-template-columns:20px 170px minmax(0,1fr) auto;align-items:center;gap:12px;height:38px;padding:0 10px;border-radius:10px;cursor:pointer;transition:background-color 120ms;font-size:13px}
+.starter:hover{background:var(--hov)}
+.starter .i{color:var(--mut)}
+.starter .d{color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.appF{display:grid;grid-template-columns:minmax(0,1fr) 340px;grid-template-rows:minmax(0,1fr);height:720px;font-size:13px}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:8px;padding:2px;gap:2px}
+.seg span{height:22px;padding:0 9px;border-radius:6px;display:inline-flex;align-items:center;color:var(--mut);font-size:12px}
+.seg span.on{background:var(--hov);color:var(--fg)}
+.rw{display:inline-flex;align-items:center;gap:8px}
+.rwb{width:72px;height:4px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden;display:inline-block}
+.rwb i{display:block;height:100%;background:var(--ok);border-radius:2px}
+.rwb i.lo{background:var(--warn)}
+.side{border-left:1px solid var(--line);padding:14px;overflow:auto;display:flex;flex-direction:column;gap:12px}
+.side h4{font-size:13.5px;font-weight:600;line-height:1.4}
+.side .ab{color:var(--fg2);font-size:12.5px;line-height:1.6}
+.side .acts2{display:flex;gap:6px;flex-wrap:wrap}
+.appP{display:grid;grid-template-columns:minmax(0,1fr) 340px;min-height:640px;font-size:13px}
+.ppm{padding:20px 28px;overflow:auto}
+.ppm h4{font-size:20px;font-weight:600;letter-spacing:-.015em}
+.ppm .sub{color:var(--mut);font-size:13px;margin-top:2px}
+.ppm .acts2{display:flex;gap:6px;margin-top:14px}
+.sec{margin-top:22px}
+.sec h6{font-size:12px;font-weight:500;color:var(--dim);margin-bottom:6px}
+.sec .ln{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px;color:var(--fg2)}
+.sec .ln .s{color:var(--dim);font-size:12px;white-space:nowrap}
+.tl{display:flex;flex-direction:column;gap:0;font-size:12.5px}
+.tl div{display:grid;grid-template-columns:78px minmax(0,1fr);gap:10px;padding:6px 0;border-bottom:1px solid var(--line);color:var(--fg2)}
+.tl div span{color:var(--dim);font-variant-numeric:tabular-nums}
+.motion td:nth-child(3){font-family:var(--mono);font-size:12px;color:var(--mut);white-space:nowrap}
+td.ok{color:var(--ok)}td.err{color:var(--err)}td.dim,td.no2{color:var(--dim)}td.qd2{color:var(--faint)}
+.keys td:first-child{font-family:var(--mono);font-size:12px;color:var(--fg);white-space:nowrap;width:140px}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+<symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+<symbol id="i-chev-d" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7M12 19V5"/></symbol>
+<symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
+<symbol id="i-cap" viewBox="0 0 24 24"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></symbol>
+<symbol id="i-msg" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+<symbol id="i-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+<symbol id="i-table" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></symbol>
+<symbol id="i-dollar" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></symbol>
+<symbol id="i-bank" viewBox="0 0 24 24"><path d="M3 22h18M6 18v-7M10 18v-7M14 18v-7M18 18v-7M12 2l8 5H4z"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8"/></symbol>
+<symbol id="i-ext" viewBox="0 0 24 24"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+<symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></symbol>
+<symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></symbol>
+<symbol id="i-filter" viewBox="0 0 24 24"><path d="M22 3H2l8 9.46V19l4 2v-8.54z"/></symbol>
+<symbol id="i-stop" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></symbol>
+<symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>
+<symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+<symbol id="i-wallet" viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+<symbol id="i-monitor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></symbol>
+<symbol id="i-ask" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></symbol>
+<symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
+<symbol id="i-pen" viewBox="0 0 24 24"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.4 2.6a2.1 2.1 0 1 1 3 3L12 15l-4 1 1-4z"/></symbol>
+<symbol id="i-load" viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></symbol>
+<symbol id="i-at" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
+</svg>
+
+<div class="bar"><div class="in"><b>gradcode · phase 1</b><nav><a href="#done">Done</a><a href="#flow">Workflow</a><a href="#shell">Shell A B C</a><a href="#screens">Screens</a><a href="#motion">Motion and keys</a><a href="#build">Build</a><a href="#decide">Decide</a></nav></div></div>
+
+<main class="doc">
+<h1>gradcode: what done looks like</h1>
+<p>A T3 Code-shaped app for the PhD hunt. Every thread is a Claude Code session, and treg is its tool belt. Two jobs: <b>find professors who can fund a student</b>, and <b>find the money behind them</b>. It runs on the Mac mini on top of gradhunt's data, so Scout, the cloud outreach routine and the current dashboard keep working.</p>
+<p>Three rules borrowed from T3 Code: you fire off a hunt and walk away, and the sidebar only asks for you when a thread needs you. Findings arrive as records you review like a diff, not as prose. Every cent and every source stays visible.</p>
+
+<h2 id="done"><span class="n">1</span>Done, v1</h2>
+<table class="spec">
+<thead><tr><th>#</th><th>Done when</th><th>Check</th></tr></thead>
+<tbody>
+<tr><td class="n">1</td><td><b>Threads.</b> Start, rename, resume and stop threads. Each is a Claude Code session that streams text and tool calls. It runs on the Mac mini, so closing the laptop never stops a hunt, and it survives a server restart.</td><td class="c">Close the laptop mid-turn, reopen from the phone, and the thread has kept going.</td></tr>
+<tr><td class="n">2</td><td><b>The sidebar is an inbox.</b> Threads that need you come first: Approval (amber), Input (indigo), Done and unread. Working rows fade back. Settle and Snooze appear on hover. Settled and Snoozed shelves start collapsed. Untouched threads auto-settle after 3 days.</td><td class="c">End of day: every thread is settled, snoozed or working.</td></tr>
+<tr><td class="n">3</td><td><b>Threads settle themselves.</b> A thread settles once nothing waits on you: every proposal reviewed, no approval pending. Optional auto-accept rules (verified email, official source, fit 4+) let a hunt finish without you ever opening it.</td><td class="c">Review the last proposal and the thread drops into Settled.</td></tr>
+<tr><td class="n">4</td><td><b>Queue and steer.</b> A message sent mid-turn waits and goes out after the next tool call. Steer sends it now.</td><td class="c">Queue a message, press Steer, and the agent picks it up within one tool call.</td></tr>
+<tr><td class="n">5</td><td><b>Scoped threads.</b> A thread can be about a school, a professor or a search, and opening one loads that record into context. Start one with <code>@</code> or from any row.</td><td class="c">"Ask about Lybarger" answers from the record without fetching it again.</td></tr>
+<tr><td class="n">6</td><td><b>treg in view.</b> Every call shows its endpoint, price, time and result. Thread spend and treg balance are always on screen. Calls over $0.01 ask first, and each thread has a hard cap.</td><td class="c">A $0.0245 Prospeo lookup raises an approval.</td></tr>
+<tr><td class="n">7</td><td><b>Results are records.</b> The agent reports through typed tools (<code>propose_professor</code>, <code>propose_program</code>, <code>propose_grant</code>). Proposals land in Review as field diffs. Accept writes through scout.py; reject records the reason in the exclusions.</td><td class="c">Accept 3 and reject 1. Scout's next nightly run sees all four.</td></tr>
+<tr><td class="n">8</td><td><b>Professor finder.</b> Search by niche and school, or say "next school in the queue". Candidates fill a table: fit, recruiting evidence, money, email check, contact rule. Keep, drop, dig deeper or draft from any row.</td><td class="c">"health NLP at GMU, UIC, Arizona" returns rows that all link sources.</td></tr>
+<tr><td class="n">9</td><td><b>Funding finder.</b> Follow the money: NSF and NIH awards by topic at tracked schools (both APIs are free), with PI, amount, end date, months left after Fall 2027, and whether the PI is in the sheet. One click adds a PI. Program funding sits beside it: guarantee for internationals, stipend, fee, deadline.</td><td class="c">"language model" at UMD shows Ge Gao's CAREER award as not in the sheet yet.</td></tr>
+<tr><td class="n">10</td><td><b>Professor page.</b> Every fact links its source: interests, recent works, grants, recruiting quote, contact rule, email check, threads, draft state.</td><td class="c">Every field opens its source.</td></tr>
+<tr><td class="n">11</td><td><b>Facts guard.</b> The agent reads hq facts and the Scout spec and claims nothing hq lacks. A draft only shows after <code>scout.py lint-drafts</code> passes.</td><td class="c">A draft claiming a fact hq lacks fails lint in the UI.</td></tr>
+<tr><td class="n">12</td><td><b>Polish bar.</b> Every action is in the ⌘K palette and the app is keyboard-first. Motion follows the spec below. Nothing animates forever, and reduced motion turns every transition off.</td><td class="c">A full morning of triage without touching the mouse.</td></tr>
+</tbody>
+</table>
+<p class="note">Not in v1: sending mail and inbox sync (the cloud routine keeps both), the send queue and Conversations (the current dashboard keeps them until v2 ports them), auth, a phone layout beyond reading and approving, hosting, more than one user.</p>
+
+<h2 id="flow"><span class="n">2</span>Workflow</h2>
+<div class="cols">
+<div>
+<h3>A day with it</h3>
+<table class="spec"><tbody>
+<tr><td class="n tn">23:00</td><td>Scout's nightly run lands as a thread. You are asleep and nothing pings you.</td></tr>
+<tr><td class="n tn">08:30</td><td>Three rows need you: one approval, one question, one finished hunt. You approve a $0.0245 lookup, answer the question, then work through Review with <code>a</code> and <code>r</code>. Each thread settles as its last change is reviewed. Inbox zero in five minutes.</td></tr>
+<tr><td class="n tn">08:40</td><td>Fire three hunts: "Follow the money: Purdue", "Vet Yulin Yu", "UIC BHIS or CS PhD?". Close the laptop.</td></tr>
+<tr><td class="n tn">day</td><td>They run on the Mac mini. Working rows stay dim. You only hear from a thread when it needs a decision, and never get a toast for "done".</td></tr>
+<tr><td class="n tn">night</td><td>Queue tomorrow's hunts before bed, the same way Theo uses tokens while sleeping.</td></tr>
+</tbody></table>
+</div>
+<div>
+<h3>T3 Code concept, mapped</h3>
+<table class="spec">
+<thead><tr><th>T3 Code</th><th>gradcode</th></tr></thead>
+<tbody>
+<tr><td>Project</td><td>Hunt: Fall 2027, funded PhD</td></tr>
+<tr><td>Thread in a worktree</td><td>Thread scoped to a school, professor or search</td></tr>
+<tr><td>Diff panel</td><td>Review: field diffs on records</td></tr>
+<tr><td>Merge PR, thread disappears</td><td>Last proposal reviewed, thread settles</td></tr>
+<tr><td>"Merge if checks pass"</td><td>Auto-accept rules</td></tr>
+<tr><td>Command approval</td><td>Paid treg call over $0.01, any write to hq</td></tr>
+<tr><td>Settle, Snooze, auto-settle</td><td>Same, auto-settle at 3 days</td></tr>
+<tr><td>Queue, Steer</td><td>Same</td></tr>
+<tr><td>Computer picker</td><td>Mac mini runs everything; laptop and phone are views</td></tr>
+</tbody></table>
+</div>
+</div>
+
+<h2 id="shell"><span class="n">3</span>Shell: pick one</h2>
+<p>Same data in all three. A follows T3 Code most closely and is clickable. B and C are static.</p>
+
+<div class="vh"><span class="k">A</span><span class="t">Threads</span><span class="s">T3 Code's shape: inbox sidebar, chat, Review panel on the right</span><span class="rec">recommended</span></div>
+<div class="try"><span>hover a sidebar row, then Settle or Snooze</span><span>Allow once, or Deny, on the approval</span><span>Accept or Reject each change; the last one settles the thread</span><span>Steer the queued message</span><span>switch panel tabs</span></div>
+<div class="scroll"><div class="win" id="mockA"><div class="app">
+ <aside class="sb">
+  <div class="sb-top"><div class="lights"><i></i><i></i><i></i></div><span class="brand">gradcode</span><span class="ib"><svg class="i sm"><use href="#i-search"/></svg></span><span class="ib"><svg class="i sm"><use href="#i-pen"/></svg></span></div>
+  <div class="nv">
+   <a><svg class="i sm"><use href="#i-plus"/></svg>New thread<span class="kbd">⌘N</span></a>
+   <a><svg class="i sm"><use href="#i-users"/></svg>Professors<span class="c">110</span></a>
+   <a><svg class="i sm"><use href="#i-bank"/></svg>Funding<span class="c">7</span></a>
+   <a><svg class="i sm"><use href="#i-cap"/></svg>Schools<span class="c">24</span></a>
+   <a><svg class="i sm"><use href="#i-inbox"/></svg>Review<span class="c pri js-rc">4</span></a>
+  </div>
+  <div class="ph"><svg class="i sm"><use href="#i-chev-d"/></svg>Fall 2027 · funded PhD<span class="end"><span class="ib" style="width:22px;height:22px"><svg class="i xs"><use href="#i-plus"/></svg></span></span></div>
+  <div class="shelf" data-shelf="main"><div class="rows">
+   <div class="clp" id="tA"><div class="row active"><span class="dot"></span><span class="tt">Funded NLP at GMU + Arizona</span><span class="st warn" id="tA-st"><svg class="i xs"><use href="#i-alert"/></svg>Approval</span><span class="acts"><span class="ib" data-act="snooze" title="Snooze"><svg class="i xs"><use href="#i-clock"/></svg></span><span class="ib" data-act="settle" title="Settle"><svg class="i xs"><use href="#i-check"/></svg></span></span></div></div>
+   <div class="clp"><div class="row unread"><span class="dot"></span><span class="tt">Follow the money: UMD</span><span class="st dim">12m</span><span class="acts"><span class="ib" data-act="snooze"><svg class="i xs"><use href="#i-clock"/></svg></span><span class="ib" data-act="settle"><svg class="i xs"><use href="#i-check"/></svg></span></span></div></div>
+   <div class="clp"><div class="row"><span class="dot"></span><span class="tt">Vet Yulin Yu</span><span class="st ind"><svg class="i xs"><use href="#i-ask"/></svg>Input</span><span class="acts"><span class="ib" data-act="snooze"><svg class="i xs"><use href="#i-clock"/></svg></span><span class="ib" data-act="settle"><svg class="i xs"><use href="#i-check"/></svg></span></span></div></div>
+   <div class="clp"><div class="row"><span class="dot"></span><span class="tt">Is Anastasopoulos hiring?</span><span class="st dim">1d</span><span class="acts"><span class="ib" data-act="snooze"><svg class="i xs"><use href="#i-clock"/></svg></span><span class="ib" data-act="settle"><svg class="i xs"><use href="#i-check"/></svg></span></span></div></div>
+   <div class="clp"><div class="row"><span class="dot"></span><span class="tt">UIC: BHIS or CS PhD?</span><span class="st dim">2d</span><span class="acts"><span class="ib" data-act="snooze"><svg class="i xs"><use href="#i-clock"/></svg></span><span class="ib" data-act="settle"><svg class="i xs"><use href="#i-check"/></svg></span></span></div></div>
+  </div></div>
+  <div class="shelf" data-shelf="working"><div class="sh" data-act="shelf"><svg class="i xs chev"><use href="#i-chev-d"/></svg>Working<span class="c js-working">2</span></div><div class="rows">
+   <div class="clp"><div class="row recede"><span class="dot"></span><span class="tt">Purdue BMI sweep</span><span class="st info">Working 4m</span><span class="acts"><span class="ib" data-act="snooze"><svg class="i xs"><use href="#i-clock"/></svg></span><span class="ib" data-act="settle"><svg class="i xs"><use href="#i-check"/></svg></span></span></div></div>
+   <div class="clp"><div class="row recede"><span class="dot"></span><span class="tt">Fee waivers, tracked schools</span><span class="st info">Working 1m</span><span class="acts"><span class="ib" data-act="snooze"><svg class="i xs"><use href="#i-clock"/></svg></span><span class="ib" data-act="settle"><svg class="i xs"><use href="#i-check"/></svg></span></span></div></div>
+  </div></div>
+  <div class="shelf collapsed" data-shelf="snoozed"><div class="sh" data-act="shelf"><svg class="i xs chev"><use href="#i-chev-d"/></svg>Snoozed<span class="c js-snoozed">1</span></div><div class="rows">
+   <div class="clp"><div class="row"><span class="dot"></span><span class="tt">Rui Zhang hiring page</span><span class="st dim">Mon</span></div></div>
+  </div></div>
+  <div class="shelf collapsed" data-shelf="settled"><div class="sh" data-act="shelf"><svg class="i xs chev"><use href="#i-chev-d"/></svg>Settled<span class="c js-settled">14</span></div><div class="rows">
+   <div class="clp"><div class="row"><span class="dot"></span><span class="tt">Scout nightly: Purdue exhausted</span><span class="st dim">10-06</span></div></div>
+   <div class="clp"><div class="row"><span class="dot"></span><span class="tt">GMU priority deadline check</span><span class="st dim">10-05</span></div></div>
+   <div class="clp"><div class="row"><span class="dot"></span><span class="tt">ELLIS: is it worth the lottery?</span><span class="st dim">10-04</span></div></div>
+  </div></div>
+  <div class="sb-f">
+   <a><svg class="i sm"><use href="#i-monitor"/></svg>Mac mini<span class="okdot"></span><span class="r">all threads</span></a>
+   <a><svg class="i sm"><use href="#i-wallet"/></svg>treg <span class="tn">$12.40</span><span class="r">today <span class="js-today">$0.38</span></span></a>
+  </div>
+ </aside>
+
+ <section class="mn">
+  <div class="tb"><span class="title">Funded NLP at GMU + Arizona</span><span class="scope"><svg class="i xs"><use href="#i-cap"/></svg>George Mason, Arizona</span><span class="sp"><span class="spend js-spend">$0.025 / $0.50</span><span class="ib on" data-act="panel" title="Toggle panel ⌘\"><svg class="i sm"><use href="#i-panel"/></svg></span><span class="ib"><svg class="i sm"><use href="#i-more"/></svg></span></span></div>
+  <div class="chat"><div class="col" id="colA">
+   <div class="u">Who at George Mason and Arizona does NLP or health NLP, has money that lasts past Fall 2027, and is taking students? Verify their emails.</div>
+   <div class="u-meta">9:41</div>
+   <div class="wl" id="wlA">
+    <div class="wl-h" data-act="wl"><svg class="i xs chev"><use href="#i-chev-d"/></svg>Worked for 1m 12s · 11 calls · <span class="js-wlcost">$0.025</span></div>
+    <div class="clp"><div><div class="wl-b" id="wlbA">
+     <div class="tr"><svg class="i sm"><use href="#i-search"/></svg><span class="l"><b>exa.people.search</b> <span class="q">"NLP professor George Mason University"</span></span><span class="m"><span class="c">10 people</span> · $0.007</span></div>
+     <div class="tr"><svg class="i sm"><use href="#i-search"/></svg><span class="l"><b>exa.people.search</b> <span class="q">"health NLP professor University of Arizona"</span></span><span class="m"><span class="c">10 people</span> · $0.007</span></div>
+     <div class="tr"><svg class="i sm"><use href="#i-bank"/></svg><span class="l"><b>nsf.awards</b> <span class="q">GMU, Arizona · active past 2027</span></span><span class="m"><span class="c">4 awards</span> · free</span></div>
+     <div class="tr"><svg class="i sm"><use href="#i-bank"/></svg><span class="l"><b>nih.reporter</b> <span class="q">Lybarger</span></span><span class="m"><span class="c">not PI, team grant</span> · free</span></div>
+     <div class="tr"><svg class="i sm"><use href="#i-globe"/></svg><span class="l"><b>fetch</b> <span class="q">kevinlybarger.me/news.html</span></span><span class="m"><span class="c">"$4.65M NIH"</span> · free</span></div>
+     <div class="tr"><svg class="i sm"><use href="#i-globe"/></svg><span class="l"><b>fetch</b> <span class="q">antonisa.github.io</span></span><span class="m"><span class="c">"not currently hiring"</span> · free</span></div>
+     <div class="tr"><svg class="i sm"><use href="#i-globe"/></svg><span class="l"><b>fetch</b> <span class="q">eller.arizona.edu/people/gondy-leroy</span></span><span class="m"><span class="c">"$5.7M as PI"</span> · free</span></div>
+     <div class="tr"><svg class="i sm"><use href="#i-shield"/></svg><span class="l"><b>millionverifier.email.verify</b> <span class="q">×4</span></span><span class="m"><span class="c">ok ok ok <span class="err">invalid</span></span> · $0.0072</span></div>
+     <div class="tr"><svg class="i sm"><use href="#i-shield"/></svg><span class="l"><b>bounceban.email.verify</b> <span class="q">Chen</span></span><span class="m"><span class="c err">undeliverable</span> · $0.004</span></div>
+     <div class="tr"><svg class="i sm"><use href="#i-zap"/></svg><span class="l"><b>propose_professor</b> <span class="q">×4</span></span><span class="m"><span class="c">4 changes</span></span></div>
+     <div class="tr" id="trWait"><svg class="i sm warn"><use href="#i-dollar"/></svg><span class="l"><b>prospeo.people.email.find</b> <span class="q">Chen</span></span><span class="m warn">waiting for you</span></div>
+    </div></div></div>
+   </div>
+   <div class="as">
+    <p>Five came up. Four can likely pay past Fall 2027. One has money but is not taking students.</p>
+    <table class="mt">
+     <thead><tr><th>Fit</th><th>Professor</th><th>Money</th><th>Lasts</th><th>Taking students</th><th>Email</th></tr></thead>
+     <tbody>
+      <tr><td><span class="fit">5</span></td><td>Lybarger <span class="s">GMU IST</span></td><td>NIH team grant, $4.65M</td><td class="dim">not posted</td><td>yes, "PhD 2027" subject</td><td class="ok">ok</td></tr>
+      <tr><td><span class="fit">5</span></td><td>Yao <span class="s">GMU CS</span></td><td>NSF CAREER, Amazon, 2026</td><td>5-yr CAREER</td><td>yes, critique a paper</td><td class="ok">ok</td></tr>
+      <tr><td><span class="fit">5</span></td><td>Leroy <span class="s">Arizona MIS</span></td><td>$5.7M as PI</td><td>MIS funds all</td><td class="dim">not stated</td><td class="ok">ok</td></tr>
+      <tr><td><span class="fit f4">4</span></td><td>Chen <span class="s">Arizona MIS</span></td><td>NSF $15M+ since 2012</td><td>MIS funds all</td><td class="dim">not stated</td><td class="err">bounces</td></tr>
+      <tr><td><span class="fit">5</span></td><td>Anastasopoulos <span class="s">GMU CS</span></td><td>NSF CAREER, $599,956</td><td>May 2030</td><td class="err">no</td><td class="ok">ok</td></tr>
+     </tbody>
+    </table>
+    <p>Four changes are waiting in Review. A working address for Chen costs $0.0245, so I'm asking first.</p>
+   </div>
+  </div></div>
+  <div class="cw">
+   <div class="clp" id="apA"><div><div class="ap">
+    <div class="ap-h"><svg class="i sm"><use href="#i-alert"/></svg>Approval · paid lookup<span class="r">over the $0.01 limit</span></div>
+    <div class="ap-b"><span class="mono">prospeo.people.email.find</span> · $0.0245, charged only on a verified hit</div>
+    <div class="ap-why">Hsinchun Chen's listed address bounced on MillionVerifier and BounceBan.</div>
+    <div class="ap-a"><span class="btn gh sm" data-act="deny">Deny</span><span class="btn sm" data-act="allow-rule">Always under $0.03 here</span><span class="btn pri sm" data-act="allow">Allow once <span class="kbd">↵</span></span></div>
+   </div></div></div>
+   <div class="cmp">
+    <div class="clp" id="qA"><div><div class="qd"><span class="lbl"><svg class="i xs"><use href="#i-clock"/></svg>Queued</span><span class="txt">Do the same for UIC's BHIS program.</span><span class="btn sm" data-act="steer">Steer <span class="kbd">⌘↵</span></span><span class="ib" data-act="unqueue" style="width:24px;height:24px"><svg class="i xs"><use href="#i-x"/></svg></span></div></div></div>
+    <div class="ta">Ask anything. @ a school or professor to scope it.</div>
+    <div class="ctb"><span class="chip">Opus 5.5<svg class="i xs"><use href="#i-chev-d"/></svg></span><span class="chip"><svg class="i"><use href="#i-zap"/></svg>Hunt<svg class="i xs"><use href="#i-chev-d"/></svg></span><span class="chip"><svg class="i"><use href="#i-wallet"/></svg>$0.50 cap</span><span class="chip"><svg class="i"><use href="#i-at"/></svg>GMU, Arizona</span><span class="send stop" id="sendA" title="Stop ⌘."><svg class="i"><use href="#i-stop"/></svg></span></div>
+   </div>
+  </div>
+ </section>
+
+ <aside class="rp"><div class="rp-in">
+  <div class="tabs"><span class="tab on" data-tab="review">Review <span class="c js-rc">4</span></span><span class="tab" data-tab="prof">Professor</span><span class="tab" data-tab="results">Results</span><span class="tab" data-tab="source">Source</span><span style="margin-left:auto" class="ib" data-act="panel"><svg class="i sm"><use href="#i-x"/></svg></span></div>
+  <div class="pane on" data-pane="review">
+   <div class="rv-h"><b><span class="js-rc">4</span> changes from this turn</b><span class="btn gh sm" data-act="reject-all">Reject all</span><span class="btn sm" data-act="accept-all"><svg class="i xs"><use href="#i-check"/></svg>Accept all</span></div>
+   <div id="rvA">
+    <div class="clp"><div class="pr"><div class="pr-h"><span class="nm">Antonios Anastasopoulos</span><span class="sc">George Mason</span><span class="k">update</span></div>
+     <div class="df"><div class="a">grants: NSF 2439202 · $599,956 · 2025-06 to 2030-05</div><div class="a">watch: homepage weekly, "not currently hiring"</div></div>
+     <div class="src"><svg class="i xs"><use href="#i-link"/></svg>nsf.gov award 2439202 · antonisa.github.io</div>
+     <div class="pr-a"><span class="btn gh sm" data-act="reject">Reject <span class="kbd">r</span></span><span class="btn sm" data-act="accept"><svg class="i xs"><use href="#i-check"/></svg>Accept <span class="kbd">a</span></span></div></div></div>
+    <div class="clp"><div class="pr"><div class="pr-h"><span class="nm">Kevin Lybarger</span><span class="sc">George Mason</span><span class="k">update</span></div>
+     <div class="df"><div class="a">grants: NIH team grant · $4.65M · not PI on RePORTER</div></div>
+     <div class="src"><svg class="i xs"><use href="#i-link"/></svg>kevinlybarger.me/news.html, 2025-09-30</div>
+     <div class="pr-a"><span class="btn gh sm" data-act="reject">Reject</span><span class="btn sm" data-act="accept"><svg class="i xs"><use href="#i-check"/></svg>Accept</span></div></div></div>
+    <div class="clp"><div class="pr"><div class="pr-h"><span class="nm">Ziyu Yao</span><span class="sc">George Mason</span><span class="k">update</span></div>
+     <div class="df"><div class="a">grants: NSF CAREER · 2026-07</div><div class="a">grants: Amazon Research Award · 2026-04</div></div>
+     <div class="src"><svg class="i xs"><use href="#i-link"/></svg>prospective students page</div>
+     <div class="pr-a"><span class="btn gh sm" data-act="reject">Reject</span><span class="btn sm" data-act="accept"><svg class="i xs"><use href="#i-check"/></svg>Accept</span></div></div></div>
+    <div class="clp"><div class="pr"><div class="pr-h"><span class="nm">Hsinchun Chen</span><span class="sc">Arizona</span><span class="k">update</span></div>
+     <div class="df"><div class="d">email_check: invalid 2026-10-02</div><div class="a">email_check: invalid 2026-10-07 · BounceBan agrees</div></div>
+     <div class="src"><svg class="i xs"><use href="#i-link"/></svg>millionverifier · bounceban</div>
+     <div class="pr-a"><span class="btn gh sm" data-act="reject">Reject</span><span class="btn sm" data-act="accept"><svg class="i xs"><use href="#i-check"/></svg>Accept</span></div></div></div>
+   </div>
+   <div class="clp out" id="rvEmpty"><div><div class="empty"><b>Nothing to review</b>Accepted changes are in the sheet. Scout sees them tonight.</div></div></div>
+   <div class="rv-f"><span>a accept · r reject · j k move</span><span>Auto-accept: off</span></div>
+  </div>
+  <div class="pane" data-pane="prof"><div class="pp">
+   <h4>Kevin Lybarger</h4><div class="sub">Information Sciences and Technology · George Mason</div>
+   <div class="facts"><span>fit <b>5</b></span><span>safety</span><span>email <b class="ok">ok</b> 10-04</span><span>via <b>email</b></span><span>drafted</span></div>
+   <dl class="kv">
+    <dt>Niche</dt><dd>clinical NLP, LLM health agents, NLP x security</dd>
+    <dt>Money</dt><dd>NIH team grant, $4.65M<span class="s">lab news 2025-09-30 · not PI on RePORTER</span></dd>
+    <dt>Lab</dt><dd>4 funded PhD students, 3 from Bangladeshi universities</dd>
+    <dt>Contact</dt><dd><blockquote>Apply to the PhD in Information Technology first. Email with "PhD 2027" in the subject line, introduce yourself, say what you want to work on, attach your CV.</blockquote></dd>
+    <dt>Recent</dt><dd>DF-RAG: Query-Aware Diversity for RAG <span class="s">2026</span>Efficient IE Using LLMs and Knowledge Distillation <span class="s">2026</span></dd>
+   </dl>
+   <div style="margin-top:14px;display:flex;gap:6px"><span class="btn sm"><svg class="i xs"><use href="#i-ext"/></svg>Full page</span><span class="btn sm"><svg class="i xs"><use href="#i-msg"/></svg>Ask about Lybarger</span></div>
+  </div></div>
+  <div class="pane" data-pane="results">
+   <div class="srch"><svg class="i xs"><use href="#i-table"/></svg>5 rows from this thread</div>
+   <table class="grid" style="margin-top:8px"><thead><tr><th>Fit</th><th>Professor</th><th>Money</th><th>Email</th></tr></thead><tbody>
+    <tr><td class="fit">5</td><td class="nm">Lybarger</td><td>NIH $4.65M</td><td class="ok">ok</td></tr>
+    <tr><td class="fit">5</td><td class="nm">Yao</td><td>NSF CAREER</td><td class="ok">ok</td></tr>
+    <tr><td class="fit">5</td><td class="nm">Leroy</td><td>$5.7M as PI</td><td class="ok">ok</td></tr>
+    <tr><td class="fit f4">4</td><td class="nm">Chen</td><td>NSF $15M+</td><td class="err">bounces</td></tr>
+    <tr><td class="fit">5</td><td class="nm">Anastasopoulos</td><td>to 2030</td><td class="ok">ok</td></tr>
+   </tbody></table>
+  </div>
+  <div class="pane" data-pane="source">
+   <div class="srch"><svg class="i xs"><use href="#i-globe"/></svg>kevinlybarger.me · fetched 9:42</div>
+   <div class="excerpt">Admission runs through the PhD in Information Technology program: apply there first. To have me see your application, email with <mark>"PhD 2027" in the subject line</mark>, introduce yourself, say what you want to work on, attach your CV.</div>
+   <div class="srch" style="padding-top:0">Quoted in: contact_note, draft subject</div>
+  </div>
+ </div></aside>
+</div></div></div>
+<p class="note">Status colors match T3 Code: amber Approval, indigo Input, blue Working. Working shows elapsed time with no shimmer. A finished thread gets one white dot and nothing else.</p>
+
+<div class="vh"><span class="k">B</span><span class="t">Sheet + agent dock</span><span class="s">The professor table is the canvas. The agent sits on the right, scoped to the selection.</span></div>
+<div class="scroll"><div class="win"><div class="appB">
+ <nav class="rail"><span class="ib"><svg class="i"><use href="#i-msg"/></svg></span><span class="ib on"><svg class="i"><use href="#i-users"/></svg></span><span class="ib"><svg class="i"><use href="#i-bank"/></svg></span><span class="ib"><svg class="i"><use href="#i-cap"/></svg></span><span class="ib"><svg class="i"><use href="#i-inbox"/></svg></span><span class="sp"></span><span class="ib"><svg class="i"><use href="#i-sliders"/></svg></span></nav>
+ <section class="mn">
+  <div class="tbar"><span class="title">Professors</span><span class="dim">110</span><span class="srchbox"><svg class="i sm"><use href="#i-search"/></svg>Search name, school, niche</span></div>
+  <div class="views"><span class="tab">All</span><span class="tab on">Fit 5</span><span class="tab">Has money</span><span class="tab">Taking students</span><span class="tab">Needs email</span><span class="tab">Apply-only</span><span class="tab"><svg class="i xs"><use href="#i-plus"/></svg>View</span></div>
+  <div class="flt"><span class="dd">Tier <b>all</b><svg class="i xs"><use href="#i-chev-d"/></svg></span><span class="dd">School <b>all</b><svg class="i xs"><use href="#i-chev-d"/></svg></span><span class="dd">Money <b>any</b><svg class="i xs"><use href="#i-chev-d"/></svg></span><span class="dd">Email <b>any</b><svg class="i xs"><use href="#i-chev-d"/></svg></span><span class="dd">Stage <b>any</b><svg class="i xs"><use href="#i-chev-d"/></svg></span></div>
+  <div class="gridw"><table class="grid">
+   <thead><tr><th></th><th>Fit</th><th>Professor</th><th>School</th><th>Niche</th><th>Money</th><th>Taking students</th><th>Email</th><th>Via</th><th>Stage</th></tr></thead>
+   <tbody>
+    <tr class="sel"><td><span class="cb on"><svg class="i"><use href="#i-check"/></svg></span></td><td class="fit">5</td><td class="nm">Kevin Lybarger</td><td>George Mason</td><td>clinical NLP</td><td class="chg">NIH team grant $4.65M</td><td>yes</td><td class="ok">ok</td><td>email</td><td>drafted</td></tr>
+    <tr><td><span class="cb"></span></td><td class="fit">5</td><td class="nm">Ziyu Yao</td><td>George Mason</td><td>LLM reasoning</td><td>NSF CAREER 2026</td><td>yes</td><td class="ok">ok</td><td>email</td><td>drafted</td></tr>
+    <tr><td><span class="cb"></span></td><td class="fit">5</td><td class="nm">Antonios Anastasopoulos</td><td>George Mason</td><td>low-resource NLP</td><td>NSF CAREER to 2030</td><td class="err">no</td><td class="ok">ok</td><td>apply-only</td><td class="dim">new</td></tr>
+    <tr><td><span class="cb"></span></td><td class="fit">5</td><td class="nm">Marcos Zampieri</td><td>George Mason</td><td>Bangla LLMs</td><td>funded students</td><td>yes</td><td class="ok">ok</td><td>email</td><td>drafted</td></tr>
+    <tr><td><span class="cb"></span></td><td class="fit">5</td><td class="nm">Kenton Murray</td><td>George Mason</td><td>multilingual, efficient LLMs</td><td>new hire, startup</td><td>likely</td><td class="dim">unchecked</td><td>email</td><td>drafted</td></tr>
+    <tr><td><span class="cb"></span></td><td class="fit">5</td><td class="nm">Rui Zhang</td><td>Penn State</td><td>LLM agents</td><td>NSF CAREER to 2029</td><td>yes, by Dec 20</td><td class="ok">ok</td><td>email</td><td>drafted</td></tr>
+    <tr><td><span class="cb"></span></td><td class="fit">5</td><td class="nm">Mohit Iyyer</td><td>UMD</td><td>long-form QA, RAG</td><td>NSF to Oct 2027</td><td>1 a year</td><td class="ok">ok</td><td>apply-only</td><td>drafted</td></tr>
+    <tr><td><span class="cb"></span></td><td class="fit">5</td><td class="nm">Hamed Zamani</td><td>UMass Amherst</td><td>RAG, IR</td><td>Amazon award 2026</td><td>apply, list me</td><td class="ok">ok</td><td>apply-only</td><td>drafted</td></tr>
+    <tr><td><span class="cb"></span></td><td class="fit">5</td><td class="nm">Wei Xu</td><td>Georgia Tech</td><td>multilingual LLMs</td><td>NSF, NIH, DARPA</td><td>1 or 2 a year</td><td class="ok">ok</td><td>email</td><td>drafted</td></tr>
+    <tr class="sel"><td><span class="cb on"><svg class="i"><use href="#i-check"/></svg></span></td><td class="fit">5</td><td class="nm">Gondy Leroy</td><td>Arizona</td><td>clinical NLP</td><td>$5.7M as PI</td><td class="dim">not stated</td><td class="ok">ok</td><td>email</td><td>drafted</td></tr>
+    <tr class="sel"><td><span class="cb on"><svg class="i"><use href="#i-check"/></svg></span></td><td class="fit">5</td><td class="nm">Mohan Zalake</td><td>UIC</td><td>health LLM agents</td><td>NIA-funded pilot</td><td class="chg">yes, join-us page</td><td class="ok">ok</td><td>email</td><td>drafted</td></tr>
+    <tr><td><span class="cb"></span></td><td class="fit f4">4</td><td class="nm">Yulin Yu</td><td>Arizona</td><td>comp. social science</td><td>new hire, startup</td><td>2027 cycle welcome</td><td class="ok">ok</td><td>email</td><td>drafted</td></tr>
+    <tr><td><span class="cb"></span></td><td class="fit f4">4</td><td class="nm">Hsinchun Chen</td><td>Arizona</td><td>security informatics</td><td>NSF $15M+ since 2012</td><td class="dim">not stated</td><td class="err">bounces</td><td>email</td><td>drafted</td></tr>
+   </tbody>
+  </table></div>
+  <div class="stb"><span class="fgc">3 selected</span><span>Ask about selection <span class="kbd">⌘K</span></span><span class="r"><span>2 proposed cells</span><span class="btn gh sm">Reject</span><span class="btn sm"><svg class="i xs"><use href="#i-check"/></svg>Accept 2</span></span></div>
+ </section>
+ <aside class="dock">
+  <div class="tb" style="padding-left:16px"><span class="title">Agent</span><span class="scope"><svg class="i xs"><use href="#i-users"/></svg>3 selected</span><span class="sp"><span class="spend">$0.00 / $0.50</span></span></div>
+  <div class="chat"><div class="col">
+   <div class="u">Which of these three can pay from Fall 2027, and what does each want in a first email?</div>
+   <div class="wl"><div class="wl-h"><svg class="i xs chev"><use href="#i-chev-d"/></svg>Worked for 21s · 4 calls · free</div>
+    <div class="wl-b">
+     <div class="tr"><svg class="i sm"><use href="#i-bank"/></svg><span class="l"><b>nih.reporter</b> <span class="q">3 names</span></span><span class="m">free</span></div>
+     <div class="tr"><svg class="i sm"><use href="#i-globe"/></svg><span class="l"><b>fetch</b> <span class="q">3 homepages</span></span><span class="m">free</span></div>
+    </div></div>
+   <div class="as">
+    <p>All three show money that reaches 2027.</p>
+    <ul>
+     <li><b>Lybarger</b>: NIH team grant. Subject "PhD 2027", an intro, the topic you want, a CV.</li>
+     <li><b>Zalake</b>: PI on an NIA-funded pilot. Follow the join-us page steps.</li>
+     <li><b>Leroy</b>: $5.7M as PI over a career; no posted rule. The MIS PhD funds every admit.</li>
+    </ul>
+    <p>Two cells changed in the sheet, marked in blue.</p>
+   </div>
+  </div></div>
+  <div class="cw"><div class="cmp"><div class="ta" style="font-size:13px">Ask about the selection</div><div class="ctb"><span class="chip"><svg class="i"><use href="#i-msg"/></svg>Ask<svg class="i xs"><use href="#i-chev-d"/></svg></span><span class="send"><svg class="i"><use href="#i-up"/></svg></span></div></div></div>
+ </aside>
+</div></div></div>
+<p class="note">Strong for triage across 110 rows. Weak at long hunts: the dock is too narrow for work logs, and threads have nowhere to settle.</p>
+
+<div class="vh"><span class="k">C</span><span class="t">Research grid</span><span class="s">One query, then every column is an agent or treg enrichment that fills cell by cell, Clay style</span></div>
+<div class="scroll"><div class="win"><div class="appC">
+ <aside class="sb">
+  <div class="sb-top"><div class="lights"><i></i><i></i><i></i></div><span class="brand">gradcode</span><span class="ib"><svg class="i sm"><use href="#i-plus"/></svg></span></div>
+  <div class="ph">Grids</div>
+  <div class="rows">
+   <div class="row active"><svg class="i sm dim"><use href="#i-grid"/></svg><span class="tt">Health NLP · GMU, UIC, Arizona</span><span class="st info">running</span></div>
+   <div class="row"><svg class="i sm dim"><use href="#i-grid"/></svg><span class="tt">LLMs for code · tracked</span><span class="st dim">2d</span></div>
+   <div class="row"><svg class="i sm dim"><use href="#i-grid"/></svg><span class="tt">Low-resource NLP · US</span><span class="st dim">4d</span></div>
+   <div class="row"><svg class="i sm dim"><use href="#i-grid"/></svg><span class="tt">New PIs 2025-26</span><span class="st dim">5d</span></div>
+  </div>
+  <div class="ph">Views</div>
+  <div class="nv"><a><svg class="i sm"><use href="#i-users"/></svg>Professors<span class="c">110</span></a><a><svg class="i sm"><use href="#i-bank"/></svg>Funding</a><a><svg class="i sm"><use href="#i-cap"/></svg>Schools<span class="c">24</span></a></div>
+  <div class="sb-f"><a><svg class="i sm"><use href="#i-wallet"/></svg>treg <span class="tn">$12.40</span><span class="r">today $0.38</span></a></div>
+ </aside>
+ <section class="mn">
+  <div class="tbar"><span class="title">Health NLP · GMU, UIC, Arizona</span><span class="dim">7 rows</span></div>
+  <div class="qbar"><span class="qt">clinical or health NLP<span class="sep">/</span>George Mason, UIC, Arizona<span class="sep">/</span>active money<span class="sep">/</span>Fall 2027</span><span class="est">est. $0.21 · 52 calls</span><span class="btn sm">Rerun</span></div>
+  <div class="gridw"><table class="grid gC">
+   <thead><tr><th></th><th>Professor<span class="src2">exa.people.search · $0.007</span></th><th>Taking students?<span class="src2">homepage · free</span></th><th>Active money<span class="src2">NSF + NIH + page · free</span></th><th>Email<span class="src2">millionverifier · $0.0018</span></th><th>Contact rule<span class="src2">agent</span></th><th>Fits because<span class="src2">agent · hq facts</span></th><th title="Add column"><span class="addcol"><svg class="i xs"><use href="#i-plus"/></svg></span></th></tr></thead>
+   <tbody>
+    <tr class="sel"><td><span class="cb on"><svg class="i"><use href="#i-check"/></svg></span></td><td class="nm">Kevin Lybarger <span class="dim">GMU</span></td><td class="ok">yes</td><td>NIH team grant $4.65M</td><td class="ok">ok</td><td>"PhD 2027" in subject</td><td>clinical NLP, RAG for health</td><td></td></tr>
+    <tr class="sel"><td><span class="cb on"><svg class="i"><use href="#i-check"/></svg></span></td><td class="nm">Mohan Zalake <span class="dim">UIC</span></td><td class="ok">yes, join-us page</td><td>NIA-funded pilot, C3EN</td><td class="ok">ok</td><td><span class="run"><svg class="i xs"><use href="#i-load"/></svg>reading join-us page</span></td><td>LLM agents in health</td><td></td></tr>
+    <tr class="sel"><td><span class="cb on"><svg class="i"><use href="#i-check"/></svg></span></td><td class="nm">Gondy Leroy <span class="dim">Arizona</span></td><td class="no2">not stated</td><td>$5.7M as PI</td><td class="ok">ok</td><td>email</td><td>clinical text simplification</td><td></td></tr>
+    <tr><td><span class="cb"></span></td><td class="nm">Shweta Yadav <span class="dim">UIC</span></td><td><span class="run"><svg class="i xs"><use href="#i-load"/></svg>fetching</span></td><td>new hire, startup</td><td class="ok">ok</td><td class="qd2">queued</td><td class="qd2">queued</td><td></td></tr>
+    <tr><td><span class="cb"></span></td><td class="nm">Barbara Di Eugenio <span class="dim">UIC</span></td><td class="no2">not stated</td><td>long-running NLP Lab</td><td class="ok">ok</td><td>email</td><td>clinical summarization</td><td></td></tr>
+    <tr><td><span class="cb"></span></td><td class="nm">Natalie Parde <span class="dim">UIC</span></td><td>apply, list me</td><td>NSF ~$1.2M, rehab NLP</td><td class="ok">ok</td><td>apply-only, no cold email</td><td>health NLP, multimodal</td><td></td></tr>
+    <tr class="x"><td><span class="cb"></span></td><td class="nm">Steven Bethard <span class="dim">Arizona</span></td><td class="err">no, not before Dec 2027</td><td class="no2">none found</td><td class="ok">ok</td><td>do not email for RA</td><td class="no2">skip</td><td></td></tr>
+   </tbody>
+  </table></div>
+  <div class="stb"><span class="fgc">3 selected</span><span><span class="run"><svg class="i xs"><use href="#i-load"/></svg>3 cells running</span> · 41 of 52 calls · $0.17</span><span class="r"><span class="btn gh sm">Draft 3</span><span class="btn sm"><svg class="i xs"><use href="#i-plus"/></svg>Add 3 to sheet</span></span></div>
+ </section>
+</div></div></div>
+<p class="note">Fastest way to sweep a new school, and the price of each column is clear before you run it. Bad at open questions: anything outside a column needs a chat. Strong candidate for A's Results tab.</p>
+
+<h2 id="screens"><span class="n">4</span>Screens in every shell</h2>
+<h3>New thread</h3>
+<div class="scroll"><div class="win" style="min-width:980px"><div class="solo">
+ <div class="tb"><span class="title dim">New thread</span><span class="scope"><svg class="i xs"><use href="#i-cap"/></svg>Fall 2027 · funded PhD</span></div>
+ <div class="start"><div class="in">
+  <h5>What should we find?</h5><div class="sub">Runs on the Mac mini. You can close this window.</div>
+  <div class="starters">
+   <div class="starter"><svg class="i"><use href="#i-users"/></svg><span>Find professors</span><span class="d">niche and schools, verified rows with sources</span><span class="kbd">1</span></div>
+   <div class="starter"><svg class="i"><use href="#i-bank"/></svg><span>Follow the money</span><span class="d">NSF and NIH awards, then the PIs who can pay</span><span class="kbd">2</span></div>
+   <div class="starter"><svg class="i"><use href="#i-user"/></svg><span>Vet a professor</span><span class="d">taking students, funded, contact rule, fit</span><span class="kbd">3</span></div>
+   <div class="starter"><svg class="i"><use href="#i-cap"/></svg><span>Check a program</span><span class="d">deadline, fee, English, funding for internationals</span><span class="kbd">4</span></div>
+   <div class="starter"><svg class="i"><use href="#i-chev-r"/></svg><span>Next school in the queue</span><span class="d">Scout's queue, CS and arbitrage departments both</span><span class="kbd">5</span></div>
+  </div>
+  <div class="cmp"><div class="ta">Describe what to find. @ a school or professor to scope it.</div><div class="ctb"><span class="chip">Opus 5.5<svg class="i xs"><use href="#i-chev-d"/></svg></span><span class="chip"><svg class="i"><use href="#i-zap"/></svg>Hunt<svg class="i xs"><use href="#i-chev-d"/></svg></span><span class="chip"><svg class="i"><use href="#i-wallet"/></svg>$0.50 cap</span><span class="send"><svg class="i"><use href="#i-up"/></svg></span></div></div>
+ </div></div>
+</div></div></div>
+<p class="note">Hunt mode can spend and propose. Ask mode is read-only and free: it answers from the sheet, hq and the free APIs.</p>
+
+<h3>Funding: follow the money</h3>
+<div class="scroll"><div class="win"><div class="appF">
+ <section class="mn">
+  <div class="tbar"><span class="title">Funding</span><span class="seg"><span class="on">Awards</span><span>Programs</span><span>Fellowships</span></span></div>
+  <div class="qbar" style="margin-top:0"><span class="qt">"language model" OR "natural language"<span class="sep">/</span>tracked schools (24)<span class="sep">/</span>NSF, NIH<span class="sep">/</span>active after Sep 2027</span><span class="est">free</span><span class="btn sm">Search</span></div>
+  <div class="gridw"><table class="grid">
+   <thead><tr><th>Award</th><th>PI</th><th>School</th><th>Amount</th><th>Ends</th><th>Left after Sep 2027</th><th>In sheet</th></tr></thead>
+   <tbody>
+    <tr class="sel"><td>CAREER: Self-Directed Human-LLM Coordination for Language Learning</td><td class="nm">Ge Gao</td><td>UMD</td><td class="tn">$591,098</td><td class="tn">2030-07</td><td><span class="rw"><span class="rwb"><i style="width:94%"></i></span><span class="tn">34 mo</span></span></td><td><span class="btn sm"><svg class="i xs"><use href="#i-plus"/></svg>Add PI</span></td></tr>
+    <tr><td>CAREER: Leveraging Grammar Books to Develop Language Technologies for Data-Scarce Languages</td><td class="nm">Antonios Anastasopoulos</td><td>George Mason</td><td class="tn">$599,956</td><td class="tn">2030-05</td><td><span class="rw"><span class="rwb"><i style="width:89%"></i></span><span class="tn">32 mo</span></span></td><td class="err">yes · not hiring</td></tr>
+    <tr><td>CAREER: Trustworthy Human-Centered Summarization</td><td class="nm">Rui Zhang</td><td>Penn State</td><td class="tn">$546,000</td><td class="tn">2029-08</td><td><span class="rw"><span class="rwb"><i style="width:67%"></i></span><span class="tn">24 mo</span></span></td><td class="ok">yes</td></tr>
+    <tr><td>Collaborative Research: Advancing Open-Access Resources for Languages</td><td class="nm">Liliana Sanchez</td><td>UIC</td><td class="tn">$240,470</td><td class="tn">2028-07</td><td><span class="rw"><span class="rwb"><i class="lo" style="width:31%"></i></span><span class="tn">11 mo</span></span></td><td><span class="btn gh sm">Vet</span></td></tr>
+    <tr><td>Collaborative Research: RI: Medium: Multilingual Long-form QA with Retrieval-Augmented</td><td class="nm">Mohit Iyyer</td><td>UMD</td><td class="tn">$554,150</td><td class="tn">2027-10</td><td><span class="rw"><span class="rwb"><i class="lo" style="width:6%"></i></span><span class="tn">2 mo</span></span></td><td class="ok">yes</td></tr>
+    <tr><td>CAREER: Building Creative Writing Assistants for Machine-in-the-Loop Storytelling</td><td class="nm">Mohit Iyyer</td><td>UMD</td><td class="tn">$532,291</td><td class="tn">2026-12</td><td class="dim">ends before you start</td><td class="ok">yes</td></tr>
+    <tr class="x" style="opacity:.45"><td>RI: Small: Gradient-Based Discrete Markov Chain Monte Carlo</td><td class="nm">Ruqi Zhang</td><td>Purdue</td><td class="tn">$600,000</td><td class="tn">2028-07</td><td class="dim">off topic</td><td class="dim">fit 1</td></tr>
+   </tbody>
+  </table></div>
+  <div class="stb"><span>7 awards · live from api.nsf.gov and api.reporter.nih.gov</span><span class="r"><span class="dim">ranked by months left, then fit</span></span></div>
+ </section>
+ <aside class="side">
+  <div class="dim" style="font-size:12px">NSF 2443387 · 2025-08 to 2030-07</div>
+  <h4>CAREER: Self-Directed Human-LLM Coordination for Language Learning and Information Seeking</h4>
+  <div class="facts" style="margin-top:0"><span>PI <b>Ge Gao</b></span><span>UMD</span><span><b>$591,098</b></span></div>
+  <div class="ab">Effective seeking of information is a crucial aspect of daily life that relies heavily on language skills. In societies with a diverse population, many people are not proficient in the majority language...</div>
+  <div class="ab dim">Not in the sheet. A CAREER award has 34 months left when you start, so this PI is likely hiring.</div>
+  <div class="acts2"><span class="btn pri sm"><svg class="i xs"><use href="#i-msg"/></svg>Vet in a thread</span><span class="btn sm"><svg class="i xs"><use href="#i-plus"/></svg>Add as candidate</span><span class="btn gh sm"><svg class="i xs"><use href="#i-ext"/></svg>nsf.gov</span></div>
+  <div style="border-top:1px solid var(--line);padding-top:12px;margin-top:4px">
+   <div class="dim" style="font-size:12px;margin-bottom:6px">Programs that fund every admit</div>
+   <table class="mt"><tbody>
+    <tr><td>UIC CS PhD</td><td class="dim">5 yrs guaranteed</td><td class="tn">Dec 15</td></tr>
+    <tr><td>CU Boulder CS</td><td class="dim">100% funded</td><td class="tn">Dec 1</td></tr>
+    <tr><td>Arizona MIS</td><td class="dim">RA/TA, no fee</td><td class="tn">Jan 15</td></tr>
+    <tr><td>Purdue MIS</td><td class="dim">years 1 to 5</td><td class="tn">Jan 15</td></tr>
+   </tbody></table>
+  </div>
+ </aside>
+</div></div></div>
+<p class="note">Awards and amounts above are real, pulled from the NSF API today. "Left after Sep 2027" answers the one question that matters: will this money still pay a student when you arrive?</p>
+
+<h3>Professor page</h3>
+<div class="scroll"><div class="win"><div class="appP">
+ <section class="ppm">
+  <div class="dim" style="font-size:12px">Professors / George Mason</div>
+  <h4 style="margin-top:6px">Kevin Lybarger</h4>
+  <div class="sub">Information Sciences and Technology · George Mason University</div>
+  <div class="facts"><span>fit <b>5</b></span><span>tier <b>safety</b></span><span>email <b class="ok">ok</b> 2026-10-04</span><span>via <b>email</b></span><span>stage <b>drafted</b></span></div>
+  <div class="acts2"><span class="btn pri sm"><svg class="i xs"><use href="#i-msg"/></svg>Ask about Lybarger</span><span class="btn sm"><svg class="i xs"><use href="#i-file"/></svg>Open draft</span><span class="btn gh sm"><svg class="i xs"><use href="#i-globe"/></svg>Website</span><span class="btn gh sm"><svg class="i xs"><use href="#i-book"/></svg>Scholar</span></div>
+  <div class="sec"><h6>Money</h6>
+   <div class="ln"><span>NIH team grant on chronic knee pain, $4.65M. Not listed as PI on RePORTER.</span><span class="s">lab news 2025-09-30</span></div>
+   <div class="ln"><span>Lab: 4 funded PhD students, 3 from Bangladeshi universities.</span><span class="s">lab page</span></div>
+  </div>
+  <div class="sec"><h6>How to reach</h6>
+   <blockquote>Admission runs through the PhD in Information Technology program: apply there first. To have me see your application, email with "PhD 2027" in the subject line, introduce yourself, say what you want to work on, attach your CV.</blockquote>
+  </div>
+  <div class="sec"><h6>Recent work</h6>
+   <div class="ln"><span>DF-RAG: Query-Aware Diversity for Retrieval-Augmented Generation</span><span class="s">2026 · ACL Anthology</span></div>
+   <div class="ln"><span>Efficient Information Extraction Using LLMs and Knowledge Distillation: A Study on HPV Health Communication</span><span class="s">2026 · DOI</span></div>
+   <div class="ln"><span>Classifying Human-Generated and AI-Generated Election Claims in Social Media</span><span class="s">2024 · DOI</span></div>
+  </div>
+  <div class="sec"><h6>Interests</h6><div style="color:var(--fg2)">clinical NLP · LLM patient simulation · RAG for healthcare · text simplification · AI-generated text detection</div></div>
+ </section>
+ <aside class="side">
+  <div class="dim" style="font-size:12px">Timeline</div>
+  <div class="tl">
+   <div><span>10-07</span>Grants made structured, accepted in Review</div>
+   <div><span>10-04</span>Email checked: ok</div>
+   <div><span>08-27</span>Draft written by Scout</div>
+   <div><span>08-27</span>Added by Scout</div>
+  </div>
+  <div class="dim" style="font-size:12px;margin-top:6px">Threads</div>
+  <div class="rows"><div class="row"><span class="dot"></span><span class="tt">Funded NLP at GMU + Arizona</span><span class="st dim">settled</span></div></div>
+  <div class="dim" style="font-size:12px;margin-top:6px">Program</div>
+  <div style="font-size:12.5px;color:var(--fg2)">PhD in Information Technology · deadline not verified yet <span class="btn gh sm" style="margin-left:4px">Check</span></div>
+  <div class="dim" style="font-size:12px;margin-top:6px">Draft</div>
+  <div style="font-size:12.5px;color:var(--fg2)">Drafted, not scheduled. Scheduling stays in the current dashboard for v1.</div>
+ </aside>
+</div></div></div>
+
+<h2 id="motion"><span class="n">5</span>Motion and keys</h2>
+<div class="cols">
+<div>
+<table class="spec motion">
+<thead><tr><th>Moment</th><th>Motion</th><th>Timing</th></tr></thead>
+<tbody>
+<tr><td>Press a button</td><td>Scales to 0.97</td><td>100ms ease-out</td></tr>
+<tr><td>Hover a thread row</td><td>Time fades out, Settle and Snooze fade in</td><td>120ms</td></tr>
+<tr><td>Settle, Snooze</td><td>Row folds shut, shelf count ticks, row unfolds in its shelf</td><td>220ms drawer curve</td></tr>
+<tr><td>Open or close a panel</td><td>Panel slides, chat column re-centers</td><td>240ms drawer curve</td></tr>
+<tr><td>Tool call lands</td><td>Row fades up 4px</td><td>160ms ease-out</td></tr>
+<tr><td>Accept, Reject</td><td>Row tints green or red, then folds</td><td>300ms + 220ms</td></tr>
+<tr><td>Approval resolved</td><td>Card folds, its result lands in the work log</td><td>220ms</td></tr>
+<tr><td>Working</td><td>Blue label and elapsed time. No shimmer, no spinner.</td><td>none</td></tr>
+<tr><td>Done</td><td>One white dot. No toast, no sound.</td><td>none</td></tr>
+<tr><td>Needs you</td><td>Amber or indigo label, one system notification</td><td>once</td></tr>
+<tr><td>Reduced motion</td><td>Every transition off</td><td>0ms</td></tr>
+</tbody></table>
+<p class="note">Drawer curve is T3 Code's <code>cubic-bezier(0.32, 0.72, 0, 1)</code>. Folding animates grid rows from 1fr to 0fr, so nothing measures heights in JS.</p>
+</div>
+<div>
+<table class="spec keys">
+<thead><tr><th>Key</th><th>Does</th></tr></thead>
+<tbody>
+<tr><td>⌘K</td><td>Palette: every action, thread, professor and school</td></tr>
+<tr><td>⌘N · ⌘⇧O</td><td>New thread, from anywhere</td></tr>
+<tr><td>j k</td><td>Move through threads, rows or proposals</td></tr>
+<tr><td>e · s</td><td>Settle · snooze the current thread</td></tr>
+<tr><td>a · r · ⇧A</td><td>Accept · reject · accept all</td></tr>
+<tr><td>↵ · esc</td><td>Allow once · deny the open approval</td></tr>
+<tr><td>⌘↵ · ⌘.</td><td>Steer the queued message · stop the turn</td></tr>
+<tr><td>⌘\ · ⌘1 to 4</td><td>Toggle the panel · switch panel tab</td></tr>
+<tr><td>@</td><td>Scope the message to a school or professor</td></tr>
+</tbody></table>
+</div>
+</div>
+
+<h2 id="build"><span class="n">6</span>Build</h2>
+<div class="cols">
+<div>
+<h3>What T3 Code's UI is made of</h3>
+<p>Base UI (<code>@base-ui/react</code>) primitives, styled with Tailwind v4, class-variance-authority and tailwind-merge in a shadcn-style kit under <code>components/ui</code>. Icons are lucide-react, with Zustand for state, TanStack Router, a Tiptap composer, dnd-kit for sidebar drag, @legendapp/list for long lists and @pierre/diffs for diffs. System font, true black canvas, 8% white hairlines, <code>#191a1d</code> hover, indigo primary. MIT licensed.</p>
+<p>T3 is cleaner than Orca and does more. Its power comes from keys, the palette and the inbox sidebar, not from more panes. gradcode copies that.</p>
+</div>
+<div>
+<h3>gradcode</h3>
+<ul class="pl">
+<li><b>Take:</b> T3's <code>components/ui</code>, copied with the MIT notice. Buttons, menus, tooltips, dialogs and kbd come out identical.</li>
+<li><b>Add:</b> Claude Agent SDK on a small Node server over a WebSocket, treg MCP, a hunt MCP holding the zod-typed <code>propose_*</code> tools, and scout.py as the only writer.</li>
+<li><b>Skip for v1:</b> Effect, Tiptap (a textarea does it), dnd-kit (hover buttons and keys settle; drag-to-settle later), a diff library (record diffs are three lines of text), a database (gradhunt's JSON stays the store).</li>
+<li><b>Stack:</b> pnpm, Vite, React, TypeScript, Tailwind v4, Base UI, Zustand, TanStack Router.</li>
+</ul>
+</div>
+</div>
+
+<h2 id="decide"><span class="n">7</span>Decide</h2>
+<table class="spec">
+<thead><tr><th>#</th><th>Question</th><th>My default</th></tr></thead>
+<tbody>
+<tr><td class="n">1</td><td><b>Shell A, B or C?</b></td><td class="c">A. C's grid becomes A's Results tab, and B's sheet is A's Professors view.</td></tr>
+<tr><td class="n">2</td><td><b>Own app, fork T3 Code, or plug into T3 Code?</b> A fork means carrying 1,341 web source files of git, worktree and terminal code we would only delete. A plug-in (MCP server plus a page in T3's preview pane) is the least code, but records can never reach the sidebar or Review.</td><td class="c">Own app with T3's ui kit copied in.</td></tr>
+<tr><td class="n">3</td><td><b>Auto-accept rule.</b> Off, or accept when the email is verified, the source is an official page and fit is 4+?</td><td class="c">Off until a week of reviews shows the rule would have been right.</td></tr>
+<tr><td class="n">4</td><td><b>v1 leaves sending to the cloud routine.</b> OK?</td><td class="c">Yes. Port the send queue in v2.</td></tr>
+<tr><td class="n">5</td><td><b>Name and repo.</b></td><td class="c">gradcode, private on GitHub. Renaming is one command.</td></tr>
+</tbody></table>
+</main>
+
+<script>
+(function(){
+var A=document.getElementById('mockA');if(!A)return;
+var app=A.querySelector('.app');
+var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var T=reduce?0:230,state={approval:true,spent:0.025,today:0.38};
+function qa(s,r){return Array.prototype.slice.call((r||A).querySelectorAll(s))}
+function fold(el,cb){el.classList.add('out');setTimeout(function(){if(cb)cb()},T)}
+function unfold(parent,el,before){el.classList.add('out');parent.insertBefore(el,before===undefined?parent.firstChild:before);requestAnimationFrame(function(){requestAnimationFrame(function(){el.classList.remove('out')})})}
+function bump(cls,d){qa('.'+cls).forEach(function(n){var v=Math.max(0,(parseInt(n.textContent,10)||0)+d);n.textContent=v})}
+function money(v){return '$'+v.toFixed(v<0.1?3:2)}
+function spend(add){state.spent+=add;state.today+=add;qa('.js-spend').forEach(function(n){n.textContent=money(state.spent)+' / $0.50'});qa('.js-wlcost').forEach(function(n){n.textContent=money(state.spent)});qa('.js-today').forEach(function(n){n.textContent=money(state.today)})}
+function el(html){var d=document.createElement('div');d.innerHTML=html.trim();return d.firstChild}
+var thread=document.getElementById('tA'),tst=document.getElementById('tA-st');
+function setStatus(cls,html){tst.className='st '+cls;tst.innerHTML=html}
+function moveRow(wrap,shelf,label){
+  var from=wrap.closest('[data-shelf]').getAttribute('data-shelf');
+  if(from===shelf)return;
+  fold(wrap,function(){
+    var row=wrap.firstElementChild;row.classList.remove('recede','unread');
+    var st=row.querySelector('.st');st.className='st dim';st.textContent=label;
+    var acts=row.querySelector('.acts');if(acts)acts.remove();
+    if(row.classList.contains('active'))wrap.classList.add('keep');
+    unfold(A.querySelector('[data-shelf="'+shelf+'"] .rows'),wrap);
+    bump('js-'+shelf,1);if(from==='working'||from==='snoozed')bump('js-'+from,-1);
+  });
+}
+function remaining(){return qa('#rvA .pr').length}
+function maybeSettle(){
+  if(state.approval||remaining())return;
+  fold(document.getElementById('apA'));
+  var e=document.getElementById('rvEmpty');requestAnimationFrame(function(){e.classList.remove('out')});
+  setTimeout(function(){
+    document.getElementById('colA').appendChild(el('<div class="sys new-in">Settled · nothing waits on you</div>'));
+    moveRow(thread,'settled','now');
+    var send=document.getElementById('sendA');send.className='send';send.innerHTML='<svg class="i"><use href="#i-up"/></svg>';
+  },reduce?0:500);
+}
+function review(pr,ok){
+  if(pr.classList.contains('ok')||pr.classList.contains('no'))return;
+  pr.classList.add(ok?'ok':'no');
+  pr.querySelector('.pr-a').innerHTML='<span class="'+(ok?'ok':'err')+'">'+(ok?'Accepted':'Rejected')+'</span>';
+  setTimeout(function(){var w=pr.parentElement;fold(w,function(){w.remove();bump('js-rc',-1);maybeSettle()})},reduce?0:300);
+}
+function resolveApproval(kind){
+  if(!state.approval)return;
+  var wait=document.getElementById('trWait');
+  fold(document.getElementById('apA'),function(){
+    if(kind==='deny'){
+      wait.innerHTML='<svg class="i sm"><use href="#i-x"/></svg><span class="l"><b>prospeo.people.email.find</b> <span class="q">Chen</span></span><span class="m">denied</span>';
+      state.approval=false;setStatus('dim','now');maybeSettle();return;
+    }
+    setStatus('info','Working 2s');
+    wait.innerHTML='<svg class="i sm"><use href="#i-dollar"/></svg><span class="l"><b>prospeo.people.email.find</b> <span class="q">Chen</span></span><span class="m"><span class="c ok">verified hit</span> · $0.0245</span>';
+    wait.classList.add('new-in');spend(0.0245);
+    if(kind==='rule')document.getElementById('wlbA').appendChild(el('<div class="tr new-in"><svg class="i sm"><use href="#i-shield"/></svg><span class="l"><b>rule saved</b> <span class="q">paid lookups under $0.03 run without asking here</span></span><span class="m"></span></div>'));
+    setTimeout(function(){
+      var p=el('<div class="clp"><div class="pr"><div class="pr-h"><span class="nm">Hsinchun Chen</span><span class="sc">Arizona</span><span class="k">update</span></div><div class="df"><div class="a">email: new address on arizona.edu · Prospeo verified</div><div class="a">email_check: ok 2026-10-07</div></div><div class="src"><svg class="i xs"><use href="#i-link"/></svg>prospeo · millionverifier</div><div class="pr-a"><span class="btn gh sm" data-act="reject">Reject</span><span class="btn sm" data-act="accept"><svg class="i xs"><use href="#i-check"/></svg>Accept</span></div></div></div>');
+      var list=document.getElementById('rvA');unfold(list,p,null);bump('js-rc',1);
+      document.getElementById('rvEmpty').classList.add('out');
+      state.approval=false;setStatus('dim','now');maybeSettle();
+    },reduce?0:1100);
+  });
+}
+A.addEventListener('click',function(ev){
+  var t=ev.target.closest('[data-act],[data-tab]');if(!t||!A.contains(t))return;
+  var tab=t.getAttribute('data-tab');
+  if(tab){qa('.tab[data-tab]').forEach(function(x){x.classList.toggle('on',x===t)});qa('.pane').forEach(function(p){p.classList.toggle('on',p.getAttribute('data-pane')===tab)});return}
+  var act=t.getAttribute('data-act');
+  if(act==='settle'||act==='snooze'){ev.stopPropagation();moveRow(t.closest('.clp'),act==='settle'?'settled':'snoozed',act==='settle'?'now':'9:00');return}
+  if(act==='shelf'){t.closest('.shelf').classList.toggle('collapsed');return}
+  if(act==='panel'){app.classList.toggle('nopanel');qa('.tb .ib[data-act="panel"]').forEach(function(b){b.classList.toggle('on',!app.classList.contains('nopanel'))});return}
+  if(act==='wl'){var w=t.parentElement;w.classList.toggle('shut');w.querySelector('.clp').classList.toggle('out');return}
+  if(act==='accept'||act==='reject'){review(t.closest('.pr'),act==='accept');return}
+  if(act==='accept-all'||act==='reject-all'){qa('#rvA .pr').forEach(function(p,i){setTimeout(function(){review(p,act==='accept-all')},reduce?0:i*70)});return}
+  if(act==='allow')return resolveApproval('once');
+  if(act==='allow-rule')return resolveApproval('rule');
+  if(act==='deny')return resolveApproval('deny');
+  if(act==='steer'){fold(document.getElementById('qA'));var c=document.getElementById('colA');c.appendChild(el('<div class="u new-in">Do the same for UIC\'s BHIS program.</div>'));c.appendChild(el('<div class="u-meta new-in">steered · picked up after the current tool call</div>'));c.parentElement.scrollTop=c.parentElement.scrollHeight;return}
+  if(act==='unqueue'){fold(document.getElementById('qA'));return}
+});
+})();
+</script>
+</body>
+</html>

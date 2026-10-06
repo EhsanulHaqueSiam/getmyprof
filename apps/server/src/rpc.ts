@@ -17,7 +17,7 @@ import { extractFacts, fakeFacts } from "./agent/extract.ts";
 import type { Runner } from "./agent/runner.ts";
 import type { Sources } from "./agent/tools.ts";
 import type { Bus } from "./bus.ts";
-import type { Db } from "./db.ts";
+import { type Db, newId, now } from "./db.ts";
 import { health } from "./health.ts";
 import { listLoops, saveLoop, STARTER_LOOPS } from "./loops.ts";
 import { getRecord, listRecords, resolveProposal, threadProposals, threadRows } from "./records.ts";
@@ -29,6 +29,7 @@ import {
   listEvents,
   listThreads,
   markUnread,
+  putEvent,
   rename,
   settle,
   settleIfDone,
@@ -82,7 +83,11 @@ export function createHandlers(svc: Services): Handlers {
         hunt: getHunt(db),
         facts: settings.profileSource === "hq" ? readHqFacts() : getFacts(db),
         host: h.host,
-        adapters: { hq: readHqFacts().length > 0, gradhunt: h.checks.scout, treg: h.checks.treg },
+        adapters: {
+          hq: readHqFacts().length > 0,
+          gradhunt: h.checks.scout,
+          treg: svc.fake || h.checks.treg,
+        },
       };
     },
     "settings.update": (patch) => {
@@ -161,17 +166,16 @@ export function createHandlers(svc: Services): Handlers {
           void writeBackToGradhunt(r.record, r.proposal.changes);
       }
       for (const threadId of touched) {
-        if (settleIfDone(db, threadId))
-          bus.push({
-            type: "event",
-            threadId,
-            event: {
-              id: `settled-${Date.now()}`,
-              at: new Date().toISOString(),
-              type: "system",
-              text: "Settled · nothing waits on you",
-            },
-          });
+        if (settleIfDone(db, threadId)) {
+          const event = {
+            id: newId("sys"),
+            at: now(),
+            type: "system" as const,
+            text: "Settled · nothing waits on you",
+          };
+          putEvent(db, threadId, event);
+          bus.push({ type: "event", threadId, event });
+        }
         bus.push({ type: "changed", what: "proposals", threadId });
       }
       bus.push({ type: "changed", what: "records" });

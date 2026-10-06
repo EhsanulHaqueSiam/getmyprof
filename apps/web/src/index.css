@@ -23,6 +23,21 @@
   --inset-shadow-control-pressed: 0 1px rgb(0 0 0 / 8%);
   --shadow-composer: 0 14px 32px -18px rgb(0 0 0 / 75%);
 
+  /* One-shot motion only: an event landing, a cell an action just filled. */
+  --animate-fade-up: fade-up 160ms ease-out both;
+  --animate-cell-fill: cell-fill 700ms ease-out;
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      translate: 0 4px;
+    }
+  }
+  @keyframes cell-fill {
+    from {
+      background-color: color-mix(in srgb, var(--primary) 24%, transparent);
+    }
+  }
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

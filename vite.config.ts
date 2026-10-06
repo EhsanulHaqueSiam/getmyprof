@@ -56,6 +56,9 @@ export default defineConfig({
       "unicorn/consistent-function-scoping": "off",
       "eslint/no-await-in-loop": "off",
       "oxc/no-map-spread": "off",
+      // Effects keyed on a version counter, and drafts synced from the store, are deliberate here.
+      "react/exhaustive-effect-dependencies": "off",
+      "react/set-state-in-effect": "off",
       "typescript/no-explicit-any": "error",
       "eslint/max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }],
       "gradcode/single-writer": "error",

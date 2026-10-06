@@ -7,6 +7,11 @@ import { ago } from "~/lib/format";
 import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
 
+const FIELD_LABEL: Record<string, string> = {
+  emailCheck: "email check",
+  fitsBecause: "fits because",
+};
+
 export const Route = createFileRoute("/_shell/professors/$key")({ component: ProfessorPage });
 
 function ProfessorPage() {
@@ -72,11 +77,11 @@ function ProfessorPage() {
             </Button>
           ) : null}
         </div>
-        <dl className="mt-6 grid grid-cols-[140px_minmax(0,1fr)] gap-x-4 text-[13px]">
+        <dl className="mt-6 grid grid-cols-[140px_minmax(0,1fr)] text-[13px]">
           {facts.map(([k, v]) => (
             <div key={k} className="contents">
-              <dt className="border-b py-2 text-muted-foreground text-xs">{k}</dt>
-              <dd className="border-b py-2 text-secondary-label">
+              <dt className="border-b py-2 text-[13px] text-muted-foreground leading-5">{k}</dt>
+              <dd className="border-b py-2 text-secondary-label leading-5">
                 {v || <span className="text-placeholder">not found</span>}
               </dd>
             </div>
@@ -118,7 +123,7 @@ function ProfessorPage() {
         {data.proposals.map((pr) => (
           <div key={pr.id} className="border-b py-1.5 text-secondary-label">
             <span className="text-muted-foreground">{pr.status}</span> ·{" "}
-            {pr.changes.map((c) => c.field).join(", ")}
+            {pr.changes.map((c) => FIELD_LABEL[c.field] ?? c.field).join(", ")}
           </div>
         ))}
       </aside>

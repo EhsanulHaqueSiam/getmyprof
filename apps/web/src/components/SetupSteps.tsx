@@ -211,8 +211,9 @@ export function BudgetStep(props: {
               key={id}
               type="button"
               onClick={() => setDetail(id)}
+              aria-pressed={detail === id}
               className={cn(
-                "rounded-xl border px-3 py-2.5 text-left text-xs transition-colors",
+                "flex flex-col items-start rounded-xl border px-3 py-2.5 text-left text-xs transition-colors",
                 detail === id
                   ? "border-input bg-popover text-foreground"
                   : "text-secondary-label hover:border-input",

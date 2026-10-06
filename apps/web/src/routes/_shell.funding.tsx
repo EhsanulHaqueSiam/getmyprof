@@ -124,15 +124,17 @@ function Funding() {
                       {a.university}
                     </td>
                     <td className="border-b px-3 tabular-nums">{money(a.usd)}</td>
-                    <td className="border-b px-3 tabular-nums">{a.ends?.slice(0, 7) ?? "?"}</td>
-                    <td className="border-b px-3">
+                    <td className="border-b px-3 whitespace-nowrap tabular-nums">
+                      {a.ends?.slice(0, 7) ?? "?"}
+                    </td>
+                    <td className="border-b px-3 whitespace-nowrap">
                       {m === null ? (
                         "?"
                       ) : m < 0 ? (
                         <span className="text-muted-foreground">ends before you start</span>
                       ) : (
                         <span className="inline-flex items-center gap-2">
-                          <span className="inline-block h-1 w-16 overflow-hidden rounded-full bg-secondary">
+                          <span className="inline-block h-1 w-10 overflow-hidden rounded-full bg-secondary">
                             <span
                               className={cn(
                                 "block h-full rounded-full",

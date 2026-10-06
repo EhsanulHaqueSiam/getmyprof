@@ -102,6 +102,9 @@ export function propose(
     if (raw === undefined) continue;
     const to = String(raw).trim();
     const from = current ? fieldValue(current, field) : null;
+    const unknown = /^(\?|unchecked|not found|not stated|unknown)$/i;
+    // An "unknown" from the agent never overwrites something already known.
+    if (from && from !== "" && !unknown.test(from) && unknown.test(to)) continue;
     if (to !== "" && to !== from) changes.push({ field, from, to });
   }
   if (current && changes.length === 0) return { skipped: "no change" };

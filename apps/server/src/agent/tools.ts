@@ -94,6 +94,21 @@ const professorFields = {
     .max(5)
     .optional()
     .describe("0-5 fit for this applicant, weighed by their priorities"),
+  moneyTier: z
+    .number()
+    .int()
+    .min(1)
+    .max(4)
+    .optional()
+    .describe(
+      "Money evidence tier: 1 clear (posted funded opening), 2 strong (active grant past the intake, new-hire startup, program funds every admit), 3 indirect (lab growing, gifts, students graduating), 4 none found",
+    ),
+  eligibility: z
+    .string()
+    .optional()
+    .describe(
+      '"ok", or "no: <why>" when this applicant cannot be paid here (citizenship-only funding, degree length)',
+    ),
   taking: z
     .string()
     .optional()

@@ -22,7 +22,16 @@ import { health } from "./health.ts";
 import { listLoops, saveLoop, STARTER_LOOPS } from "./loops.ts";
 import { getRecord, listRecords, resolveProposal, threadProposals, threadRows } from "./records.ts";
 import { intakeStart, monthsAfter } from "./sources.ts";
-import { getFacts, getHunt, getSettings, saveFacts, saveHunt, updateSettings } from "./state.ts";
+import {
+  getApplicant,
+  getFacts,
+  getHunt,
+  getSettings,
+  saveApplicant,
+  saveFacts,
+  saveHunt,
+  updateSettings,
+} from "./state.ts";
 import {
   createThread,
   getThread,
@@ -81,6 +90,7 @@ export function createHandlers(svc: Services): Handlers {
       return {
         settings,
         hunt: getHunt(db),
+        applicant: getApplicant(db),
         facts: settings.profileSource === "hq" ? readHqFacts() : getFacts(db),
         host: h.host,
         adapters: {
@@ -101,6 +111,7 @@ export function createHandlers(svc: Services): Handlers {
       return next;
     },
     "hunt.save": ({ name, prefs }) => saveHunt(db, name, prefs),
+    "applicant.save": (applicant) => saveApplicant(db, applicant),
     "facts.save": ({ facts }) => saveFacts(db, facts),
     "facts.extract": async (input) =>
       svc.fake ? fakeFacts() : extractFacts(input, getSettings(db).model),

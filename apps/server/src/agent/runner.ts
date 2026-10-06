@@ -2,7 +2,7 @@ import { ROW_OPS, type RowOp, type ThreadEvent } from "@gradcode/contracts";
 import type { Bus } from "../bus.ts";
 import { type Db, newId, now } from "../db.ts";
 import { getRecord, threadProposals } from "../records.ts";
-import { getFacts, getHunt, getSettings } from "../state.ts";
+import { getApplicant, getFacts, getHunt, getSettings } from "../state.ts";
 import {
   listThreads,
   markUnread,
@@ -132,7 +132,7 @@ export function createRunner(deps: {
       threadId,
       resumeId: sessionId(db, threadId),
       firstText: text,
-      systemPrompt: systemPrompt(hunt, getFacts(db), settings),
+      systemPrompt: systemPrompt(hunt, getFacts(db), settings, getApplicant(db)),
       model: settings.model,
       tools: toolsFor(settings),
       askOver: settings.budget.askOver,

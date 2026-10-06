@@ -64,7 +64,7 @@ export type ThreadEvent = z.infer<typeof ThreadEvent>;
 
 /** Row actions the Results dock runs on selected rows. Each is an agent turn. */
 export const ROW_OPS = {
-  email: { label: "Find and check emails", priceUsd: 0.0018, field: "emailCheck" },
+  email: { label: "Find and check emails", priceUsd: 0, field: "emailCheck" },
   lasts: { label: "Check money (NSF, NIH)", priceUsd: 0, field: "lasts" },
   taking: { label: "Taking students?", priceUsd: 0, field: "taking" },
   draft: { label: "Draft first emails", priceUsd: 0, field: "stage" },

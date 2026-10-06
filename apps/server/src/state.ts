@@ -1,4 +1,4 @@
-import { Hunt, ProfileFact, Settings } from "@gradcode/contracts";
+import { Applicant, Hunt, ProfileFact, Settings } from "@gradcode/contracts";
 import { z } from "zod";
 import { type Db, getKv, newId, setKv } from "./db.ts";
 
@@ -34,6 +34,26 @@ export function saveHunt(db: Db, name: string, prefs: Hunt["prefs"]) {
   const hunt: Hunt = { id: getHunt(db)?.id ?? newId("hunt"), name, prefs };
   setKv(db, "hunt", hunt);
   return hunt;
+}
+
+export const DEFAULT_APPLICANT: Applicant = {
+  citizenship: [],
+  residence: "",
+  degreeYears: 4,
+  gpa: "",
+  tests: [],
+  moi: false,
+  feeBudgetUsd: null,
+  dependents: false,
+  minStipendUsd: null,
+};
+
+export const getApplicant = (db: Db) =>
+  getKv(db, "applicant", (v) => Applicant.parse(v), DEFAULT_APPLICANT);
+
+export function saveApplicant(db: Db, applicant: Applicant) {
+  setKv(db, "applicant", applicant);
+  return applicant;
 }
 
 export const getFacts = (db: Db) => getKv(db, "facts", (v) => z.array(ProfileFact).parse(v), []);

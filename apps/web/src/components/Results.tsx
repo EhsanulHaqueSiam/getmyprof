@@ -28,10 +28,12 @@ type Col = { key: keyof Professor | "select"; label: string; source?: string; le
 const COLUMNS: Col[] = [
   { key: "fit", label: "Fit", level: "brief" },
   { key: "name", label: "Professor", level: "brief" },
+  { key: "moneyTier", label: "Money tier", level: "brief" },
   { key: "taking", label: "Taking students?", source: "page · free", level: "brief" },
   { key: "money", label: "Money", source: "NSF, NIH · free", level: "brief" },
   { key: "emailCheck", label: "Email", source: "verify", level: "brief" },
   { key: "lasts", label: "Lasts", source: "awards · free", level: "std" },
+  { key: "eligibility", label: "Eligible", level: "std" },
   { key: "contact", label: "Contact rule", level: "std" },
   { key: "stage", label: "Stage", level: "std" },
   { key: "fitsBecause", label: "Fits because", source: "your profile", level: "deep" },
@@ -46,8 +48,22 @@ const OP_ICON: Record<RowOp, ReactNode> = {
 };
 const OPS = Object.keys(ROW_OPS) as RowOp[];
 
+const TIER_LABEL = ["?", "1 clear", "2 strong", "3 indirect", "4 none"];
+
 function tone(key: Col["key"], value: string) {
   const v = value.toLowerCase();
+  if (key === "moneyTier")
+    return v.startsWith("1") || v.startsWith("2")
+      ? "text-success-foreground"
+      : v.startsWith("3")
+        ? "text-warning-foreground"
+        : "text-muted-foreground";
+  if (key === "eligibility")
+    return v.startsWith("no")
+      ? "text-destructive-foreground"
+      : v === "ok"
+        ? "text-success-foreground"
+        : "";
   if (key === "taking")
     return v.startsWith("yes")
       ? "text-success-foreground"
@@ -180,7 +196,9 @@ export function Results({ view, threadId }: { view: ThreadView; threadId: string
                         ? r.sources
                             .map((s) => s.replace(/^https?:\/\/(www\.)?/, "").split("/")[0])
                             .join(", ")
-                        : String(r[c.key as keyof Professor] ?? "");
+                        : c.key === "moneyTier"
+                          ? (TIER_LABEL[r.moneyTier] ?? "?")
+                          : String(r[c.key as keyof Professor] ?? "");
                     return (
                       <td
                         key={c.key}

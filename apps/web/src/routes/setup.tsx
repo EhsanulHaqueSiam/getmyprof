@@ -1,8 +1,9 @@
-import type { DetailLevel, HuntPrefs, ProfileFact } from "@gradcode/contracts";
+import type { Applicant, DetailLevel, HuntPrefs, ProfileFact } from "@gradcode/contracts";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CheckIcon, FileTextIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Chip, Row } from "~/components/FormParts";
+import { EligibilityFields } from "~/components/EligibilityFields";
 import { BudgetStep, HuntStep, LOOP_NAMES } from "~/components/SetupSteps";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
@@ -40,6 +41,7 @@ function Setup() {
   const [step, setStep] = useState(0);
   const [prefs, setPrefs] = useState<HuntPrefs>(app?.hunt?.prefs ?? DEFAULT_PREFS);
   const [facts, setFacts] = useState<ProfileFact[]>(app?.facts ?? []);
+  const [applicant, setApplicant] = useState<Applicant | null>(app?.applicant ?? null);
   const [cvText, setCvText] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [reading, setReading] = useState(false);
@@ -62,6 +64,7 @@ function Setup() {
     setProfileSource(app.settings.profileSource);
     setGradhunt(app.settings.gradhunt);
     if (app.hunt) setPrefs(app.hunt.prefs);
+    setApplicant((a) => a ?? app.applicant);
     if (app.settings.profileSource === "app") setFacts(app.facts);
   }, [app]);
 
@@ -97,6 +100,7 @@ function Setup() {
       prefs,
     });
     if (profileSource === "app") await call("facts.save", { facts });
+    if (applicant) await call("applicant.save", applicant);
     await call("settings.update", {
       treg,
       profileSource,
@@ -225,6 +229,7 @@ function Setup() {
               <p className="mt-0.5 mb-3 text-muted-foreground text-xs">
                 Confirm each fact. Drafts and fit scores only use the ones you confirm.
               </p>
+              {applicant ? <EligibilityFields applicant={applicant} set={setApplicant} /> : null}
               {profileSource === "hq" ? (
                 <div className="flex flex-col">
                   {hqFacts.map((f) => (

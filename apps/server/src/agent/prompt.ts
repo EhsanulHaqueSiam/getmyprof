@@ -1,4 +1,4 @@
-import type { DetailLevel, Hunt, ProfileFact, Settings } from "@gradcode/contracts";
+import type { Applicant, DetailLevel, Hunt, ProfileFact, Settings } from "@gradcode/contracts";
 
 const DEGREE = {
   phd: "a funded PhD",
@@ -25,8 +25,28 @@ export function systemPrompt(
   hunt: Hunt | null,
   facts: ProfileFact[],
   settings: Settings,
+  applicant: Applicant | null = null,
   today = new Date(),
 ) {
+  const a = applicant;
+  const eligibility = a
+    ? [
+        `Applicant: citizen of ${a.citizenship.join(", ") || "unknown"}, living in ${a.residence || "unknown"}, ${a.degreeYears}-year bachelor's${a.gpa ? `, GPA ${a.gpa}` : ""}.`,
+        a.tests.length
+          ? `Tests: ${a.tests.map((t) => `${t.name} ${t.status}${t.date ? ` ${t.date}` : ""}${t.score ? ` (${t.score})` : ""}`).join("; ")}. Never claim a score that isn't listed.`
+          : "No English test taken yet. Never claim a score.",
+        a.moi ? "Has a medium-of-instruction certificate: favor programs that accept it." : "",
+        a.feeBudgetUsd !== null
+          ? `Application fee budget: $${a.feeBudgetUsd} in total; favor fee waivers.`
+          : "",
+        a.minStipendUsd !== null
+          ? `Needs at least $${a.minStipendUsd} a year in stipend${a.dependents ? ", with dependents" : ""}.`
+          : "",
+        'Set eligibility to "no: <why>" when funding is restricted to other citizens (US NIH training grants and the NSF GRFP need US citizens or permanent residents) or the degree length does not qualify; otherwise "ok".',
+      ]
+        .filter(Boolean)
+        .join("\n")
+    : "";
   const p = hunt?.prefs;
   const confirmed = facts.filter((f) => f.confirmed && !f.question);
   return [
@@ -48,6 +68,7 @@ export function systemPrompt(
     confirmed.length
       ? `Confirmed facts about the applicant (claim nothing beyond these):\n${confirmed.map((f) => `- ${f.text}`).join("\n")}`
       : "No confirmed facts about the applicant yet. Don't claim anything about them.",
+    eligibility,
     DETAIL[settings.detail],
     [
       "Rules:",
@@ -56,6 +77,9 @@ export function systemPrompt(
       "- Use only emails printed on official pages. Respect contact rules: apply-only means no cold email.",
       "- Prefer free tools (nsf_awards, nih_awards, openalex_author, WebSearch, WebFetch). Paid treg calls cost the applicant money; use them only when free sources fail.",
       "- Check sheet_search before researching a school, so you update rows instead of duplicating them.",
+      "- Score money separately from fit with moneyTier: 1 posted funded opening, 2 active grant past the intake or a new-hire startup or a program that funds every admit, 3 indirect signs, 4 nothing found. A tier-4 professor still gets proposed: an email asking whether they take funded students is the cheapest evidence.",
+      "- Look beyond one source: faculty and lab pages, OpenAlex, NSF and NIH, and via treg web search (treg.google.serp.organic), rendered pages (litescrape.web.fetch.post), X posts (treg.x.search.posts), Reddit, LinkedIn jobs for European PhD positions, Scholar. LinkedIn profiles only confirm identity.",
+      "- Emails: official pages first; treg.people.email.find only if they fail; always check with treg.people.email.verify (free).",
       "- End with a short reply: who you found, what needs the applicant, nothing else.",
     ].join("\n"),
   ]

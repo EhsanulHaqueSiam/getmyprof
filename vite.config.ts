@@ -55,6 +55,7 @@ export default defineConfig({
       "react-hooks/exhaustive-deps": "off",
       "unicorn/consistent-function-scoping": "off",
       "eslint/no-await-in-loop": "off",
+      "oxc/no-map-spread": "off",
       "typescript/no-explicit-any": "error",
       "eslint/max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }],
       "gradcode/single-writer": "error",

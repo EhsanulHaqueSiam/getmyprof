@@ -1,12 +1,57 @@
-import type { ServerMessage } from "@gradcode/contracts";
+import { ClientRequest, type ServerMessage } from "@gradcode/contracts";
 import * as NodeHttp from "node:http";
 import { WebSocketServer } from "ws";
+import { importGradhunt } from "./adapters.ts";
+import { claudeProvider } from "./agent/claude.ts";
+import { fakeProvider, fixtureSources } from "./agent/fake.ts";
+import { createRunner } from "./agent/runner.ts";
+import { realSources } from "./agent/tools.ts";
+import { createBus } from "./bus.ts";
+import { openDb } from "./db.ts";
 import { health } from "./health.ts";
+import { dueLoops, listLoops, markRan } from "./loops.ts";
+import { createHandlers, dispatch } from "./rpc.ts";
+import { getSettings } from "./state.ts";
+import { createThread, expireApprovals, getThread, settleStale } from "./threads.ts";
 
 const PORT = Number(process.env.SERVER_PORT ?? 4311);
+const fake = process.env.GRADCODE_AGENT === "fake";
 
-// Loopback only. Vite proxies /api and /ws here, and `scripts/dev-local.sh share` puts
-// Vite on the tailnet, so every client sees one origin (docs/internals/overview.md).
+const db = openDb();
+expireApprovals(db);
+settleStale(db);
+if (getSettings(db).gradhunt) importGradhunt(db);
+
+const bus = createBus();
+const sources = fake ? fixtureSources : realSources;
+const runner = createRunner({ db, bus, provider: fake ? fakeProvider() : claudeProvider, sources });
+
+/** Starts one loop run as its own thread; the loop's instructions are the first message. */
+function startLoop(id: string) {
+  const loop = listLoops(db).find((l) => l.id === id);
+  if (!loop) throw new Error(`No loop ${id}`);
+  const ranAt = new Date();
+  const t = createThread(
+    db,
+    `${loop.name} · ${ranAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
+    loop.id,
+  );
+  markRan(db, loop, ranAt);
+  runner.send(t.id, loop.instructions, "send");
+  bus.push({ type: "changed", what: "loops" });
+  return getThread(db, t.id)!;
+}
+
+const handlers = createHandlers({ db, bus, runner, sources, fake, startLoop });
+
+// Loops fire on the minute; stale threads settle hourly. Both are cheap reads.
+setInterval(() => {
+  for (const loop of dueLoops(db)) startLoop(loop.id);
+}, 60_000);
+setInterval(() => settleStale(db), 3_600_000);
+
+// Loopback only. Vite proxies /api and /ws here, and `scripts/dev-local.sh share` puts Vite on
+// the tailnet, so every client sees one origin (docs/internals/overview.md).
 const server = NodeHttp.createServer((req, res) => {
   if (req.method === "GET" && req.url === "/api/health") {
     res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify(health()));
@@ -15,9 +60,39 @@ const server = NodeHttp.createServer((req, res) => {
   res.writeHead(404).end();
 });
 
-const send = (ws: { send: (data: string) => void }, message: ServerMessage) =>
-  ws.send(JSON.stringify(message));
+new WebSocketServer({ server, path: "/ws", maxPayload: 32 * 1024 * 1024 }).on(
+  "connection",
+  (ws) => {
+    const send = (message: ServerMessage) => ws.send(JSON.stringify(message));
+    const remove = bus.add(send);
+    ws.on("close", remove);
+    ws.on("message", async (data) => {
+      let req: ClientRequest;
+      try {
+        req = ClientRequest.parse(JSON.parse(String(data)));
+      } catch {
+        return;
+      }
+      try {
+        send({
+          type: "reply",
+          id: req.id,
+          ok: true,
+          result: await dispatch(handlers, req.method, req.params),
+        });
+      } catch (error) {
+        send({
+          type: "reply",
+          id: req.id,
+          ok: false,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    });
+    send({ type: "hello" });
+  },
+);
 
-new WebSocketServer({ server, path: "/ws" }).on("connection", (ws) => send(ws, { type: "hello" }));
-
-server.listen(PORT, "127.0.0.1", () => console.log(`gradcode server on http://127.0.0.1:${PORT}`));
+server.listen(PORT, "127.0.0.1", () =>
+  console.log(`gradcode server on http://127.0.0.1:${PORT}${fake ? " (fake agent)" : ""}`),
+);

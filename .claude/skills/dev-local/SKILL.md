@@ -14,8 +14,13 @@ One script: `scripts/dev-local.sh`. tmux session `gradcode-dev`, no infra.
 
 Open http://127.0.0.1:5174.
 
-Prerequisites: `pnpm install`, tmux. `GRADHUNT_DIR` defaults to `~/Personal/gradhunt`. Point it
-at a copy for anything that writes.
+Prerequisites: `pnpm install`, tmux. Environment it passes through:
+
+- `GRADCODE_HOME`: data dir (default `~/.gradcode`). Use a temp dir for tests and verification.
+- `GRADCODE_AGENT=fake`: the scripted agent, free and deterministic. Unset means the real one.
+- `GRADHUNT_DIR`: gradhunt checkout for the sync (default `~/Personal/gradhunt`).
+
+Test stack: `rm -rf /tmp/gc-e2e && GRADCODE_HOME=/tmp/gc-e2e GRADCODE_AGENT=fake scripts/dev-local.sh up`.
 
 | Command               | Does                                                         |
 | --------------------- | ------------------------------------------------------------ |

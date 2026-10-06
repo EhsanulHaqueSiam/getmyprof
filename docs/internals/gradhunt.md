@@ -1,6 +1,9 @@
 # gradhunt
 
-gradcode reads and writes `~/Personal/gradhunt` (override with `GRADHUNT_DIR`). gradhunt's
+On Siam's install, with gradhunt sync on (Settings), gradcode copies `~/Personal/gradhunt`'s sheet
+into its store at startup and writes accepted changes back through `scout.py` (override the path
+with `GRADHUNT_DIR`). Only fit, email, email check, money, niche and website go back; the rest stays
+local. Everyone else never touches gradhunt. gradhunt's
 own spec, `loopany/prof-scout/README.md`, owns the data model, funding models, contact rules and
 outreach wording. Read it there; don't restate it here.
 

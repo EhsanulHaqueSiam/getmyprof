@@ -36,7 +36,7 @@ export default defineConfig({
     include: ["**/*.test.ts"],
     exclude: ["**/node_modules/**", "**/dist/**", "e2e/**"],
   },
-  // Formatter only on commit, like T3 Code. Lint and typecheck run in CI and /verify.
+  // Formatter only on commit, like T3 Code. Lint, typecheck, tests and e2e run in /verify.
   staged: {
     "*": "vp fmt --no-error-on-unmatched-pattern",
   },

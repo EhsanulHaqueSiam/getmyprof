@@ -117,6 +117,7 @@ function Loops() {
                           weekday: "short",
                           hour: "2-digit",
                           minute: "2-digit",
+                          hourCycle: "h23",
                         })
                       : "off"}
                   </td>

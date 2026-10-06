@@ -6,7 +6,7 @@ import type {
   ThreadView,
 } from "@gradcode/contracts";
 import { create } from "zustand";
-import { call, onPush } from "~/rpc/client";
+import { call, onClose, onPush } from "~/rpc/client";
 
 type Store = {
   live: boolean;
@@ -62,6 +62,7 @@ function upsertEvent(events: ThreadEvent[], event: ThreadEvent) {
 /** Wires server pushes into the store. Called once from main.tsx. */
 export function subscribe() {
   const { getState, setState } = useStore;
+  onClose(() => setState({ live: false }));
   onPush((m) => {
     if (m.type === "hello") {
       setState({ live: true });
@@ -94,10 +95,7 @@ export function subscribe() {
         void getState().loadView(m.threadId);
       if (m.what === "records") setState((s) => ({ recordsVersion: s.recordsVersion + 1 }));
       if (m.what === "loops") setState((s) => ({ loopsVersion: s.loopsVersion + 1 }));
-      if (m.what === "state") {
-        if (!getState().live) return;
-        setState({ live: false });
-      }
+      if (m.what === "state") void getState().loadApp();
     }
   });
 }

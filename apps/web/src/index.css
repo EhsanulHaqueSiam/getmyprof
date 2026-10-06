@@ -148,6 +148,12 @@
     var(--app-scrollbar-width) 100%;
 }
 
+@utility dialog-backdrop {
+  background: color-mix(in srgb, var(--background) 64%, transparent);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
 @layer base {
   *,
   ::before,

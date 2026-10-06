@@ -130,6 +130,7 @@ function Setup() {
             key={s}
             type="button"
             onClick={() => setStep(i)}
+            aria-label={`Step ${i + 1}: ${s}`}
             className={cn(
               "flex h-8.5 items-center gap-2.5 rounded-lg px-2.5 text-left text-sm transition-colors",
               i === step

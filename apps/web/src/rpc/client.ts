@@ -14,6 +14,7 @@ type Pending = {
 
 const pending = new Map<number, Pending>();
 const listeners = new Set<(m: ServerMessage) => void>();
+const closeListeners = new Set<() => void>();
 let socket: WebSocket | null = null;
 let nextId = 1;
 const outbox: string[] = [];
@@ -46,7 +47,7 @@ export function connect() {
     });
     ws.addEventListener("close", () => {
       socket = null;
-      for (const l of listeners) l({ type: "changed", what: "state" });
+      for (const l of closeListeners) l();
       setTimeout(open, 1000);
     });
   };
@@ -68,6 +69,12 @@ export function call<M extends Method>(method: M, input: MethodInput<M>): Promis
 export function onPush(listener: (m: ServerMessage) => void) {
   listeners.add(listener);
   return () => listeners.delete(listener);
+}
+
+/** Subscribes to socket drops (the reconnect is automatic; `hello` marks it back up). */
+export function onClose(listener: () => void) {
+  closeListeners.add(listener);
+  return () => closeListeners.delete(listener);
 }
 
 export const isOpen = () => socket?.readyState === WebSocket.OPEN;

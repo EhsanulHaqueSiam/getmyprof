@@ -1,7 +1,7 @@
 import { ROW_OPS, type RowOp, type ThreadEvent } from "@gradcode/contracts";
 import type { Bus } from "../bus.ts";
 import { type Db, newId, now } from "../db.ts";
-import { getRecord } from "../records.ts";
+import { getRecord, threadProposals } from "../records.ts";
 import { getFacts, getHunt, getSettings } from "../state.ts";
 import {
   listThreads,
@@ -11,6 +11,7 @@ import {
   setSession,
   setStatus,
   settle,
+  settleIfDone,
   getThread,
   threadSpend,
 } from "../threads.ts";
@@ -83,6 +84,16 @@ export function createRunner(deps: {
           });
         setStatus(db, threadId, "idle");
         markUnread(db, threadId, true);
+        // Changes from this turn already reviewed while it ran: nothing waits, so settle now.
+        const started = new Date(turn.at).toISOString();
+        const mine = threadProposals(db, threadId).filter((p) => p.createdAt >= started);
+        if (mine.length > 0 && settleIfDone(db, threadId))
+          emit(threadId, {
+            id: newId("sys"),
+            at: now(),
+            type: "system",
+            text: "Settled · nothing waits on you",
+          });
         pushThreads();
       },
       requestApproval(ask) {

@@ -11,6 +11,9 @@ test("first run: setup saves a hunt, confirmed facts and loops", async ({ page }
   await page.getByRole("button", { name: "Off" }).click(); // paid lookups on
   await page.getByRole("button", { name: "Continue" }).click();
 
+  await page.getByRole("textbox", { name: "Add" }).fill("Bangladesh");
+  await page.getByRole("textbox", { name: "Add" }).press("Enter");
+  await expect(page.getByRole("button", { name: "Bangladesh" })).toBeVisible();
   await page.getByLabel("CV text").fill("BSc Computer Science 2025, GPA 3.8");
   await page.getByRole("button", { name: "Read it" }).click();
   await expect(page.getByTestId("fact")).toHaveCount(3);
@@ -49,6 +52,8 @@ test("results: a row action fills cells, and accepting clears the blue", async (
   await page.getByRole("link", { name: "Find professors" }).click();
   await page.getByRole("tab", { name: /Results/ }).click();
   await expect(page.getByTestId("result-row")).toHaveCount(3);
+  await expect(page.getByRole("columnheader", { name: /Money tier/ })).toBeVisible();
+  await expect(page.getByText("2 strong").first()).toBeVisible();
 
   await page.getByLabel("Select Kevin Lybarger").check();
   await page.getByLabel("Select Mohan Zalake").check();

@@ -2,6 +2,7 @@
 // validates inputs before dispatch and the client's `call` infers both sides from this map.
 import { z } from "zod";
 import {
+  Applicant,
   Award,
   Hunt,
   HuntPrefs,
@@ -20,6 +21,7 @@ const ok = z.object({ ok: z.literal(true) });
 export const AppState = z.object({
   settings: Settings,
   hunt: Hunt.nullable(),
+  applicant: Applicant,
   facts: z.array(ProfileFact),
   host: z.string(),
   adapters: z.object({ hq: z.boolean(), gradhunt: z.boolean(), treg: z.boolean() }),
@@ -38,6 +40,7 @@ export const Methods = {
   "state.get": { input: z.object({}), output: AppState },
   "settings.update": { input: Settings.partial(), output: Settings },
   "hunt.save": { input: z.object({ name: z.string(), prefs: HuntPrefs }), output: Hunt },
+  "applicant.save": { input: Applicant, output: Applicant },
   "facts.save": { input: z.object({ facts: z.array(ProfileFact) }), output: z.array(ProfileFact) },
   "facts.extract": {
     input: z.object({

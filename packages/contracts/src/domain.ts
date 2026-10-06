@@ -58,6 +58,24 @@ export const ProfileFact = z.object({
 });
 export type ProfileFact = z.infer<typeof ProfileFact>;
 
+export const TestStatus = z.enum(["taken", "booked", "planned", "none"]);
+
+/** Who the applicant is, for eligibility: citizenship decides who may pay them and which scholarships exist. */
+export const Applicant = z.object({
+  citizenship: z.array(z.string()),
+  residence: z.string(),
+  degreeYears: z.number().int().min(0).max(6),
+  gpa: z.string(),
+  tests: z.array(
+    z.object({ name: z.string(), status: TestStatus, date: z.string(), score: z.string() }),
+  ),
+  moi: z.boolean(),
+  feeBudgetUsd: z.number().nullable(),
+  dependents: z.boolean(),
+  minStipendUsd: z.number().nullable(),
+});
+export type Applicant = z.infer<typeof Applicant>;
+
 export const Stage = z.enum(["new", "drafted", "sent", "replied", "apply-only", "skip"]);
 export type Stage = z.infer<typeof Stage>;
 
@@ -78,6 +96,10 @@ export const Professor = z.object({
   department: z.string(),
   niche: z.string(),
   fit: z.number().int().min(0).max(5),
+  /** 1 clear (posted opening), 2 strong (grant or startup), 3 indirect signs, 4 none found, 0 not checked. */
+  moneyTier: z.number().int().min(0).max(4).default(0),
+  /** "ok", or "no: <why>" when the applicant can't be paid here (citizenship-only funding, degree). */
+  eligibility: z.string().default(""),
   taking: z.string(),
   money: z.string(),
   lasts: z.string(),
@@ -101,6 +123,8 @@ export const PROFESSOR_FIELDS = [
   "department",
   "niche",
   "fit",
+  "moneyTier",
+  "eligibility",
   "taking",
   "money",
   "lasts",

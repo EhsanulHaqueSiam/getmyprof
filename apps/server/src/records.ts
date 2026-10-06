@@ -26,6 +26,8 @@ export function blankProfessor(name: string, university: string): Professor {
     department: "",
     niche: "",
     fit: 0,
+    moneyTier: 0,
+    eligibility: "",
     taking: "",
     money: "",
     lasts: "",
@@ -47,7 +49,8 @@ const fieldValue = (p: Professor, f: ProfessorField) => String(p[f]);
 /** Applies changes to a record, coercing each value to its field's type. */
 export function applyChanges(p: Professor, changes: Change[]): Professor {
   const next: Record<string, unknown> = { ...p };
-  for (const c of changes) next[c.field] = c.field === "fit" ? Number(c.to) : c.to;
+  for (const c of changes)
+    next[c.field] = c.field === "fit" || c.field === "moneyTier" ? Number(c.to) : c.to;
   return Professor.parse({ ...next, updatedAt: now() });
 }
 

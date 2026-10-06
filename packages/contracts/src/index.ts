@@ -13,6 +13,6 @@ export const Health = z.object({
 });
 export type Health = z.infer<typeof Health>;
 
-/** Messages the server pushes over /ws. Agent events join this union as they land. */
-export const ServerMessage = z.discriminatedUnion("type", [z.object({ type: z.literal("hello") })]);
-export type ServerMessage = z.infer<typeof ServerMessage>;
+export * from "./domain.ts";
+export * from "./threads.ts";
+export * from "./rpc.ts";

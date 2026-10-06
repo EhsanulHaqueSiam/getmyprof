@@ -1,0 +1,236 @@
+// Bridges to Siam's install (gradhunt records, hq facts) and CSV for everyone. Each adapter
+// reads its source on demand; gradhunt writes go back only through scout.py, one at a time.
+import { type Change, Professor, type ProfileFact, Stage } from "@gradcode/contracts";
+import * as NodeChild from "node:child_process";
+import * as NodeFS from "node:fs";
+import * as NodeOS from "node:os";
+import * as NodePath from "node:path";
+import { type Db, now } from "./db.ts";
+import { getRecord, listRecords, putRecord, recordKey } from "./records.ts";
+
+const s = (v: unknown) => (v == null ? "" : String(v));
+
+export const hqDir = (env = process.env) =>
+  env.HQ_DIR ?? NodePath.join(NodeOS.homedir(), "Personal/hq");
+
+/** hq's fact notes as confirmed, read-only profile facts: title and description, with the note as source. */
+export function readHqFacts(dir = hqDir()): ProfileFact[] {
+  const root = NodePath.join(dir, "facts");
+  if (!NodeFS.existsSync(root)) return [];
+  const files = NodeFS.readdirSync(root, { recursive: true, encoding: "utf8" }).filter(
+    (f) => f.endsWith(".md") && !f.endsWith("index.md"),
+  );
+  return files.flatMap((file) => {
+    const text = NodeFS.readFileSync(NodePath.join(root, file), "utf8");
+    const fm = /^---\n([\s\S]*?)\n---/.exec(text)?.[1] ?? "";
+    const field = (k: string) =>
+      new RegExp(`^${k}:\\s*(.+)$`, "m")
+        .exec(fm)?.[1]
+        ?.replace(/^["']|["']$/g, "")
+        .trim() ?? "";
+    const title = field("title");
+    if (!title) return [];
+    const description = field("description");
+    return [
+      {
+        id: `hq:${file}`,
+        text: description ? `${title}: ${description}` : title,
+        source: `hq/facts/${file}`,
+        confirmed: true,
+        question: false,
+      },
+    ];
+  });
+}
+
+export const gradhuntDir = (env = process.env) =>
+  env.GRADHUNT_DIR ?? NodePath.join(NodeOS.homedir(), "Personal/gradhunt");
+const sheetPath = (dir: string) => NodePath.join(dir, "loopany/prof-scout/data/professors.json");
+
+const STAGE: Record<string, Professor["stage"]> = {
+  new: "new",
+  drafted: "drafted",
+  sent: "sent",
+  replied: "replied",
+};
+
+/** Copies gradhunt's sheet into the store. Rows gradcode already holds keep their local edits. */
+export function importGradhunt(db: Db, dir = gradhuntDir()) {
+  const file = sheetPath(dir);
+  if (!NodeFS.existsSync(file)) return 0;
+  const rows: unknown = JSON.parse(NodeFS.readFileSync(file, "utf8"));
+  let added = 0;
+  for (const raw of Array.isArray(rows) ? rows : []) {
+    const r = raw as Record<string, unknown>;
+    const name = s(r.name);
+    const university = s(r.university);
+    if (!name || !university || getRecord(db, recordKey(name, university))) continue;
+    const contact = s(r.contact) || "email";
+    putRecord(
+      db,
+      Professor.parse({
+        key: recordKey(name, university),
+        name,
+        university,
+        department: s(r.department),
+        niche: s(r.subject),
+        fit: Math.max(0, Math.min(5, Number(r.fit) || 0)),
+        taking: "",
+        money: s(r.funding_evidence).slice(0, 160),
+        lasts: "",
+        email: s(r.email),
+        emailCheck: s(r.email_check).split(" ")[0] ?? "",
+        contact: [contact, s(r.contact_note)].filter(Boolean).join(": ").slice(0, 200),
+        stage: contact === "apply-only" ? "apply-only" : (STAGE[s(r.status)] ?? "new"),
+        fitsBecause: s(r.notes).slice(0, 200),
+        website: s(r.website),
+        sources: (Array.isArray(r.sources) ? r.sources.map(s) : s(r.sources).split(/;\s*/)).filter(
+          Boolean,
+        ),
+        grants: [],
+        origin: "gradhunt",
+        updatedAt: now(),
+      }),
+    );
+    added++;
+  }
+  return added;
+}
+
+/** gradcode fields scout.py can take, and their gradhunt names. Others stay local to gradcode. */
+const SCOUT_FIELDS: Partial<Record<Change["field"], string>> = {
+  fit: "fit",
+  email: "email",
+  emailCheck: "email_check",
+  money: "funding_evidence",
+  niche: "subject",
+  website: "website",
+};
+
+let scoutQueue: Promise<unknown> = Promise.resolve();
+
+/** Writes accepted changes to a gradhunt row through `scout.py set`, queued so writes never overlap. */
+export function writeBackToGradhunt(p: Professor, changes: Change[], dir = gradhuntDir()) {
+  const pairs = changes.flatMap((c) => {
+    const field = SCOUT_FIELDS[c.field];
+    if (!field) return [];
+    return [`${field}=${field === "email_check" ? `${c.to} ${now().slice(0, 10)}` : c.to}`];
+  });
+  if (p.origin !== "gradhunt" || pairs.length === 0) return scoutQueue;
+  scoutQueue = scoutQueue.then(
+    () =>
+      new Promise<void>((resolve) =>
+        NodeChild.execFile(
+          NodePath.join(dir, "scout.py"),
+          ["set", p.name, p.university, ...pairs],
+          { cwd: dir, timeout: 60_000 },
+          (err) => {
+            if (err) console.error(`scout.py set ${p.name}: ${err.message.slice(0, 200)}`);
+            resolve();
+          },
+        ),
+      ),
+  );
+  return scoutQueue;
+}
+
+const CSV_FIELDS = [
+  "name",
+  "university",
+  "department",
+  "niche",
+  "fit",
+  "taking",
+  "money",
+  "lasts",
+  "email",
+  "emailCheck",
+  "contact",
+  "stage",
+  "fitsBecause",
+  "website",
+  "sources",
+] as const;
+
+const csvCell = (v: string) => (/[",\n]/.test(v) ? `"${v.replaceAll('"', '""')}"` : v);
+
+export function exportCsv(db: Db) {
+  const lines = listRecords(db).map((p) =>
+    CSV_FIELDS.map((f) => csvCell(f === "sources" ? p.sources.join(" ") : String(p[f]))).join(","),
+  );
+  return [CSV_FIELDS.join(","), ...lines].join("\n");
+}
+
+/** RFC 4180-ish parsing: quoted cells, doubled quotes, newlines inside quotes. */
+export function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let quoted = false;
+  const endCell = () => {
+    row.push(cell);
+    cell = "";
+  };
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (c === '"' && text[i + 1] === '"') {
+        cell += '"';
+        i++;
+      } else if (c === '"') quoted = false;
+      else cell += c;
+    } else if (c === '"') quoted = true;
+    else if (c === ",") endCell();
+    else if (c === "\n" || c === "\r") {
+      if (c === "\r" && text[i + 1] === "\n") i++;
+      endCell();
+      rows.push(row);
+      row = [];
+    } else cell += c;
+  }
+  if (cell || row.length) {
+    endCell();
+    rows.push(row);
+  }
+  return rows.filter((r) => r.some((x) => x.trim()));
+}
+
+/** Adds rows from a CSV with gradcode's export header. Existing people are left alone. */
+export function importCsv(db: Db, text: string) {
+  const [header, ...rows] = parseCsv(text);
+  if (!header) return 0;
+  const col = (r: string[], f: string) => r[header.indexOf(f)] ?? "";
+  let added = 0;
+  for (const r of rows) {
+    const name = col(r, "name").trim();
+    const university = col(r, "university").trim();
+    if (!name || !university || getRecord(db, recordKey(name, university))) continue;
+    const stage = Stage.safeParse(col(r, "stage"));
+    putRecord(
+      db,
+      Professor.parse({
+        key: recordKey(name, university),
+        name,
+        university,
+        department: col(r, "department"),
+        niche: col(r, "niche"),
+        fit: Math.max(0, Math.min(5, Number(col(r, "fit")) || 0)),
+        taking: col(r, "taking"),
+        money: col(r, "money"),
+        lasts: col(r, "lasts"),
+        email: col(r, "email"),
+        emailCheck: col(r, "emailCheck"),
+        contact: col(r, "contact"),
+        stage: stage.success ? stage.data : "new",
+        fitsBecause: col(r, "fitsBecause"),
+        website: col(r, "website"),
+        sources: col(r, "sources").split(/\s+/).filter(Boolean),
+        grants: [],
+        origin: "app",
+        updatedAt: now(),
+      }),
+    );
+    added++;
+  }
+  return added;
+}

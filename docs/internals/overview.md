@@ -2,39 +2,49 @@
 
 ```
 browser (React) ⇄ /api, /ws ⇄ Vite (127.0.0.1:5174) ⇄ server (127.0.0.1:4311)
-                                                      └ Claude Agent SDK sessions (next)
-                                                          ├ treg MCP
-                                                          ├ hunt MCP: propose_* tools (zod)
-                                                          ├ scout.py (allowlisted, the only writer)
-                                                          └ NSF + NIH APIs (free)
+                                                      ├ rpc.ts: contract methods → services
+                                                      ├ SQLite: ~/.gradcode/gradcode.sqlite
+                                                      ├ agent runner ── provider: claude | fake
+                                                      │    └ hunt tools: nsf_awards, nih_awards, openalex_author,
+                                                      │      sheet_search, propose_professor, treg (paid)
+                                                      └ adapters: hq facts, gradhunt (scout.py), CSV
 ```
 
 ## Single origin
 
-The server binds loopback only. In dev, Vite proxies `/api` and `/ws` to it, so the browser
-talks to one origin and nothing bakes a server URL into the bundle. Other devices reach the app
-through `scripts/dev-local.sh share` (`tailscale serve` in front of Vite). `allowedHosts:
-[".ts.net"]` in `apps/web/vite.config.ts` is what lets those requests through Vite's host check.
-The Mac mini runs everything; the laptop and phone are only clients, so closing them never stops
-a turn.
+The server binds loopback only. In dev, Vite proxies `/api` and `/ws` to it, so the browser talks
+to one origin and nothing bakes a server URL into the bundle. Other devices reach the app through
+`scripts/dev-local.sh share` (`tailscale serve` in front of Vite); `allowedHosts: [".ts.net"]` in
+`apps/web/vite.config.ts` lets those requests past Vite's host check. The host machine runs every
+agent turn and loop, so closing the laptop never stops a hunt.
 
 ## The wire
 
-Everything that crosses it is a zod schema in `packages/contracts`. The server pushes a
-`ServerMessage` union over `/ws`. The client decodes it with `safeParse` and ignores types it
-doesn't know, so a newer server never crashes an older tab. The client opens one socket for the
-app's lifetime, from `main.tsx` outside React, and reconnects a second after a drop
-(`apps/web/src/state/connectionStore.ts`).
+Every method is a zod input/output pair in `packages/contracts/src/rpc.ts`. The server validates
+input before dispatch; the client validates replies. Pushes (`threads`, `event`, `changed`) keep
+the Zustand store current, so views refetch only what changed. The client opens one socket for the
+app's lifetime and reconnects a second after a drop.
 
-## Constraints for agent sessions
+## Agent sessions
 
-These are known before the code exists, because Scout already ran into them:
+`agent/runner.ts` owns sessions: at most one live session per thread. A message to an idle thread
+without a session starts one that resumes the thread's earlier Claude conversation (`resume`).
+Messages sent mid-turn go in with the SDK's `priority`: `next` (queued after the current tool
+call) or `now` (steered). A session closes after a minute idle.
 
-- **Lean sessions.** Start each Agent SDK session with project settings only and an explicit MCP
-  list (treg plus hunt). gradhunt measured the global plugins, skills and connectors at 24k
-  tokens of dead weight per turn (`gradhunt/lean-agent.sh`).
-- **Money asks first.** Paid treg calls over $0.01, and any write to hq, go through the SDK's
-  permission callback and become an approval in the UI. Each thread has a hard spend cap; tests
-  run at $0.
-- **Findings are tool calls.** The agent reports through `propose_*` tools whose zod schemas live
-  in `packages/contracts`, so the UI renders records and diffs instead of parsing prose.
+- **Lean sessions.** `settingSources: []` and an explicit tool list (WebSearch, WebFetch, the hunt
+  MCP tools), so a user's own Claude config never leaks into the hunt. gradhunt measured global
+  plugins at 24k tokens of dead weight per turn.
+- **Money asks first.** Free tools are pre-allowed. `treg` goes through `canUseTool`, which checks
+  the caps (per thread, per loop run, per day) and asks the user above `askOver`. Row actions over
+  the limit ask in the dock before they are sent.
+- **Findings are tool calls.** The agent reports through `propose_professor`; the store diffs it
+  against the record and keeps only changed fields. Rejecting an add excludes the person for good.
+- **Settling.** A thread settles once it is idle with nothing pending in Review; idle threads
+  nobody touched for 3 days settle on their own.
+
+## Providers
+
+`claude` runs the Agent SDK's bundled Claude Code with the user's login. `fake` runs the same hunt
+tools on fixture sources with scripted turns (approval, proposals, row actions), so e2e covers the
+real store, approval and settle paths without spending anything. Pick with `GRADCODE_AGENT=fake`.

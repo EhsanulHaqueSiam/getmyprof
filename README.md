@@ -51,8 +51,12 @@ gradhunt's JSON stays the source of truth.
 ```sh
 pnpm install
 scripts/dev-local.sh up      # server :4311 + web http://127.0.0.1:5174, in tmux
-pnpm e2e                     # against the running stack
 scripts/dev-local.sh down
+
+# tests: unit, then e2e on a fresh stack with the scripted agent (free, deterministic)
+pnpm test
+rm -rf /tmp/gc-e2e && GRADCODE_HOME=/tmp/gc-e2e GRADCODE_AGENT=fake scripts/dev-local.sh up
+pnpm e2e
 ```
 
 Agents start at [AGENTS.md](AGENTS.md).

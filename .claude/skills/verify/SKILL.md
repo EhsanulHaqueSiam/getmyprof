@@ -43,8 +43,11 @@ On a branch, not `main`; changes committed.
 
 ## 1. Bring up the stack once
 
-`scripts/dev-local.sh up`. You own it; the verifier reuses it. Stop it at the end with
-`scripts/dev-local.sh down`.
+Fresh data and the fake agent, so verification spends nothing and starts empty:
+`rm -rf /tmp/gc-verify && GRADCODE_HOME=/tmp/gc-verify GRADCODE_AGENT=fake scripts/dev-local.sh up`.
+You own it; the verifier reuses it. Stop it at the end with `scripts/dev-local.sh down`.
+Only when the task changes the Claude provider, add one short live turn on a second server
+(`GRADCODE_HOME=<temp> SERVER_PORT=4312 node apps/server/src/bin.ts`), and stop it by its PID.
 
 ## 2. Verify the task (delegate), fix, re-verify
 

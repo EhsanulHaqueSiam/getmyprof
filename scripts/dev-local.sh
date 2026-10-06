@@ -21,7 +21,7 @@ GRADHUNT_DIR="${GRADHUNT_DIR:-$HOME/Personal/gradhunt}"
 
 # "window|command". The server must be up before the web proxy has anywhere to send /api.
 SERVERS=(
-  "server|SERVER_PORT=$SERVER_PORT GRADHUNT_DIR='$GRADHUNT_DIR' pnpm --filter @gradcode/server dev"
+  "server|SERVER_PORT=$SERVER_PORT GRADHUNT_DIR='$GRADHUNT_DIR' GRADCODE_HOME='${GRADCODE_HOME:-$HOME/.gradcode}' GRADCODE_AGENT='${GRADCODE_AGENT:-}' pnpm --filter @gradcode/server dev"
   "web|WEB_PORT=$WEB_PORT SERVER_PORT=$SERVER_PORT pnpm --filter @gradcode/web dev"
 )
 PORTS=("server:$SERVER_PORT" "web:$WEB_PORT")

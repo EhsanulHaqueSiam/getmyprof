@@ -12,6 +12,7 @@ import {
   mustProve,
   plainText,
   strayMarkers,
+  uncited,
   WRITING_LABEL,
 } from "~/lib/writing";
 import { call } from "~/rpc/client";
@@ -137,7 +138,8 @@ function WriterPage() {
   const stray = strayMarkers(w);
   const blocked = new Set([...cited.filter((c) => !c.ok).map((c) => c.n), ...stray]);
   const c = checks(w, { named, applicant: app.applicant });
-  const exportable = !mustProve(w) || (blocked.size === 0 && !c.scoreClaimed);
+  const claims = uncited(w);
+  const exportable = !mustProve(w) || (blocked.size === 0 && !c.scoreClaimed && !claims.length);
   const others = vault.programs.filter((p) => p.id !== w.programId);
 
   const start = async (programId: string | null, basedOn: string) => {
@@ -327,7 +329,7 @@ function WriterPage() {
             </li>
           ))}
         </ol>
-        {blocked.size || stray.length ? (
+        {blocked.size || stray.length || claims.length ? (
           <>
             <Label>Blocked</Label>
             <ul className="flex flex-col gap-1.5 text-warning-foreground" data-testid="blocked">
@@ -341,6 +343,11 @@ function WriterPage() {
                 ))}
               {stray.map((n) => (
                 <li key={`stray-${n}`}>[{n}] points at no fact. Cite one, or remove it.</li>
+              ))}
+              {claims.map((claim) => (
+                <li key={`claim-${claim}`}>
+                  "{claim}" claims something and cites no fact. Cite one, or cut the line.
+                </li>
               ))}
             </ul>
           </>

@@ -303,7 +303,7 @@ export function createRunner(deps: {
         const r = getRecord(db, k);
         return r
           ? [
-              `- ${r.name} | ${r.university} | key ${r.key} | email ${r.email || "?"} | site ${r.website || "?"} | contact ${r.contact || "?"}`,
+              `- ${r.name} | ${r.university} | key ${r.key} | email ${r.email || "?"} | site ${r.website || "?"} | contact ${r.contact || "?"} | money tier ${r.moneyTier || "?"}: ${r.money || "?"}`,
             ]
           : [];
       });

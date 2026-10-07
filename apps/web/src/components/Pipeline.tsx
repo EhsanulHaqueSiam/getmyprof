@@ -1,5 +1,5 @@
 import type { Channel, Conversation, OutreachMessage } from "@gradcode/contracts";
-import { PIPELINE_STAGES } from "@gradcode/contracts";
+import { draftIssues, PIPELINE_STAGES } from "@gradcode/contracts";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
@@ -63,24 +63,38 @@ export function InboxList({
   selected: string | undefined;
   onSelect: (key: string) => void;
 }) {
+  const app = useStore((s) => s.app);
+  // A draft with an issue (unproven claim, unchecked address...) waits for a fix, not approval.
+  const needsFix = (c: Conversation) => {
+    const d = openDraft(c);
+    return (
+      !!d &&
+      draftIssues(d, {
+        facts: app?.facts ?? [],
+        applicant: app?.applicant,
+        emailCheck: c.record.emailCheck,
+      }).length > 0
+    );
+  };
   return (
     <div className="min-h-0 overflow-y-auto border-r px-1.5 pb-3">
       {TURN_ORDER.map((turn) => {
         const items = conversations.filter((c) => c.turn === turn);
         if (items.length === 0) return null;
         const drafts = items.flatMap((c) => openDraft(c) ?? []);
+        const ready = items.flatMap((c) => (needsFix(c) ? [] : (openDraft(c) ?? [])));
         return (
           <div key={turn} data-testid={`turn-${turn}`}>
             <div className="flex h-8 items-center gap-1.5 px-2 pt-2 text-muted-foreground text-xs">
               {TURN_LABEL[turn]} · {items.length}
-              {turn === "approve" && drafts.length > 1 && connected ? (
+              {turn === "approve" && ready.length > 1 && connected ? (
                 <Button
                   size="xs"
                   variant="ghost-muted"
                   className="ml-auto"
-                  onClick={() => act(call("outreach.approve", { ids: drafts.map((d) => d.id) }))}
+                  onClick={() => act(call("outreach.approve", { ids: ready.map((d) => d.id) }))}
                 >
-                  Approve all
+                  {ready.length === drafts.length ? "Approve all" : `Approve ${ready.length} ready`}
                 </Button>
               ) : null}
             </div>
@@ -102,6 +116,9 @@ export function InboxList({
                     {ago(c.lastAt)}
                   </span>
                   <span className="col-span-2 truncate text-secondary-label text-xs">
+                    {turn === "approve" && needsFix(c) ? (
+                      <span className="text-warning-foreground">needs a fix · </span>
+                    ) : null}
                     {preview(c)}
                   </span>
                 </button>

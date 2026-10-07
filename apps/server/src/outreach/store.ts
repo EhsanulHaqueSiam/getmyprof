@@ -4,15 +4,17 @@
 import {
   type Channel,
   type Conversation,
+  draftIssues,
   OutreachMessage,
   type Professor,
   type ReplyClass,
   Touch,
-  unbackedScore,
 } from "@gradcode/contracts";
+import { profileFacts } from "../adapters.ts";
 import { type Db, newId, now } from "../db.ts";
 import { getRecord, listRecords, putRecord } from "../records.ts";
 import { getApplicant } from "../state.ts";
+import { numberCitations } from "../vault.ts";
 import type { Incoming } from "./mail.ts";
 import { classifyMail, followUpDue, nextSlot, returnDate } from "./plan.ts";
 
@@ -128,7 +130,7 @@ export function saveDraft(db: Db, d: DraftInput): OutreachMessage | { problem: s
     from: "",
     to: d.to.trim(),
     subject: d.subject.trim() || (lastIn ? `Re: ${lastIn.subject.replace(/^re:\s*/i, "")}` : ""),
-    body: d.body.trim(),
+    ...numberCitations(d.body.trim()),
     timeZone: validZone(d.timeZone) ? d.timeZone : "America/New_York",
     scheduledAt: null,
     at: null,
@@ -158,18 +160,26 @@ function takenSlots(db: Db) {
     });
 }
 
+/** Why this outgoing message can't be approved or sent yet (see draftIssues); empty when it may. */
+export const issuesFor = (db: Db, m: OutreachMessage) =>
+  draftIssues(m, {
+    facts: profileFacts(db),
+    applicant: getApplicant(db),
+    emailCheck: getRecord(db, m.recordKey)?.emailCheck ?? "",
+  });
+
 /**
- * Approves drafts (or failed sends, to retry): each gets its send time. A draft that claims a
- * test score no taken test backs is skipped, however it was approved. Returns how many.
+ * Approves drafts (or failed sends, to retry): each gets its send time. A draft with an issue
+ * (an unproven claim, an unbacked score, an unchecked address) is skipped, however it was
+ * approved. Returns how many.
  */
 export function approve(db: Db, ids: string[], at: Date, warmupStart: Date) {
   let n = 0;
-  const applicant = getApplicant(db);
   for (const id of ids) {
     const m = getMessage(db, id);
     const record = m && getRecord(db, m.recordKey);
     if (!m || !record || (m.status !== "draft" && m.status !== "failed")) continue;
-    if (unbackedScore(`${m.subject}\n${m.body}`, applicant)) continue;
+    if (issuesFor(db, m).length) continue;
     const scheduledAt = usesSlot(m)
       ? nextSlot({
           now: at,
@@ -252,6 +262,7 @@ export function ingest(db: Db, mail: Incoming): OutreachMessage | null {
     kind,
     replyClass: null,
     status: "received",
+    citations: {},
     from: mail.from,
     to: "",
     subject: mail.subject,
@@ -274,10 +285,26 @@ export function ingest(db: Db, mail: Incoming): OutreachMessage | null {
   return message;
 }
 
+/** What a reply says about taking students, for the record's `taking` cell. */
+const TAKING: Partial<Record<ReplyClass, string>> = {
+  interested: "yes",
+  call: "yes",
+  "not-taking": "no",
+};
+
 /** The agent's reading of a reply: what they want, in one line. */
 export function classify(db: Db, id: string, replyClass: ReplyClass, note: string) {
   const m = getMessage(db, id);
   if (!m || m.direction !== "in") return null;
+  // What they said about taking students becomes the record, dated, over any earlier guess.
+  const record = getRecord(db, m.recordKey);
+  const taking = TAKING[replyClass];
+  if (record && taking)
+    putRecord(db, {
+      ...record,
+      taking: `${taking}, they replied ${(m.at ?? m.createdAt).slice(0, 10)}`,
+      updatedAt: now(),
+    });
   return putMessage(db, { ...m, replyClass, note });
 }
 

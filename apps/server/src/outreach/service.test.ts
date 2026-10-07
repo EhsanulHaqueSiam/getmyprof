@@ -26,6 +26,7 @@ function setup(email = "lybarger@example.edu") {
   const record = {
     ...blankProfessor("Kevin Lybarger", "George Mason University"),
     email,
+    emailCheck: "ok, on the lab page",
   };
   putRecord(db, record);
   const mailer = fakeMailer();

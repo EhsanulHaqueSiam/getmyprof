@@ -6,7 +6,7 @@ import {
   MailStatus,
   OutreachMessage,
   Program,
-  unbackedScore,
+  stripCitations,
 } from "@gradcode/contracts";
 import { z } from "zod";
 import type { Runner } from "../agent/runner.ts";
@@ -14,7 +14,6 @@ import type { Bus } from "../bus.ts";
 import { type Db, getKv, now, setKv } from "../db.ts";
 import { getRecord, listRecords } from "../records.ts";
 import { sameSchool } from "../sources.ts";
-import { getApplicant } from "../state.ts";
 import { createThread, getThread } from "../threads.ts";
 import {
   Cursor,
@@ -30,6 +29,7 @@ import {
   followUpsToDraft,
   getMessage,
   ingest,
+  issuesFor,
   listMessages,
   markSent,
   putMessage,
@@ -89,7 +89,7 @@ export function createOutreach(deps: {
         from: { name: c.name, address: c.address },
         to: m.to,
         subject: m.subject,
-        text: m.body,
+        text: stripCitations(m.body),
         inReplyTo: m.inReplyTo,
       });
       markSent(db, m.id, { messageId, from: c.address });
@@ -258,8 +258,8 @@ export function createOutreach(deps: {
       const m = getMessage(db, id);
       if (!m || m.channel !== "email" || !["draft", "scheduled", "failed"].includes(m.status))
         throw new Error("Only a waiting email can be sent now.");
-      if (unbackedScore(`${m.subject}\n${m.body}`, getApplicant(db)))
-        throw new Error("It claims a test score no taken test backs. Edit it first.");
+      const issues = issuesFor(db, m);
+      if (issues.length) throw new Error(`Not yet: ${issues.join("; ")}.`);
       putMessage(db, { ...m, status: "scheduled", scheduledAt: now() });
       await tick();
     },

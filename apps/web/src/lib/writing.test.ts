@@ -1,7 +1,7 @@
 import type { Applicant, ProfileFact, Writing } from "@gradcode/contracts";
 import { strFromU8, unzipSync } from "fflate";
 import { describe, expect, it } from "vite-plus/test";
-import { checks, citations, docx, layout, plainText, strayMarkers } from "./writing";
+import { checks, citations, docx, layout, plainText, strayMarkers, uncited } from "./writing";
 
 const fact = (id: string, f: Partial<ProfileFact> = {}): ProfileFact => ({
   id,
@@ -47,6 +47,13 @@ describe("the Writer's reading of a piece", () => {
     const [first] = layout(piece, blocked);
     expect(first?.sentences.map((s) => s.blocked)).toEqual([false, true, false]);
     expect(strayMarkers(piece)).toEqual(["3"]);
+  });
+
+  it("blocks a claim that cites nothing, unless the piece never leaves the app", () => {
+    const claim = { ...piece, body: "I led a team of five. I want to study fairness." };
+    expect(uncited(claim)).toEqual(["I led a team of five."]);
+    expect(layout(claim, new Set())[0]?.sentences.map((s) => s.blocked)).toEqual([true, false]);
+    expect(uncited({ ...claim, kind: "prep" })).toEqual([]);
   });
 
   it("catches a test score no fact backs, names professors by last name, and exports clean text", () => {

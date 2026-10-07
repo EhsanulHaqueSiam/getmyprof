@@ -86,9 +86,15 @@ export function scoutLoop(dir = gradhuntDir(), nowAt = new Date()) {
   } catch {
     return null;
   }
-  // Entries read "- **2026-10-02 (run 23)** — what happened", one per run, newest last.
-  const timeline = readme.slice(readme.indexOf("## Timeline"));
-  const last = [...timeline.matchAll(/^- \*\*(.+?)\*\*\s*[—-]\s*(.+)$/gm)].at(-1);
+  // Entries read "- **2026-10-02 (run 23)** — what happened", wrapped over indented lines,
+  // one per run, newest last; the section ends at the next heading.
+  const timeline = readme.slice(readme.indexOf("## Timeline")).split(/\n(?=#)/)[0] ?? "";
+  const entry =
+    timeline
+      .split(/\n(?=- \*\*)/)
+      .at(-1)
+      ?.replace(/\s+/g, " ") ?? "";
+  const last = /^- \*\*(.+?)\*\*\s*[—-]\s*(.+)$/.exec(entry.trim());
   const since = new Date(nowAt.getTime() - 7 * 864e5).toISOString().slice(0, 10);
   const rows = Array.isArray(sheet) ? sheet : [];
   return {

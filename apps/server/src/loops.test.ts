@@ -1,5 +1,9 @@
 import type { ThreadEvent } from "@gradcode/contracts";
+import * as NodeFS from "node:fs";
+import * as NodeOS from "node:os";
+import * as NodePath from "node:path";
 import { describe, expect, it } from "vite-plus/test";
+import { scoutLoop } from "./adapters.ts";
 import { createBus } from "./bus.ts";
 import { fakeProvider } from "./agent/fake.ts";
 import { fixtureSources } from "./agent/fixtures.ts";
@@ -128,5 +132,28 @@ describe("Always under $x here", () => {
     // $0.0245 rounds up to a $0.03 rule.
     expect(allowUnder(db, thread)).toBe(0.03);
     expect(listLoops(db).find((l) => l.id === loop.id)?.allowUnder).toBe(0.03);
+  });
+});
+
+describe("Scout's loop", () => {
+  it("reads its latest Timeline entry whole, and what it added in 7 days", () => {
+    const dir = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "gc-scout-"));
+    const prof = NodePath.join(dir, "loopany/prof-scout");
+    NodeFS.mkdirSync(NodePath.join(prof, "data"), { recursive: true });
+    NodeFS.writeFileSync(
+      NodePath.join(prof, "README.md"),
+      "# Scout\n\n## Timeline\n- **2026-10-05 (run 26)** — Old run.\n- **2026-10-06 (run 27)** — Watch check clean (0/19); facts\n  changed, nothing to file.\n\n## Notes\nmore\n",
+    );
+    NodeFS.writeFileSync(
+      NodePath.join(prof, "data/professors.json"),
+      JSON.stringify([{ date_added: "2026-10-06" }, { date_added: "2026-09-01" }, {}]),
+    );
+    expect(scoutLoop(dir, new Date("2026-10-07T12:00:00Z"))).toEqual({
+      when: "nightly 23:00, Asia/Dhaka",
+      lastRun: "2026-10-06 (run 27)",
+      summary: "Watch check clean (0/19); facts changed, nothing to file.",
+      found7d: 1,
+    });
+    expect(scoutLoop(NodePath.join(dir, "missing"))).toBeNull();
   });
 });

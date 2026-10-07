@@ -3,6 +3,7 @@
 // Claude, for free and the same way every time.
 import { type RowOp, type ThreadEvent } from "@gradcode/contracts";
 import { now } from "../db.ts";
+import { pendingCount } from "../records.ts";
 import { listDocuments } from "../vault.ts";
 import { FIXTURE_PROFESSORS, FIXTURE_PROGRAMS, FIXTURE_SCHOLARSHIPS } from "./fixtures.ts";
 import type { AgentProvider, SessionStart } from "./provider.ts";
@@ -120,8 +121,9 @@ export const fakeProvider = (
             costUsd: 0,
           });
       }
+      const waiting = pendingCount(s.toolContext.db, s.toolContext.threadId);
       say(
-        "Three came up. Lybarger and Zalake can likely take a student for your intake; Parde wants applications, not cold email. Three changes are waiting in Review.",
+        `Three came up. Lybarger and Zalake can likely take a student for your intake; Parde wants applications, not cold email. ${waiting ? `${waiting} change${waiting === 1 ? " is" : "s are"} waiting in Review.` : "Nothing waits in Review."}`,
       );
     }
 

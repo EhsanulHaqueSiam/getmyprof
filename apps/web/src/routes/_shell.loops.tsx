@@ -133,7 +133,7 @@ function Loops() {
                   )}
                 >
                   <td className="h-9 border-b px-3 font-medium whitespace-nowrap">{l.name}</td>
-                  <td className="max-w-[320px] truncate border-b px-3 text-secondary-label">
+                  <td className="max-w-[200px] truncate border-b px-3 text-secondary-label">
                     {l.instructions}
                   </td>
                   <td className="border-b px-3 whitespace-nowrap">{when(l.schedule)}</td>

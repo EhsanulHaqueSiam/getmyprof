@@ -97,8 +97,7 @@ test("outreach: drafts wait for approval, a sent email's reply comes back as you
   await page.getByRole("button", { name: /Settled/ }).click();
   await page.getByRole("link", { name: "Find professors" }).click();
   await page.getByRole("tab", { name: /Results/ }).click();
-  for (const name of ["Kevin Lybarger", "Mohan Zalake", "Natalie Parde"])
-    await page.getByLabel(`Select ${name}`).check();
+  await page.getByLabel("Select all rows").check();
   await page.getByRole("button", { name: /Draft first emails/ }).click();
   await page.getByRole("tab", { name: "Chat" }).click();
   await expect(page.getByText("Skipped 1 apply-only")).toBeVisible();

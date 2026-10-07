@@ -153,7 +153,17 @@ export function Results({ view, threadId }: { view: ThreadView; threadId: string
           <table className="w-full border-collapse text-[12.5px]">
             <thead>
               <tr>
-                <th className="sticky top-0 z-10 w-8 border-b border-input bg-background px-2" />
+                <th className="sticky top-0 z-10 w-8 border-b border-input bg-background px-2">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all rows"
+                    className="size-3.5 accent-foreground"
+                    checked={view.rows.length > 0 && view.rows.every((r) => selected.has(r.key))}
+                    onChange={(e) =>
+                      setSelected(new Set(e.target.checked ? view.rows.map((r) => r.key) : []))
+                    }
+                  />
+                </th>
                 {cols.map((c) => (
                   <th
                     key={c.key}

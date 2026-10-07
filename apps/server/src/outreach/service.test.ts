@@ -6,9 +6,11 @@ import { createBus } from "../bus.ts";
 import { openDb } from "../db.ts";
 import { blankProfessor, getRecord, putRecord } from "../records.ts";
 import { saveFacts } from "../state.ts";
+import { documentPath, saveDocument } from "../vault.ts";
 import { fakeMailer, fakeTokenEndpoint } from "./mail.ts";
 import { createOutreach } from "./service.ts";
-import { conversations, listMessages, saveDraft } from "./store.ts";
+import { conversations } from "./pipeline.ts";
+import { listMessages, saveDraft } from "./store.ts";
 
 const LOGIN = {
   name: "Applicant",
@@ -101,6 +103,40 @@ describe("outreach on a mailbox", () => {
     await outreach.tick(later);
     expect(asked.filter((t) => t.startsWith("[follow-up]"))).toHaveLength(1);
     expect(asked[0]).toContain("follow-up-1");
+  });
+});
+
+describe("an attachment", () => {
+  it("goes with the email from the vault, and only real documents can be attached", async () => {
+    const { db, outreach, record, mailer } = setup();
+    await outreach.connect(LOGIN);
+    const cv = saveDocument(db, {
+      name: "cv.pdf",
+      kind: "cv",
+      mime: "application/pdf",
+      expires: null,
+      base64: Buffer.from("%PDF-1.4 cv").toString("base64"),
+    });
+    const draft = (attach: string[], channel: "email" | "linkedin" = "email") =>
+      saveDraft(db, {
+        recordKey: record.key,
+        channel,
+        touch: "first",
+        to: channel === "email" ? record.email : "https://www.linkedin.com/in/lybarger",
+        subject: "PhD 2027",
+        body: "Are you taking students?",
+        timeZone: "America/New_York",
+        threadId: null,
+        attach,
+      });
+    expect(draft(["doc_missing"])).toEqual({ problem: "no document doc_missing in the vault" });
+    expect(draft([cv.id], "linkedin")).toEqual({ problem: "only email carries attachments" });
+    const ok = draft([cv.id]);
+    if ("problem" in ok) throw new Error(ok.problem);
+    await outreach.sendNow(ok.id);
+    expect(mailer.sent.at(-1)?.attachments).toEqual([
+      { filename: "cv.pdf", path: documentPath(cv.id) },
+    ]);
   });
 });
 

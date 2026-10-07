@@ -100,12 +100,17 @@ export function addBusinessDays(from: Date, days: number) {
   return d;
 }
 
-/** Follow-ups go out 7 and 14 business days after the first email, then the sequence stops. */
-export const FOLLOW_UP_DAYS = [7, 14] as const;
-
-export function followUpDue(firstSentAt: Date, followUpsSent: number) {
-  const days = FOLLOW_UP_DAYS[followUpsSent];
-  return days === undefined ? null : addBusinessDays(firstSentAt, days);
+/**
+ * When the next follow-up is due: `days` business days after the first email (the hunt's
+ * setting, 7 and 14 by default), then the sequence stops.
+ */
+export function followUpDue(
+  firstSentAt: Date,
+  followUpsSent: number,
+  days: readonly number[] = [7, 14],
+) {
+  const n = days[followUpsSent];
+  return n === undefined ? null : addBusinessDays(firstSentAt, n);
 }
 
 /** What an incoming message is, from headers and the first lines. The agent reads real replies. */

@@ -79,6 +79,7 @@ describe("the Vault", () => {
           recommenders: [],
           portal: "",
           portalStatus: "",
+          applicationId: "",
           professors: [],
           submittedAt: null,
           interviews: [],

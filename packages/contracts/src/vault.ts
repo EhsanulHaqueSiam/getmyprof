@@ -97,6 +97,8 @@ export const Application = z.object({
   ),
   portal: z.string(),
   portalStatus: z.string(),
+  /** The portal's application number, quoted in "I applied and named you" notes. */
+  applicationId: z.string().default(""),
   /** Professors to name in the application, by record key. */
   professors: z.array(z.string()),
   submittedAt: z.string().nullable(),

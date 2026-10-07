@@ -8,6 +8,7 @@ import { NotifySettings } from "~/components/NotifySettings";
 import { PairSettings } from "~/components/PairSettings";
 import { TregSettings } from "~/components/TregSettings";
 import { cn } from "~/lib/utils";
+import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
 
 export const Route = createFileRoute("/_shell/settings")({ component: SettingsPage });
@@ -18,6 +19,40 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
       <span className="text-muted-foreground text-xs">{label}</span>
       <div className="flex flex-wrap items-center gap-1.5">{children}</div>
     </div>
+  );
+}
+
+/** When follow-ups 1 and 2 go out: business days after the first email, saved with the hunt. */
+function FollowUpSettings() {
+  const hunt = useStore((s) => s.app?.hunt);
+  if (!hunt) return null;
+  const days = hunt.prefs.followUpDays;
+  const set = async (i: 0 | 1, value: number) => {
+    if (!Number.isInteger(value) || value < 1 || value === days[i]) return;
+    const next: [number, number] = i === 0 ? [value, days[1]] : [days[0], value];
+    const saved = await call("hunt.save", {
+      name: hunt.name,
+      prefs: { ...hunt.prefs, followUpDays: next },
+    });
+    useStore.setState((st) => (st.app ? { app: { ...st.app, hunt: saved } } : {}));
+  };
+  return (
+    <span className="flex items-center gap-1.5 text-muted-foreground text-xs">
+      after
+      {([0, 1] as const).map((i) => (
+        <input
+          key={i}
+          type="number"
+          min="1"
+          defaultValue={days[i]}
+          aria-label={`Follow-up ${i + 1}, business days`}
+          onBlur={(e) => void set(i, Number(e.target.value))}
+          onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+          className="h-7 w-12 rounded-lg border border-input bg-transparent px-2 text-foreground outline-none"
+        />
+      ))}
+      business days, then they stop
+    </span>
   );
 }
 
@@ -131,6 +166,11 @@ function SettingsPage() {
         <Row label="Mailbox">
           <MailSettings />
         </Row>
+        {app.hunt ? (
+          <Row label="Follow-ups">
+            <FollowUpSettings />
+          </Row>
+        ) : null}
         <Row label="Notifications">
           <NotifySettings />
         </Row>

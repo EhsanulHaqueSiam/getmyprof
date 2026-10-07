@@ -112,7 +112,11 @@ real store, approval and settle paths without spending anything. Pick with `GRAD
 ## Outreach
 
 Messages to and from professors live in the `messages` table; stage and whose turn it is are
-derived from them on every read (`outreach/store.ts`), never stored. The user connects their own
+derived from them on every read (`outreach/store.ts`, everyone in `outreach/pipeline.ts`), never
+stored. A submitted application that names a professor moves them to Applied; an offer from that
+school, to Offer. An accepted offer anywhere ends the hunt, also derived: loops stop running on
+schedule, cold mail and follow-ups stop, and answers and thank-yous still go. Un-accepting it
+resumes everything. The user connects their own
 mailbox with an app password, or signs in with Google (Gmail) or Microsoft (Outlook.com, which
 dropped app passwords). The login, password or refresh token, sits in `GRADCODE_HOME/mail.json`,
 mode 0600, and never crosses the wire.

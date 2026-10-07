@@ -62,6 +62,11 @@ function Loops() {
     setPickedId(saved.id);
   };
   const runs = threads.filter((t) => t.loopId && t.loopId === pickedId).slice(0, 8);
+  // An accepted offer ends the hunt: the server stops running loops on schedule.
+  const accepted = useStore((s) => s.vault?.offers.find((o) => o.status === "accepted"));
+  // Webhook loops still answer their URL after the hunt ends; scheduled ones stop.
+  const running = (l: (typeof loops)[number]) =>
+    l.enabled && (!accepted || l.schedule.kind === "webhook");
 
   return (
     <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_380px]">
@@ -69,7 +74,9 @@ function Loops() {
         <header className="flex h-12 shrink-0 items-center gap-2.5 px-4">
           <h1 className="font-semibold text-sm">Loops</h1>
           <span className="text-muted-foreground text-xs">
-            {loops.filter((l) => l.enabled).length} on
+            {accepted
+              ? `paused: you accepted ${accepted.university}'s offer. Run now still works`
+              : `${loops.filter((l) => l.enabled).length} on`}
           </span>
           <Button
             variant="outline"
@@ -116,24 +123,26 @@ function Loops() {
                     {l.lastRunAt ? ago(l.lastRunAt) : "never"}
                   </td>
                   <td className="border-b px-3 text-muted-foreground whitespace-nowrap">
-                    {l.nextRunAt
-                      ? new Date(l.nextRunAt).toLocaleString("en-US", {
-                          weekday: "short",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          hourCycle: "h23",
-                        })
-                      : l.enabled && l.schedule.kind === "webhook"
-                        ? "when called"
-                        : "off"}
+                    {accepted && l.schedule.kind !== "webhook"
+                      ? "hunt over"
+                      : l.nextRunAt
+                        ? new Date(l.nextRunAt).toLocaleString("en-US", {
+                            weekday: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hourCycle: "h23",
+                          })
+                        : l.enabled && l.schedule.kind === "webhook"
+                          ? "when called"
+                          : "off"}
                   </td>
                   <td
                     className={cn(
                       "border-b px-3",
-                      l.enabled ? "text-success-foreground" : "text-muted-foreground",
+                      running(l) ? "text-success-foreground" : "text-muted-foreground",
                     )}
                   >
-                    {l.enabled ? "on" : "paused"}
+                    {running(l) ? "on" : "paused"}
                   </td>
                 </tr>
               ))}

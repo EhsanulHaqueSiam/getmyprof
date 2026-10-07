@@ -45,6 +45,11 @@ export const listDocuments = (db: Db) => items(db, "document", VaultDocument);
 export const listPrograms = (db: Db) => items(db, "program", Program);
 export const listApplications = (db: Db) => items(db, "application", Application);
 export const listWriting = (db: Db) => items(db, "writing", Writing);
+export const listOffers = (db: Db) => items(db, "offer", Offer);
+
+/** The offer the applicant accepted, if any: the hunt is over, so loops and cold mail stop. */
+export const acceptedOffer = (db: Db) =>
+  listOffers(db).find((o) => o.status === "accepted") ?? null;
 
 export function vaultState(db: Db): VaultState {
   return {
@@ -52,7 +57,7 @@ export function vaultState(db: Db): VaultState {
     scholarships: items(db, "scholarship", Scholarship),
     programs: listPrograms(db),
     applications: listApplications(db),
-    offers: items(db, "offer", Offer),
+    offers: listOffers(db),
     writing: listWriting(db),
     toFile: items(db, "toFile", FileItem),
   };
@@ -189,6 +194,7 @@ export function startApplication(db: Db, programId: string): Application {
     recommenders: [],
     portal: program.url,
     portalStatus: "",
+    applicationId: "",
     professors: listRecords(db)
       .filter((r) => norm(r.university) === school && ["sent", "replied"].includes(r.stage))
       .map((r) => r.key),

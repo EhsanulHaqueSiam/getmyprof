@@ -43,6 +43,8 @@ export type Outgoing = {
   subject: string;
   text: string;
   inReplyTo: string | null;
+  /** Files from the vault, read from disk when the message goes. */
+  attachments: { filename: string; path: string }[];
 };
 
 export type Incoming = {
@@ -108,6 +110,7 @@ export function imapMailer(c: MailLogin): Mailer {
         to: m.to,
         subject: m.subject,
         text: m.text,
+        attachments: m.attachments,
         ...(m.inReplyTo ? { inReplyTo: m.inReplyTo, references: [m.inReplyTo] } : {}),
       });
       return { messageId: info.messageId };

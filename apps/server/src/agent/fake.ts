@@ -3,6 +3,7 @@
 // Claude, for free and the same way every time.
 import { type RowOp, type ThreadEvent } from "@gradcode/contracts";
 import { now } from "../db.ts";
+import { listDocuments } from "../vault.ts";
 import { FIXTURE_PROFESSORS, FIXTURE_PROGRAMS, FIXTURE_SCHOLARSHIPS } from "./fixtures.ts";
 import type { AgentProvider, SessionStart } from "./provider.ts";
 import { capProblem, type HuntTool } from "./tools.ts";
@@ -138,6 +139,8 @@ export const fakeProvider = (
         note: "asks for CV and a research note",
       });
       const p = FIXTURE_PROFESSORS.find((x) => x.name === name);
+      // They asked for a CV: attach the one in the vault, if there is one.
+      const cv = listDocuments(s.toolContext.db).find((d) => d.kind === "cv");
       await call("draft_email", `reply · ${name}`, {
         name,
         university,
@@ -145,8 +148,9 @@ export const fakeProvider = (
         touch: "reply",
         to: p?.email ?? "",
         subject: "",
-        body: `Dear Dr. ${name.split(" ").at(-1)},\n\nThank you. I'll send my CV and a short note on what I'd like to work on.\n\nBest regards`,
+        body: `Dear Dr. ${name.split(" ").at(-1)},\n\nThank you. ${cv ? "My CV is attached, with" : "I'll send my CV and"} a short note on what I'd like to work on.\n\nBest regards`,
         timeZone: ZONE[university] ?? "America/New_York",
+        ...(cv ? { attach: [cv.id] } : {}),
       });
       say(`${name} is interested and asks for a CV. An answer is drafted in Pipeline.`);
     }

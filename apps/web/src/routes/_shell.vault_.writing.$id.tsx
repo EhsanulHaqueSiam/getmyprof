@@ -2,10 +2,12 @@ import type { Writing } from "@gradcode/contracts";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
+import { download } from "~/lib/files";
 import { cn } from "~/lib/utils";
 import {
   checks,
   citations,
+  docx,
   layout,
   mustProve,
   plainText,
@@ -225,6 +227,20 @@ function WriterPage() {
             onClick={() => window.open(`/print/${w.id}`, "_blank", "noopener")}
           >
             Export PDF
+          </Button>
+          <Button
+            size="xs"
+            variant="outline"
+            disabled={!exportable}
+            onClick={() =>
+              download(
+                `${w.title.replace(/[\\/:*?"<>|]+/g, "-")}.docx`,
+                docx(w),
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              )
+            }
+          >
+            Export DOCX
           </Button>
           {exportable ? null : (
             <span className="text-warning-foreground">

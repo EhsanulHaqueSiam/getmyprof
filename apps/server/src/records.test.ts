@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vite-plus/test";
 import { exportCsv, importCsv, parseCsv } from "./adapters.ts";
 import { openDb } from "./db.ts";
-import { getRecord, propose, recordKey, resolveProposal, threadRows } from "./records.ts";
-import { createThread } from "./threads.ts";
+import {
+  getRecord,
+  propose,
+  recordKey,
+  resolveProposal,
+  scopeNote,
+  threadRows,
+} from "./records.ts";
+import { addScope, createThread, getThread } from "./threads.ts";
 
 const setup = () => {
   const db = openDb(":memory:");
@@ -73,5 +80,28 @@ describe("csv", () => {
     const fresh = openDb(":memory:");
     expect(importCsv(fresh, exportCsv(db))).toBe(1);
     expect(getRecord(fresh, add.proposal.recordKey)?.contact).toBe('email, subject "PhD 2027"');
+  });
+});
+
+describe("a thread's scope", () => {
+  it("takes each professor or school once, and tells the agent what the sheet already has", () => {
+    const { db, thread } = setup();
+    const added = propose(db, thread, { ...lybarger, fields: { money: "NIH $4.65M" } });
+    if ("proposal" in added) resolveProposal(db, added.proposal.id, "accept");
+    const key = recordKey(lybarger.name, lybarger.university);
+    const prof = { kind: "professor" as const, key, name: "Kevin Lybarger" };
+    const school = { kind: "school" as const, name: "George Mason University" };
+
+    expect(addScope(db, thread, [prof, school, prof])).toEqual([prof, school]);
+    expect(addScope(db, thread, [prof])).toEqual([]);
+    expect(getThread(db, thread)?.scope).toEqual([prof, school]);
+
+    const note = scopeNote(db, [prof, school, { kind: "school", name: "Purdue" }]);
+    expect(note).toContain(`key ${key}`);
+    expect(note).toContain("NIH $4.65M");
+    expect(note).toContain("https://example.edu");
+    expect(note).toContain("George Mason University, 1 in the sheet:");
+    expect(note).toContain("Purdue: nobody in the sheet yet");
+    expect(scopeNote(db, [])).toBe("");
   });
 });

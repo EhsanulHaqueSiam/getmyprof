@@ -10,6 +10,8 @@ const t = (id: string, patch: Partial<ThreadSummary> = {}): ThreadSummary => ({
   settledAt: null,
   snoozedUntil: null,
   workingSince: null,
+  scope: [],
+  detail: null,
   updatedAt: "2026-10-07T10:00:00.000Z",
   spendUsd: 0,
   spendDayUsd: 0,

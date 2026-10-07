@@ -31,11 +31,10 @@ import {
   saveDocument,
   saveEdit,
   startApplication,
-  readAttachments,
   vaultState,
   writingBrief,
 } from "./vault.ts";
-import { getRecord, listRecords, resolveProposal, threadProposals, threadRows } from "./records.ts";
+import { getRecord, listRecords, resolveProposal, threadProposals } from "./records.ts";
 import { intakeStart, monthsAfter, sameSchool, sourcesFor } from "./sources.ts";
 import {
   getApplicant,
@@ -46,26 +45,21 @@ import {
   saveHunt,
   updateSettings,
 } from "./state.ts";
+import { threadHandlers } from "./rpc-threads.ts";
 import { checkTregToken, readTregLogin, removeTregLogin, saveTregLogin } from "./treg.ts";
 import {
   createThread,
-  forkThread,
-  rowCosts,
   usageSince,
   getThread,
-  listEvents,
   listThreads,
-  markUnread,
   putEvent,
-  rename,
-  searchThreads,
-  settle,
   settleIfDone,
-  snooze,
 } from "./threads.ts";
 
 type Input<M extends Method> = z.output<(typeof Methods)[M]["input"]>;
-type Handlers = { [M in Method]: (input: Input<M>) => MethodOutput<M> | Promise<MethodOutput<M>> };
+export type Handlers = {
+  [M in Method]: (input: Input<M>) => MethodOutput<M> | Promise<MethodOutput<M>>;
+};
 
 const OK = { ok: true } as const;
 /** "LYBARGER, KEVIN" and "Kevin Lybarger" are the same person. */
@@ -151,77 +145,7 @@ export function createHandlers(svc: Services): Handlers {
     "facts.extract": async (input) =>
       svc.fake ? fakeFacts() : extractFacts(input, getSettings(db).model),
 
-    "threads.list": () => listThreads(db),
-    "threads.create": ({ text, title, attachments = [] }) => {
-      // The title reads like the message: an Ask's "[ask]" tag stays out of it.
-      const t = createThread(
-        db,
-        title ??
-          text
-            .replace(/^\[ask\]\s*/, "")
-            .replace(/\s+/g, " ")
-            .slice(0, 60),
-      );
-      runner.send(t.id, text, "send", text, readAttachments(db, attachments));
-      return thread(t.id);
-    },
-    "threads.view": ({ id }) => ({
-      thread: thread(id),
-      events: listEvents(db, id),
-      rows: threadRows(db, id),
-      proposals: threadProposals(db, id),
-      costs: rowCosts(db, id),
-    }),
-    "threads.search": ({ q }) => searchThreads(db, q),
-    "threads.send": ({ id, text, delivery, attachments = [] }) => {
-      thread(id);
-      runner.send(id, text, delivery, text, readAttachments(db, attachments));
-      return OK;
-    },
-    "threads.fork": ({ id }) => {
-      const copy = forkThread(db, id);
-      pushThreads();
-      return copy;
-    },
-    "threads.editQueued": ({ threadId, eventId, text }) => {
-      if (!runner.editQueued(threadId, eventId, text))
-        throw new Error("That message already went out.");
-      return OK;
-    },
-    "threads.moveQueued": ({ threadId, eventId, by }) => {
-      if (!runner.moveQueued(threadId, eventId, by))
-        throw new Error("That message already went out.");
-      return OK;
-    },
-    "threads.stop": async ({ id }) => {
-      await runner.stop(id);
-      return OK;
-    },
-    "threads.settle": ({ id, settled }) => {
-      settle(db, id, settled);
-      pushThreads();
-      return OK;
-    },
-    "threads.snooze": ({ id, until }) => {
-      snooze(db, id, until);
-      pushThreads();
-      return OK;
-    },
-    "threads.visit": ({ id }) => {
-      markUnread(db, id, false);
-      pushThreads();
-      return OK;
-    },
-    "threads.rename": ({ id, title }) => {
-      rename(db, id, title);
-      pushThreads();
-      return OK;
-    },
-    "threads.rowAction": ({ id, op, keys }) => {
-      thread(id);
-      runner.rowAction(id, op, keys);
-      return OK;
-    },
+    ...threadHandlers(svc),
 
     "approvals.resolve": ({ approvalId, decision }) => {
       runner.resolveApproval(approvalId, decision === "once");

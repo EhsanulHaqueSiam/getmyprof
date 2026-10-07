@@ -21,12 +21,15 @@ export function Review({
   drafts = 0,
   finds = 0,
   findsIn,
+  onOpen,
 }: {
   proposals: Proposal[];
   drafts?: number;
   finds?: number;
   /** The Vault section the finds belong in. */
   findsIn?: "scholarships" | "programs" | undefined;
+  /** Opens a proposal's professor beside it. */
+  onOpen?: (recordKey: string) => void;
 }) {
   const pending = proposals.filter((p) => p.status === "pending");
   const [ref] = useAutoAnimate<HTMLDivElement>({
@@ -95,7 +98,17 @@ export function Review({
           pending.map((p) => (
             <div key={p.id} data-testid="proposal" className="border-t px-3.5 py-3">
               <div className="flex items-baseline gap-2">
-                <span className="truncate font-semibold text-sm">{p.recordName}</span>
+                {onOpen ? (
+                  <button
+                    type="button"
+                    onClick={() => onOpen(p.recordKey)}
+                    className="truncate font-semibold text-sm hover:underline"
+                  >
+                    {p.recordName}
+                  </button>
+                ) : (
+                  <span className="truncate font-semibold text-sm">{p.recordName}</span>
+                )}
                 <span className="truncate text-muted-foreground text-xs">{p.university}</span>
                 <span className="ml-auto text-2xs text-muted-foreground">
                   {p.kind === "add" ? "new" : "update"}

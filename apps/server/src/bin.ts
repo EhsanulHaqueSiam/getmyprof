@@ -21,14 +21,13 @@ import { refreshVault } from "./okf.ts";
 import { createHandlers, dispatch } from "./rpc.ts";
 import { getSettings } from "./state.ts";
 import { dueReminders, markReminded } from "./reminders.ts";
-import { createThread, expireApprovals, getThread, settleStale } from "./threads.ts";
+import { createThread, getThread, settleStale } from "./threads.ts";
 import { documentPath, listDocuments, writingBrief } from "./vault.ts";
 
 const PORT = Number(process.env.SERVER_PORT ?? 4311);
 const fake = process.env.GRADCODE_AGENT === "fake";
 
 const db = openDb();
-expireApprovals(db);
 settleStale(db);
 if (getSettings(db).gradhunt) importGradhunt(db);
 
@@ -131,6 +130,8 @@ bus.add((m) => {
 refreshSoon();
 
 const handlers = createHandlers({ db, bus, runner, sources, fake, startLoop, outreach });
+// Turns the last process was running when it stopped pick up where they left off.
+runner.resumeAfterRestart();
 
 // Loops and the send queue run on the minute, mail syncs every 3 minutes, stale threads settle
 // hourly. Each is a cheap read when there's nothing to do.

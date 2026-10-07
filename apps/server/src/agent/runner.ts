@@ -1,7 +1,7 @@
 import { ROW_OPS, type RowOp, type ThreadEvent } from "@gradcode/contracts";
 import type { Bus } from "../bus.ts";
 import { type Db, newId, now } from "../db.ts";
-import { getRecord, threadProposals } from "../records.ts";
+import { getRecord, recordLine, threadProposals } from "../records.ts";
 import { profileFacts } from "../adapters.ts";
 import { getApplicant, getHunt, getSettings } from "../state.ts";
 import {
@@ -34,6 +34,8 @@ const ROW_INSTRUCTIONS: Record<RowOp, string> = {
   draft:
     "Draft a short first email for each professor below with draft_email (touch first). Skip apply-only professors and anyone without a reviewed address, and say so. The applicant approves each draft in Pipeline before anything is sent.",
 };
+
+const RESTARTED = "The server restarted mid-turn · picking up where it left off";
 
 /**
  * Runs agent sessions for threads and turns what they do into thread state: events, status,
@@ -161,7 +163,9 @@ export function createRunner(deps: {
   }
 
   function start(threadId: string, text: string, files: Attachment[]) {
-    const settings = getSettings(db);
+    const install = getSettings(db);
+    // A thread may dig deeper or lighter than the install.
+    const settings = { ...install, detail: getThread(db, threadId)?.detail ?? install.detail };
     const hunt = getHunt(db);
     const session = provider.start({
       threadId,
@@ -282,6 +286,20 @@ export function createRunner(deps: {
     return true;
   }
 
+  /** Sends a held message now, mid-turn, instead of after the current tool call. */
+  function steerQueued(threadId: string, eventId: string) {
+    const queue = held.get(threadId) ?? [];
+    const i = queue.findIndex((m) => m.eventId === eventId);
+    const live = sessions.get(threadId);
+    const m = queue[i];
+    if (!m || !live) return false;
+    queue.splice(i, 1);
+    live.push(m.text, "now", m.files);
+    const e = listEvents(db, threadId).find((x) => x.id === eventId);
+    if (e?.type === "user") emit(threadId, { ...e, delivery: "steered" });
+    return true;
+  }
+
   /** Moves a held message one place earlier (-1) or later (+1); the transcript follows. */
   function moveQueued(threadId: string, eventId: string, by: -1 | 1) {
     const queue = held.get(threadId) ?? [];
@@ -304,18 +322,50 @@ export function createRunner(deps: {
     return true;
   }
 
+  /**
+   * After a restart: approvals and tool calls the old process was waiting on lapse, and a turn it
+   * was running picks up where it stopped, its session resumed with a note. A thread cut off
+   * again right after resuming is left idle, so a crash can't loop. A question still waits.
+   */
+  function resumeAfterRestart() {
+    for (const t of listThreads(db)) {
+      const events = listEvents(db, t.id);
+      for (const e of events) {
+        if (e.type === "approval" && e.status === "pending")
+          putEvent(db, t.id, { ...e, status: "denied" });
+        if (e.type === "tool" && e.status === "running")
+          putEvent(db, t.id, { ...e, status: "error", meta: "server restarted" });
+      }
+      if (t.status === "idle") continue;
+      const last = events.at(-1);
+      const cutOff = t.status === "working" || t.status === "approval";
+      if (!cutOff || !sessionId(db, t.id) || (last?.type === "system" && last.text === RESTARTED)) {
+        setStatus(db, t.id, pendingQuestion(db, t.id) ? "input" : "idle");
+        continue;
+      }
+      emit(t.id, { id: newId("sys"), at: now(), type: "system", text: RESTARTED });
+      // An Ask stays read-only and free across the restart.
+      const asked = events.findLast((e) => e.type === "user")?.text.startsWith("Ask · ");
+      if (asked) asks.add(t.id);
+      start(
+        t.id,
+        `The server restarted during your last turn. Pick up where you left off; what you already proposed or drafted is saved.${asked ? "\n\n(Ask mode: answer from what you can read. Change nothing, propose nothing, spend nothing.)" : ""}`,
+        [],
+      );
+    }
+    pushThreads();
+  }
+
   return {
     send,
+    resumeAfterRestart,
     editQueued,
+    steerQueued,
     moveQueued,
     rowAction(threadId: string, op: RowOp, keys: string[]) {
       const rows = keys.flatMap((k) => {
         const r = getRecord(db, k);
-        return r
-          ? [
-              `- ${r.name} | ${r.university} | key ${r.key} | email ${r.email || "?"} | site ${r.website || "?"} | contact ${r.contact || "?"} | money tier ${r.moneyTier || "?"}: ${r.money || "?"}`,
-            ]
-          : [];
+        return r ? [recordLine(r)] : [];
       });
       const prompt = `[row-action:${op}] keys=${keys.join(",")}\n${ROW_INSTRUCTIONS[op]}\n${rows.join("\n")}`;
       send(

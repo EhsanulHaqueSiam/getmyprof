@@ -8,6 +8,9 @@ import { updateSettings } from "../state.ts";
 import {
   createThread,
   forkThread,
+  putEvent,
+  setSession,
+  setStatus,
   getThread,
   listEvents,
   searchThreads,
@@ -238,5 +241,75 @@ describe("a queued message", () => {
       delivery: "send",
     });
     expect(runner.editQueued(thread, queued!.id, "too late")).toBe(false);
+  });
+});
+
+describe("steering a queued message", () => {
+  it("sends it now instead of after the tool call, once", async () => {
+    const db = openDb(":memory:");
+    const runner = createRunner({
+      db,
+      bus: createBus(),
+      provider: fakeProvider(40),
+      sources: fixtureSources,
+    });
+    const thread = createThread(db, "t").id;
+    runner.send(thread, "find health NLP professors", "send");
+    await until(() => getThread(db, thread)?.status === "working");
+    runner.send(thread, "only Chicago", "queued");
+    const queued = listEvents(db, thread).findLast((e) => e.type === "user");
+    expect(runner.steerQueued(thread, queued!.id)).toBe(true);
+    expect(listEvents(db, thread).find((e) => e.id === queued!.id)).toMatchObject({
+      delivery: "steered",
+    });
+    expect(runner.steerQueued(thread, queued!.id)).toBe(false);
+    await until(() =>
+      listEvents(db, thread).some((e) => e.type === "assistant" && e.text.includes("only Chicago")),
+    );
+  });
+});
+
+describe("a restart mid-turn", () => {
+  it("lapses waiting approvals and picks the turn back up, but only once", async () => {
+    const db = openDb(":memory:");
+    const thread = createThread(db, "t").id;
+    setSession(db, thread, "sess-1");
+    setStatus(db, thread, "approval");
+    putEvent(db, thread, {
+      id: "ap1",
+      at: new Date().toISOString(),
+      type: "approval",
+      title: "Paid lookup",
+      body: "treg.people.email.find",
+      why: "",
+      costUsd: 0.02,
+      status: "pending",
+    });
+    const runner = createRunner({
+      db,
+      bus: createBus(),
+      provider: fakeProvider(1),
+      sources: fixtureSources,
+    });
+    runner.resumeAfterRestart();
+    expect(listEvents(db, thread).find((e) => e.id === "ap1")).toMatchObject({ status: "denied" });
+    expect(
+      listEvents(db, thread).some((e) => e.type === "system" && /restarted/.test(e.text)),
+    ).toBe(true);
+    await until(() => getThread(db, thread)?.status === "idle");
+
+    // Cut off again right after resuming: left idle, not resumed a second time.
+    const again = createThread(db, "again").id;
+    setSession(db, again, "sess-2");
+    setStatus(db, again, "working");
+    putEvent(db, again, {
+      id: "sys1",
+      at: new Date().toISOString(),
+      type: "system",
+      text: "The server restarted mid-turn · picking up where it left off",
+    });
+    runner.resumeAfterRestart();
+    expect(getThread(db, again)?.status).toBe("idle");
+    expect(listEvents(db, again)).toHaveLength(1);
   });
 });

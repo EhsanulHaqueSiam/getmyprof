@@ -1,10 +1,4 @@
-import {
-  type DetailLevel,
-  type Professor,
-  ROW_OPS,
-  type RowOp,
-  type ThreadView,
-} from "@gradcode/contracts";
+import { type Professor, ROW_OPS, type RowOp, type ThreadView } from "@gradcode/contracts";
 import { Link } from "@tanstack/react-router";
 import {
   BanknoteIcon,
@@ -18,28 +12,14 @@ import {
 } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
 import { Composer } from "~/components/Composer";
+import { COLUMNS, dimmed, haystack, RANK, TIER_LABEL, tone } from "~/lib/columns";
 import { usd } from "~/lib/format";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
 
-type Col = { key: keyof Professor | "select"; label: string; source?: string; level: DetailLevel };
-const COLUMNS: Col[] = [
-  { key: "fit", label: "Fit", level: "brief" },
-  { key: "name", label: "Professor", source: "web · free", level: "brief" },
-  { key: "moneyTier", label: "Money tier", level: "brief" },
-  { key: "taking", label: "Taking students?", source: "page · free", level: "brief" },
-  { key: "money", label: "Money", source: "NSF, NIH · free", level: "brief" },
-  { key: "emailCheck", label: "Email", source: "page free · find $0.0048", level: "brief" },
-  { key: "lasts", label: "Lasts", source: "awards · free", level: "std" },
-  { key: "eligibility", label: "Eligible", level: "std" },
-  { key: "contact", label: "Contact rule", source: "page · free", level: "std" },
-  { key: "stage", label: "Stage", level: "std" },
-  { key: "fitsBecause", label: "Fits because", source: "your profile", level: "deep" },
-  { key: "sources", label: "Sources", level: "deep" },
-];
-const RANK: Record<DetailLevel, number> = { brief: 0, std: 1, deep: 2 };
 const OP_ICON: Record<RowOp, ReactNode> = {
   email: <MailIcon />,
   lasts: <BanknoteIcon />,
@@ -48,45 +28,17 @@ const OP_ICON: Record<RowOp, ReactNode> = {
 };
 const OPS = Object.keys(ROW_OPS) as RowOp[];
 
-const TIER_LABEL = ["?", "1 clear", "2 strong", "3 indirect", "4 none"];
-
-function tone(key: Col["key"], value: string) {
-  const v = value.toLowerCase();
-  if (key === "moneyTier")
-    return v.startsWith("1") || v.startsWith("2")
-      ? "text-success-foreground"
-      : v.startsWith("3")
-        ? "text-warning-foreground"
-        : "text-muted-foreground";
-  if (key === "eligibility")
-    return v.startsWith("no")
-      ? "text-destructive-foreground"
-      : v === "ok"
-        ? "text-success-foreground"
-        : "";
-  if (key === "taking")
-    return v.startsWith("yes")
-      ? "text-success-foreground"
-      : v.startsWith("no")
-        ? "text-destructive-foreground"
-        : "";
-  if (key === "emailCheck")
-    return v === "ok"
-      ? "text-success-foreground"
-      : /bounce|invalid/.test(v)
-        ? "text-destructive-foreground"
-        : "text-muted-foreground";
-  return "";
-}
-
 /** A thread's rows as a grid, plus the dock that runs row actions on the selection. */
 export function Results({ view, threadId }: { view: ThreadView; threadId: string }) {
   const settings = useStore((s) => s.app?.settings);
-  const saveSettings = useStore((s) => s.saveSettings);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [filter, setFilter] = useState("");
   const [ask, setAsk] = useState<{ op: RowOp; cost: number } | null>(null);
   const [running, setRunning] = useState<{ field: string; keys: string[] } | null>(null);
-  const detail = settings?.detail ?? "std";
+  // This thread's own detail, else the install's.
+  const detail = view.thread.detail ?? settings?.detail ?? "std";
+  const needle = filter.trim().toLowerCase();
+  const rows = needle ? view.rows.filter((r) => haystack(r).includes(needle)) : view.rows;
   const cols = COLUMNS.filter((c) => RANK[c.level] <= RANK[detail]);
   const working = view.thread.status !== "idle";
 
@@ -100,7 +52,7 @@ export function Results({ view, threadId }: { view: ThreadView; threadId: string
     for (const c of p.changes)
       changed.set(p.recordKey, (changed.get(p.recordKey) ?? new Set()).add(c.field));
   const proposedCells = [...changed.values()].reduce((n, s) => n + s.size, 0);
-  const keys = view.rows.map((r) => r.key).filter((k) => selected.has(k));
+  const keys = rows.map((r) => r.key).filter((k) => selected.has(k));
   const toggle = (key: string) =>
     setSelected((s) =>
       s.has(key) ? new Set([...s].filter((k) => k !== key)) : new Set([...s, key]),
@@ -139,7 +91,7 @@ export function Results({ view, threadId }: { view: ThreadView; threadId: string
                 type="button"
                 role="radio"
                 aria-checked={detail === d}
-                onClick={() => void saveSettings({ detail: d })}
+                onClick={() => void call("threads.setDetail", { id: threadId, detail: d })}
                 className={cn(
                   "h-6 rounded-md px-2.5 text-xs transition-colors",
                   detail === d
@@ -151,8 +103,19 @@ export function Results({ view, threadId }: { view: ThreadView; threadId: string
               </button>
             ))}
           </div>
+          <div className="w-52">
+            <Input
+              size="compact"
+              type="search"
+              aria-label="Filter rows"
+              placeholder="Filter"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+            />
+          </div>
           <span className="ml-auto text-muted-foreground text-xs">
-            {view.rows.length} rows · {keys.length} selected
+            {needle ? `${rows.length} of ${view.rows.length}` : view.rows.length} rows ·{" "}
+            {keys.length} selected
           </span>
         </div>
         <div className="min-h-0 flex-1 overflow-auto">
@@ -164,9 +127,9 @@ export function Results({ view, threadId }: { view: ThreadView; threadId: string
                     type="checkbox"
                     aria-label="Select all rows"
                     className="size-3.5 accent-foreground"
-                    checked={view.rows.length > 0 && view.rows.every((r) => selected.has(r.key))}
+                    checked={rows.length > 0 && rows.every((r) => selected.has(r.key))}
                     onChange={(e) =>
-                      setSelected(new Set(e.target.checked ? view.rows.map((r) => r.key) : []))
+                      setSelected(new Set(e.target.checked ? rows.map((r) => r.key) : []))
                     }
                   />
                 </th>
@@ -186,13 +149,15 @@ export function Results({ view, threadId }: { view: ThreadView; threadId: string
               </tr>
             </thead>
             <tbody>
-              {view.rows.map((r) => (
+              {rows.map((r) => (
                 <tr
                   key={r.key}
                   data-testid="result-row"
+                  data-dimmed={dimmed(r) || undefined}
                   className={cn(
                     "transition-colors hover:bg-secondary",
                     selected.has(r.key) && "bg-primary/7",
+                    dimmed(r) && "opacity-45",
                   )}
                 >
                   <td className="border-b px-2">
@@ -261,9 +226,11 @@ export function Results({ view, threadId }: { view: ThreadView; threadId: string
               ))}
             </tbody>
           </table>
-          {view.rows.length === 0 ? (
+          {rows.length === 0 ? (
             <div className="px-6 py-16 text-center text-muted-foreground text-xs">
-              No rows yet. Professors this thread finds show up here.
+              {needle
+                ? "No row matches the filter."
+                : "No rows yet. Professors this thread finds show up here."}
             </div>
           ) : null}
         </div>
@@ -370,14 +337,18 @@ export function Results({ view, threadId }: { view: ThreadView; threadId: string
             compact
             working={working}
             placeholder={`Ask about ${keys.length || "the"} ${keys.length === 1 ? "row" : "rows"}`}
-            onSend={(text, delivery) => {
-              const names = view.rows
-                .filter((r) => selected.has(r.key))
-                .map((r) => `${r.name} (${r.university})`);
+            onSend={(text, delivery, _attachments, scope) => {
+              const picked = rows.filter((r) => selected.has(r.key));
+              const names = picked.map((r) => `${r.name} (${r.university})`);
               void call("threads.send", {
                 id: threadId,
                 text: names.length ? `About ${names.join(", ")}: ${text}` : text,
                 delivery,
+                // The selected rows join the thread's scope, so the agent has their records.
+                scope: [
+                  ...scope,
+                  ...picked.map((r) => ({ kind: "professor" as const, key: r.key, name: r.name })),
+                ],
               });
             }}
             onStop={() => void call("threads.stop", { id: threadId })}

@@ -4,8 +4,10 @@ import {
   Professor,
   type ProfessorField,
   Proposal,
+  type ScopeItem,
 } from "@gradcode/contracts";
 import { type Db, newId, now } from "./db.ts";
+import { sameSchool } from "./sources.ts";
 
 const slug = (s: string) =>
   s
@@ -220,4 +222,42 @@ export function threadRows(db: Db, threadId: string): Professor[] {
       return [mine.reduce((acc, p) => applyChanges(acc, p.changes), base)];
     })
     .toSorted(byMoneyThenFit);
+}
+
+/** One professor as the agent reads it: what the sheet knows, on one line. */
+export const recordLine = (r: Professor) =>
+  [
+    `- ${r.name}`,
+    r.department ? `${r.university}, ${r.department}` : r.university,
+    `key ${r.key}`,
+    `fit ${r.fit}`,
+    `money tier ${r.moneyTier || "?"}: ${r.money || "?"}`,
+    `lasts ${r.lasts || "?"}`,
+    `taking ${r.taking || "?"}`,
+    `email ${r.email || "?"} (${r.emailCheck || "unchecked"})`,
+    `contact ${r.contact || "?"}`,
+    `stage ${r.stage}`,
+    `site ${r.website || "?"}`,
+    ...(r.niche ? [`niche ${r.niche}`] : []),
+    ...(r.sources.length ? [`sources ${r.sources.join(" ")}`] : []),
+  ].join(" | ");
+
+/**
+ * What the sheet knows about professors and schools a thread just took on: each professor's
+ * record, each school's professors. The agent reads this instead of fetching the same pages.
+ */
+export function scopeNote(db: Db, items: ScopeItem[]) {
+  if (!items.length) return "";
+  const records = listRecords(db);
+  const lines = items.flatMap((x) => {
+    if (x.kind === "professor") {
+      const r = getRecord(db, x.key);
+      return [r ? recordLine(r) : `- ${x.name}: not in the sheet yet`];
+    }
+    const at = records.filter((r) => sameSchool(r.university, x.name));
+    return at.length
+      ? [`${x.name}, ${at.length} in the sheet:`, ...at.slice(0, 30).map(recordLine)]
+      : [`- ${x.name}: nobody in the sheet yet`];
+  });
+  return `Scope: ${items.map((x) => x.name).join(", ")}. What the sheet already has, with its sources; use it instead of fetching again, and fetch only what's missing or asked:\n${lines.join("\n")}`;
 }

@@ -27,13 +27,8 @@ function ProfessorPage() {
   if (error) return <div className="flex-1 p-8 text-muted-foreground text-sm">{error}</div>;
   if (!data) return <div className="flex-1" />;
   const p = data.record;
-  const ask = async () => {
-    const t = await call("threads.create", {
-      text: `Vet ${p.name} at ${p.university}: are they taking students for my intake, is their money active and how long does it last, and how do they want to be contacted?`,
-      title: `Vet ${p.name}`,
-    });
-    void navigate({ to: "/t/$threadId", params: { threadId: t.id } });
-  };
+  // A new thread scoped to them, in Ask mode: it answers from the record without fetching again.
+  const ask = () => void navigate({ to: "/", search: { about: p.key, name: p.name } });
   const facts: [string, string][] = [
     ["Niche", p.niche],
     ["Money", p.money],
@@ -64,7 +59,7 @@ function ProfessorPage() {
           {p.origin === "gradhunt" ? <span>from gradhunt</span> : null}
         </div>
         <div className="mt-3.5 flex gap-1.5">
-          <Button size="xs" onClick={() => void ask()}>
+          <Button size="xs" onClick={ask}>
             <MessageSquareIcon /> Ask about {p.name.split(" ").at(-1)}
           </Button>
           {p.website ? (

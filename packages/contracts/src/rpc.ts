@@ -5,6 +5,7 @@ import {
   Applicant,
   Award,
   AwardSource,
+  DetailLevel,
   Hunt,
   HuntPrefs,
   Loop,
@@ -17,7 +18,7 @@ import {
   TregStatus,
 } from "./domain.ts";
 import { Conversation, MailConnect, MailSignIn, MailStatus } from "./outreach.ts";
-import { RowOp, ThreadEvent, ThreadSummary } from "./threads.ts";
+import { RowOp, ScopeItem, ThreadEvent, ThreadSummary } from "./threads.ts";
 import {
   Application,
   DocKind,
@@ -76,6 +77,8 @@ export const Methods = {
       title: z.string().optional(),
       /** Vault document ids, read by the agent with the message. */
       attachments: z.array(z.string()).optional(),
+      /** Professors and schools the thread is about (@ in the composer, or a row's "Ask about"). */
+      scope: z.array(ScopeItem).optional(),
     }),
     output: ThreadSummary,
   },
@@ -91,7 +94,19 @@ export const Methods = {
       text: z.string().min(1),
       delivery: z.enum(["send", "queued", "steered"]),
       attachments: z.array(z.string()).optional(),
+      /** Professors and schools this message names with @; they join the thread's scope. */
+      scope: z.array(ScopeItem).optional(),
     }),
+    output: ok,
+  },
+  /** A thread's own detail level, or null to follow the install's. */
+  "threads.setDetail": {
+    input: z.object({ id: z.string(), detail: DetailLevel.nullable() }),
+    output: ok,
+  },
+  /** Sends a queued message now instead of after the current tool call. */
+  "threads.steerQueued": {
+    input: z.object({ threadId: z.string(), eventId: z.string() }),
     output: ok,
   },
   "threads.stop": { input: id, output: ok },

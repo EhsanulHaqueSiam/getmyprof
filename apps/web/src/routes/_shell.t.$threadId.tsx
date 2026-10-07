@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { ApprovalCard, Transcript } from "~/components/Chat";
 import { Composer } from "~/components/Composer";
 import { Results } from "~/components/Results";
-import { Review } from "~/components/Review";
+import { type PanelTab, ThreadPanel } from "~/components/ThreadPanel";
 import { Button } from "~/components/ui/button";
 import { Kbd } from "~/components/ui/kbd";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "~/components/ui/tooltip";
@@ -32,8 +32,12 @@ function ThreadPage() {
   );
   const finds = useStore((s) => s.vault?.toFile.filter((f) => f.threadId === threadId).length ?? 0);
   const findsIn = useStore((s) => s.vault?.toFile.find((f) => f.threadId === threadId)?.kind);
+  const installDetail = useStore((s) => s.app?.settings.detail ?? "std");
   const [mode, setMode] = useState<"chat" | "results">("chat");
   const [panel, setPanel] = useState(true);
+  const [tab, setTab] = useState<PanelTab>("review");
+  const [picked, setPicked] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState(false);
   const status = view?.thread.status;
 
   useEffect(() => {
@@ -75,7 +79,19 @@ function ThreadPage() {
   // Waiting on the applicant (Input) or nothing at all counts as not working.
   const working = status === "working" || status === "approval";
   const pendingApproval = view.events.find((e) => e.type === "approval" && e.status === "pending");
-  const reviewCount = view.proposals.filter((p) => p.status === "pending").length;
+  // The professor the panel shows: picked in Review, else the thread's first @ professor.
+  const scoped = view.thread.scope.find((x) => x.kind === "professor");
+  const focus =
+    picked ??
+    (scoped?.kind === "professor" ? scoped.key : null) ??
+    view.proposals.find((p) => p.status === "pending")?.recordKey ??
+    view.rows[0]?.key ??
+    null;
+  const rename = (title: string) => {
+    setRenaming(false);
+    if (title.trim() && title.trim() !== view.thread.title)
+      void call("threads.rename", { id: threadId, title: title.trim() });
+  };
 
   return (
     <div className="flex min-w-0 flex-1 flex-col">
@@ -90,7 +106,26 @@ function ThreadPage() {
             <PanelLeftIcon />
           </Button>
         ) : null}
-        <h1 className="truncate font-semibold text-sm">{view.thread.title}</h1>
+        {renaming ? (
+          <input
+            // biome-style autofocus: renaming starts typing at once.
+            autoFocus
+            aria-label="Thread title"
+            defaultValue={view.thread.title}
+            onBlur={(e) => rename(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") rename(e.currentTarget.value);
+              if (e.key === "Escape") setRenaming(false);
+            }}
+            className="h-7 min-w-0 flex-1 rounded-md border border-input bg-transparent px-2 font-semibold text-sm outline-none"
+          />
+        ) : (
+          <h1 className="min-w-0 truncate font-semibold text-sm">
+            <button type="button" title="Rename" onClick={() => setRenaming(true)}>
+              {view.thread.title}
+            </button>
+          </h1>
+        )}
         <div className="inline-flex shrink-0 rounded-lg border p-0.5 text-xs" role="tablist">
           {(["chat", "results"] as const).map((m) => (
             <button
@@ -178,8 +213,13 @@ function ThreadPage() {
                     ? "Answer the question above."
                     : "Ask anything, or tell it what to find next."
                 }
-                onSend={(text, delivery, attachments) =>
-                  void call("threads.send", { id: threadId, text, delivery, attachments })
+                scope={view.thread.scope}
+                detail={{
+                  value: view.thread.detail ?? installDetail,
+                  set: (d) => void call("threads.setDetail", { id: threadId, detail: d }),
+                }}
+                onSend={(text, delivery, attachments, scope) =>
+                  void call("threads.send", { id: threadId, text, delivery, attachments, scope })
                 }
                 onStop={() => void call("threads.stop", { id: threadId })}
               />
@@ -191,12 +231,11 @@ function ThreadPage() {
               panel ? "w-[360px]" : "w-0 border-l-0",
             )}
           >
-            <div className="flex h-12 shrink-0 items-center gap-1 px-2 text-xs">
-              <span className="flex h-7 items-center gap-1.5 rounded-lg bg-accent px-2.5 text-foreground">
-                Review <span className="text-info-foreground tabular-nums">{reviewCount}</span>
-              </span>
-            </div>
-            <Review
+            <ThreadPanel
+              tab={tab}
+              onTab={setTab}
+              focus={focus}
+              onFocus={setPicked}
               proposals={view.proposals}
               drafts={drafts}
               finds={finds}

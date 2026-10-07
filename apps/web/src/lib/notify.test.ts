@@ -10,6 +10,8 @@ const t = (id: string, status: ThreadSummary["status"]): ThreadSummary => ({
   settledAt: null,
   snoozedUntil: null,
   workingSince: null,
+  scope: [],
+  detail: null,
   updatedAt: "",
   spendUsd: 0,
   spendDayUsd: 0,

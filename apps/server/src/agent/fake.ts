@@ -339,7 +339,12 @@ export const fakeProvider = (
         });
         say("I'll wait for your answer.");
       } else if (/^Find (scholarships|programs)/i.test(text)) await vaultFinds(text);
-      else if (n === 0) await hunt();
+      else if (/Ask mode/.test(text) && text.includes("\nScope: ")) {
+        // A scoped Ask answers from the record the message carries, fetching nothing.
+        await pause();
+        const line = /^- .+$/m.exec(text.slice(text.indexOf("\nScope: ")))?.[0] ?? "";
+        say(`From the sheet, without fetching: ${line.slice(2, 400)}`);
+      } else if (n === 0) await hunt();
       else {
         await pause();
         say(`Noted: ${text.slice(0, 120)}`);

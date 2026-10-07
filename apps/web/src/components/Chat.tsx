@@ -131,7 +131,7 @@ function WorkLog({
   );
 }
 
-/** A message waiting for the next tool call: edit, remove or move it until it goes out. */
+/** A message waiting for the next tool call: steer it in now, edit, remove or move it until it goes out. */
 function QueuedMessage({
   event,
   threadId,
@@ -179,6 +179,15 @@ function QueuedMessage({
       )}
       <span className="flex items-center gap-1 pr-1 text-2xs text-muted-foreground">
         queued · after the current tool call
+        <Button
+          size="xs"
+          variant="ghost-muted"
+          onClick={() =>
+            void call("threads.steerQueued", { threadId, eventId: event.id }).catch(() => {})
+          }
+        >
+          Steer
+        </Button>
         <Button
           size="icon-micro"
           variant="ghost-muted"

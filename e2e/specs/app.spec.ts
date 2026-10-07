@@ -408,3 +408,50 @@ test("mailbox: sign in with Google through your own OAuth client", async ({ page
   await expect(page.getByTestId("mail-connected")).toContainText("applicant@example.com");
   await expect(page.getByTestId("mail-connected")).toContainText("signed in with Google");
 });
+
+test("scoped threads: Ask about a professor answers from the record, @ adds a school, rename, filter, starter keys", async ({
+  page,
+}) => {
+  await page.goto("/professors");
+  await page
+    .getByRole("main")
+    .getByRole("link", { name: /Kevin Lybarger/ })
+    .first()
+    .click();
+  await page.getByRole("button", { name: "Ask about Lybarger" }).click();
+  await expect(page.getByTestId("scope-chip")).toContainText("Lybarger");
+  const message = page.getByLabel("Message");
+  await message.press("End");
+  await message.pressSequentially("what money do they have?");
+  await message.press("Enter");
+
+  // Ask mode with the record in context: answered from the sheet, nothing fetched or spent.
+  await expect(page).toHaveURL(/\/t\/thr_/);
+  await expect(page.getByText(/From the sheet, without fetching: Kevin Lybarger/)).toBeVisible();
+  await expect(page.getByTestId("scope-chip")).toContainText("Lybarger");
+  await page.getByRole("tab", { name: "Professor" }).click();
+  await expect(page.getByTestId("professor-tab")).toContainText("Kevin Lybarger");
+
+  // @ picks a school from the sheet and it joins the chip.
+  await message.pressSequentially("@George");
+  await page.getByRole("option", { name: /^George Mason University\s*school$/ }).click();
+  await expect(page.getByTestId("scope-chip")).toContainText("George Mason University");
+
+  // Rename from the header.
+  await page.getByRole("heading").getByRole("button").click();
+  await page.getByLabel("Thread title").fill("Lybarger's money");
+  await page.getByLabel("Thread title").press("Enter");
+  await expect(page.getByRole("heading", { name: "Lybarger's money" })).toBeVisible();
+
+  // Filter the hunt's Results down to one row.
+  await page.getByRole("link", { name: "Find professors", exact: true }).click();
+  await page.getByRole("tab", { name: /Results/ }).click();
+  await page.getByLabel("Filter rows").fill("Lybarger");
+  await expect(page.getByTestId("result-row")).toHaveCount(1);
+
+  // On a new thread, 2 starts the second starter.
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "What should we find?" })).toBeVisible();
+  await page.keyboard.press("2");
+  await expect(page.getByRole("heading", { name: "Follow the money" })).toBeVisible();
+});

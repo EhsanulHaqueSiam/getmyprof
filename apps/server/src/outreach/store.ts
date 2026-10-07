@@ -77,9 +77,11 @@ export function draftProblem(
 ): string | null {
   if (!record)
     return "they aren't in the sheet yet: propose them and wait for the applicant to accept";
-  if (record.origin === "gradhunt")
+  // A thank-you after an interview is never cold mail, so the cold-mail rules don't apply to it.
+  const cold = d.touch !== "thank-you";
+  if (cold && record.origin === "gradhunt")
     return "gradhunt's outreach routine owns this professor; draft there";
-  if (record.stage === "apply-only" || /^apply-only/i.test(record.contact))
+  if (cold && (record.stage === "apply-only" || /^apply-only/i.test(record.contact)))
     return "apply-only: they want an application, not an email";
   if (record.stage === "skip") return "marked skip";
   if (!d.body.trim()) return "the body is empty";
@@ -139,8 +141,9 @@ export function saveDraft(db: Db, d: DraftInput): OutreachMessage | { problem: s
   return message;
 }
 
-/** Mail to someone who hasn't written takes a send slot; answers go at once. */
-const usesSlot = (m: OutreachMessage) => m.channel === "email" && m.touch !== "reply";
+/** Mail to someone who hasn't written takes a send slot; answers and thank-yous go at once. */
+const usesSlot = (m: OutreachMessage) =>
+  m.channel === "email" && m.touch !== "reply" && m.touch !== "thank-you";
 
 /** Slots already taken by scheduled or sent mail, for warm-up and per-university caps. */
 function takenSlots(db: Db) {

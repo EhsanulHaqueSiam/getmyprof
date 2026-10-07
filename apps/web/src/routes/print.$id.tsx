@@ -1,11 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { checks, citations, paragraphs, plainText, strayMarkers } from "~/lib/writing";
+import { checks, citations, mustProve, paragraphs, plainText, strayMarkers } from "~/lib/writing";
 import { useStore } from "~/state/store";
 
 export const Route = createFileRoute("/print/$id")({ component: PrintView });
 
-const KIND_LABEL = { sop: "Statement of Purpose", cv: "Curriculum Vitae", essay: "Essay" } as const;
+const KIND_LABEL = {
+  sop: "Statement of Purpose",
+  cv: "Curriculum Vitae",
+  essay: "Essay",
+  prep: "Interview Preparation",
+  letter: "Letter",
+} as const;
 
 /**
  * A piece as it leaves the app: on paper, citations gone, opened in a tab and printed to PDF.
@@ -18,9 +24,10 @@ function PrintView() {
   const ready =
     !!w &&
     !!app &&
-    citations(w, app.facts).every((c) => c.ok) &&
-    strayMarkers(w).length === 0 &&
-    !checks(w, { named: [], applicant: app.applicant }).scoreClaimed;
+    (!mustProve(w) ||
+      (citations(w, app.facts).every((c) => c.ok) &&
+        strayMarkers(w).length === 0 &&
+        !checks(w, { named: [], applicant: app.applicant }).scoreClaimed));
 
   useEffect(() => {
     if (ready) window.print();

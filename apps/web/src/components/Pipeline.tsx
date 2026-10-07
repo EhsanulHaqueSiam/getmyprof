@@ -41,6 +41,7 @@ export const TOUCH_LABEL: Record<NonNullable<OutreachMessage["touch"]>, string> 
   "follow-up-2": "follow-up 2",
   reply: "answer",
   "after-applying": "after applying",
+  "thank-you": "thank-you",
 };
 
 /** Runs an action; a refusal from the server shows in the Pipeline header. */

@@ -98,5 +98,9 @@ Vault shows its facts read-only.
   from the cited fact's status on every read, so adding proof unblocks it without a rewrite. A
   blocked claim, a stray marker or a test score no fact backs disables export (text and the
   `/print/<id>` view, printed to PDF). Writing again for the same target makes the next draft.
+- **After the admit.** Interviews live on an application: a private prep pack (kind `prep`, never
+  blocked, never sent), an `.ics` file, and a thank-you the agent drafts into the Pipeline (a
+  thank-you is not cold mail, so apply-only and gradhunt rows may get one). Offers compare by a
+  year of stipend minus a year of rent; the agent drafts negotiation letters (kind `letter`).
 - **Submitting closes the loop.** Marking an application submitted hands the professors it names
   to the agent, which drafts "I applied and named you" notes into the Pipeline.

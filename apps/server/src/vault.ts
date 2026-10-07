@@ -11,6 +11,7 @@ import {
   type VaultEdit,
   type VaultKind,
   type VaultState,
+  Offer,
   Writing,
   type WritingKind,
 } from "@gradcode/contracts";
@@ -51,6 +52,7 @@ export function vaultState(db: Db): VaultState {
     scholarships: items(db, "scholarship", Scholarship),
     programs: listPrograms(db),
     applications: listApplications(db),
+    offers: items(db, "offer", Offer),
     writing: listWriting(db),
     toFile: items(db, "toFile", FileItem),
   };
@@ -192,6 +194,7 @@ export function startApplication(db: Db, programId: string): Application {
       .map((r) => r.key),
     submittedAt: null,
     note: "",
+    interviews: [],
   };
   putItem(db, "application", app);
   return app;
@@ -255,6 +258,16 @@ const KIND_LABEL: Record<WritingKind, string> = {
   sop: "a statement of purpose",
   cv: "an academic CV",
   essay: "a scholarship essay",
+  prep: "a private interview prep pack",
+  letter: "a short, warm negotiation letter",
+};
+
+const TITLE: Record<WritingKind, string> = {
+  sop: "Statement of purpose",
+  cv: "Academic CV",
+  essay: "Scholarship essay",
+  prep: "Interview prep",
+  letter: "Negotiation",
 };
 
 /**
@@ -269,9 +282,18 @@ export function writingBrief(
     programId: string | null;
     scholarshipId: string | null;
     basedOn: string | null;
+    about?: string | null | undefined;
+    offerId?: string | null | undefined;
   },
 ) {
   const v = vaultState(db);
+  const offer = v.offers.find((o) => o.id === input.offerId);
+  const title = [
+    TITLE[input.kind],
+    input.kind === "prep" ? input.about : input.kind === "letter" ? offer?.university : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
   const program = v.programs.find((p) => p.id === input.programId);
   const scholarship = v.scholarships.find((s) => s.id === input.scholarshipId);
   // Writing for a target that already has a piece revises it, so one statement per program.
@@ -281,7 +303,9 @@ export function writingBrief(
       (w) =>
         w.kind === input.kind &&
         w.programId === input.programId &&
-        w.scholarshipId === input.scholarshipId,
+        w.scholarshipId === input.scholarshipId &&
+        // Several prep packs or letters can share a program; they differ by who or what they're for.
+        (input.kind === "prep" || input.kind === "letter" ? w.title === title : true),
     );
   // Revising the same target keeps one piece with a new draft; another target gets its own piece.
   const revise =
@@ -296,9 +320,6 @@ export function writingBrief(
     : scholarship
       ? `${scholarship.name} (${scholarship.sponsor})`
       : "";
-  const title = { sop: "Statement of purpose", cv: "Academic CV", essay: "Scholarship essay" }[
-    input.kind
-  ];
   const threadTitle = `${revise ? "Revise" : "Write"}: ${title}${target ? ` · ${program?.university ?? scholarship?.name}` : ""}`;
   const text = [
     `[write] kind=${input.kind} program=${program?.id ?? "-"} scholarship=${scholarship?.id ?? "-"} revise=${revise?.id ?? "-"}`,
@@ -309,7 +330,24 @@ export function writingBrief(
     scholarship
       ? `Read the scholarship page (${scholarship.url}) for the essay prompt and its length limit.`
       : "",
-    named.length ? `Name these professors where they genuinely fit: ${named.join(", ")}.` : "",
+    named.length && (input.kind === "sop" || input.kind === "essay")
+      ? `Name these professors where they genuinely fit: ${named.join(", ")}.`
+      : "",
+    input.kind === "prep"
+      ? `The interview is with ${input.about ?? "the program"}. Look up their recent papers with openalex_author and list two or three with one line on each, then the questions they are likely to ask, then talking points from the applicant's facts. It stays private: it is never sent.`
+      : "",
+    input.kind === "letter" && offer
+      ? [
+          `The offer: ${offer.program} at ${offer.university}: stipend ${offer.stipend ?? "?"} ${offer.currency} a ${offer.stipendPer}, tuition ${offer.tuition}, ${offer.years ?? "?"} years, duties "${offer.duties}", answer by ${offer.respondBy ?? "?"}.`,
+          `Other offers: ${
+            v.offers
+              .filter((o) => o.id !== offer.id && o.status !== "declined")
+              .map((o) => `${o.university} ${o.stipend ?? "?"} ${o.currency} a ${o.stipendPer}`)
+              .join("; ") || "none"
+          }.`,
+          "Thank them, say what would make it work (a higher stipend, summer funding, a later answer date), and ask; mention another offer only if there is one.",
+        ].join("\n")
+      : "",
     "Right after every claim about the applicant, cite the fact it rests on as [[fact-id]] from this list. Write no claim that has no fact here; a fact marked anything but confirmed blocks export until it has proof.",
     ...facts.map((f) => `- [[${f.id}]] ${f.text} (${factStatus(f)})`),
     base

@@ -338,6 +338,14 @@ export function createHandlers(svc: Services): Handlers {
       runner.send(id, brief.text, "send", brief.threadTitle);
       return thread(id);
     },
+    "interviews.thank": ({ applicationId, interviewId }) => {
+      const s = vaultState(db);
+      const app = s.applications.find((a) => a.id === applicationId);
+      const interview = app?.interviews.find((i) => i.id === interviewId);
+      const program = s.programs.find((p) => p.id === app?.programId);
+      if (!interview || !program) throw new Error("No such interview");
+      return thread(outreach.thank(interview.with, program.university));
+    },
     "applications.start": ({ programId }) => {
       const app = startApplication(db, programId);
       bus.push({ type: "changed", what: "vault" });

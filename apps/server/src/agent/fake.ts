@@ -197,17 +197,29 @@ export const fakeProvider = (
       const cite = (f: { id: string; fact: string } | undefined, lead: string) =>
         f ? `${lead} ${f.fact} [[${f.id}]].` : "";
       const body =
-        kind === "cv"
-          ? [cite(proven[0], "Education:"), cite(unproven, "Grades:")].filter(Boolean).join("\n\n")
-          : [
-              `I want to build language technology that holds up for the people who rely on it. ${cite(proven[0], "My preparation:")}`,
-              [cite(proven[1], "Alongside it:"), cite(unproven, "I would also bring this:")]
-                .filter(Boolean)
-                .join(" "),
-              "I would like to continue this work with your faculty, on problems where careful evaluation matters.",
+        kind === "prep"
+          ? [
+              "Their recent work: two papers worth reading before the call.",
+              "Likely questions: why this lab, what you would work on first, how you handle a stalled experiment.",
+              cite(proven[0], "Talking point:"),
             ]
               .filter(Boolean)
-              .join("\n\n");
+              .join("\n\n")
+          : kind === "letter"
+            ? "Thank you for the offer. I am very keen to join. Would the program consider summer funding or a later answer date, so I can decide with care?"
+            : kind === "cv"
+              ? [cite(proven[0], "Education:"), cite(unproven, "Grades:")]
+                  .filter(Boolean)
+                  .join("\n\n")
+              : [
+                  `I want to build language technology that holds up for the people who rely on it. ${cite(proven[0], "My preparation:")}`,
+                  [cite(proven[1], "Alongside it:"), cite(unproven, "I would also bring this:")]
+                    .filter(Boolean)
+                    .join(" "),
+                  "I would like to continue this work with your faculty, on problems where careful evaluation matters.",
+                ]
+                  .filter(Boolean)
+                  .join("\n\n");
       await call("write_document", "draft", {
         pieceId: orNull(revise),
         kind,
@@ -219,6 +231,23 @@ export const fakeProvider = (
       say(
         `Saved in the Writer.${unproven ? " One claim cites a fact without proof, so export waits until it has some." : ""}`,
       );
+    }
+
+    async function thankYou(text: string) {
+      for (const m of text.matchAll(AFTER_LINE)) {
+        const [, name = "", university = "", to = "", timeZone = ""] = m;
+        await call("draft_email", `thank-you · ${name}`, {
+          name,
+          university,
+          channel: "email",
+          touch: "thank-you",
+          to,
+          subject: "Thank you",
+          body: `Dear Dr. ${name.split(" ").at(-1)},\n\nThank you for your time today. I enjoyed our conversation and remain very interested in joining your group.\n\nBest regards`,
+          timeZone,
+        });
+      }
+      say("A thank-you waits in Pipeline.");
     }
 
     async function afterApplying(text: string) {
@@ -279,6 +308,7 @@ export const fakeProvider = (
       else if (reply?.[1] && reply[2] && reply[3]) await answerReply(reply[1], reply[2], reply[3]);
       else if (text.startsWith("[follow-up]")) await followUps(text);
       else if (text.startsWith("[after-applying]")) await afterApplying(text);
+      else if (text.startsWith("[thank-you]")) await thankYou(text);
       else if (text.startsWith("[write]")) await write(text);
       else if (/\bask me\b/i.test(text)) {
         await call("ask_applicant", "English test", {

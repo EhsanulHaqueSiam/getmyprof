@@ -3,7 +3,7 @@ import { Trash2Icon, UploadIcon } from "lucide-react";
 import { useState } from "react";
 import { Choice, Table, Td } from "~/components/Table";
 import { Button } from "~/components/ui/button";
-import { toBase64 } from "~/lib/files";
+import { guessKind, toBase64 } from "~/lib/files";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
@@ -29,7 +29,9 @@ export function VaultFacts() {
   const usedIn = (id: string) => {
     const kinds = writing
       .filter((w) => Object.values(w.citations).includes(id))
-      .map((w) => ({ sop: "SOP", cv: "CV", essay: "essay" })[w.kind]);
+      .map(
+        (w) => ({ sop: "SOP", cv: "CV", essay: "essay", prep: "prep", letter: "letter" })[w.kind],
+      );
     return [...new Set(kinds)]
       .map((k) => {
         const n = kinds.filter((x) => x === k).length;
@@ -62,11 +64,7 @@ export function VaultFacts() {
       const base64 = await toBase64(file);
       const doc = await call("documents.upload", {
         name: file.name,
-        kind: /cv|resume/i.test(file.name)
-          ? "cv"
-          : /transcript/i.test(file.name)
-            ? "transcript"
-            : "other",
+        kind: guessKind(file.name, "other"),
         mime: file.type,
         base64,
         expires: null,

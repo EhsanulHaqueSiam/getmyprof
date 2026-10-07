@@ -3,6 +3,18 @@
 // adding proof in the Vault unblocks a claim without rewriting anything.
 import { type Applicant, factStatus, type ProfileFact, type Writing } from "@gradcode/contracts";
 
+/** What each kind of piece is called in the app. */
+export const WRITING_LABEL = {
+  sop: "Statement of purpose",
+  cv: "CV",
+  essay: "Scholarship essay",
+  prep: "Interview prep",
+  letter: "Negotiation letter",
+} as const satisfies Record<Writing["kind"], string>;
+
+/** Only what leaves the app has to stand on proven facts; a prep pack stays private. */
+export const mustProve = (w: Writing) => w.kind !== "prep";
+
 export type Cited = { n: string; fact: ProfileFact | undefined; ok: boolean };
 
 /** Every citation in order, with its fact and whether it can be claimed. */

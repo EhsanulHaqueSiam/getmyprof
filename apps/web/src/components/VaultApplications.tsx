@@ -2,6 +2,7 @@ import { type Application, AppStatus, type Professor, type Program } from "@grad
 import { PlusIcon, Trash2Icon } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { Chip } from "~/components/FormParts";
+import { Interviews } from "~/components/Interviews";
 import { Choice } from "~/components/Table";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
@@ -212,6 +213,9 @@ function ApplicationView({
             className="h-6.5 flex-1 rounded-md border border-input bg-transparent px-2 outline-none placeholder:text-placeholder"
           />
         </div>
+      </Row>
+      <Row label="Interviews">
+        <Interviews app={app} program={program} named={here.map((p) => p.name)} />
       </Row>
       <Row label="Name in it">
         <div className="flex flex-wrap gap-1.5">

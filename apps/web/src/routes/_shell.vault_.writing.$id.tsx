@@ -3,14 +3,22 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
-import { checks, citations, layout, plainText, strayMarkers } from "~/lib/writing";
+import {
+  checks,
+  citations,
+  layout,
+  mustProve,
+  plainText,
+  strayMarkers,
+  WRITING_LABEL,
+} from "~/lib/writing";
 import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
 
 // /vault/writing/<id>, outside the Vault's own layout, so the sidebar's Vault stays lit.
 export const Route = createFileRoute("/_shell/vault_/writing/$id")({ component: WriterPage });
 
-const KIND_LABEL = { sop: "Statement of purpose", cv: "CV", essay: "Scholarship essay" } as const;
+const KIND_LABEL = WRITING_LABEL;
 
 /** "2026-12-01" as "Dec 1, 2026", read as a calendar date. */
 const longDate = (ymd: string) =>
@@ -127,7 +135,7 @@ function WriterPage() {
   const stray = strayMarkers(w);
   const blocked = new Set([...cited.filter((c) => !c.ok).map((c) => c.n), ...stray]);
   const c = checks(w, { named, applicant: app.applicant });
-  const exportable = blocked.size === 0 && !c.scoreClaimed;
+  const exportable = !mustProve(w) || (blocked.size === 0 && !c.scoreClaimed);
   const others = vault.programs.filter((p) => p.id !== w.programId);
 
   const start = async (programId: string | null, basedOn: string) => {

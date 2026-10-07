@@ -1,6 +1,6 @@
 import type { Scholarship, VaultState } from "@gradcode/contracts";
 import { describe, expect, it } from "vite-plus/test";
-import { comingUp, fitsMe } from "./vault";
+import { comingUp, fitsMe, interviewIcs, leftAfterRent } from "./vault";
 
 const scholarship = (s: Partial<Scholarship>): Scholarship => ({
   id: "s1",
@@ -81,6 +81,7 @@ describe("the Vault", () => {
           portalStatus: "",
           professors: [],
           submittedAt: null,
+          interviews: [],
           note: "",
         },
       ],
@@ -88,6 +89,7 @@ describe("the Vault", () => {
         scholarship({ deadline: "2026-11-01", status: "applying" }),
         scholarship({ id: "s2", name: "Just watching", deadline: "2026-10-10" }),
       ],
+      offers: [],
       writing: [],
       toFile: [],
     };
@@ -96,5 +98,20 @@ describe("the Vault", () => {
       "Fulbright closes in 25 days",
       "passport.pdf expires in 145 days",
     ]);
+  });
+});
+
+describe("offers and interviews", () => {
+  it("compare offers by what a year of stipend leaves after rent", () => {
+    expect(leftAfterRent({ stipend: 3000, stipendPer: "month", rentPerMonth: 1400 })).toBe(19200);
+    expect(leftAfterRent({ stipend: 32000, stipendPer: "year", rentPerMonth: 1100 })).toBe(18800);
+    expect(leftAfterRent({ stipend: 32000, stipendPer: "year", rentPerMonth: null })).toBeNull();
+  });
+
+  it("write an interview as a 45-minute calendar event in local time", () => {
+    const ics = interviewIcs({ id: "i1", with: "Kevin Lybarger", at: "2026-12-10T09:30" }, "GMU");
+    expect(ics).toContain("DTSTART:20261210T093000");
+    expect(ics).toContain("DTEND:20261210T101500");
+    expect(ics).toContain("SUMMARY:Interview with Kevin Lybarger");
   });
 });

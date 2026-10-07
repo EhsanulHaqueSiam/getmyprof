@@ -3,7 +3,7 @@ import { Trash2Icon, UploadIcon } from "lucide-react";
 import { useState } from "react";
 import { Choice, Table, Td } from "~/components/Table";
 import { Button } from "~/components/ui/button";
-import { toBase64 } from "~/lib/files";
+import { guessKind, toBase64 } from "~/lib/files";
 import { cn } from "~/lib/utils";
 import { daysLeft, due } from "~/lib/vault";
 import { call } from "~/rpc/client";
@@ -28,7 +28,7 @@ export function VaultDocuments() {
     try {
       await call("documents.upload", {
         name: file.name,
-        kind,
+        kind: guessKind(file.name, kind),
         mime: file.type,
         base64: await toBase64(file),
         expires: expires || null,

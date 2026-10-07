@@ -5,6 +5,7 @@ import { VaultApplications } from "~/components/VaultApplications";
 import { VaultDocuments } from "~/components/VaultDocuments";
 import { VaultFacts } from "~/components/VaultFacts";
 import { VaultPrograms, VaultScholarships } from "~/components/VaultOpportunities";
+import { VaultOffers } from "~/components/VaultOffers";
 import { VaultWriting } from "~/components/VaultWriting";
 import { cn } from "~/lib/utils";
 import { comingUp } from "~/lib/vault";
@@ -18,6 +19,7 @@ const SECTIONS = [
   "scholarships",
   "programs",
   "applications",
+  "offers",
 ] as const;
 type Section = (typeof SECTIONS)[number];
 
@@ -57,6 +59,7 @@ function Nav({ section, go }: { section: Section; go: (s: Section) => void }) {
       {item("scholarships", "Scholarships", v?.scholarships.length)}
       {item("programs", "Programs", v?.programs.length)}
       {item("applications", "Applications", v?.applications.length)}
+      {item("offers", "Offers", v?.offers.length)}
     </nav>
   );
 }
@@ -138,6 +141,7 @@ function VaultPage() {
           <VaultPrograms onOpenApplication={() => go("applications")} />
         ) : null}
         {section === "applications" ? <VaultApplications /> : null}
+        {section === "offers" ? <VaultOffers /> : null}
       </div>
       <Side />
     </div>

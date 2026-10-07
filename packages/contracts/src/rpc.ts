@@ -162,7 +162,7 @@ export const Methods = {
   "vault.save": { input: VaultEdit, output: ok },
   "vault.remove": {
     input: z.object({
-      kind: z.enum(["document", "scholarship", "program", "application", "writing"]),
+      kind: z.enum(["document", "scholarship", "program", "application", "writing", "offer"]),
       id: z.string(),
     }),
     output: ok,
@@ -190,7 +190,16 @@ export const Methods = {
       programId: z.string().nullable(),
       scholarshipId: z.string().nullable(),
       basedOn: z.string().nullable(),
+      /** A prep pack: who the interview is with. */
+      about: z.string().nullable().optional(),
+      /** A negotiation letter: the offer it's about. */
+      offerId: z.string().nullable().optional(),
     }),
+    output: ThreadSummary,
+  },
+  /** After an interview: the agent drafts a thank-you to that professor into the Pipeline. */
+  "interviews.thank": {
+    input: z.object({ applicationId: z.string(), interviewId: z.string() }),
     output: ThreadSummary,
   },
 } as const;

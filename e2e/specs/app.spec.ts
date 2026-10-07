@@ -203,3 +203,44 @@ test("writer: a statement cites its facts, and an unproven one blocks export unt
   await expect(page.getByTestId("blocked")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Export PDF" })).toBeEnabled();
 });
+
+test("after applying: an interview gets a prep pack and a thank-you, and offers compare after rent", async ({
+  page,
+}) => {
+  await page.goto("/vault?section=applications");
+  const app = page.getByTestId("application");
+  await app.getByLabel("Interview with").fill("Kevin Lybarger");
+  await app.getByLabel("Interview time").fill("2026-12-10T09:30");
+  await app.getByRole("button", { name: "Add interview" }).click();
+  await expect(app.getByLabel("Application status")).toHaveValue("interview");
+
+  await app.getByRole("button", { name: "Write prep pack" }).click();
+  await expect(page.getByText(/Saved in the Writer/)).toBeVisible();
+  await page.goto("/vault?section=applications");
+  await expect(
+    page.getByTestId("interviews").getByRole("button", { name: "Prep pack" }),
+  ).toBeVisible();
+
+  await page.getByTestId("interviews").getByRole("button", { name: "Thank-you" }).click();
+  await expect(page.getByText("A thank-you waits in Pipeline.")).toBeVisible();
+
+  await page.goto("/vault?section=offers");
+  const offers = [
+    ["George Mason University", "34000", "1500"],
+    ["University of Edinburgh", "24000", "900"],
+  ];
+  for (const [i, [university = "", stipend = "", rent = ""]] of offers.entries()) {
+    await page.getByRole("button", { name: "Add offer" }).click();
+    for (const [label, value] of [
+      ["University", university],
+      ["Stipend", stipend],
+      ["Rent a month", rent],
+    ] as const) {
+      const field = page.getByLabel(`${label}, offer ${i + 1}`, { exact: true });
+      await field.fill(value);
+      await field.blur();
+    }
+  }
+  await expect(page.getByTestId("offers")).toContainText("$16,000");
+  await expect(page.getByTestId("offers")).toContainText("$13,200");
+});

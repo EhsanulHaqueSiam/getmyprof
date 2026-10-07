@@ -71,6 +71,7 @@ export const AppStatus = z.enum([
   "planning",
   "in-progress",
   "submitted",
+  "interview",
   "admitted",
   "waitlisted",
   "rejected",
@@ -100,10 +101,34 @@ export const Application = z.object({
   professors: z.array(z.string()),
   submittedAt: z.string().nullable(),
   note: z.string(),
+  /** Interviews: who with, and when (local date and time). Prep packs find them by name. */
+  interviews: z.array(z.object({ id: z.string(), with: z.string(), at: z.string() })).default([]),
 });
 export type Application = z.infer<typeof Application>;
 
-export const WritingKind = z.enum(["sop", "cv", "essay"]);
+/** A funding offer. Compared by what's left of the stipend after rent. */
+export const Offer = z.object({
+  id: z.string(),
+  university: z.string(),
+  program: z.string(),
+  stipend: z.number().nullable(),
+  stipendPer: z.enum(["year", "month"]),
+  currency: z.string(),
+  tuition: z.enum(["full", "partial", "none"]),
+  years: z.number().nullable(),
+  insurance: z.string(),
+  /** Teaching or research duties that come with the money, e.g. "TA 20h/week". */
+  duties: z.string(),
+  rentPerMonth: z.number().nullable(),
+  /** YYYY-MM-DD; US programs answer by April 15. */
+  respondBy: z.string().nullable(),
+  status: z.enum(["open", "negotiating", "accepted", "declined"]),
+  note: z.string(),
+});
+export type Offer = z.infer<typeof Offer>;
+
+/** sop, cv and essay leave the app; prep (an interview pack) stays private; letter is a negotiation. */
+export const WritingKind = z.enum(["sop", "cv", "essay", "prep", "letter"]);
 export type WritingKind = z.infer<typeof WritingKind>;
 
 /**
@@ -162,6 +187,7 @@ export const VaultState = z.object({
   scholarships: z.array(Scholarship),
   programs: z.array(Program),
   applications: z.array(Application),
+  offers: z.array(Offer),
   writing: z.array(Writing),
   toFile: z.array(FileItem),
 });
@@ -174,6 +200,7 @@ export const VaultEdit = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("program"), value: Program }),
   z.object({ kind: z.literal("application"), value: Application }),
   z.object({ kind: z.literal("writing"), value: Writing }),
+  z.object({ kind: z.literal("offer"), value: Offer }),
 ]);
 export type VaultEdit = z.infer<typeof VaultEdit>;
 export type VaultKind = VaultEdit["kind"];

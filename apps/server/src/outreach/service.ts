@@ -11,7 +11,8 @@ import { z } from "zod";
 import type { Runner } from "../agent/runner.ts";
 import type { Bus } from "../bus.ts";
 import { type Db, getKv, now, setKv } from "../db.ts";
-import { getRecord } from "../records.ts";
+import { getRecord, listRecords } from "../records.ts";
+import { sameSchool } from "../sources.ts";
 import { createThread, getThread } from "../threads.ts";
 import {
   Cursor,
@@ -43,6 +44,7 @@ const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e)).s
 
 export const FOLLOW_UP_TAG = "[follow-up]";
 export const AFTER_APPLYING_TAG = "[after-applying]";
+export const THANK_TAG = "[thank-you]";
 export const REPLY_TAG = "[reply:";
 
 export function createOutreach(deps: {
@@ -196,6 +198,29 @@ export function createOutreach(deps: {
     },
 
     tick,
+
+    /** After an interview, the agent drafts a thank-you to that professor into the Pipeline. */
+    thank(interviewee: string, university: string) {
+      const last = interviewee.trim().split(/\s+/).at(-1)?.toLowerCase() ?? "";
+      const record = listRecords(db).find(
+        (r) => r.name.toLowerCase().includes(last) && sameSchool(r.university, university),
+      );
+      if (!record?.email)
+        throw new Error(
+          `${interviewee} has no reviewed email in the sheet, so there's no one to thank.`,
+        );
+      const zone =
+        listMessages(db, record.key).find((m) => m.direction === "out" && m.timeZone)?.timeZone ??
+        "America/New_York";
+      const t = createThread(db, `Thank-you · ${record.name}`);
+      runner.send(
+        t.id,
+        `${THANK_TAG}\nThe applicant just interviewed with ${record.name}. Draft a short thank-you with draft_email (touch thank-you): thank them for their time and name one thing from the conversation only if the applicant told you one.\n- ${record.name} | ${record.university} | key ${record.key} | to ${record.email} | zone ${zone}`,
+        "send",
+        `Draft a thank-you to ${record.name}`,
+      );
+      return t.id;
+    },
 
     /** Once an application is in, the agent drafts "I applied and named you" to each named professor. */
     afterApplying(app: Application, program: Program) {

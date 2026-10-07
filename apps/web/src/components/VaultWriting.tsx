@@ -4,15 +4,11 @@ import { useState } from "react";
 import { Choice, Table, Td } from "~/components/Table";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
-import { citations } from "~/lib/writing";
+import { citations, WRITING_LABEL } from "~/lib/writing";
 import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
 
-const KIND_LABEL: Record<WritingKind, string> = {
-  sop: "Statement of purpose",
-  cv: "CV",
-  essay: "Scholarship essay",
-};
+const KIND_LABEL = WRITING_LABEL;
 const KINDS = ["sop", "cv", "essay"] as const satisfies WritingKind[];
 
 /** Asks the agent for a new piece: a statement for a program, a CV, or an essay for a scholarship. */

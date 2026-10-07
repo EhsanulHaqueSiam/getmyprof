@@ -7,7 +7,14 @@ export const Channel = z.enum(["email", "linkedin"]);
 export type Channel = z.infer<typeof Channel>;
 
 /** Which step of a sequence an outgoing message is. */
-export const Touch = z.enum(["first", "follow-up-1", "follow-up-2", "after-applying", "reply"]);
+export const Touch = z.enum([
+  "first",
+  "follow-up-1",
+  "follow-up-2",
+  "after-applying",
+  "reply",
+  "thank-you",
+]);
 export type Touch = z.infer<typeof Touch>;
 
 /** What an incoming message is, from its headers and first lines. */

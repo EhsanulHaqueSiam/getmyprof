@@ -153,6 +153,27 @@ export function Board({
   conversations: Conversation[];
   onOpen: (key: string) => void;
 }) {
+  // A call with this professor (an interview on an application) and whether its prep pack is
+  // written, so the Call card says when and whether you're ready.
+  const vault = useStore((st) => st.vault);
+  const callLine = (name: string) => {
+    const last = name.split(" ").at(-1)?.toLowerCase() ?? "";
+    for (const app of vault?.applications ?? [])
+      for (const i of app.interviews)
+        if (last && i.with.toLowerCase().includes(last)) {
+          const prep = vault?.writing.some(
+            (w) => w.kind === "prep" && w.programId === app.programId && w.title.endsWith(i.with),
+          );
+          const at = new Date(i.at).toLocaleString("en-US", {
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          return `Call ${at} · ${prep ? "prep pack ready" : "no prep pack yet"}`;
+        }
+    return "";
+  };
   return (
     <div className="grid min-h-0 flex-1 auto-cols-[minmax(176px,1fr)] grid-flow-col gap-px overflow-x-auto bg-border">
       {PIPELINE_STAGES.map((stage) => {
@@ -192,6 +213,11 @@ export function Board({
                       .join(" · ")}
                   </div>
                   <div className="mt-1.5 text-secondary-label text-xs">{cardLine(c)}</div>
+                  {callLine(c.record.name) ? (
+                    <div className="mt-1 text-status-input text-xs" data-testid="call-line">
+                      {callLine(c.record.name)}
+                    </div>
+                  ) : null}
                 </button>
               ))}
             </div>

@@ -18,9 +18,11 @@ import { Route as ShellPipelineRouteImport } from './routes/_shell.pipeline'
 import { Route as ShellReviewRouteImport } from './routes/_shell.review'
 import { Route as ShellSettingsRouteImport } from './routes/_shell.settings'
 import { Route as ShellVaultRouteImport } from './routes/_shell.vault'
+import { Route as PrintIdRouteImport } from './routes/print.$id'
 import { Route as ShellProfessorsIndexRouteImport } from './routes/_shell.professors.index'
 import { Route as ShellProfessorsKeyRouteImport } from './routes/_shell.professors.$key'
 import { Route as ShellTThreadIdRouteImport } from './routes/_shell.t.$threadId'
+import { Route as ShellWriterIdRouteImport } from './routes/_shell.writer.$id'
 
 const ShellRoute = ShellRouteImport.update({
   id: '/_shell',
@@ -66,6 +68,11 @@ const ShellVaultRoute = ShellVaultRouteImport.update({
   path: '/vault',
   getParentRoute: () => ShellRoute,
 } as any)
+const PrintIdRoute = PrintIdRouteImport.update({
+  id: '/print/$id',
+  path: '/print/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ShellProfessorsIndexRoute = ShellProfessorsIndexRouteImport.update({
   id: '/professors/',
   path: '/professors/',
@@ -81,6 +88,11 @@ const ShellTThreadIdRoute = ShellTThreadIdRouteImport.update({
   path: '/t/$threadId',
   getParentRoute: () => ShellRoute,
 } as any)
+const ShellWriterIdRoute = ShellWriterIdRouteImport.update({
+  id: '/writer/$id',
+  path: '/writer/$id',
+  getParentRoute: () => ShellRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof ShellIndexRoute
@@ -91,8 +103,10 @@ export interface FileRoutesByFullPath {
   '/review': typeof ShellReviewRoute
   '/settings': typeof ShellSettingsRoute
   '/vault': typeof ShellVaultRoute
+  '/print/$id': typeof PrintIdRoute
   '/professors/$key': typeof ShellProfessorsKeyRoute
   '/t/$threadId': typeof ShellTThreadIdRoute
+  '/writer/$id': typeof ShellWriterIdRoute
   '/professors/': typeof ShellProfessorsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -103,9 +117,11 @@ export interface FileRoutesByTo {
   '/review': typeof ShellReviewRoute
   '/settings': typeof ShellSettingsRoute
   '/vault': typeof ShellVaultRoute
+  '/print/$id': typeof PrintIdRoute
   '/': typeof ShellIndexRoute
   '/professors/$key': typeof ShellProfessorsKeyRoute
   '/t/$threadId': typeof ShellTThreadIdRoute
+  '/writer/$id': typeof ShellWriterIdRoute
   '/professors': typeof ShellProfessorsIndexRoute
 }
 export interface FileRoutesById {
@@ -118,9 +134,11 @@ export interface FileRoutesById {
   '/_shell/review': typeof ShellReviewRoute
   '/_shell/settings': typeof ShellSettingsRoute
   '/_shell/vault': typeof ShellVaultRoute
+  '/print/$id': typeof PrintIdRoute
   '/_shell/': typeof ShellIndexRoute
   '/_shell/professors/$key': typeof ShellProfessorsKeyRoute
   '/_shell/t/$threadId': typeof ShellTThreadIdRoute
+  '/_shell/writer/$id': typeof ShellWriterIdRoute
   '/_shell/professors/': typeof ShellProfessorsIndexRoute
 }
 export interface FileRouteTypes {
@@ -134,8 +152,10 @@ export interface FileRouteTypes {
     | '/review'
     | '/settings'
     | '/vault'
+    | '/print/$id'
     | '/professors/$key'
     | '/t/$threadId'
+    | '/writer/$id'
     | '/professors/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -146,9 +166,11 @@ export interface FileRouteTypes {
     | '/review'
     | '/settings'
     | '/vault'
+    | '/print/$id'
     | '/'
     | '/professors/$key'
     | '/t/$threadId'
+    | '/writer/$id'
     | '/professors'
   id:
     | '__root__'
@@ -160,15 +182,18 @@ export interface FileRouteTypes {
     | '/_shell/review'
     | '/_shell/settings'
     | '/_shell/vault'
+    | '/print/$id'
     | '/_shell/'
     | '/_shell/professors/$key'
     | '/_shell/t/$threadId'
+    | '/_shell/writer/$id'
     | '/_shell/professors/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   ShellRoute: typeof ShellRouteWithChildren
   SetupRoute: typeof SetupRoute
+  PrintIdRoute: typeof PrintIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -236,6 +261,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellVaultRouteImport
       parentRoute: typeof ShellRoute
     }
+    '/print/$id': {
+      id: '/print/$id'
+      path: '/print/$id'
+      fullPath: '/print/$id'
+      preLoaderRoute: typeof PrintIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_shell/professors/': {
       id: '/_shell/professors/'
       path: '/professors'
@@ -257,6 +289,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellTThreadIdRouteImport
       parentRoute: typeof ShellRoute
     }
+    '/_shell/writer/$id': {
+      id: '/_shell/writer/$id'
+      path: '/writer/$id'
+      fullPath: '/writer/$id'
+      preLoaderRoute: typeof ShellWriterIdRouteImport
+      parentRoute: typeof ShellRoute
+    }
   }
 }
 
@@ -270,6 +309,7 @@ interface ShellRouteChildren {
   ShellIndexRoute: typeof ShellIndexRoute
   ShellProfessorsKeyRoute: typeof ShellProfessorsKeyRoute
   ShellTThreadIdRoute: typeof ShellTThreadIdRoute
+  ShellWriterIdRoute: typeof ShellWriterIdRoute
   ShellProfessorsIndexRoute: typeof ShellProfessorsIndexRoute
 }
 
@@ -283,6 +323,7 @@ const ShellRouteChildren: ShellRouteChildren = {
   ShellIndexRoute: ShellIndexRoute,
   ShellProfessorsKeyRoute: ShellProfessorsKeyRoute,
   ShellTThreadIdRoute: ShellTThreadIdRoute,
+  ShellWriterIdRoute: ShellWriterIdRoute,
   ShellProfessorsIndexRoute: ShellProfessorsIndexRoute,
 }
 
@@ -291,6 +332,7 @@ const ShellRouteWithChildren = ShellRoute._addFileChildren(ShellRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   ShellRoute: ShellRouteWithChildren,
   SetupRoute: SetupRoute,
+  PrintIdRoute: PrintIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -64,6 +64,14 @@ export const ProfileFact = z.object({
 });
 export type ProfileFact = z.infer<typeof ProfileFact>;
 
+/** A fact can be written into something only once it's confirmed and has its proof. */
+export function factStatus(f: ProfileFact) {
+  if (f.question) return "question";
+  if (!f.confirmed) return "unconfirmed";
+  if (!f.source.trim()) return "needs proof";
+  return "confirmed";
+}
+
 export const TestStatus = z.enum(["taken", "booked", "planned", "none"]);
 
 /** Who the applicant is, for eligibility: citizenship decides who may pay them and which scholarships exist. */

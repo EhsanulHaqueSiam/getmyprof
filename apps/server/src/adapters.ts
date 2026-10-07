@@ -13,6 +13,7 @@ import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
 import { type Db, now } from "./db.ts";
 import { getRecord, listRecords, putRecord, recordKey } from "./records.ts";
+import { getFacts, getSettings } from "./state.ts";
 
 const s = (v: unknown) => (v == null ? "" : String(v));
 
@@ -59,6 +60,10 @@ export function readHqFacts(dir = hqDir()): ProfileFact[] {
     ];
   });
 }
+
+/** The applicant's facts: hq's on an install that reads hq, the app's own otherwise. */
+export const profileFacts = (db: Db) =>
+  getSettings(db).profileSource === "hq" ? readHqFacts() : getFacts(db);
 
 export const gradhuntDir = (env = process.env) =>
   env.GRADHUNT_DIR ?? NodePath.join(NodeOS.homedir(), "Personal/gradhunt");

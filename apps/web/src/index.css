@@ -67,6 +67,10 @@
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
 
+  /* Paper for exports: the print view is the one place that isn't dark. */
+  --color-paper: #fff;
+  --color-ink: #111;
+
   /* Thread status hues, the same everywhere a thread shows up (T3 Code's convention). */
   --color-status-approval: var(--color-amber-400);
   --color-status-input: var(--color-indigo-300);

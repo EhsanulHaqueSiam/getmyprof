@@ -87,5 +87,10 @@ Vault shows its facts read-only.
   HTML file can't run on the app's origin.
 - **Nothing is filed without a click.** The agent's `propose_program` and `propose_scholarship`
   land in To file; File or Dismiss decides. A dismissed find never comes back.
+- **The Writer cites, the app judges.** The agent writes through `write_document`, citing facts
+  as `[[fact-id]]`; the store numbers them `[1]`, `[2]`. Whether a claim is blocked is computed
+  from the cited fact's status on every read, so adding proof unblocks it without a rewrite. A
+  blocked claim, a stray marker or a test score no fact backs disables export (text and the
+  `/print/<id>` view, printed to PDF). Writing again for the same target makes the next draft.
 - **Submitting closes the loop.** Marking an application submitted hands the professors it names
   to the agent, which drafts "I applied and named you" notes into the Pipeline.

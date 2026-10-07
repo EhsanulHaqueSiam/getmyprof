@@ -15,7 +15,14 @@ import {
 } from "./domain.ts";
 import { Conversation, MailConnect, MailStatus } from "./outreach.ts";
 import { RowOp, ThreadEvent, ThreadSummary } from "./threads.ts";
-import { Application, DocKind, VaultDocument, VaultEdit, VaultState } from "./vault.ts";
+import {
+  Application,
+  DocKind,
+  VaultDocument,
+  VaultEdit,
+  VaultState,
+  WritingKind,
+} from "./vault.ts";
 
 const id = z.object({ id: z.string() });
 const ok = z.object({ ok: z.literal(true) });
@@ -149,7 +156,7 @@ export const Methods = {
   "vault.save": { input: VaultEdit, output: ok },
   "vault.remove": {
     input: z.object({
-      kind: z.enum(["document", "scholarship", "program", "application"]),
+      kind: z.enum(["document", "scholarship", "program", "application", "writing"]),
       id: z.string(),
     }),
     output: ok,
@@ -170,6 +177,16 @@ export const Methods = {
     output: ok,
   },
   "applications.start": { input: z.object({ programId: z.string() }), output: Application },
+  /** Asks the agent to write (or, with `basedOn`, tailor) a piece in a new thread. */
+  "writing.start": {
+    input: z.object({
+      kind: WritingKind,
+      programId: z.string().nullable(),
+      scholarshipId: z.string().nullable(),
+      basedOn: z.string().nullable(),
+    }),
+    output: ThreadSummary,
+  },
 } as const;
 
 export type Method = keyof typeof Methods;

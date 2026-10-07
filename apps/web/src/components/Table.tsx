@@ -81,11 +81,14 @@ export function Choice<T extends string>({
   options,
   onChange,
   label,
+  labels,
 }: {
   value: T;
   options: readonly T[];
   onChange: (v: T) => void;
   label: string;
+  /** Display names for the options; raw values otherwise. */
+  labels?: Record<T, string>;
 }) {
   return (
     <select
@@ -99,7 +102,7 @@ export function Choice<T extends string>({
     >
       {options.map((o) => (
         <option key={o} value={o}>
-          {o.replace("-", " ")}
+          {labels?.[o] ?? o.replace("-", " ")}
         </option>
       ))}
     </select>

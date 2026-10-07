@@ -8,12 +8,15 @@ import { createOutreach } from "./outreach/service.ts";
 import { blankProfessor, putRecord } from "./records.ts";
 import {
   documentPath,
+  numberCitations,
   proposeFinding,
   removeEntry,
   resolveFinding,
   saveDocument,
+  saveWriting,
   startApplication,
   vaultState,
+  writingBrief,
 } from "./vault.ts";
 
 const fulbright = {
@@ -143,5 +146,75 @@ describe("an application", () => {
     }).afterApplying(app, prog);
     expect(asked[0]).toMatch(/^\[after-applying\] app=/);
     expect(asked[0]).toContain("Kevin Lybarger | George Mason University");
+  });
+});
+
+describe("the Writer", () => {
+  it("numbers citations by first use, and a revision becomes the next draft of the same piece", () => {
+    expect(numberCitations("BSc [[f_b]]. Paper [[f_p]]. Again [[f_b]].")).toEqual({
+      body: "BSc [1]. Paper [2]. Again [1].",
+      citations: { "1": "f_b", "2": "f_p" },
+    });
+    const db = openDb(":memory:");
+    const base = {
+      kind: "sop" as const,
+      title: "SOP",
+      programId: null,
+      scholarshipId: null,
+      threadId: null,
+    };
+    const first = saveWriting(db, { ...base, pieceId: null, text: "One [[f_b]]." });
+    const second = saveWriting(db, { ...base, pieceId: first.id, text: "Two [[f_p]]." });
+    expect(second).toMatchObject({ id: first.id, draft: 2, citations: { "1": "f_p" } });
+    expect(vaultState(db).writing).toHaveLength(1);
+  });
+
+  it("briefs the agent with every fact's id and status, and tailors from the earlier piece", () => {
+    const db = openDb(":memory:");
+    const piece = saveWriting(db, {
+      pieceId: null,
+      kind: "sop",
+      title: "SOP",
+      programId: null,
+      scholarshipId: null,
+      threadId: null,
+      text: "My degree [[f_b]].",
+    });
+    const facts = [
+      {
+        id: "f_b",
+        text: "BSc 2025",
+        source: "cv.pdf",
+        kind: "education" as const,
+        confirmed: true,
+        question: false,
+      },
+      {
+        id: "f_t",
+        text: "Led a team of five",
+        source: "",
+        kind: "work" as const,
+        confirmed: true,
+        question: false,
+      },
+    ];
+    const { text } = writingBrief(db, facts, {
+      kind: "sop",
+      programId: null,
+      scholarshipId: null,
+      basedOn: piece.id,
+    });
+    expect(text).toMatch(/^\[write\] kind=sop program=- scholarship=- revise=wri_/);
+    expect(text).toContain("- [[f_b]] BSc 2025 (confirmed)");
+    expect(text).toContain("- [[f_t]] Led a team of five (needs proof)");
+    expect(text).toContain("My degree [[f_b]].");
+    // Asking again for the same target, without naming the piece, still revises it.
+    const again = writingBrief(db, facts, {
+      kind: "sop",
+      programId: null,
+      scholarshipId: null,
+      basedOn: null,
+    });
+    expect(again.text).toContain(`revise=${piece.id}`);
   });
 });

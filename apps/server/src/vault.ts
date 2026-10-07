@@ -2,20 +2,24 @@
 // and the agent's finds waiting in To file), plus document bytes under GRADCODE_HOME/files.
 import {
   Application,
+  factStatus,
   FileItem,
+  type ProfileFact,
   Program,
   Scholarship,
   VaultDocument,
   type VaultEdit,
   type VaultKind,
   type VaultState,
+  Writing,
+  type WritingKind,
 } from "@gradcode/contracts";
 import * as NodeCrypto from "node:crypto";
 import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
 import { z } from "zod";
 import { type Db, getKv, homeDir, newId, now, setKv } from "./db.ts";
-import { listRecords } from "./records.ts";
+import { getRecord, listRecords } from "./records.ts";
 
 type Kind = VaultKind | "toFile";
 
@@ -39,6 +43,7 @@ const removeItem = (db: Db, kind: Kind, id: string) =>
 export const listDocuments = (db: Db) => items(db, "document", VaultDocument);
 export const listPrograms = (db: Db) => items(db, "program", Program);
 export const listApplications = (db: Db) => items(db, "application", Application);
+export const listWriting = (db: Db) => items(db, "writing", Writing);
 
 export function vaultState(db: Db): VaultState {
   return {
@@ -46,6 +51,7 @@ export function vaultState(db: Db): VaultState {
     scholarships: items(db, "scholarship", Scholarship),
     programs: listPrograms(db),
     applications: listApplications(db),
+    writing: listWriting(db),
     toFile: items(db, "toFile", FileItem),
   };
 }
@@ -189,4 +195,123 @@ export function startApplication(db: Db, programId: string): Application {
   };
   putItem(db, "application", app);
   return app;
+}
+
+const TOKEN = /\[\[([^\]\s]+)\]\]/g;
+
+/** "my BSc [[fact_a]]" becomes "my BSc [1]" with citations {1: fact_a}. One fact keeps one number. */
+export function numberCitations(text: string) {
+  const ids: string[] = [];
+  const body = text.replace(TOKEN, (_, id: string) => {
+    if (!ids.includes(id)) ids.push(id);
+    return `[${ids.indexOf(id) + 1}]`;
+  });
+  return { body, citations: Object.fromEntries(ids.map((id, i) => [String(i + 1), id])) };
+}
+
+/** The other way, so a revision starts from the agent's own citation tokens. */
+const withTokens = (w: Writing) =>
+  w.body.replace(/\[(\d+)\]/g, (m, n: string) => {
+    const id = w.citations[n];
+    return id ? `[[${id}]]` : m;
+  });
+
+/** Saves the agent's text as a new piece, or as the next draft of `pieceId`. */
+export function saveWriting(
+  db: Db,
+  input: {
+    pieceId: string | null;
+    kind: WritingKind;
+    title: string;
+    programId: string | null;
+    scholarshipId: string | null;
+    text: string;
+    threadId: string | null;
+  },
+) {
+  const prior = input.pieceId ? listWriting(db).find((w) => w.id === input.pieceId) : undefined;
+  const piece: Writing = {
+    id: prior?.id ?? newId("wri"),
+    kind: input.kind,
+    title: input.title,
+    programId: input.programId,
+    scholarshipId: input.scholarshipId,
+    draft: (prior?.draft ?? 0) + 1,
+    ...numberCitations(input.text),
+    threadId: input.threadId,
+    updatedAt: now(),
+  };
+  putItem(db, "writing", piece);
+  return piece;
+}
+
+const KIND_LABEL: Record<WritingKind, string> = {
+  sop: "a statement of purpose",
+  cv: "an academic CV",
+  essay: "a scholarship essay",
+};
+
+/**
+ * What a writing thread starts with: the target, the professors to name, every fact with its id
+ * and status, and the earlier piece when tailoring. The first line is a tag the fake agent reads.
+ */
+export function writingBrief(
+  db: Db,
+  facts: ProfileFact[],
+  input: {
+    kind: WritingKind;
+    programId: string | null;
+    scholarshipId: string | null;
+    basedOn: string | null;
+  },
+) {
+  const v = vaultState(db);
+  const program = v.programs.find((p) => p.id === input.programId);
+  const scholarship = v.scholarships.find((s) => s.id === input.scholarshipId);
+  // Writing for a target that already has a piece revises it, so one statement per program.
+  const base =
+    v.writing.find((w) => w.id === input.basedOn) ??
+    v.writing.find(
+      (w) =>
+        w.kind === input.kind &&
+        w.programId === input.programId &&
+        w.scholarshipId === input.scholarshipId,
+    );
+  // Revising the same target keeps one piece with a new draft; another target gets its own piece.
+  const revise =
+    base && base.programId === input.programId && base.scholarshipId === input.scholarshipId
+      ? base
+      : undefined;
+  const named = (v.applications.find((a) => a.programId === program?.id)?.professors ?? []).flatMap(
+    (k) => getRecord(db, k)?.name ?? [],
+  );
+  const target = program
+    ? `${program.university} · ${program.name}`
+    : scholarship
+      ? `${scholarship.name} (${scholarship.sponsor})`
+      : "";
+  const title =
+    input.kind === "cv"
+      ? "Academic CV"
+      : `${input.kind === "sop" ? "Statement of purpose" : "Scholarship essay"}${target ? ` · ${target}` : ""}`;
+  const text = [
+    `[write] kind=${input.kind} program=${program?.id ?? "-"} scholarship=${scholarship?.id ?? "-"} revise=${revise?.id ?? "-"}`,
+    `Write ${KIND_LABEL[input.kind]}${target ? ` for ${target}` : ""} for the applicant, then save it with write_document (kind ${input.kind}, title "${title}", programId ${program?.id ?? "null"}, scholarshipId ${scholarship?.id ?? "null"}, pieceId ${revise?.id ?? "null"}).`,
+    program
+      ? `Read the program page (${program.url}) for what the statement must cover and its length limit.`
+      : "",
+    scholarship
+      ? `Read the scholarship page (${scholarship.url}) for the essay prompt and its length limit.`
+      : "",
+    named.length ? `Name these professors where they genuinely fit: ${named.join(", ")}.` : "",
+    "Right after every claim about the applicant, cite the fact it rests on as [[fact-id]] from this list. Write no claim that has no fact here; a fact marked anything but confirmed blocks export until it has proof.",
+    ...facts.map((f) => `- [[${f.id}]] ${f.text} (${factStatus(f)})`),
+    base
+      ? `Start from this earlier piece ("${base.title}", draft ${base.draft}) and tailor it:\n"""\n${withTokens(base)}\n"""`
+      : "",
+    "Plain text, short paragraphs, no em dashes, no test score unless a fact gives it.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+  return { title, text };
 }

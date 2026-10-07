@@ -88,6 +88,7 @@ describe("the Vault", () => {
         scholarship({ deadline: "2026-11-01", status: "applying" }),
         scholarship({ id: "s2", name: "Just watching", deadline: "2026-10-10" }),
       ],
+      writing: [],
       toFile: [],
     };
     expect(comingUp(v, now).map((u) => u.text)).toEqual([

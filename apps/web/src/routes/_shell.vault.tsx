@@ -5,12 +5,20 @@ import { VaultApplications } from "~/components/VaultApplications";
 import { VaultDocuments } from "~/components/VaultDocuments";
 import { VaultFacts } from "~/components/VaultFacts";
 import { VaultPrograms, VaultScholarships } from "~/components/VaultOpportunities";
+import { VaultWriting } from "~/components/VaultWriting";
 import { cn } from "~/lib/utils";
 import { comingUp } from "~/lib/vault";
 import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
 
-const SECTIONS = ["facts", "documents", "scholarships", "programs", "applications"] as const;
+const SECTIONS = [
+  "facts",
+  "documents",
+  "writing",
+  "scholarships",
+  "programs",
+  "applications",
+] as const;
 type Section = (typeof SECTIONS)[number];
 
 export const Route = createFileRoute("/_shell/vault")({
@@ -44,6 +52,7 @@ function Nav({ section, go }: { section: Section; go: (s: Section) => void }) {
       <div className="px-2.5 pb-1 text-muted-foreground text-xs">You</div>
       {item("facts", "Facts", app?.facts.length)}
       {item("documents", "Documents", v?.documents.length)}
+      {item("writing", "Writing", v?.writing.length)}
       <div className="px-2.5 pt-3 pb-1 text-muted-foreground text-xs">Opportunities</div>
       {item("scholarships", "Scholarships", v?.scholarships.length)}
       {item("programs", "Programs", v?.programs.length)}
@@ -123,6 +132,7 @@ function VaultPage() {
       <div className="flex min-h-0 min-w-0 flex-col">
         {section === "facts" ? <VaultFacts /> : null}
         {section === "documents" ? <VaultDocuments /> : null}
+        {section === "writing" ? <VaultWriting /> : null}
         {section === "scholarships" ? <VaultScholarships /> : null}
         {section === "programs" ? (
           <VaultPrograms onOpenApplication={() => go("applications")} />

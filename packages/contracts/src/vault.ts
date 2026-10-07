@@ -103,6 +103,27 @@ export const Application = z.object({
 });
 export type Application = z.infer<typeof Application>;
 
+export const WritingKind = z.enum(["sop", "cv", "essay"]);
+export type WritingKind = z.infer<typeof WritingKind>;
+
+/**
+ * A statement of purpose, CV or essay. `body` cites facts as [1], [2]; `citations` maps each
+ * number to a profile fact id. A citation to a fact without proof blocks export.
+ */
+export const Writing = z.object({
+  id: z.string(),
+  kind: WritingKind,
+  title: z.string(),
+  programId: z.string().nullable(),
+  scholarshipId: z.string().nullable(),
+  draft: z.number().int(),
+  body: z.string(),
+  citations: z.record(z.string(), z.string()),
+  threadId: z.string().nullable(),
+  updatedAt: z.string(),
+});
+export type Writing = z.infer<typeof Writing>;
+
 const finding = {
   id: z.string(),
   why: z.string(),
@@ -130,6 +151,7 @@ export const VaultState = z.object({
   scholarships: z.array(Scholarship),
   programs: z.array(Program),
   applications: z.array(Application),
+  writing: z.array(Writing),
   toFile: z.array(FileItem),
 });
 export type VaultState = z.infer<typeof VaultState>;
@@ -140,6 +162,7 @@ export const VaultEdit = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("scholarship"), value: Scholarship }),
   z.object({ kind: z.literal("program"), value: Program }),
   z.object({ kind: z.literal("application"), value: Application }),
+  z.object({ kind: z.literal("writing"), value: Writing }),
 ]);
 export type VaultEdit = z.infer<typeof VaultEdit>;
 export type VaultKind = VaultEdit["kind"];

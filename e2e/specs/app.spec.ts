@@ -174,3 +174,32 @@ test("vault: the agent's finds wait in To file, and submitting an application dr
   await page.getByTestId("turn-yours").getByText("Kevin Lybarger").click();
   await expect(page.getByTestId("sequence")).toContainText("After applying");
 });
+
+test("writer: a statement cites its facts, and an unproven one blocks export until confirmed", async ({
+  page,
+}) => {
+  await page.goto("/vault?section=writing");
+  await page.getByRole("button", { name: "Write", exact: true }).click();
+  await expect(page.getByText(/Saved in the Writer/)).toBeVisible();
+
+  await page.goto("/vault?section=writing");
+  await expect(page.getByTestId("writing")).toContainText("1 claim needs proof");
+  await page.getByTestId("writing").getByRole("link").first().click();
+  await expect(page).toHaveURL(/\/writer\/wri_/);
+  const writer = page.url();
+  await expect(page.getByTestId("facts-used")).toContainText("BSc in Computer Science, 2025");
+  await expect(page.getByTestId("blocked")).toContainText("GPA 3.8 / 4.0");
+  await expect(page.locator("[data-blocked]")).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Export PDF" })).toBeDisabled();
+
+  // Confirming the fact in the Vault unblocks the claim without rewriting anything.
+  await page.goto("/vault");
+  await page
+    .getByTestId("vault-fact")
+    .filter({ hasText: "GPA 3.8 / 4.0" })
+    .getByRole("button", { name: "Confirm" })
+    .click();
+  await page.goto(writer);
+  await expect(page.getByTestId("blocked")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Export PDF" })).toBeEnabled();
+});

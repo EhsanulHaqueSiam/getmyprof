@@ -1,11 +1,10 @@
-import { FactKind, type ProfileFact } from "@gradcode/contracts";
+import { FactKind, factStatus, type ProfileFact } from "@gradcode/contracts";
 import { Trash2Icon, UploadIcon } from "lucide-react";
 import { useState } from "react";
 import { Choice, Table, Td } from "~/components/Table";
 import { Button } from "~/components/ui/button";
 import { toBase64 } from "~/lib/files";
 import { cn } from "~/lib/utils";
-import { factStatus } from "~/lib/vault";
 import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
 
@@ -23,7 +22,21 @@ const TAB_LABEL: Record<(typeof TABS)[number], string> = {
 /** Facts about the applicant, each with its proof. On Siam's install they're hq's, read-only. */
 export function VaultFacts() {
   const app = useStore((s) => s.app);
-  const docs = useStore((s) => s.vault)?.documents ?? [];
+  const vault = useStore((s) => s.vault);
+  const docs = vault?.documents ?? [];
+  const writing = vault?.writing ?? [];
+  /** "SOP x2, CV": the pieces that cite a fact. */
+  const usedIn = (id: string) => {
+    const kinds = writing
+      .filter((w) => Object.values(w.citations).includes(id))
+      .map((w) => ({ sop: "SOP", cv: "CV", essay: "essay" })[w.kind]);
+    return [...new Set(kinds)]
+      .map((k) => {
+        const n = kinds.filter((x) => x === k).length;
+        return n > 1 ? `${k} x${n}` : k;
+      })
+      .join(", ");
+  };
   const [tab, setTab] = useState<(typeof TABS)[number]>("all");
   const [reading, setReading] = useState("");
   const [error, setError] = useState("");
@@ -123,8 +136,8 @@ export function VaultFacts() {
       {error ? <div className="px-4 pb-2 text-destructive-foreground text-xs">{error}</div> : null}
       {note ? <div className="px-4 pb-2 text-muted-foreground text-xs">{note}</div> : null}
       <Table
-        head={["Fact", "Kind", "Proof", "Status", ""]}
-        widths={["auto", "120px", "150px", "110px", "40px"]}
+        head={["Fact", "Kind", "Proof", "Status", "Used in", ""]}
+        widths={["auto", "110px", "140px", "110px", "100px", "40px"]}
         empty={shown.length ? null : "No facts here yet. Add your CV from a file."}
         testId="facts"
       >
@@ -183,6 +196,9 @@ export function VaultFacts() {
                 ) : (
                   status
                 )}
+              </Td>
+              <Td muted>
+                {usedIn(f.id) || (status === "confirmed" ? "" : "blocked from writing")}
               </Td>
               <Td muted className="w-8">
                 {fromHq ? null : (

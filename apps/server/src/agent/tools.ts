@@ -1,19 +1,10 @@
 // The hunt tools the agent calls. Both providers run these same handlers: Claude through an
 // in-process MCP server, the fake provider directly. A handler returns a one-line summary
 // (shown in the work log) and the full text the model reads.
-import {
-  Channel,
-  Degree,
-  type Hunt,
-  ReplyClass,
-  type Settings,
-  Stage,
-  Touch,
-} from "@gradcode/contracts";
+import { type Hunt, type Settings, Stage } from "@gradcode/contracts";
 import { z } from "zod";
 import type { Db } from "../db.ts";
-import { classify, getMessage, saveDraft } from "../outreach/store.ts";
-import { propose, listRecords, recordKey } from "../records.ts";
+import { propose, listRecords } from "../records.ts";
 import {
   type Author,
   TREG_PRICES,
@@ -25,7 +16,7 @@ import {
   tregCall,
 } from "../sources.ts";
 import { daySpend, getThread, recordSpend, threadSpend } from "../threads.ts";
-import { proposeFinding } from "../vault.ts";
+import { APPLICANT_TOOLS } from "./applicant-tools.ts";
 
 export type Sources = {
   nsf: typeof nsfAwards;
@@ -236,120 +227,7 @@ export const HUNT_TOOLS = [
       };
     },
   }),
-  define({
-    name: "draft_email",
-    description:
-      "Draft an email (or a LinkedIn note) to a professor in the sheet. It waits for the applicant to approve; nothing is sent by you. Email goes only to the address already in the sheet; apply-only professors get none. Plain text, one recipient, at most two links.",
-    shape: {
-      name: z.string(),
-      university: z.string(),
-      channel: Channel.default("email"),
-      touch: Touch.describe(
-        "first: who they are, one fit fact, one question. follow-up-1: a short bump with a new angle. follow-up-2: a last note offering a CV or a call. reply: an answer to their message. after-applying: 'I applied and named you'",
-      ),
-      to: z.string().describe("Their address from the sheet, or their LinkedIn profile URL"),
-      subject: z
-        .string()
-        .describe("Follow their contact rule, e.g. 'PhD 2027'. Empty for a reply keeps theirs"),
-      body: z.string().describe("Only claims backed by a confirmed fact about the applicant"),
-      timeZone: z
-        .string()
-        .describe("The professor's IANA time zone, e.g. America/Chicago; sends go at 08:00 there"),
-    },
-    paid: false,
-    price: () => 0,
-    run: async (args, ctx) => {
-      const draft = saveDraft(ctx.db, {
-        recordKey: recordKey(args.name, args.university),
-        channel: args.channel,
-        touch: args.touch,
-        to: args.to,
-        subject: args.subject,
-        body: args.body,
-        timeZone: args.timeZone,
-        threadId: ctx.threadId,
-      });
-      if ("problem" in draft)
-        return { summary: "not drafted", text: `Not drafted: ${draft.problem}.` };
-      ctx.outreachChanged();
-      return {
-        summary: `${args.touch} drafted`,
-        text: "Drafted. It waits in Pipeline for the applicant to approve.",
-      };
-    },
-  }),
-  define({
-    name: "classify_reply",
-    description:
-      "Record what a professor's reply means, so the pipeline moves: interested, call (they propose a call), apply-first, not-taking (stops follow-ups), needs-info.",
-    shape: {
-      messageId: z.string().describe("The id given with the reply"),
-      replyClass: ReplyClass,
-      note: z
-        .string()
-        .describe("What they ask for, in a few words, e.g. 'asks for CV and a research note'"),
-    },
-    paid: false,
-    price: () => 0,
-    run: async (args, ctx) => {
-      if (!getMessage(ctx.db, args.messageId))
-        return { summary: "unknown message", text: `No message ${args.messageId}.` };
-      classify(ctx.db, args.messageId, args.replyClass, args.note);
-      ctx.outreachChanged();
-      return { summary: args.replyClass, text: "Recorded." };
-    },
-  }),
-  define({
-    name: "propose_program",
-    description:
-      "File a program the applicant could apply to. It waits in their To file until they click File. One call per program, with sources.",
-    shape: {
-      university: z.string(),
-      name: z.string().describe("The program's own name, e.g. 'PhD in Information Technology'"),
-      degree: Degree,
-      deadline: z.string().nullable().describe("YYYY-MM-DD for the applicant's intake, or null"),
-      fee: z.string().describe("Application fee, e.g. '$75'"),
-      waiver: z.string().describe("Fee waiver rules for this applicant, or 'none found'"),
-      english: z.string().describe("English rules, e.g. 'IELTS 6.5; MOI considered'"),
-      funding: z.string().describe("How admits are funded, e.g. '5 years guaranteed, RA/TA'"),
-      url: z.string(),
-      sources: z.array(z.string()).min(1),
-      why: z.string().describe("One line: why it fits this applicant"),
-    },
-    paid: false,
-    price: () => 0,
-    run: async ({ why, ...item }, ctx) => {
-      const r = proposeFinding(ctx.db, { kind: "program", item, why, threadId: ctx.threadId });
-      if ("skipped" in r) return { summary: r.skipped, text: `Not filed: ${r.skipped}.` };
-      ctx.vaultChanged();
-      return { summary: "to file", text: "Waiting in the applicant's To file." };
-    },
-  }),
-  define({
-    name: "propose_scholarship",
-    description:
-      "File a scholarship the applicant is eligible for (check citizenship and degree track). It waits in their To file until they click File. One call each, with sources.",
-    shape: {
-      name: z.string(),
-      sponsor: z.string(),
-      studyIn: z.string().describe("Where it pays for study, e.g. 'USA', 'UK', 'any'"),
-      citizenship: z.array(z.string()).describe("Citizenships it is open to; empty for any"),
-      tracks: z.array(Degree),
-      amount: z.string().describe("What it pays, e.g. 'tuition, stipend, travel'"),
-      deadline: z.string().nullable().describe("YYYY-MM-DD of the next round, or null"),
-      url: z.string(),
-      sources: z.array(z.string()).min(1),
-      why: z.string().describe("One line: why the applicant qualifies"),
-    },
-    paid: false,
-    price: () => 0,
-    run: async ({ why, ...item }, ctx) => {
-      const r = proposeFinding(ctx.db, { kind: "scholarship", item, why, threadId: ctx.threadId });
-      if ("skipped" in r) return { summary: r.skipped, text: `Not filed: ${r.skipped}.` };
-      ctx.vaultChanged();
-      return { summary: "to file", text: "Waiting in the applicant's To file." };
-    },
-  }),
+  ...APPLICANT_TOOLS,
   define({
     name: "treg",
     description: `Paid data lookups through treg, for when free sources fail. Allowed endpoints and USD per call: ${Object.entries(

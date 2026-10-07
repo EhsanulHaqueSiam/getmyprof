@@ -134,6 +134,9 @@ const VALUE_FOR: Record<RowOp, string> = {
 /** Row actions, replies and follow-ups reach the agent as tagged prompts (runner, outreach/service). */
 const ROW_TAG = /^\[row-action:(email|lasts|taking|draft)\] keys=(\S+)/;
 const REPLY = /^\[reply:(\S+)\] (.+?) \((.+?)\) wrote back/;
+const WRITE = /^\[write\] kind=(\w+) program=(\S+) scholarship=(\S+) revise=(\S+)/;
+const FACT_LINE = /^- \[\[(\S+?)\]\] (.+) \((confirmed|unconfirmed|needs proof|question)\)$/gm;
+const orNull = (v: string | undefined) => (!v || v === "-" ? null : v);
 const AFTER_LINE = /^- (.+?) \| (.+?) \| key \S+ \| to (\S+) \| zone (\S+)/gm;
 const FOLLOW_UP_LINE =
   /^- (.+?) \| (.+?) \| key \S+ \| (follow-up-[12]) \| to (\S+) \| zone (\S+)/gm;
@@ -292,6 +295,40 @@ export const fakeProvider = (
       );
     }
 
+    /** Writes from the brief's facts: two confirmed ones, and one unproven one if there is any. */
+    async function write(text: string) {
+      const [, kind = "sop", program, scholarship, revise] = WRITE.exec(text) ?? [];
+      const facts = [...text.matchAll(FACT_LINE)].map(([, id = "", fact = "", status = ""]) => ({
+        id,
+        fact,
+        status,
+      }));
+      const proven = facts.filter((f) => f.status === "confirmed");
+      const unproven = facts.find((f) => f.status === "unconfirmed" || f.status === "needs proof");
+      const cite = (f: { id: string; fact: string } | undefined, lead: string) =>
+        f ? `${lead} ${f.fact} [[${f.id}]].` : "";
+      const body = [
+        `I want to build language technology that holds up for the people who rely on it. ${cite(proven[0], "My preparation:")}`,
+        [cite(proven[1], "Alongside it:"), cite(unproven, "I would also bring this:")]
+          .filter(Boolean)
+          .join(" "),
+        "I would like to continue this work with your faculty, on problems where careful evaluation matters.",
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+      await call("write_document", "draft", {
+        pieceId: orNull(revise),
+        kind,
+        title: /title "(.+?)"/.exec(text)?.[1] ?? "Statement of purpose",
+        programId: orNull(program),
+        scholarshipId: orNull(scholarship),
+        text: body,
+      });
+      say(
+        `Saved in the Writer.${unproven ? " One claim cites a fact without proof, so export waits until it has some." : ""}`,
+      );
+    }
+
     async function afterApplying(text: string) {
       let drafted = 0;
       for (const m of text.matchAll(AFTER_LINE)) {
@@ -350,6 +387,7 @@ export const fakeProvider = (
       else if (reply?.[1] && reply[2] && reply[3]) await answerReply(reply[1], reply[2], reply[3]);
       else if (text.startsWith("[follow-up]")) await followUps(text);
       else if (text.startsWith("[after-applying]")) await afterApplying(text);
+      else if (text.startsWith("[write]")) await write(text);
       else if (/^Find (scholarships|programs)/i.test(text)) await vaultFinds(text);
       else if (n === 0) await hunt();
       else {

@@ -10,6 +10,7 @@ import {
   exportCsv,
   importCsv,
   importGradhunt,
+  profileFacts,
   readHqFacts,
   writeBackToGradhunt,
 } from "./adapters.ts";
@@ -31,12 +32,12 @@ import {
   saveEdit,
   startApplication,
   vaultState,
+  writingBrief,
 } from "./vault.ts";
 import { getRecord, listRecords, resolveProposal, threadProposals, threadRows } from "./records.ts";
 import { intakeStart, monthsAfter } from "./sources.ts";
 import {
   getApplicant,
-  getFacts,
   getHunt,
   getSettings,
   saveApplicant,
@@ -104,7 +105,7 @@ export function createHandlers(svc: Services): Handlers {
         settings,
         hunt: getHunt(db),
         applicant: getApplicant(db),
-        facts: settings.profileSource === "hq" ? readHqFacts() : getFacts(db),
+        facts: profileFacts(db),
         host: h.host,
         adapters: {
           hq: readHqFacts().length > 0,
@@ -327,6 +328,12 @@ export function createHandlers(svc: Services): Handlers {
         pushThreads();
       bus.push({ type: "changed", what: "vault" });
       return OK;
+    },
+    "writing.start": (input) => {
+      const { title, text } = writingBrief(db, profileFacts(db), input);
+      const t = createThread(db, title);
+      runner.send(t.id, text, "send", `Write: ${title}`);
+      return thread(t.id);
     },
     "applications.start": ({ programId }) => {
       const app = startApplication(db, programId);

@@ -87,6 +87,8 @@ function ThreadPage() {
     view.proposals.find((p) => p.status === "pending")?.recordKey ??
     view.rows[0]?.key ??
     null;
+  // A thread whose last question was an Ask stays in Ask for the next one.
+  const lastAsk = view.events.findLast((e) => e.type === "user")?.text.startsWith("Ask · ");
   const rename = (title: string) => {
     setRenaming(false);
     if (title.trim() && title.trim() !== view.thread.title)
@@ -206,6 +208,8 @@ function ThreadPage() {
                 <ApprovalCard event={pendingApproval} threadId={threadId} />
               ) : null}
               <Composer
+                key={threadId}
+                ask={lastAsk === true}
                 autoFocus
                 working={working}
                 placeholder={

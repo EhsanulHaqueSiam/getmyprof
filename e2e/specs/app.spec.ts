@@ -428,6 +428,11 @@ test("scoped threads: Ask about a professor answers from the record, @ adds a sc
   // Ask mode with the record in context: answered from the sheet, nothing fetched or spent.
   await expect(page).toHaveURL(/\/t\/thr_/);
   await expect(page.getByText(/From the sheet, without fetching: Kevin Lybarger/)).toBeVisible();
+  // The next question in this thread is an Ask too.
+  await expect(page.getByRole("button", { name: "Ask", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
   await expect(page.getByTestId("scope-chip")).toContainText("Lybarger");
   await page.getByRole("tab", { name: "Professor" }).click();
   await expect(page.getByTestId("professor-tab")).toContainText("Kevin Lybarger");

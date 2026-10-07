@@ -10,6 +10,7 @@ const fact = (id: string, source: string) => ({
   date: "",
   confirmed: true,
   question: false,
+  planned: false,
 });
 const facts = [fact("f_team", "cv.pdf"), fact("f_award", "")];
 

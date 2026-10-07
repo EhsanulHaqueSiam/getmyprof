@@ -3,6 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { download } from "~/lib/files";
+import { STAGE_LABEL } from "~/lib/outreach";
 import { cn } from "~/lib/utils";
 import {
   checks,
@@ -11,6 +12,7 @@ import {
   layout,
   mustProve,
   plainText,
+  overLimit,
   strayMarkers,
   uncited,
   WRITING_LABEL,
@@ -107,6 +109,7 @@ function WriterPage() {
   const vault = useStore((s) => s.vault);
   const app = useStore((s) => s.app);
   const recordsVersion = useStore((s) => s.recordsVersion);
+  const conversations = useStore((s) => s.conversations);
   const [editing, setEditing] = useState(false);
   const [tailorTo, setTailorTo] = useState("");
   const [copied, setCopied] = useState(false);
@@ -131,13 +134,24 @@ function WriterPage() {
 
   const program = vault.programs.find((p) => p.id === w.programId);
   const scholarship = vault.scholarships.find((s) => s.id === w.scholarshipId);
-  const named = (vault.applications.find((a) => a.programId === w.programId)?.professors ?? []).map(
-    (k) => names[k] ?? k,
-  );
+  const application = vault.applications.find((a) => a.programId === w.programId);
+  const named = (application?.professors ?? []).map((k) => names[k] ?? k);
+  // Who to name, with where each stands in the Pipeline ("replied", "applied").
+  const namedWithStage = (application?.professors ?? []).map((k) => {
+    const c = conversations.find((x) => x.record.key === k);
+    return `${names[k] ?? k}${c ? ` (${STAGE_LABEL[c.stage].toLowerCase()})` : ""}`;
+  });
+  // This application's own documents when there is one; otherwise everything in the vault.
+  const docNames = application
+    ? application.documents.flatMap((d) =>
+        d.docId ? [vault.documents.find((x) => x.id === d.docId)?.name ?? d.name] : [],
+      )
+    : vault.documents.map((d) => d.name);
   const cited = citations(w, app.facts);
   const stray = strayMarkers(w);
   const blocked = new Set([...cited.filter((c) => !c.ok).map((c) => c.n), ...stray]);
   const c = checks(w, { named, applicant: app.applicant });
+  const over = overLimit(c, program?.limit ?? "");
   const claims = uncited(w);
   const exportable = !mustProve(w) || (blocked.size === 0 && !c.scoreClaimed && !claims.length);
   const others = vault.programs.filter((p) => p.id !== w.programId);
@@ -173,16 +187,30 @@ function WriterPage() {
           {program?.deadline ? ` · due ${longDate(program.deadline)}` : ""}
           {scholarship?.deadline ? ` · due ${longDate(scholarship.deadline)}` : ""}
         </div>
-        {named.length ? (
+        {program?.asks ? (
           <>
-            <Label>Name these professors</Label>
-            <div className="text-secondary-label">{named.join(", ")}</div>
+            <Label>Program asks for</Label>
+            <ul className="flex flex-col gap-0.5 text-secondary-label" data-testid="program-asks">
+              {program.asks
+                .split("\n")
+                .filter((x) => x.trim())
+                .map((x) => (
+                  <li key={x}>{x}</li>
+                ))}
+            </ul>
           </>
         ) : null}
-        <Label>Your other documents here</Label>
-        <div className="text-secondary-label">
-          {vault.documents.map((d) => d.name).join(" · ") || "none yet"}
-        </div>
+        {program?.limit ? (
+          <div className="mt-1 text-muted-foreground">limit {program.limit}</div>
+        ) : null}
+        {namedWithStage.length ? (
+          <>
+            <Label>Name these professors</Label>
+            <div className="text-secondary-label">{namedWithStage.join(", ")}</div>
+          </>
+        ) : null}
+        <Label>{application ? "Documents for this application" : "Your documents"}</Label>
+        <div className="text-secondary-label">{docNames.join(" · ") || "none yet"}</div>
         <div className="mt-5 flex flex-col items-start gap-1.5">
           <Button size="xs" variant="outline" onClick={() => void start(w.programId, w.id)}>
             Ask for draft {w.draft + 1}
@@ -355,6 +383,7 @@ function WriterPage() {
         <Label>Checks</Label>
         <p className="text-secondary-label" data-testid="checks">
           {c.pages} page{c.pages === 1 ? "" : "s"} · {c.words} words
+          {over ? <span className="text-warning-foreground"> · {over}</span> : null}
           {c.namedTotal
             ? ` · names ${c.namedFound} of ${c.namedTotal} professor${c.namedTotal === 1 ? "" : "s"}`
             : ""}

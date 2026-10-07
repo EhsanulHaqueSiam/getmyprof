@@ -1,7 +1,16 @@
 import type { Applicant, ProfileFact, Writing } from "@gradcode/contracts";
 import { strFromU8, unzipSync } from "fflate";
 import { describe, expect, it } from "vite-plus/test";
-import { checks, citations, docx, layout, plainText, strayMarkers, uncited } from "./writing";
+import {
+  checks,
+  citations,
+  docx,
+  layout,
+  overLimit,
+  plainText,
+  strayMarkers,
+  uncited,
+} from "./writing";
 
 const fact = (id: string, f: Partial<ProfileFact> = {}): ProfileFact => ({
   id,
@@ -11,6 +20,7 @@ const fact = (id: string, f: Partial<ProfileFact> = {}): ProfileFact => ({
   date: "",
   confirmed: true,
   question: false,
+  planned: false,
   ...f,
 });
 
@@ -31,6 +41,7 @@ const piece: Writing = {
 const applicant: Applicant = {
   citizenship: [],
   residence: "",
+  gpaScale: "",
   degreeYears: 4,
   gpa: "",
   tests: [],
@@ -48,6 +59,12 @@ describe("the Writer's reading of a piece", () => {
     const [first] = layout(piece, blocked);
     expect(first?.sentences.map((s) => s.blocked)).toEqual([false, true, false]);
     expect(strayMarkers(piece)).toEqual(["3"]);
+  });
+
+  it("reads a program's length limit in pages or words", () => {
+    expect(overLimit({ pages: 2.5, words: 600 }, "2 pages")).toBe("over the 2-page limit");
+    expect(overLimit({ pages: 1.5, words: 900 }, "1000 words")).toBeNull();
+    expect(overLimit({ pages: 3, words: 1200 }, "")).toBeNull();
   });
 
   it("drops a citation once its line is cut, so cutting an unproven claim unblocks export", () => {

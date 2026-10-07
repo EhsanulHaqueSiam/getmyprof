@@ -189,6 +189,7 @@ describe("a draft that cites facts", () => {
         date: "",
         confirmed: true,
         question: false,
+        planned: false,
       },
     ]);
     await outreach.connect(LOGIN);

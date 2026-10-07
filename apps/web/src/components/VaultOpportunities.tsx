@@ -157,6 +157,9 @@ export function VaultPrograms({ onOpenApplication }: { onOpenApplication: () => 
                     p.fee && `fee ${p.fee}`,
                     p.waiver && `waiver ${p.waiver}`,
                     p.english,
+                    p.limit && `statement ${p.limit}`,
+                    // Whether this applicant can be admitted and funded here, as the agent read it.
+                    p.eligibility && (p.eligibility === "ok" ? "eligible" : p.eligibility),
                   ]
                     .filter(Boolean)
                     .join(" · ")}

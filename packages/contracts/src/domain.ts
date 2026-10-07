@@ -109,12 +109,15 @@ export const ProfileFact = z.object({
   confirmed: z.boolean(),
   /** A fact the agent couldn't verify becomes a question for the user. */
   question: z.boolean(),
+  /** Booked or planned, not done yet, e.g. a test date: never claimed as done. */
+  planned: z.boolean().default(false),
 });
 export type ProfileFact = z.infer<typeof ProfileFact>;
 
 /** A fact can be written into something only once it's confirmed and has its proof. */
 export function factStatus(f: ProfileFact) {
   if (f.question) return "question";
+  if (f.planned) return "planned";
   if (!f.confirmed) return "unconfirmed";
   if (!f.source.trim()) return "needs proof";
   return "confirmed";
@@ -128,6 +131,8 @@ export const Applicant = z.object({
   residence: z.string(),
   degreeYears: z.number().int().min(0).max(6),
   gpa: z.string(),
+  /** The scale the GPA is on, e.g. "4.00" or "10", so it's never read on the wrong one. */
+  gpaScale: z.string().default(""),
   tests: z.array(
     z.object({ name: z.string(), status: TestStatus, date: z.string(), score: z.string() }),
   ),

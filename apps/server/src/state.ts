@@ -50,6 +50,7 @@ export const DEFAULT_APPLICANT: Applicant = {
   residence: "",
   degreeYears: 4,
   gpa: "",
+  gpaScale: "",
   tests: [],
   moi: false,
   feeBudgetUsd: null,

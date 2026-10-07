@@ -28,6 +28,7 @@ describe("the vault as an OKF bundle", () => {
         date: "2025-06",
         confirmed: true,
         question: false,
+        planned: false,
       },
     ]);
     const prof = blankProfessor("Kevin Lybarger", "George Mason University");
@@ -44,6 +45,9 @@ describe("the vault as an OKF bundle", () => {
         waiver: "",
         english: "",
         funding: "",
+        asks: "",
+        limit: "",
+        eligibility: "",
         url: "",
         sources: [],
         note: "",

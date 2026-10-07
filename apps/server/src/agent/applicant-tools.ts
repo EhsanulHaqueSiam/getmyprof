@@ -102,6 +102,17 @@ export const APPLICANT_TOOLS = [
       waiver: z.string().describe("Fee waiver rules for this applicant, or 'none found'"),
       english: z.string().describe("English rules, e.g. 'IELTS 6.5; MOI considered'"),
       funding: z.string().describe("How admits are funded, e.g. '5 years guaranteed, RA/TA'"),
+      asks: z
+        .string()
+        .describe(
+          "What the statement must cover, in the program's words, one item per line; empty if none",
+        ),
+      limit: z
+        .string()
+        .describe("The statement's length limit, e.g. '2 pages' or '1000 words'; empty if none"),
+      eligibility: z
+        .string()
+        .describe('"ok", or "no: <why>" when this applicant can\'t be admitted or funded here'),
       url: z.string(),
       sources: z.array(z.string()).min(1),
       why: z.string().describe("One line: why it fits this applicant"),

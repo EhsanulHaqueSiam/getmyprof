@@ -118,6 +118,16 @@ export function checks(w: Writing, ctx: { named: string[]; applicant: Applicant 
   };
 }
 
+/** Whether the checks pass a program's length limit ("2 pages", "1000 words"); null when there's none. */
+export function overLimit(c: { pages: number; words: number }, limit: string) {
+  const m = /(\d+)\s*(page|word)/i.exec(limit);
+  if (!m) return null;
+  const n = Number(m[1]);
+  const pages = m[2]?.toLowerCase() === "page";
+  const over = pages ? c.pages > n : c.words > n;
+  return over ? `over the ${n}-${pages ? "page" : "word"} limit` : null;
+}
+
 /** The text as it leaves the app: citation markers gone, spacing tidied. */
 export const plainText = (w: Writing) =>
   w.body

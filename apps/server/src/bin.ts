@@ -17,6 +17,7 @@ import { fakeMailer, fakeTokenEndpoint, imapMailer } from "./outreach/mail.ts";
 import { createOutreach } from "./outreach/service.ts";
 import { exportAll, importAll } from "./backup.ts";
 import { serveMcp } from "./mcp.ts";
+import { refreshVault } from "./okf.ts";
 import { createHandlers, dispatch } from "./rpc.ts";
 import { getSettings } from "./state.ts";
 import { createThread, expireApprovals, getThread, settleStale } from "./threads.ts";
@@ -110,6 +111,23 @@ function readBody(req: NodeHttp.IncomingMessage, limit = 1_000_000) {
     });
   });
 }
+
+// The Vault's OKF bundle on disk and its search index follow the store, a moment after a change.
+let vaultTimer: NodeJS.Timeout | undefined;
+const refreshSoon = () => {
+  clearTimeout(vaultTimer);
+  vaultTimer = setTimeout(() => {
+    try {
+      refreshVault(db);
+    } catch (error) {
+      console.error(`vault bundle: ${String(error).slice(0, 200)}`);
+    }
+  }, 2000);
+};
+bus.add((m) => {
+  if (m.type === "changed" && ["vault", "state", "records"].includes(m.what)) refreshSoon();
+});
+refreshSoon();
 
 const handlers = createHandlers({ db, bus, runner, sources, fake, startLoop, outreach });
 
@@ -209,14 +227,16 @@ const server = NodeHttp.createServer((req, res) => {
       });
     return;
   }
-  // A vault document, opened in a tab. Sandboxed, so an uploaded HTML file can't run on our origin.
+  // A vault document, opened in a tab or the Vault's Preview. Sandboxed, so an uploaded HTML or SVG
+  // file can't run on our origin; a PDF goes without it, because Chrome won't show a PDF in a
+  // sandboxed frame, and nosniff keeps anything else from being read as a page.
   const file = /^\/api\/files\/([\w-]+)$/.exec(req.url ?? "");
   const doc = file && req.method === "GET" ? listDocuments(db).find((d) => d.id === file[1]) : null;
   if (doc && NodeFS.existsSync(documentPath(doc.id))) {
     res.writeHead(200, {
       "content-type": doc.mime,
       "content-disposition": `inline; filename*=UTF-8''${encodeURIComponent(doc.name)}`,
-      "content-security-policy": "sandbox",
+      ...(doc.mime === "application/pdf" ? {} : { "content-security-policy": "sandbox" }),
       "x-content-type-options": "nosniff",
     });
     NodeFS.createReadStream(documentPath(doc.id)).pipe(res);

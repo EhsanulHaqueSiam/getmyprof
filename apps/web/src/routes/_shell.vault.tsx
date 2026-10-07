@@ -4,6 +4,7 @@ import { Button } from "~/components/ui/button";
 import { VaultApplications } from "~/components/VaultApplications";
 import { VaultDocuments } from "~/components/VaultDocuments";
 import { VaultFacts } from "~/components/VaultFacts";
+import { VaultLifeline } from "~/components/VaultLifeline";
 import { VaultPrograms, VaultScholarships } from "~/components/VaultOpportunities";
 import { VaultOffers } from "~/components/VaultOffers";
 import { VaultWriting } from "~/components/VaultWriting";
@@ -13,6 +14,7 @@ import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
 
 const SECTIONS = [
+  "lifeline",
   "facts",
   "documents",
   "writing",
@@ -20,12 +22,13 @@ const SECTIONS = [
   "programs",
   "applications",
   "offers",
+  "toFile",
 ] as const;
 type Section = (typeof SECTIONS)[number];
 
 export const Route = createFileRoute("/_shell/vault")({
   component: VaultPage,
-  // Optional, so a plain link to /vault opens Facts.
+  // Optional, so a plain link to /vault opens the Lifeline.
   validateSearch: (s: Record<string, unknown>): { section?: Section } => {
     const section = SECTIONS.find((x) => x === s.section);
     return section ? { section } : {};
@@ -52,6 +55,7 @@ function Nav({ section, go }: { section: Section; go: (s: Section) => void }) {
   return (
     <nav className="flex flex-col gap-px border-r px-2 py-3">
       <div className="px-2.5 pb-1 text-muted-foreground text-xs">You</div>
+      {item("lifeline", "Lifeline", undefined)}
       {item("facts", "Facts", app?.facts.length)}
       {item("documents", "Documents", v?.documents.length)}
       {item("writing", "Writing", v?.writing.length)}
@@ -60,6 +64,8 @@ function Nav({ section, go }: { section: Section; go: (s: Section) => void }) {
       {item("programs", "Programs", v?.programs.length)}
       {item("applications", "Applications", v?.applications.length)}
       {item("offers", "Offers", v?.offers.length)}
+      <div className="px-2.5 pt-3 pb-1 text-muted-foreground text-xs">Inbox</div>
+      {item("toFile", "To file", v?.toFile.length)}
     </nav>
   );
 }
@@ -126,13 +132,22 @@ function Side() {
 
 /** The vault: facts and documents about you, opportunities, and the agent's finds To file. */
 function VaultPage() {
-  const { section = "facts" } = Route.useSearch();
+  const { section = "lifeline" } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const go = (s: Section) => void navigate({ search: { section: s } });
+  // The Lifeline brings its own panel; To file is the side column, given the whole page.
+  const wide = section === "lifeline" || section === "toFile";
   return (
-    <div className="grid min-w-0 flex-1 grid-cols-[200px_minmax(0,1fr)_300px]">
+    <div
+      className={cn(
+        "grid min-w-0 flex-1",
+        wide ? "grid-cols-[200px_minmax(0,1fr)]" : "grid-cols-[200px_minmax(0,1fr)_300px]",
+      )}
+    >
       <Nav section={section} go={go} />
       <div className="flex min-h-0 min-w-0 flex-col">
+        {section === "lifeline" ? <VaultLifeline /> : null}
+        {section === "toFile" ? <Side /> : null}
         {section === "facts" ? <VaultFacts /> : null}
         {section === "documents" ? <VaultDocuments /> : null}
         {section === "writing" ? <VaultWriting /> : null}
@@ -143,7 +158,7 @@ function VaultPage() {
         {section === "applications" ? <VaultApplications /> : null}
         {section === "offers" ? <VaultOffers /> : null}
       </div>
-      <Side />
+      {wide ? null : <Side />}
     </div>
   );
 }

@@ -18,7 +18,7 @@ describe("systemPrompt", () => {
   });
 
   it("gives the agent only facts with proof", () => {
-    const fact = { kind: "other" as const, confirmed: true, question: false };
+    const fact = { kind: "other" as const, date: "", confirmed: true, question: false };
     const prompt = systemPrompt(
       null,
       [

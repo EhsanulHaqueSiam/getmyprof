@@ -54,6 +54,8 @@ export function readHqFacts(dir = hqDir()): ProfileFact[] {
         text: description ? `${title}: ${description}` : title,
         source: `hq/facts/${file}`,
         kind: hqKind(file),
+        // The note's own date, or when its span ended (or began, if it still runs).
+        date: (field("date") || field("end") || field("start") || field("issued")).slice(0, 10),
         confirmed: true,
         question: false,
       },

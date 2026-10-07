@@ -186,6 +186,7 @@ describe("a draft that cites facts", () => {
         text: "Led a team of five",
         source: "cv.pdf",
         kind: "other",
+        date: "",
         confirmed: true,
         question: false,
       },

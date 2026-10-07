@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS vault (
   id TEXT PRIMARY KEY, kind TEXT NOT NULL, body TEXT NOT NULL, created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS vault_kind ON vault (kind);
+CREATE VIRTUAL TABLE IF NOT EXISTS notes USING fts5(path UNINDEXED, type UNINDEXED, title, body, links UNINDEXED);
 CREATE INDEX IF NOT EXISTS messages_record ON messages (record_key);
 CREATE INDEX IF NOT EXISTS messages_message_id ON messages (message_id);
 CREATE INDEX IF NOT EXISTS proposals_thread ON proposals (thread_id, status);

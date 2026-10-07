@@ -7,7 +7,8 @@ const td = "h-9 border-b px-3 text-secondary-label";
 
 /** Funding's Programs tab: programs from the Vault, by deadline, with how they fund admits. */
 export function ProgramsTable() {
-  const programs = useStore((s) => s.vault?.programs ?? []).toSorted((a, b) =>
+  const vault = useStore((s) => s.vault);
+  const programs = (vault?.programs ?? []).toSorted((a, b) =>
     (a.deadline ?? "9999").localeCompare(b.deadline ?? "9999"),
   );
   if (!programs.length)
@@ -40,7 +41,8 @@ export function ProgramsTable() {
 
 /** Funding's Fellowships tab: scholarships from the Vault, by deadline. */
 export function FellowshipsTable() {
-  const list = useStore((s) => s.vault?.scholarships ?? []).toSorted((a, b) =>
+  const vault = useStore((s) => s.vault);
+  const list = (vault?.scholarships ?? []).toSorted((a, b) =>
     (a.deadline ?? "9999").localeCompare(b.deadline ?? "9999"),
   );
   if (!list.length)

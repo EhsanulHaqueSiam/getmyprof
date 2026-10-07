@@ -12,7 +12,7 @@ import type { Runner } from "./agent/runner.ts";
 import { type Sources } from "./agent/tools.ts";
 import type { Bus } from "./bus.ts";
 import { type Db, getKv, newId, now } from "./db.ts";
-import { health, tailnetLink } from "./health.ts";
+import { claudeLogin, health, tailnetLink } from "./health.ts";
 import { listLoops, loopStats, saveLoop, STARTER_LOOPS } from "./loops.ts";
 import type { Outreach } from "./outreach/service.ts";
 import { conversations } from "./outreach/pipeline.ts";
@@ -104,6 +104,7 @@ export function createHandlers(svc: Services): Handlers {
         mail: outreach.status(),
         treg: tregStatus(),
         tailnet: svc.fake ? null : tailnetLink(),
+        claude: svc.fake ? { signedIn: true, who: "the scripted agent" } : claudeLogin(),
         counts: {
           funding: getKv(db, "funding.waiting", Number, 0),
           loops: listLoops(db).filter((l) => l.enabled).length,

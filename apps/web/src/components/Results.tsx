@@ -29,7 +29,16 @@ const OP_ICON: Record<RowOp, ReactNode> = {
 const OPS = Object.keys(ROW_OPS) as RowOp[];
 
 /** A thread's rows as a grid, plus the dock that runs row actions on the selection. */
-export function Results({ view, threadId }: { view: ThreadView; threadId: string }) {
+export function Results({
+  view,
+  threadId,
+  cursor = -1,
+}: {
+  view: ThreadView;
+  threadId: string;
+  /** The row j and k are on; Enter opens it. */
+  cursor?: number;
+}) {
   const settings = useStore((s) => s.app?.settings);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState("");
@@ -149,14 +158,16 @@ export function Results({ view, threadId }: { view: ThreadView; threadId: string
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {rows.map((r, i) => (
                 <tr
                   key={r.key}
+                  aria-current={i === cursor || undefined}
                   data-testid="result-row"
                   data-dimmed={dimmed(r) || undefined}
                   className={cn(
                     "transition-colors hover:bg-secondary",
                     selected.has(r.key) && "bg-primary/7",
+                    i === cursor && "shadow-[inset_2px_0_0_var(--color-foreground)]",
                     dimmed(r) && "opacity-45",
                   )}
                 >
@@ -263,7 +274,7 @@ export function Results({ view, threadId }: { view: ThreadView; threadId: string
         </div>
       </div>
 
-      <aside className="flex w-80 shrink-0 flex-col border-l">
+      <aside className="flex w-80 shrink-0 flex-col border-l max-md:hidden">
         <div className="flex h-12 items-center gap-2 px-4 text-sm">
           <span className="font-semibold">Agent</span>
           <span className="flex items-center gap-1 text-muted-foreground text-xs">

@@ -276,7 +276,8 @@ export function Sidebar() {
   // j/k walk the visible threads in sidebar order; s snoozes the open one until tomorrow morning.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      // A page that used the key (a thread's j and k on proposals or rows) took it first.
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
       if (
         e.target instanceof HTMLElement &&
         e.target.closest("input, textarea, select, [contenteditable]")

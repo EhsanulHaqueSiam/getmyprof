@@ -123,3 +123,46 @@ test("funding and professor pages: Add PI, tabs, every fact with its source, fin
     page.getByRole("heading", { name: "Check money (NSF, NIH) · 1 professor" }),
   ).toBeVisible();
 });
+
+test("keyboard: Enter allows, j moves, r rejects, shift-A accepts all; ⌘K goes to a school", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "What should we find?" })).toBeVisible();
+  await page.keyboard.press("1");
+  await expect(page.getByTestId("approval")).toBeVisible();
+  // Out of the composer, Enter allows the open approval.
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await page.keyboard.press("Enter");
+  await expect(page.getByText(/^Allowed · /)).toBeVisible();
+
+  const proposals = page.getByTestId("proposal");
+  await expect(proposals.first()).toBeVisible();
+  // How many depends on what earlier tests left in the sheet; j stops at the last one.
+  const before = await proposals.count();
+  await page.keyboard.press("j");
+  await expect(proposals.nth(Math.min(1, before - 1))).toHaveAttribute("aria-current", "true");
+  await page.keyboard.press("r");
+  await expect(proposals).toHaveCount(before - 1);
+  if (before > 1) {
+    await page.keyboard.press("Shift+A");
+    await expect(proposals).toHaveCount(0);
+  }
+
+  await page.keyboard.press("ControlOrMeta+k");
+  await page.getByLabel("Command").fill("University of Illinois");
+  await page.getByLabel("Command").press("Enter");
+  await expect(page).toHaveURL(/\/professors\?school=/);
+  await expect(page.getByLabel("School")).toHaveValue("University of Illinois Chicago");
+});
+
+test("phone: the sidebar opens over the page and closes on the way somewhere", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/professors");
+  const sidebar = page.getByRole("link", { name: /^Funding/ });
+  await expect(sidebar).toBeHidden();
+  await page.getByRole("button", { name: "Menu" }).click();
+  await sidebar.click();
+  await expect(page).toHaveURL(/\/funding$/);
+  await expect(sidebar).toBeHidden();
+});

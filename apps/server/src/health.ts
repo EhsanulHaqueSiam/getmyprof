@@ -26,6 +26,26 @@ export function health(env: Env = process.env): Health {
   return { host: NodeOS.hostname(), checks };
 }
 
+const ClaudeConfig = z.object({
+  oauthAccount: z.object({ emailAddress: z.string() }).optional(),
+});
+
+/**
+ * Whether Claude Code can run here: an API key in the environment, or the login `claude` keeps
+ * in ~/.claude.json (CLAUDE_CONFIG_DIR moves it). A file read; it never calls Claude.
+ */
+export function claudeLogin(env: Env = process.env, home = NodeOS.homedir()) {
+  if (env.ANTHROPIC_API_KEY) return { signedIn: true, who: "an API key" };
+  try {
+    const file = NodePath.join(env.CLAUDE_CONFIG_DIR ?? home, ".claude.json");
+    const c = ClaudeConfig.parse(JSON.parse(NodeFS.readFileSync(file, "utf8")));
+    const who = c.oauthAccount?.emailAddress ?? "";
+    return { signedIn: who !== "", who };
+  } catch {
+    return { signedIn: false, who: "" };
+  }
+}
+
 const TailStatus = z.object({ Self: z.object({ DNSName: z.string() }) });
 const ServeStatus = z.object({ Web: z.record(z.string(), z.unknown()).optional() });
 let cached: { at: number; link: { url: string; served: boolean } | null } | null = null;

@@ -10,7 +10,12 @@ import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
 
-export const Route = createFileRoute("/_shell/professors/")({ component: Professors });
+// ⌘K's schools land here with ?school=<name>.
+export const Route = createFileRoute("/_shell/professors/")({
+  component: Professors,
+  validateSearch: (s: Record<string, unknown>): { school?: string } =>
+    typeof s.school === "string" ? { school: s.school } : {},
+});
 
 const VIEWS = [
   ["all", "All", () => true],
@@ -33,7 +38,9 @@ function Professors() {
   const [view, setView] = useState<(typeof VIEWS)[number][0]>("all");
   const [q, setQ] = useState("");
   const [tier, setTier] = useState(0);
-  const [school, setSchool] = useState("");
+  const { school: picked } = Route.useSearch();
+  const [school, setSchool] = useState(picked ?? "");
+  useEffect(() => setSchool(picked ?? ""), [picked]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [asking, setAsking] = useState<{ op: RowOp; cost: number } | null>(null);
   useEffect(() => {

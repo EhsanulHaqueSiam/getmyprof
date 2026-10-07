@@ -4,6 +4,7 @@ import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { CheckIcon, LinkIcon } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Kbd } from "~/components/ui/kbd";
+import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
 
 const FIELD_LABEL: Record<string, string> = {
@@ -22,6 +23,7 @@ export function Review({
   finds = 0,
   findsIn,
   onOpen,
+  selected = null,
 }: {
   proposals: Proposal[];
   drafts?: number;
@@ -30,6 +32,8 @@ export function Review({
   findsIn?: "scholarships" | "programs" | undefined;
   /** Opens a proposal's professor beside it. */
   onOpen?: (recordKey: string) => void;
+  /** The proposal the keyboard is on: a and r act on it. */
+  selected?: string | null;
 }) {
   const pending = proposals.filter((p) => p.status === "pending");
   const [ref] = useAutoAnimate<HTMLDivElement>({
@@ -96,7 +100,12 @@ export function Review({
           </div>
         ) : (
           pending.map((p) => (
-            <div key={p.id} data-testid="proposal" className="border-t px-3.5 py-3">
+            <div
+              key={p.id}
+              data-testid="proposal"
+              aria-current={p.id === selected || undefined}
+              className={cn("border-t px-3.5 py-3", p.id === selected && "bg-primary/7")}
+            >
               <div className="flex items-baseline gap-2">
                 {onOpen ? (
                   <button

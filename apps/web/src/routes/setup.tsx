@@ -161,10 +161,23 @@ function Setup() {
                 a gradcode server.
               </p>
               <Row label="Agent">
-                <span className="text-success-foreground">●</span> Claude Code{" "}
-                <span className="text-muted-foreground text-xs">
-                  · your subscription pays for the thinking
-                </span>
+                {app?.claude.signedIn ? (
+                  <>
+                    <span className="text-success-foreground">●</span> Claude Code{" "}
+                    <span className="text-muted-foreground text-xs">
+                      · signed in as {app.claude.who}; your subscription pays for the thinking
+                    </span>
+                  </>
+                ) : (
+                  <span data-testid="claude-missing">
+                    <span className="text-warning-foreground">●</span> Claude Code isn't signed in
+                    on this machine.{" "}
+                    <span className="text-muted-foreground text-xs">
+                      Run <code className="font-mono">claude</code> in a terminal, log in, then
+                      reload.
+                    </span>
+                  </span>
+                )}
               </Row>
               <Row label="Runs on">
                 {app?.host ?? "this machine"}{" "}

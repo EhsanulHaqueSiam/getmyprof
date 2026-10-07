@@ -104,7 +104,7 @@ function ProfessorPage() {
   const draft = data.draft;
 
   return (
-    <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_320px]">
+    <div className="grid min-w-0 flex-1 grid-cols-1 overflow-y-auto md:grid-cols-[minmax(0,1fr)_320px] md:overflow-visible">
       <section className="overflow-y-auto px-8 py-6">
         <div className="text-muted-foreground text-xs">
           <Link to="/professors" className="hover:text-secondary-label">

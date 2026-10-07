@@ -243,7 +243,7 @@ export function ConversationView({ c, connected }: { c: Conversation; connected:
     (m) => m.status !== "cancelled" && m.status !== "draft" && m.status !== "failed",
   );
   return (
-    <div className="grid min-h-0 min-w-0 grid-cols-[minmax(0,1fr)_300px]">
+    <div className="grid min-h-0 min-w-0 grid-cols-1 overflow-y-auto md:grid-cols-[minmax(0,1fr)_300px] md:overflow-visible">
       <div className="flex min-h-0 min-w-0 flex-col">
         <div className="flex h-11 shrink-0 items-center gap-2 border-b px-4 text-sm">
           <Link

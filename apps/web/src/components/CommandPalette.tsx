@@ -1,7 +1,11 @@
-import type { Professor } from "@gradcode/contracts";
-import { useNavigate } from "@tanstack/react-router";
+import { type LoopRow, type Professor, ROW_OPS, type RowOp } from "@gradcode/contracts";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import {
+  CheckIcon,
   CornerDownLeftIcon,
+  GraduationCapIcon,
+  PlayIcon,
+  ZapIcon,
   InboxIcon,
   LandmarkIcon,
   MessageSquareIcon,
@@ -10,19 +14,25 @@ import {
   SendIcon,
   ArchiveIcon,
   SettingsIcon,
+  TableIcon,
   TextSearchIcon,
   UserIcon,
   UsersIcon,
 } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { Dialog, DialogPopup } from "~/components/ui/dialog";
+import { snoozePresets } from "~/lib/shelves";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
 
 type Item = { id: string; icon: ReactNode; label: string; hint: string; run: () => void };
 
-/** ⌘K: every view, thread and professor, filtered as you type. Arrows move, Enter opens. */
+/**
+ * ⌘K: every view, thread, professor and school, and the actions: answer an approval, accept all
+ * of Review, approve the Pipeline's drafts, run a loop, sync mail, ask about someone, and on a
+ * thread settle, snooze or run a row action on its rows. Filtered as you type; arrows, Enter.
+ */
 export function CommandPalette() {
   const open = useStore((s) => s.paletteOpen);
   const setOpen = useStore((s) => s.setPalette);
@@ -31,6 +41,15 @@ export function CommandPalette() {
   const [query, setQuery] = useState("");
   const [index, setIndex] = useState(0);
   const [people, setPeople] = useState<Professor[]>([]);
+  const [loops, setLoops] = useState<LoopRow[]>([]);
+  // Select stable state and derive below: a selector that builds a new array loops forever.
+  const conversations = useStore((s) => s.conversations);
+  const views = useStore((s) => s.views);
+  const drafts = conversations.flatMap((c) => c.messages).filter((m) => m.status === "draft");
+  const mailbox = useStore((s) => s.app?.mail.connected ?? false);
+  const path = useRouterState({ select: (s) => s.location.pathname });
+  const here = /^\/t\/([^/]+)$/.exec(path)?.[1];
+  const hereRows = (here ? views[here]?.rows : undefined) ?? [];
   const [said, setSaid] = useState<{ threadId: string; title: string; snippet: string }[]>([]);
 
   useEffect(() => {
@@ -38,6 +57,7 @@ export function CommandPalette() {
     setQuery("");
     setIndex(0);
     void call("records.list", {}).then(setPeople);
+    void call("loops.list", {}).then(setLoops);
   }, [open]);
 
   // Past three letters, also search what was said inside threads (debounced).
@@ -55,6 +75,115 @@ export function CommandPalette() {
     setOpen(false);
     void navigate({ to, ...(params ? { params } : {}) });
   };
+  /** Closes the palette, then does the work. */
+  const act = (work: () => Promise<unknown>) => () => {
+    setOpen(false);
+    void work();
+  };
+  const reviewing = threads.filter((t) => t.pendingReview > 0);
+  const tomorrow = snoozePresets().find((p) => p.label === "Tomorrow morning");
+
+  const actions: Item[] = [
+    ...threads
+      .filter((t) => t.status === "approval")
+      .map((t) => ({
+        id: `approve-${t.id}`,
+        icon: <ZapIcon />,
+        label: `Answer the approval in ${t.title}`,
+        hint: "↵ allows there",
+        run: go("/t/$threadId", { threadId: t.id }),
+      })),
+    ...(reviewing.length
+      ? [
+          {
+            id: "accept-all",
+            icon: <CheckIcon />,
+            label: `Accept everything in Review (${reviewing.reduce((n, t) => n + t.pendingReview, 0)})`,
+            hint: "action",
+            run: act(async () => {
+              const views = await Promise.all(
+                reviewing.map((t) => call("threads.view", { id: t.id })),
+              );
+              const ids = views.flatMap((v) =>
+                v.proposals.filter((p) => p.status === "pending").map((p) => p.id),
+              );
+              if (ids.length) await call("proposals.resolve", { ids, decision: "accept" });
+            }),
+          },
+        ]
+      : []),
+    ...(drafts.length
+      ? [
+          {
+            id: "approve-drafts",
+            icon: <SendIcon />,
+            label: `Approve the Pipeline's drafts (${drafts.length})`,
+            hint: "action",
+            run: act(() => call("outreach.approve", { ids: drafts.map((m) => m.id) })),
+          },
+        ]
+      : []),
+    ...(mailbox
+      ? [
+          {
+            id: "sync",
+            icon: <InboxIcon />,
+            label: "Sync mail now",
+            hint: "action",
+            run: act(() => call("mail.sync", {})),
+          },
+        ]
+      : []),
+    ...loops.map((l) => ({
+      id: `run-${l.id}`,
+      icon: <PlayIcon />,
+      label: `Run ${l.name}`,
+      hint: "loop",
+      run: act(async () => {
+        const t = await call("loops.run", { id: l.id });
+        void navigate({ to: "/t/$threadId", params: { threadId: t.id } });
+      }),
+    })),
+    ...(here
+      ? [
+          {
+            id: "settle",
+            icon: <CheckIcon />,
+            label: "Settle this thread",
+            hint: "e",
+            run: act(() => call("threads.settle", { id: here, settled: true })),
+          },
+          ...(tomorrow
+            ? [
+                {
+                  id: "snooze",
+                  icon: <RepeatIcon />,
+                  label: "Snooze this thread until tomorrow morning",
+                  hint: "s",
+                  run: act(() =>
+                    call("threads.snooze", { id: here, until: tomorrow.until.toISOString() }),
+                  ),
+                },
+              ]
+            : []),
+          ...(hereRows.length
+            ? (Object.keys(ROW_OPS) as RowOp[]).map((op) => ({
+                id: `row-${op}`,
+                icon: <TableIcon />,
+                label: `${ROW_OPS[op].label} on this thread's ${hereRows.length} rows`,
+                hint: "row action",
+                run: act(() =>
+                  call("threads.rowAction", {
+                    id: here,
+                    op,
+                    keys: hereRows.map((r) => r.key),
+                  }),
+                ),
+              }))
+            : []),
+        ]
+      : []),
+  ];
 
   const all: Item[] = [
     { id: "new", icon: <PlusIcon />, label: "New thread", hint: "⌘N", run: go("/") },
@@ -78,12 +207,33 @@ export function CommandPalette() {
       hint: "thread",
       run: go("/t/$threadId", { threadId: t.id }),
     })),
+    ...[...new Set(people.map((p) => p.university))].map((u) => ({
+      id: `school-${u}`,
+      icon: <GraduationCapIcon />,
+      label: u,
+      hint: "school",
+      run: () => {
+        setOpen(false);
+        void navigate({ to: "/professors", search: { school: u } });
+      },
+    })),
     ...people.map((p) => ({
       id: p.key,
       icon: <UserIcon />,
       label: `${p.name} · ${p.university}`,
       hint: "professor",
       run: go("/professors/$key", { key: p.key }),
+    })),
+    ...actions,
+    ...people.map((p) => ({
+      id: `ask-${p.key}`,
+      icon: <MessageSquareIcon />,
+      label: `Ask about ${p.name}`,
+      hint: "action",
+      run: () => {
+        setOpen(false);
+        void navigate({ to: "/", search: { about: p.key, name: p.name } });
+      },
     })),
   ];
   const q = query.trim().toLowerCase();
@@ -120,7 +270,7 @@ export function CommandPalette() {
             }
             if (e.key === "Enter") items[index]?.run();
           }}
-          placeholder="Go to a view, thread or professor, or search what was said"
+          placeholder="Go anywhere, do anything, or search what was said"
           aria-label="Command"
           className="h-12 w-full border-b bg-transparent px-4 text-sm outline-none placeholder:text-placeholder"
         />

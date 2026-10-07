@@ -46,6 +46,8 @@ export const AppState = z.object({
   treg: TregStatus,
   /** Where a phone on the tailnet opens gradcode, and whether it's being served there. */
   tailnet: z.object({ url: z.string(), served: z.boolean() }).nullable(),
+  /** Whether Claude Code can run: signed in (and as whom), or not yet. */
+  claude: z.object({ signedIn: z.boolean(), who: z.string() }),
   /** The sidebar's counts: awards from the last search worth a look (running past the intake,
    * on topic, PI not in the sheet), and loops on. */
   counts: z.object({ funding: z.number(), loops: z.number() }),

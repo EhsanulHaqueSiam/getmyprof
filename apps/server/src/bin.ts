@@ -14,6 +14,7 @@ import { health } from "./health.ts";
 import { dueLoops, fillPlaceholders, hookLoop, listLoops, markRan } from "./loops.ts";
 import { fakeMailer, imapMailer } from "./outreach/mail.ts";
 import { createOutreach } from "./outreach/service.ts";
+import { serveMcp } from "./mcp.ts";
 import { createHandlers, dispatch } from "./rpc.ts";
 import { getSettings } from "./state.ts";
 import { createThread, expireApprovals, getThread, settleStale } from "./threads.ts";
@@ -68,6 +69,25 @@ function startLoop(id: string, body: unknown = null) {
   return getThread(db, threadId)!;
 }
 
+/** A request body up to 1 MB, parsed as JSON when it is JSON, else the raw text. */
+function readBody(req: NodeHttp.IncomingMessage) {
+  return new Promise<unknown>((resolve) => {
+    let raw = "";
+    req.setEncoding("utf8");
+    req.on("data", (chunk: string) => {
+      raw += chunk;
+      if (raw.length > 1_000_000) req.destroy();
+    });
+    req.on("end", () => {
+      try {
+        resolve(raw ? JSON.parse(raw) : {});
+      } catch {
+        resolve(raw);
+      }
+    });
+  });
+}
+
 const handlers = createHandlers({ db, bus, runner, sources, fake, startLoop, outreach });
 
 // Loops and the send queue run on the minute, mail syncs every 3 minutes, stale threads settle
@@ -94,24 +114,25 @@ const server = NodeHttp.createServer((req, res) => {
       res.writeHead(404).end();
       return;
     }
-    let raw = "";
-    req.setEncoding("utf8");
-    req.on("data", (chunk: string) => {
-      raw += chunk;
-      if (raw.length > 1_000_000) req.destroy();
-    });
-    req.on("end", () => {
-      let body: unknown = raw;
-      try {
-        body = raw ? JSON.parse(raw) : {};
-      } catch {
-        // Not JSON: the raw text is still there as {{body}}.
-      }
+    void readBody(req).then((body) => {
       const t = startLoop(loop.id, body);
       res
         .writeHead(202, { "content-type": "application/json" })
         .end(JSON.stringify({ threadId: t.id }));
     });
+    return;
+  }
+  // gradcode's own MCP endpoint for other agents (stateless streamable HTTP: POST only).
+  if (req.url === "/api/mcp") {
+    if (req.method !== "POST") {
+      res.writeHead(405, { allow: "POST" }).end();
+      return;
+    }
+    void readBody(req)
+      .then((body) => serveMcp(db, handlers, req, res, body))
+      .catch((error: unknown) => {
+        if (!res.headersSent) res.writeHead(500).end(String(error));
+      });
     return;
   }
   // A vault document, opened in a tab. Sandboxed, so an uploaded HTML file can't run on our origin.

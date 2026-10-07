@@ -77,7 +77,11 @@ export function describeTool(name: string, input: Record<string, unknown>) {
       name: short,
       detail: [input.name, input.university].filter(Boolean).map(s).join(" · "),
     };
-  return { name: short, detail: JSON.stringify(input).slice(0, 80) };
+  // A tool from the user's own MCP server reads as "server tool".
+  return {
+    name: short.replace(/^mcp__([^_]+(?:_[^_]+)*?)__/, "$1 "),
+    detail: JSON.stringify(input).slice(0, 80),
+  };
 }
 
 const firstLine = (text: string) => text.split("\n")[0]?.slice(0, 80) ?? "";
@@ -137,9 +141,36 @@ export const claudeProvider: AgentProvider = {
         settingSources: [],
         tools: BUILTIN,
         allowedTools: [...BUILTIN, ...tools.filter((t) => !t.paid).map(mcpName)],
-        mcpServers: { hunt: server },
+        mcpServers: {
+          hunt: server,
+          ...Object.fromEntries(
+            // "hunt" is gradcode's own in-process server; a user server can't take its name.
+            s.mcpServers
+              .filter((m) => m.name !== "hunt")
+              .map((m) => [
+                m.name,
+                m.transport === "http"
+                  ? { type: "http" as const, url: m.url }
+                  : { type: "stdio" as const, command: m.command, args: m.args },
+              ]),
+          ),
+        },
         ...(s.resumeId ? { resume: s.resumeId } : {}),
         canUseTool: async (toolName, raw) => {
+          // A tool from one of the user's own MCP servers: trusted ones run, others ask once per call.
+          const own = s.mcpServers.find((m) => toolName.startsWith(`mcp__${m.name}__`));
+          if (own) {
+            if (own.trusted) return { behavior: "allow", updatedInput: raw };
+            const ok = await hooks.requestApproval({
+              title: `tool from ${own.name}`,
+              body: toolName.replace(`mcp__${own.name}__`, ""),
+              why: JSON.stringify(raw).slice(0, 200),
+              costUsd: 0,
+            });
+            return ok
+              ? { behavior: "allow", updatedInput: raw }
+              : { behavior: "deny", message: "The applicant declined this tool call." };
+          }
           const t = tools.find((x) => mcpName(x) === toolName);
           if (!t) return { behavior: "deny", message: `${toolName} isn't available in gradcode.` };
           const args = z.object(t.shape).safeParse(raw);

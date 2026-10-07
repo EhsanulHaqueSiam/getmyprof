@@ -1,4 +1,4 @@
-import type { ThreadEvent } from "@gradcode/contracts";
+import type { McpServer, ThreadEvent } from "@gradcode/contracts";
 import type { HuntTool, ToolContext } from "./tools.ts";
 
 /** What a provider reports back while a session runs. The runner turns these into thread state. */
@@ -27,6 +27,8 @@ export type SessionStart = {
   toolContext: ToolContext;
   askOver: number;
   hooks: SessionHooks;
+  /** The user's own MCP servers; their tools ask first unless the server is trusted. */
+  mcpServers: McpServer[];
 };
 
 /** A running agent conversation. `push` delivers a message: normally, after the next tool call, or now. */

@@ -1,4 +1,5 @@
 import { Applicant, Hunt, ProfileFact, Settings } from "@gradcode/contracts";
+import * as NodeCrypto from "node:crypto";
 import { z } from "zod";
 import { type Db, getKv, newId, setKv } from "./db.ts";
 
@@ -10,15 +11,23 @@ export const DEFAULT_SETTINGS: Settings = {
   profileSource: "app",
   gradhunt: false,
   setupDone: false,
+  mcpServers: [],
+  mcpToken: "",
 };
 
-export const getSettings = (db: Db) =>
-  getKv(
+/** The saved settings. The MCP token is made the first time anyone asks, then kept. */
+export function getSettings(db: Db): Settings {
+  const s = getKv(
     db,
     "settings",
     (v) => Settings.parse({ ...DEFAULT_SETTINGS, ...Settings.partial().parse(v) }),
     DEFAULT_SETTINGS,
   );
+  if (s.mcpToken) return s;
+  const withToken = { ...s, mcpToken: NodeCrypto.randomBytes(24).toString("base64url") };
+  setKv(db, "settings", withToken);
+  return withToken;
+}
 
 /** Merges a patch into the saved settings; keys left undefined keep their value. */
 export function updateSettings(db: Db, patch: { [K in keyof Settings]?: Settings[K] | undefined }) {

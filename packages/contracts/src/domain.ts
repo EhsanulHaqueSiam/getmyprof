@@ -36,6 +36,24 @@ export const Budget = z.object({
 });
 export type Budget = z.infer<typeof Budget>;
 
+/** An MCP server the user adds; every agent session gets its tools. Untrusted ones ask first. */
+export const McpServer = z.discriminatedUnion("transport", [
+  z.object({
+    transport: z.literal("http"),
+    name: z.string().regex(/^[a-z0-9_-]+$/i),
+    url: z.string(),
+    trusted: z.boolean(),
+  }),
+  z.object({
+    transport: z.literal("stdio"),
+    name: z.string().regex(/^[a-z0-9_-]+$/i),
+    command: z.string(),
+    args: z.array(z.string()),
+    trusted: z.boolean(),
+  }),
+]);
+export type McpServer = z.infer<typeof McpServer>;
+
 export const Settings = z.object({
   detail: DetailLevel,
   budget: Budget,
@@ -46,6 +64,9 @@ export const Settings = z.object({
   /** Siam's install: mirror ~/Personal/gradhunt records and write back through scout.py. */
   gradhunt: z.boolean(),
   setupDone: z.boolean(),
+  mcpServers: z.array(McpServer).default([]),
+  /** Bearer token other agents use to reach gradcode's own MCP endpoint, /api/mcp. */
+  mcpToken: z.string().default(""),
 });
 export type Settings = z.infer<typeof Settings>;
 

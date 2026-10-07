@@ -147,6 +147,7 @@ export function createRunner(deps: {
       model: settings.model,
       tools: toolsFor(settings),
       askOver: settings.budget.askOver,
+      mcpServers: settings.mcpServers,
       hooks: hooksFor(threadId),
       toolContext: {
         db,

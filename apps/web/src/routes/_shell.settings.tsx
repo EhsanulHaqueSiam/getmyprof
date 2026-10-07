@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { modelLabel } from "~/components/Composer";
 import { MailSettings } from "~/components/MailSettings";
+import { McpEndpoint, McpServers } from "~/components/McpSettings";
 import { cn } from "~/lib/utils";
 import { useStore } from "~/state/store";
 
@@ -126,6 +127,12 @@ function SettingsPage() {
         ) : null}
         <Row label="Mailbox">
           <MailSettings />
+        </Row>
+        <Row label="MCP servers">
+          <McpServers />
+        </Row>
+        <Row label="For other agents">
+          <McpEndpoint />
         </Row>
         <Row label="Runs on">
           <span className="text-secondary-label">{app.host}</span>

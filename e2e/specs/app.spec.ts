@@ -270,3 +270,19 @@ test("loops: a webhook run fills its placeholders, and every run goes back to on
   await expect(page.getByText("Vet Ge Gao at UMD.")).toBeVisible();
   await expect(page.getByText("Vet Rui Zhang at Penn State.")).toBeVisible();
 });
+
+test("mcp: your own servers reach every session, and gradcode answers other agents", async ({
+  page,
+  request,
+}) => {
+  await page.goto("/settings");
+  await page.getByLabel("MCP server name").fill("papers");
+  await page.getByLabel("MCP server URL or command").fill("npx -y papers-mcp --read-only");
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(page.getByText("npx -y papers-mcp --read-only")).toBeVisible();
+  await page.getByRole("button", { name: "asks each call" }).click();
+  await expect(page.getByRole("button", { name: "runs without asking" })).toBeVisible();
+
+  await expect(page.getByTestId("mcp-url")).toHaveText(/\/api\/mcp$/);
+  expect((await request.post("/api/mcp", { data: {} })).status()).toBe(401);
+});

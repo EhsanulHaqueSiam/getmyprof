@@ -52,6 +52,16 @@ is called: `POST /api/hooks/<token>` with JSON, whose fields fill `{{body.path}}
 the instructions. The token is made once per loop and compared in constant time; the URL is the
 secret. Runs go to a fresh thread each time, or every run back to the loop's one thread.
 
+## MCP
+
+Both ways. gradcode serves its own tools at `/api/mcp` (stateless streamable HTTP, POST only):
+search the sheet, start a hunt, read threads, list and resolve Review. Each wraps an RPC handler.
+It answers only to the bearer token in Settings, made once and compared in constant time; the
+token is what keeps another process on this machine or the tailnet from starting paid hunts.
+The user's own MCP servers (a URL, or a command run over stdio) go into every Claude session;
+their tool calls raise an approval unless the server is marked trusted. The fake provider
+ignores them.
+
 ## Input
 
 `ask_applicant` puts a question in the thread and returns at once; the turn ends and the thread

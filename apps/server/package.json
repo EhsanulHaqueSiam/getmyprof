@@ -10,6 +10,7 @@
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.3.292",
     "@gradcode/contracts": "workspace:*",
+    "@modelcontextprotocol/sdk": "1.32.1",
     "imapflow": "^2.2.6",
     "mailparser": "^3.9.36",
     "nodemailer": "^10.0.15",

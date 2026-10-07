@@ -124,17 +124,25 @@ mailbox with an app password, or signs in with Google (Gmail) or Microsoft (Outl
 dropped app passwords). The login, password or refresh token, sits in `GRADCODE_HOME/mail.json`,
 mode 0600, and never crosses the wire.
 
-- **Each install brings its own OAuth client.** Gmail's mail scope is restricted: a client shared
-  by everyone needs Google's review and a yearly security assessment. A Desktop client the user
-  makes in Google Cloud (or a public app in Azure) needs neither. Its consent screen must be
-  published, or Google expires the sign-in every 7 days. The callback is
+- **Signing in takes no setup.** gradcode ships its own OAuth clients (`SHARED_CLIENTS` in
+  `outreach/oauth.ts`): a Desktop app in Google Cloud and a public client in Azure. Neither can
+  keep a secret, so they live in the source; a user brings their own only by choice. Gmail's
+  scope is restricted: until Google verifies the app (a review plus a yearly paid security
+  assessment, CASA), users see an "unverified app" screen and the Google project serves 100
+  users, ever. Its consent screen must be In production, or Google expires sign-ins every 7
+  days. An app password has neither limit, so Gmail offers both. The callback is
   `http://127.0.0.1:<port>/api/oauth/callback` (Microsoft: `localhost`), on this server, with
   PKCE; it connects the mailbox and sends the browser back to Settings, only ever to the app's
   own pages. IMAP and SMTP log in with a fresh access token (XOAUTH2).
 
 - **Nothing sends without approval.** The agent only drafts (`draft_email`). Approving gives each
   first email or follow-up a slot: 08:00 in the professor's zone, Tuesday to Thursday, within
-  warm-up caps (5, 10, then 15 a day; 2 per university). Replies go at once.
+  warm-up caps (5, 10, then 15 a day; 2 per university). Answers and thank-yous skip the caps
+  and go in the professor's working hours: Monday to Friday, 08:00 to 18:00 their time.
+- **Mail that reads as one person's.** It leaves the user's own mailbox, so SPF and DKIM pass
+  as theirs; plain text, one recipient, at most two links, a CV only when asked. Everything
+  after the first email answers the latest real one (`In-Reply-To`), so it threads on both
+  sides; a "Re:" that answers nothing is a spam signal.
 - **One send path.** Every send runs through `outreach.tick`, one message at a time, so a message
   can't go out twice. "Send now" just makes a message due and ticks.
 - **One rule for every claim.** Drafts cite facts as `[[fact-id]]`, numbered `[n]` like the

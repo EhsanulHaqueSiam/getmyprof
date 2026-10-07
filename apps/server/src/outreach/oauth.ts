@@ -1,8 +1,8 @@
 // Mailbox sign-in for providers that prefer OAuth to app passwords: Gmail by choice, Outlook.com
-// because it no longer takes them. Each install brings its own OAuth client (a Desktop app in
-// Google Cloud, or a public client in Azure), so no shared client needs Google's or Microsoft's
-// review. Desktop clients accept a loopback redirect on any port, so the callback lands on this
-// server, and the refresh token stays in GRADCODE_HOME/mail.json like an app password.
+// because it no longer takes them. gradcode's own clients (SHARED_CLIENTS) mean a user just signs
+// in; a user can bring their own client instead. Desktop clients accept a loopback redirect on
+// any port, so the callback lands on this server, and the refresh token stays in
+// GRADCODE_HOME/mail.json like an app password.
 import { MailProvider, type MailSignIn } from "@gradcode/contracts";
 import * as NodeCrypto from "node:crypto";
 import { z } from "zod";
@@ -35,6 +35,16 @@ export const OAUTH_PROVIDERS = {
 
 type OAuthProvider = MailProvider;
 
+/**
+ * gradcode's own OAuth clients: a Desktop app in Google Cloud and a public client in Azure,
+ * made once by whoever ships gradcode (docs/internals/overview.md, Outreach). They can't keep a
+ * secret, so Google and Microsoft expect them in the app's source. null: users bring their own.
+ */
+export const SHARED_CLIENTS: Record<OAuthProvider, { id: string; secret: string } | null> = {
+  google: null,
+  microsoft: null,
+};
+
 /** What a signed-in mailbox keeps. Google's Desktop clients have a secret; Azure's public ones don't. */
 export const OAuthLogin = z.object({
   provider: MailProvider,
@@ -59,17 +69,31 @@ const sha256 = (s: string) => NodeCrypto.createHash("sha256").update(s).digest("
 export const redirectUri = (provider: OAuthProvider, port: number) =>
   `http://${OAUTH_PROVIDERS[provider].loopback}:${port}/api/oauth/callback`;
 
-/** The provider's consent page for this sign-in, with PKCE, so a stolen code is useless. */
-export function startSignIn(input: SignInStart, port: number) {
+/**
+ * The provider's consent page for this sign-in, with PKCE, so a stolen code is useless. With no
+ * client ID it signs in through the shared client.
+ */
+export function startSignIn(input: SignInStart, port: number, shared = SHARED_CLIENTS) {
   for (const [k, v] of pending) if (Date.now() - v.at > PENDING_MS) pending.delete(k);
+  const client = input.clientId
+    ? { id: input.clientId, secret: input.clientSecret }
+    : shared[input.provider];
+  if (!client) throw new Error("Add the client ID of your own OAuth client.");
   const verifier = NodeCrypto.randomBytes(32).toString("base64url");
   const state = NodeCrypto.randomBytes(16).toString("base64url");
   const p = OAUTH_PROVIDERS[input.provider];
   const uri = redirectUri(input.provider, port);
-  pending.set(state, { ...input, verifier, redirectUri: uri, at: Date.now() });
+  pending.set(state, {
+    ...input,
+    clientId: client.id,
+    clientSecret: client.secret,
+    verifier,
+    redirectUri: uri,
+    at: Date.now(),
+  });
   const url = new URL(p.authUrl);
   url.search = new URLSearchParams({
-    client_id: input.clientId,
+    client_id: client.id,
     redirect_uri: uri,
     response_type: "code",
     scope: p.scope,

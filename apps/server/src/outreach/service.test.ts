@@ -104,6 +104,26 @@ describe("outreach on a mailbox", () => {
     expect(asked.filter((t) => t.startsWith("[follow-up]"))).toHaveLength(1);
     expect(asked[0]).toContain("follow-up-1");
   });
+  it("sends a follow-up as an answer to the first email, so it threads under it", async () => {
+    const { db, record, mailer, outreach, draft } = setup("quiet@example.edu");
+    await outreach.connect(LOGIN);
+    await outreach.sendNow(draft.id);
+    const first = listMessages(db, record.key)[0];
+    const bump = saveDraft(db, {
+      recordKey: record.key,
+      channel: "email",
+      touch: "follow-up-1",
+      to: record.email,
+      subject: "Re: PhD 2027",
+      body: "Dear Dr. Lybarger, a short follow-up ...",
+      timeZone: "America/New_York",
+      threadId: null,
+    });
+    if ("problem" in bump) throw new Error(bump.problem);
+    await outreach.sendNow(bump.id);
+    expect(first?.messageId).toBeTruthy();
+    expect(mailer.sent.at(-1)?.inReplyTo).toBe(first?.messageId);
+  });
 });
 
 describe("an attachment", () => {

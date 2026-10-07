@@ -43,6 +43,20 @@ export function zonedInstant(
 const localDay = (ts: number, timeZone: string) =>
   new Intl.DateTimeFormat("en-US", { timeZone, weekday: "short" }).format(ts);
 
+/** The instant a wall-clock hour happens in a zone, on the local date `days` after `from`. */
+function localHour(from: Date, days: number, hour: number, timeZone: string) {
+  const [y = 0, m = 1, d = 1] = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  })
+    .format(from.getTime() + days * 864e5)
+    .split("-")
+    .map(Number);
+  return zonedInstant(y, m, d, hour, 0, timeZone);
+}
+
 /** Sends per day for a new mailbox: 5 in week 1, 10 in week 2, then 15. */
 export function dailyCap(warmupStart: Date, day: Date) {
   const week = Math.floor((day.getTime() - warmupStart.getTime()) / (7 * 864e5));
@@ -64,18 +78,7 @@ export function nextSlot(opts: {
 }): Date {
   const { now, timeZone, university, scheduled, warmupStart } = opts;
   for (let i = 0; i < 60; i++) {
-    const probe = new Date(now.getTime() + i * 864e5);
-    const ymd = new Intl.DateTimeFormat("en-CA", {
-      timeZone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    })
-      .format(probe)
-      .split("-")
-      .map(Number);
-    const [y = 0, m = 1, d = 1] = ymd;
-    const opening = zonedInstant(y, m, d, 8, 0, timeZone);
+    const opening = localHour(now, i, 8, timeZone);
     if (!["Tue", "Wed", "Thu"].includes(localDay(opening.getTime(), timeZone))) continue;
     const sameDay = scheduled.filter(
       (s) => Math.abs(s.at.getTime() - opening.getTime()) < 12 * 36e5,
@@ -86,6 +89,19 @@ export function nextSlot(opts: {
     if (slot > now) return slot;
   }
   throw new Error("no send slot in the next 60 days");
+}
+
+/**
+ * When an answer may go: now during the professor's working hours (Monday to Friday, 08:00 to
+ * 18:00 their time), else 08:00 on their next working day. Answers skip warm-up caps.
+ */
+export function workingTime(now: Date, timeZone: string): Date {
+  for (let i = 0; ; i++) {
+    const open = localHour(now, i, 8, timeZone);
+    if (["Sat", "Sun"].includes(localDay(open.getTime(), timeZone))) continue;
+    if (now < open) return open;
+    if (now < localHour(now, i, 18, timeZone)) return now;
+  }
 }
 
 /** Adds business days (Mon to Fri) in UTC. */

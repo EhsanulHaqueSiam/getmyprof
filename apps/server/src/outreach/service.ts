@@ -2,6 +2,7 @@
 // turns that read replies and draft follow-ups. bin.ts ticks it; rpc.ts calls it.
 import {
   type Application,
+  MailProvider,
   type MailSignIn,
   MailStatus,
   OutreachMessage,
@@ -26,7 +27,13 @@ import {
   removeMailConfig,
   saveMailConfig,
 } from "./mail.ts";
-import { finishSignIn, OAUTH_PROVIDERS, redirectUri, startSignIn } from "./oauth.ts";
+import {
+  finishSignIn,
+  OAUTH_PROVIDERS,
+  redirectUri,
+  SHARED_CLIENTS,
+  startSignIn,
+} from "./oauth.ts";
 import { ingest } from "./inbox.ts";
 import { followUpsToDraft } from "./pipeline.ts";
 import { dailyCap } from "./plan.ts";
@@ -73,10 +80,19 @@ export function createOutreach(deps: {
   bus: Bus;
   runner: Pick<Runner, "send">;
   mailerFor: (c: MailLogin) => Mailer;
-  /** Mailbox sign-in: this server's port for the OAuth callback, and the token endpoint to use. */
-  signIn?: { port: number; tokenFetch: typeof fetch; scripted: boolean };
+  /**
+   * Mailbox sign-in: this server's port for the OAuth callback, the token endpoint to use, and
+   * gradcode's own clients (SHARED_CLIENTS unless a test or the scripted stack swaps them).
+   */
+  signIn?: {
+    port: number;
+    tokenFetch: typeof fetch;
+    scripted: boolean;
+    clients?: typeof SHARED_CLIENTS;
+  };
 }) {
   const { db, bus, runner, mailerFor } = deps;
+  const clients = deps.signIn?.clients ?? SHARED_CLIENTS;
   let config: MailConfig | null = readMailConfig();
   let sending = false;
 
@@ -103,6 +119,7 @@ export function createOutreach(deps: {
       lastSyncAt: s.at,
       error: s.error,
       dailyCap: config ? dailyCap(new Date(config.warmupStart), new Date()) : 0,
+      sharedClients: MailProvider.options.filter((p) => clients[p]),
     };
   }
 
@@ -221,7 +238,7 @@ export function createOutreach(deps: {
     /** The provider's consent page. The scripted stack skips it and calls its own callback. */
     startSignIn(input: MailSignIn) {
       const port = deps.signIn?.port ?? 4311;
-      const url = startSignIn({ ...input, returnTo: safeReturn(input.returnTo) }, port);
+      const url = startSignIn({ ...input, returnTo: safeReturn(input.returnTo) }, port, clients);
       if (!deps.signIn?.scripted) return { url };
       const state = new URL(url).searchParams.get("state") ?? "";
       return { url: `${redirectUri(input.provider, port)}?state=${state}&code=scripted` };

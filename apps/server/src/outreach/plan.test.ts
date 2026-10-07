@@ -6,6 +6,7 @@ import {
   followUpDue,
   nextSlot,
   returnDate,
+  workingTime,
   zonedInstant,
 } from "./plan.ts";
 
@@ -103,5 +104,18 @@ describe("out-of-office notes", () => {
     expect(day("Away until 17 October, back to email then")).toBe("2026-10-17");
     expect(day("Returning on Monday, January 4th.")).toBe("2027-01-04");
     expect(day("I'm traveling with limited access to email.")).toBeUndefined();
+  });
+});
+
+describe("answer timing", () => {
+  const at = (iso: string) => workingTime(new Date(iso), NY).toISOString();
+
+  it("goes at once in the professor's working hours, else at 08:00 their next working day", () => {
+    // Tue Oct 13 2026, 10:00 New York (14:00 UTC): at once.
+    expect(at("2026-10-13T14:00:00Z")).toBe("2026-10-13T14:00:00.000Z");
+    // Tue 06:00 New York: that morning at 08:00.
+    expect(at("2026-10-13T10:00:00Z")).toBe("2026-10-13T12:00:00.000Z");
+    // Fri Oct 16, 19:00 New York: Monday Oct 19, 08:00.
+    expect(at("2026-10-16T23:00:00Z")).toBe("2026-10-19T12:00:00.000Z");
   });
 });

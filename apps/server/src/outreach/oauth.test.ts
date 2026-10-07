@@ -54,6 +54,24 @@ describe("mailbox sign-in", () => {
     await expect(finishSignIn(q.get("state")!, "code-1", f)).rejects.toThrow(/expired/);
   });
 
+  it("signs in through gradcode's own client unless the user brings one", () => {
+    const start = (
+      clientId: string,
+      shared: Parameters<typeof startSignIn>[2] = {
+        google: { id: "shared.apps", secret: "s" },
+        microsoft: null,
+      },
+    ) =>
+      startSignIn(
+        { provider: "google", clientId, clientSecret: "", name: "Ada", returnTo: "" },
+        4311,
+        shared,
+      );
+    expect(new URL(start("")).searchParams.get("client_id")).toBe("shared.apps");
+    expect(new URL(start("mine.apps")).searchParams.get("client_id")).toBe("mine.apps");
+    expect(() => start("", { google: null, microsoft: null })).toThrow(/client ID/);
+  });
+
   it("refreshes the access token once and reuses it until it nearly expires", async () => {
     const { f, forms } = tokenEndpoint([{ access_token: "a1", expires_in: 3600 }]);
     const login = {

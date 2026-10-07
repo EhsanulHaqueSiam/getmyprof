@@ -9,6 +9,20 @@ keep working.
 
 Design and the full spec: [docs/mocks/phase1.html](docs/mocks/phase1.html) (round 2).
 
+## Screenshots
+
+Taken from the running app on the scripted agent (`GRADCODE_AGENT=fake`), so the data is fixtures.
+
+![A thread: the agent's work log, findings and Review](docs/screenshots/thread.png)
+
+| Pipeline inbox, by whose turn it is              | Pipeline board, by stage                      |
+| ------------------------------------------------ | --------------------------------------------- |
+| ![Pipeline inbox](docs/screenshots/pipeline.png) | ![Pipeline board](docs/screenshots/board.png) |
+| **Writer: every claim cites a fact**             | **Offers, compared after rent**               |
+| ![Writer](docs/screenshots/writer.png)           | ![Offers](docs/screenshots/offers.png)        |
+
+![Loops on intervals, weekdays or webhooks](docs/screenshots/loops.png)
+
 ## Done (v1)
 
 | #   | Done when                                                                                                                                                                                 | Check                                                                               |

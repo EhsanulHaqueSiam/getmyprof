@@ -11,7 +11,9 @@ published on postplan.dev: [phase1.html](docs/mocks/phase1.html) is the main spe
 [journey.html](docs/mocks/journey.html) the applicant's whole journey (b9y2xzrirkk3), and
 [outreach-vault.html](docs/mocks/outreach-vault.html) the Pipeline, Vault and Writer (81t2rbxgjuh0).
 All three are required. To update a page, edit it here and run
-`npx postplan upload docs/mocks/<file> --draft <id>`.
+`npx postplan upload docs/mocks/<file> --draft <id>`. Every requirement in them, its status and
+the milestone that closes it: https://igc9ez9zbtyo.postplan.dev (the plan lives in Siam's notes,
+not in the repo).
 
 Channel "measure twice, cut once" and "yagni". Simple systems, no machinery for its own sake.
 

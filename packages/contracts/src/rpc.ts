@@ -16,7 +16,7 @@ import {
   TregConnect,
   TregStatus,
 } from "./domain.ts";
-import { Conversation, MailConnect, MailStatus } from "./outreach.ts";
+import { Conversation, MailConnect, MailSignIn, MailStatus } from "./outreach.ts";
 import { RowOp, ThreadEvent, ThreadSummary } from "./threads.ts";
 import {
   Application,
@@ -181,6 +181,8 @@ export const Methods = {
 
   /** Verifies the login against both servers before saving it. */
   "mail.connect": { input: MailConnect, output: MailStatus },
+  /** The provider's consent page; its callback connects the mailbox and returns to Settings. */
+  "mail.signIn": { input: MailSignIn, output: z.object({ url: z.string() }) },
   "mail.disconnect": { input: z.object({}), output: MailStatus },
   "mail.sync": { input: z.object({}), output: MailStatus },
 

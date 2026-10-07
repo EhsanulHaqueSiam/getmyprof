@@ -92,8 +92,24 @@ export const Conversation = z.object({
 export type Conversation = z.infer<typeof Conversation>;
 
 /** The mailbox as the client sees it. The password never leaves the server. */
+/** Mailboxes that sign in with OAuth, each install with its own client, instead of an app password. */
+export const MailProvider = z.enum(["google", "microsoft"]);
+export type MailProvider = z.infer<typeof MailProvider>;
+
+/** Starts a mailbox sign-in. `returnTo` is the Settings page the browser comes back to. */
+export const MailSignIn = z.object({
+  provider: MailProvider,
+  clientId: z.string().min(1),
+  clientSecret: z.string(),
+  name: z.string().min(1),
+  returnTo: z.string(),
+});
+export type MailSignIn = z.infer<typeof MailSignIn>;
+
 export const MailStatus = z.object({
   connected: z.boolean(),
+  /** How it logs in: an app password, or a sign-in with Google or Microsoft. */
+  via: z.enum(["password", "google", "microsoft"]),
   address: z.string(),
   name: z.string(),
   imapHost: z.string(),

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { act, ChannelBadge, TOUCH_LABEL } from "~/components/Pipeline";
 import { Button } from "~/components/ui/button";
 import { Kbd } from "~/components/ui/kbd";
-import { nextStep, openDraft, sequence, theirTime } from "~/lib/outreach";
+import { nextStep, openDraft, sequence, theirTime, zoneOf } from "~/lib/outreach";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
 
@@ -116,11 +116,11 @@ function Composer({
       />
       <div className="flex items-center gap-1.5 px-2.5 pb-2.5 text-muted-foreground text-xs">
         <ChannelBadge channel={draft.channel} />
-        <span className="truncate">
+        {draft.channel === "email" && !checked ? (
+          <span className="shrink-0 text-warning-foreground">address not checked ·</span>
+        ) : null}
+        <span className="truncate" title={draft.to}>
           {draft.touch ? TOUCH_LABEL[draft.touch] : ""} · to {draft.to}
-          {draft.channel === "email" && !checked ? (
-            <span className="text-warning-foreground"> · address not checked</span>
-          ) : null}
           {draft.status === "failed" ? ` · not sent: ${draft.note}` : ""}
         </span>
         <Button
@@ -178,7 +178,7 @@ function Composer({
 export function ConversationView({ c, connected }: { c: Conversation; connected: boolean }) {
   const draft = openDraft(c);
   const r = c.record;
-  const zone = c.messages.find((m) => m.direction === "out" && m.timeZone)?.timeZone ?? "";
+  const zone = zoneOf(c) ?? "";
   // Drafts and failed sends live in the composer, not the transcript.
   const shown = c.messages.filter(
     (m) => m.status !== "cancelled" && m.status !== "draft" && m.status !== "failed",

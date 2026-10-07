@@ -25,8 +25,12 @@ export const STAGE_LABEL: Record<PipelineStage, string> = {
   closed: "Closed",
 };
 
-const day = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+/** The professor's zone, from the mail drafted to them. Pipeline dates all read in it. */
+export const zoneOf = (c: Conversation) =>
+  c.messages.find((m) => m.direction === "out" && m.timeZone)?.timeZone || undefined;
+
+const day = (iso: string, timeZone: string | undefined) =>
+  new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone });
 
 /** "Tue, Oct 13, 8:00 AM their time": when a scheduled message lands for the professor. */
 export const theirTime = (m: Pick<OutreachMessage, "scheduledAt" | "at" | "timeZone">) => {
@@ -66,6 +70,7 @@ export function preview(c: Conversation) {
 
 /** The status line a Board card shows under the name. */
 export function cardLine(c: Conversation) {
+  const zone = zoneOf(c);
   const draft = openDraft(c);
   const reply = lastReply(c);
   const first = out(c).find((m) => m.touch === "first" && m.status === "sent");
@@ -80,9 +85,9 @@ export function cardLine(c: Conversation) {
             : "needs a draft";
     case "contacted":
       return [
-        first?.at ? `sent ${day(first.at)}` : "sent outside gradcode",
+        first?.at ? `sent ${day(first.at, zone)}` : "sent outside gradcode",
         c.messages.findLast((m) => m.kind === "auto-reply")?.note ?? "",
-        c.followUpAt ? `follow-up ${day(c.followUpAt)}` : "",
+        c.followUpAt ? `follow-up ${day(c.followUpAt, zone)}` : "",
       ]
         .filter(Boolean)
         .join(" · ");
@@ -100,6 +105,7 @@ export function cardLine(c: Conversation) {
 
 /** What happens next, in one sentence. */
 export function nextStep(c: Conversation) {
+  const zone = zoneOf(c);
   const draft = openDraft(c);
   const queued = out(c).find((m) => m.status === "scheduled");
   if (c.turn === "closed") return `Closed: ${c.stopped ?? "nothing more to do"}.`;
@@ -112,7 +118,7 @@ export function nextStep(c: Conversation) {
       : "A follow-up is due; the agent drafts it.";
   if (c.turn === "approve") return "Approve the draft to give it a send slot, or send it now.";
   if (queued) return `Goes out ${theirTime(queued)}.`;
-  if (c.followUpAt) return `Follow-up on ${day(c.followUpAt)} if they don't answer.`;
+  if (c.followUpAt) return `Follow-up on ${day(c.followUpAt, zone)} if they don't answer.`;
   return "Waiting on them.";
 }
 
@@ -125,6 +131,7 @@ export type Step = {
 
 /** The sequence beside a conversation: what went out, what came back, and what's planned. */
 export function sequence(c: Conversation): Step[] {
+  const zone = zoneOf(c);
   const steps: Step[] = [];
   for (const m of c.messages) {
     if (m.status === "cancelled") continue;
@@ -137,7 +144,7 @@ export function sequence(c: Conversation): Step[] {
             : m.channel === "linkedin"
               ? "LinkedIn reply"
               : "Reply received";
-      steps.push({ id: m.id, label, when: m.at ? day(m.at) : "", state: "done" });
+      steps.push({ id: m.id, label, when: m.at ? day(m.at, zone) : "", state: "done" });
       continue;
     }
     const label =
@@ -153,9 +160,15 @@ export function sequence(c: Conversation): Step[] {
               ? "Follow-up 2"
               : "After applying";
     const id = m.id;
-    if (m.status === "sent") steps.push({ id, label, when: m.at ? day(m.at) : "", state: "done" });
+    if (m.status === "sent")
+      steps.push({ id, label, when: m.at ? day(m.at, zone) : "", state: "done" });
     else if (m.status === "scheduled")
-      steps.push({ id, label, when: m.scheduledAt ? day(m.scheduledAt) : "", state: "later" });
+      steps.push({
+        id,
+        label,
+        when: m.scheduledAt ? day(m.scheduledAt, zone) : "",
+        state: "later",
+      });
     else
       steps.push({ id, label, when: m.status === "failed" ? "not sent" : "draft", state: "now" });
   }
@@ -178,7 +191,7 @@ export function sequence(c: Conversation): Step[] {
     steps.push({
       id: `plan-${n}`,
       label: `Follow-up ${n}`,
-      when: due ? day(c.followUpAt ?? "") : "later",
+      when: due ? day(c.followUpAt ?? "", zone) : "later",
       state: due && c.turn === "follow-up" ? "now" : "later",
     });
   }

@@ -27,6 +27,7 @@ export function VaultFacts() {
   const [tab, setTab] = useState<(typeof TABS)[number]>("all");
   const [reading, setReading] = useState("");
   const [error, setError] = useState("");
+  const [note, setNote] = useState("");
   if (!app) return null;
   const fromHq = app.settings.profileSource === "hq";
   const facts = app.facts;
@@ -43,6 +44,7 @@ export function VaultFacts() {
   const addFromFile = async (file: File) => {
     setReading(file.name);
     setError("");
+    setNote("");
     try {
       const base64 = await toBase64(file);
       const doc = await call("documents.upload", {
@@ -60,6 +62,11 @@ export function VaultFacts() {
       const known = new Set(facts.map((f) => f.text.trim().toLowerCase()));
       const fresh = found.filter((f) => !known.has(f.text.trim().toLowerCase()));
       await save([...facts, ...fresh.map((f) => ({ ...f, source: doc.name }))]);
+      setNote(
+        fresh.length
+          ? `${fresh.length} new fact${fresh.length === 1 ? "" : "s"} from ${doc.name}. Confirm the ones that are right.`
+          : `Nothing new in ${doc.name}: every fact it holds is already here.`,
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -114,8 +121,10 @@ export function VaultFacts() {
         )}
       </header>
       {error ? <div className="px-4 pb-2 text-destructive-foreground text-xs">{error}</div> : null}
+      {note ? <div className="px-4 pb-2 text-muted-foreground text-xs">{note}</div> : null}
       <Table
         head={["Fact", "Kind", "Proof", "Status", ""]}
+        widths={["auto", "120px", "150px", "110px", "40px"]}
         empty={shown.length ? null : "No facts here yet. Add your CV from a file."}
         testId="facts"
       >
@@ -128,7 +137,7 @@ export function VaultFacts() {
               className="transition-colors hover:bg-secondary"
               data-testid="vault-fact"
             >
-              <Td strong className="max-w-[420px]">
+              <Td strong className="max-w-none">
                 {f.text}
               </Td>
               <Td muted>
@@ -149,7 +158,7 @@ export function VaultFacts() {
                     href={`/api/files/${doc.id}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="hover:underline"
+                    className="underline decoration-border underline-offset-2 hover:decoration-current"
                   >
                     {f.source}
                   </a>

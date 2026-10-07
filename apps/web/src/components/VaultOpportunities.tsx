@@ -35,18 +35,31 @@ const Deadline = ({ date }: { date: string | null }) =>
     <span className="text-placeholder">?</span>
   );
 
-const Link = ({ url }: { url: string }) =>
-  url ? (
-    <a
-      href={url}
-      target="_blank"
-      rel="noreferrer"
-      aria-label="Open"
-      className="text-muted-foreground hover:text-foreground"
-    >
-      <ExternalLinkIcon className="size-3.5" />
-    </a>
-  ) : null;
+/** A row's name with its page one click away; the second line carries the details. */
+const Title = ({ text, url }: { text: string; url: string }) => (
+  <div className="flex items-center gap-1.5">
+    <span className="truncate" title={text}>
+      {text}
+    </span>
+    {url ? (
+      <a
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        aria-label={`Open ${text}`}
+        className="shrink-0 text-muted-foreground hover:text-foreground"
+      >
+        <ExternalLinkIcon className="size-3" />
+      </a>
+    ) : null}
+  </div>
+);
+
+const Detail = ({ text }: { text: string }) => (
+  <div className="truncate font-normal text-muted-foreground text-xs" title={text}>
+    {text}
+  </div>
+);
 
 /** Scholarships, with a filter for the ones open to the applicant's citizenship and track. */
 export function VaultScholarships() {
@@ -79,17 +92,20 @@ export function VaultScholarships() {
         />
       </header>
       <Table
-        head={["Scholarship", "Sponsor", "Study in", "Open to", "Pays", "Deadline", "Status", ""]}
+        head={["Scholarship", "Open to", "Deadline", "Status"]}
+        widths={["auto", "110px", "170px", "120px"]}
         empty={shown.length ? null : "None yet. Find scholarships, then file the ones that fit."}
         testId="scholarships"
       >
         {shown.map((s) => (
           <tr key={s.id} className="transition-colors hover:bg-secondary">
-            <Td strong>{s.name}</Td>
-            <Td muted>{s.sponsor}</Td>
-            <Td muted>{s.studyIn}</Td>
+            <Td strong className="h-auto max-w-none py-1.5">
+              <Title text={s.name} url={s.url} />
+              <Detail
+                text={[s.sponsor, `study in ${s.studyIn}`, s.amount].filter(Boolean).join(" · ")}
+              />
+            </Td>
             <Td muted>{s.citizenship.join(", ") || "any"}</Td>
-            <Td muted>{s.amount}</Td>
             <Td>
               <Deadline date={s.deadline} />
             </Td>
@@ -102,9 +118,6 @@ export function VaultScholarships() {
                   void call("vault.save", { kind: "scholarship", value: { ...s, status } })
                 }
               />
-            </Td>
-            <Td muted className="w-8">
-              <Link url={s.url} />
             </Td>
           </tr>
         ))}
@@ -127,7 +140,8 @@ export function VaultPrograms({ onOpenApplication }: { onOpenApplication: () => 
         />
       </header>
       <Table
-        head={["Program", "Degree", "Deadline", "Fee", "English", "Funding", "", ""]}
+        head={["Program", "Deadline", "Application"]}
+        widths={["auto", "170px", "150px"]}
         empty={programs.length ? null : "None yet. Find programs, then file the ones that fit."}
         testId="programs"
       >
@@ -135,19 +149,22 @@ export function VaultPrograms({ onOpenApplication }: { onOpenApplication: () => 
           const app = apps.find((a) => a.programId === p.id);
           return (
             <tr key={p.id} className="transition-colors hover:bg-secondary">
-              <Td strong>
-                {p.university} · {p.name}
+              <Td strong className="h-auto max-w-none py-1.5">
+                <Title text={`${p.university} · ${p.name}`} url={p.url} />
+                <Detail
+                  text={[
+                    p.funding,
+                    p.fee && `fee ${p.fee}`,
+                    p.waiver && `waiver ${p.waiver}`,
+                    p.english,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                />
               </Td>
-              <Td muted>{p.degree.replace("_", " + ")}</Td>
               <Td>
                 <Deadline date={p.deadline} />
               </Td>
-              <Td muted>
-                {p.fee}
-                {p.waiver ? ` · waiver ${p.waiver}` : ""}
-              </Td>
-              <Td muted>{p.english}</Td>
-              <Td muted>{p.funding}</Td>
               <Td>
                 <Button
                   size="xs"
@@ -157,11 +174,8 @@ export function VaultPrograms({ onOpenApplication }: { onOpenApplication: () => 
                     onOpenApplication();
                   }}
                 >
-                  {app ? `Application · ${app.status.replace("-", " ")}` : "Start application"}
+                  {app ? app.status.replace("-", " ") : "Start application"}
                 </Button>
-              </Td>
-              <Td muted className="w-8">
-                <Link url={p.url} />
               </Td>
             </tr>
           );

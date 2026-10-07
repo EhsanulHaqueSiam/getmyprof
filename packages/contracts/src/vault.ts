@@ -24,6 +24,8 @@ export const VaultDocument = z.object({
   /** YYYY-MM-DD, for passports, test scores and anything else that runs out. */
   expires: z.string().nullable(),
   uploadedAt: z.string(),
+  /** sha256 of the bytes, so adding the same file twice keeps one copy. */
+  sha256: z.string().default(""),
 });
 export type VaultDocument = z.infer<typeof VaultDocument>;
 

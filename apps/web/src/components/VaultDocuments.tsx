@@ -74,12 +74,13 @@ export function VaultDocuments() {
       </header>
       <Table
         head={["Document", "Kind", "Size", "Expires", "Added", ""]}
+        widths={["auto", "100px", "80px", "200px", "100px", "40px"]}
         empty={docs.length ? null : "No documents yet. Upload your CV, transcript and passport."}
         testId="documents"
       >
         {docs.map((d) => (
           <tr key={d.id} className="transition-colors hover:bg-secondary">
-            <Td strong>
+            <Td strong className="max-w-none">
               <a
                 href={`/api/files/${d.id}`}
                 target="_blank"

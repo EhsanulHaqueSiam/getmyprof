@@ -10,6 +10,7 @@ import {
   type VaultKind,
   type VaultState,
 } from "@gradcode/contracts";
+import * as NodeCrypto from "node:crypto";
 import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
 import { z } from "zod";
@@ -68,6 +69,9 @@ export function saveDocument(
   input: Pick<VaultDocument, "name" | "kind" | "mime" | "expires"> & { base64: string },
 ) {
   const bytes = Buffer.from(input.base64, "base64");
+  const sha256 = NodeCrypto.createHash("sha256").update(bytes).digest("hex");
+  const same = listDocuments(db).find((d) => d.sha256 === sha256);
+  if (same) return same;
   const doc: VaultDocument = {
     id: newId("doc"),
     name: input.name,
@@ -76,6 +80,7 @@ export function saveDocument(
     size: bytes.length,
     expires: input.expires,
     uploadedAt: now(),
+    sha256,
   };
   NodeFS.mkdirSync(filesDir(), { recursive: true });
   NodeFS.writeFileSync(documentPath(doc.id), bytes, { mode: 0o600 });

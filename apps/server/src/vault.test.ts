@@ -90,6 +90,20 @@ describe("documents", () => {
     removeEntry(db, "document", doc.id);
     expect(NodeFS.existsSync(documentPath(doc.id))).toBe(false);
   });
+
+  it("keeps one copy when the same file is added twice", () => {
+    const db = openDb(":memory:");
+    const add = (name: string) =>
+      saveDocument(db, {
+        name,
+        kind: "cv",
+        mime: "application/pdf",
+        expires: null,
+        base64: "JVBERi0=",
+      });
+    expect(add("cv.pdf").id).toBe(add("cv-again.pdf").id);
+    expect(vaultState(db).documents).toHaveLength(1);
+  });
 });
 
 describe("an application", () => {

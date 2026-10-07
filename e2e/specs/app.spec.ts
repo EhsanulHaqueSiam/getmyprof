@@ -169,6 +169,8 @@ test("vault: the agent's finds wait in To file, and submitting an application dr
   );
 
   await app.getByLabel("Application status").selectOption("submitted");
+  // The agent drafts the note; it waits behind Lybarger's earlier answer in his sequence.
   await page.goto("/pipeline");
-  await expect(page.getByTestId("turn-yours")).toContainText("submitted my application");
+  await page.getByTestId("turn-yours").getByText("Kevin Lybarger").click();
+  await expect(page.getByTestId("sequence")).toContainText("After applying");
 });

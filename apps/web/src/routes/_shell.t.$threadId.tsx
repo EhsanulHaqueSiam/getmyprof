@@ -22,6 +22,14 @@ function ThreadPage() {
   const sidebarOpen = useStore((s) => s.sidebarOpen);
   const toggleSidebar = useStore((s) => s.toggleSidebar);
   const perThread = useStore((s) => s.app?.settings.budget.perThread ?? 0.5);
+  // What this thread left elsewhere: drafts waiting in the Pipeline, finds waiting in To file.
+  const drafts = useStore(
+    (s) =>
+      s.conversations
+        .flatMap((c) => c.messages)
+        .filter((m) => m.threadId === threadId && m.status === "draft").length,
+  );
+  const finds = useStore((s) => s.vault?.toFile.filter((f) => f.threadId === threadId).length ?? 0);
   const [mode, setMode] = useState<"chat" | "results">("chat");
   const [panel, setPanel] = useState(true);
   const status = view?.thread.status;
@@ -163,7 +171,7 @@ function ThreadPage() {
                 Review <span className="text-info-foreground tabular-nums">{reviewCount}</span>
               </span>
             </div>
-            <Review proposals={view.proposals} />
+            <Review proposals={view.proposals} drafts={drafts} finds={finds} />
           </aside>
         </div>
       )}

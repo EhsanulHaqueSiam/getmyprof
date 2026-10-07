@@ -15,9 +15,11 @@ type Section = (typeof SECTIONS)[number];
 
 export const Route = createFileRoute("/_shell/vault")({
   component: VaultPage,
-  validateSearch: (s: Record<string, unknown>): { section: Section } => ({
-    section: SECTIONS.find((x) => x === s.section) ?? "facts",
-  }),
+  // Optional, so a plain link to /vault opens Facts.
+  validateSearch: (s: Record<string, unknown>): { section?: Section } => {
+    const section = SECTIONS.find((x) => x === s.section);
+    return section ? { section } : {};
+  },
 });
 
 function Nav({ section, go }: { section: Section; go: (s: Section) => void }) {
@@ -112,7 +114,7 @@ function Side() {
 
 /** The vault: facts and documents about you, opportunities, and the agent's finds To file. */
 function VaultPage() {
-  const { section } = Route.useSearch();
+  const { section = "facts" } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const go = (s: Section) => void navigate({ search: { section: s } });
   return (

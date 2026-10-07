@@ -299,7 +299,7 @@ export function createHandlers(svc: Services): Handlers {
       if (
         edit.kind === "application" &&
         edit.value.status === "submitted" &&
-        before?.status !== "submitted"
+        !before?.submittedAt
       ) {
         const app = { ...edit.value, submittedAt: edit.value.submittedAt ?? now() };
         saveEdit(db, { kind: "application", value: app });

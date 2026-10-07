@@ -7,19 +7,20 @@ import { Board, InboxList, MailLabel, SendQueue } from "~/components/Pipeline";
 import { needsYou } from "~/lib/outreach";
 import { useStore } from "~/state/store";
 
-type Search = { view: "inbox" | "board"; key?: string };
+/** Both optional, so a plain link to /pipeline opens the Inbox. */
+type Search = { view?: "inbox" | "board"; key?: string };
 
 export const Route = createFileRoute("/_shell/pipeline")({
   component: PipelinePage,
   validateSearch: (s: Record<string, unknown>): Search => ({
-    view: s.view === "board" ? "board" : "inbox",
+    ...(s.view === "board" ? { view: "board" as const } : {}),
     ...(typeof s.key === "string" ? { key: s.key } : {}),
   }),
 });
 
 /** Outreach like a pipeline: Inbox by whose turn it is (default), or the Board by stage. */
 function PipelinePage() {
-  const { view, key } = Route.useSearch();
+  const { view = "inbox", key } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const conversations = useStore((s) => s.conversations);
   const connected = useStore((s) => s.app?.mail.connected ?? false);

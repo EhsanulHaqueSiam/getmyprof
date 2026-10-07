@@ -57,6 +57,8 @@ const lastReply = (c: Conversation) =>
 
 /** One line for a list row: the latest message, as the user would scan it. */
 export function preview(c: Conversation) {
+  const draft = openDraft(c);
+  if (draft) return `Draft: ${draft.body.replace(/\s+/g, " ").trim()}`;
   const shown = c.messages.filter((m) => m.status !== "cancelled");
   const last = shown.at(-1);
   if (!last) return c.record.niche || "no messages yet";

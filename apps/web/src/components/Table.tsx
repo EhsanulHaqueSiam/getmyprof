@@ -4,11 +4,14 @@ import { cn } from "~/lib/utils";
 /** The dense table the Professors page uses: sticky header, hairline rows. Vault sections share it. */
 export function Table({
   head,
+  widths,
   children,
   empty,
   testId,
 }: {
   head: string[];
+  /** Fixed column widths ("auto" takes the rest). The table then fits its column and truncates. */
+  widths?: string[];
   children: ReactNode;
   /** Shown under the header when there are no rows. */
   empty: string | null;
@@ -16,7 +19,14 @@ export function Table({
 }) {
   return (
     <div className="min-h-0 flex-1 overflow-auto border-t" data-testid={testId}>
-      <table className="w-full border-collapse text-[12.5px]">
+      <table className={cn("w-full border-collapse text-[12.5px]", widths && "table-fixed")}>
+        {widths ? (
+          <colgroup>
+            {widths.map((w, i) => (
+              <col key={`${head[i]}-${w}`} style={w === "auto" ? undefined : { width: w }} />
+            ))}
+          </colgroup>
+        ) : null}
         <thead>
           <tr>
             {head.map((h) => (

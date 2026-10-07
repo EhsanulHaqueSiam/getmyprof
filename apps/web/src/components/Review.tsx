@@ -1,4 +1,5 @@
 import type { Proposal } from "@gradcode/contracts";
+import { Link } from "@tanstack/react-router";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { CheckIcon, LinkIcon } from "lucide-react";
 import { Button } from "~/components/ui/button";
@@ -11,7 +12,19 @@ const FIELD_LABEL: Record<string, string> = {
 };
 
 /** Pending proposals as field diffs. Accept writes to the sheet; reject drops it (and the person, for an add). */
-export function Review({ proposals }: { proposals: Proposal[] }) {
+/**
+ * The thread's Review panel. `drafts` and `finds` count what the thread left in the Pipeline and
+ * in To file, so the empty state points there instead of looking like nothing happened.
+ */
+export function Review({
+  proposals,
+  drafts = 0,
+  finds = 0,
+}: {
+  proposals: Proposal[];
+  drafts?: number;
+  finds?: number;
+}) {
   const pending = proposals.filter((p) => p.status === "pending");
   const [ref] = useAutoAnimate<HTMLDivElement>({
     duration: 220,
@@ -60,6 +73,16 @@ export function Review({ proposals }: { proposals: Proposal[] }) {
           <div className="px-6 py-12 text-center text-muted-foreground text-xs">
             <div className="mb-0.5 font-medium text-secondary-label text-sm">Nothing to review</div>
             Accepted changes are in your sheet.
+            {drafts ? (
+              <Link to="/pipeline" className="mt-2 block text-info-foreground hover:underline">
+                {drafts} draft{drafts === 1 ? "" : "s"} wait in Pipeline
+              </Link>
+            ) : null}
+            {finds ? (
+              <Link to="/vault" className="mt-2 block text-info-foreground hover:underline">
+                {finds} find{finds === 1 ? "" : "s"} wait in To file
+              </Link>
+            ) : null}
           </div>
         ) : (
           pending.map((p) => (

@@ -39,6 +39,16 @@ function Recommenders({ app }: { app: Application }) {
               })
             }
           />
+          <Button
+            size="icon-micro"
+            variant="ghost-muted"
+            aria-label={`Remove ${r.name}`}
+            onClick={() =>
+              save({ ...app, recommenders: app.recommenders.filter((_, j) => j !== i) })
+            }
+          >
+            <Trash2Icon />
+          </Button>
         </div>
       ))}
       <form
@@ -112,13 +122,15 @@ function ApplicationView({
             due {program.deadline} · {due(program.deadline)}
           </span>
         ) : null}
-        <span className="ml-auto flex items-center gap-1.5">
+        <span className="ml-auto flex items-center gap-1.5 text-muted-foreground">
+          status
           <Choice
             label="Application status"
             value={app.status}
             options={AppStatus.options}
             onChange={(status) => save({ ...app, status })}
           />
+          fee waiver
           <Choice
             label="Fee waiver"
             value={app.waiver}
@@ -143,6 +155,7 @@ function ApplicationView({
               <label key={d.name} className="flex items-center gap-1.5">
                 <input
                   type="checkbox"
+                  className="size-3.5 accent-foreground"
                   checked={d.done}
                   onChange={() =>
                     save({

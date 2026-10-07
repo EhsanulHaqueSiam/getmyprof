@@ -40,6 +40,7 @@ describe("the Vault", () => {
           size: 1,
           expires: "2027-03-01",
           uploadedAt: "",
+          sha256: "",
         },
         {
           id: "d2",
@@ -49,6 +50,7 @@ describe("the Vault", () => {
           size: 1,
           expires: "2031-01-01",
           uploadedAt: "",
+          sha256: "",
         },
       ],
       programs: [

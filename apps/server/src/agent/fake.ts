@@ -154,6 +154,8 @@ export const fakeProvider = (
     let n = 0;
 
     const tool = (name: string) => s.tools.find((t) => t.name === name) as HuntTool | undefined;
+    let result = "";
+    /** Runs a hunt tool like the model would; `result` holds its summary afterwards. */
     const call = async (name: string, detail: string, args: Record<string, unknown>) => {
       const t = tool(name);
       const id = `fake-${++n}-${Date.now()}`;
@@ -162,6 +164,7 @@ export const fakeProvider = (
       await pause();
       if (!t) return hooks.emit({ ...base, at: now(), status: "error", meta: "not available" });
       const r = await t.run(args, s.toolContext);
+      result = r.summary;
       hooks.emit({
         ...base,
         at: now(),
@@ -277,9 +280,16 @@ export const fakeProvider = (
     async function vaultFinds(text: string) {
       const scholarships = /^Find scholarships/i.test(text);
       const finds = scholarships ? FIXTURE_SCHOLARSHIPS : FIXTURE_PROGRAMS;
-      for (const f of finds)
+      let filed = 0;
+      for (const f of finds) {
         await call(scholarships ? "propose_scholarship" : "propose_program", f.name, f);
-      say(`${finds.length} wait in your To file.`);
+        if (result === "to file") filed++;
+      }
+      say(
+        filed
+          ? `${filed} wait in your To file.`
+          : "Nothing new: everything I found is already in your vault.",
+      );
     }
 
     async function afterApplying(text: string) {

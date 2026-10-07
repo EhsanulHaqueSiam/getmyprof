@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { DownloadIcon, SearchIcon, UploadIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
+import { download } from "~/lib/files";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
@@ -37,10 +38,7 @@ function Professors() {
 
   const exportCsv = async () => {
     const { csv } = await call("records.export", {});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-    a.download = "gradcode-professors.csv";
-    a.click();
+    download("gradcode-professors.csv", csv, "text/csv");
   };
 
   return (

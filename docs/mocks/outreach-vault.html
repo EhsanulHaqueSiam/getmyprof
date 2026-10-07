@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>gradcode · pipeline, inbox, vault, writer</title>
+<style>
+:root{--fg:#f1f3f7;--fg2:#d4d4d8;--mut:#a3a3a3;--dim:#737373;--faint:#4a4a4a;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.12);--hov:#191a1d;--sel:rgba(241,243,247,.07);--pri:oklch(.571 .21 264);--pri2:oklch(.74 .14 264);--ok:#34d399;--warn:#fbbf24;--err:#f87171;--info:#60a5fa;--ind:#a5b4fc;--li:#7aa7ff;--mono:ui-monospace,"SF Mono",Menlo,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#000;color:var(--fg);font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.doc{max-width:1360px;margin:0 auto;padding:0 20px 100px}
+.bar{position:sticky;top:0;z-index:5;background:rgba(0,0,0,.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.bar .in{max-width:1360px;margin:0 auto;padding:0 20px;height:44px;display:flex;gap:18px;align-items:center;font-size:13px;white-space:nowrap;overflow-x:auto}
+.bar a{color:var(--mut);text-decoration:none}.bar a:hover{color:var(--fg)}
+h1{font-size:22px;font-weight:600;letter-spacing:-.015em;margin:36px 0 6px}
+h2{font-size:16px;font-weight:600;margin:52px 0 12px;scroll-margin-top:60px}
+h2 .n{color:var(--dim);font-weight:500;margin-right:8px}
+p{color:var(--fg2);max-width:90ch}p+p{margin-top:8px}
+b{color:var(--fg);font-weight:600}
+code{font:12px var(--mono);background:rgba(255,255,255,.05);padding:1px 5px;border-radius:5px}
+table.spec{width:100%;border-collapse:collapse;font-size:13px}
+.spec th{text-align:left;font-weight:500;color:var(--mut);font-size:12px;padding:8px 14px 8px 0;border-bottom:1px solid var(--line2)}
+.spec td{padding:8px 14px 8px 0;border-bottom:1px solid var(--line);vertical-align:top;color:var(--fg2)}
+.spec td.k{color:var(--fg);font-weight:500;white-space:nowrap}
+.note{color:var(--mut);font-size:12.5px;margin-top:10px;max-width:96ch}
+.vh{display:flex;align-items:baseline;gap:10px;margin:40px 0 12px}
+.vh .k{font:600 12px/20px var(--mono);width:22px;height:22px;text-align:center;border:1px solid var(--line2);border-radius:6px}
+.vh .s{color:var(--mut);font-size:13px}.vh .rec{color:var(--ok);font-size:12px}
+.scroll{overflow-x:auto;padding-bottom:8px}
+.win{min-width:1240px;border:1px solid var(--line2);border-radius:12px;overflow:hidden;background:#000;font-size:13px}
+.top{height:44px;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid var(--line)}
+.top .t{font-weight:600}.top .r{margin-left:auto;display:flex;gap:6px;align-items:center;color:var(--mut);font-size:12px}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:8px;padding:2px;gap:2px}
+.seg span{height:22px;padding:0 9px;border-radius:6px;display:inline-flex;align-items:center;color:var(--mut);font-size:12px}
+.seg span.on{background:var(--hov);color:var(--fg)}
+.btn{height:26px;padding:0 10px;border:1px solid var(--line2);border-radius:8px;display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--fg)}
+.btn.pri{background:var(--pri);border-color:transparent;color:#fff}
+.btn.gh{border-color:transparent;color:var(--mut)}
+.dim{color:var(--dim)}.mut{color:var(--mut)}.ok{color:var(--ok)}.warn{color:var(--warn)}.err{color:var(--err)}.info{color:var(--info)}.ind{color:var(--ind)}.li{color:var(--li)}
+.ch{font:600 10px/16px var(--mono);border-radius:4px;padding:0 4px;border:1px solid var(--line2);color:var(--mut)}
+.ch.m{color:var(--fg2)}.ch.l{color:var(--li);border-color:rgba(122,167,255,.35)}
+/* board */
+.board{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;background:var(--line);height:560px}
+.colm{background:#000;display:flex;flex-direction:column;min-width:0}
+.colm h4{font-size:12px;font-weight:500;color:var(--mut);padding:10px 12px 6px;display:flex;gap:6px}
+.colm h4 b{color:var(--fg2);font-weight:500}
+.card{margin:4px 8px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:#050505}
+.card .n{font-weight:500;font-size:12.5px;display:flex;align-items:center;gap:6px}
+.card .s{font-size:11.5px;color:var(--dim);margin-top:1px}
+.card .x{font-size:11.5px;color:var(--fg2);margin-top:6px;display:flex;gap:6px;align-items:center}
+.card.due{border-color:rgba(251,191,36,.3)}.card.turn{border-color:rgba(165,180,252,.35)}
+/* inbox */
+.inb{display:grid;grid-template-columns:300px minmax(0,1fr) 320px;height:620px}
+.list{border-right:1px solid var(--line);overflow:hidden}
+.grp{padding:12px 12px 4px;font-size:11.5px;color:var(--dim);display:flex;gap:6px}
+.it{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 8px;padding:8px 12px;border-radius:8px;margin:1px 6px}
+.it.on{background:var(--sel)}
+.it .a{font-weight:500;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.it .b{grid-column:1/3;font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.it .c{font-size:11px;color:var(--dim);display:flex;gap:5px;align-items:center}
+.conv{display:flex;flex-direction:column;min-width:0}
+.msgs{flex:1;overflow:hidden;padding:14px 22px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:78%;border:1px solid var(--line);border-radius:14px;padding:10px 13px;font-size:13px;color:var(--fg2);line-height:1.55}
+.msg.me{align-self:flex-end;background:var(--hov);border-color:transparent;color:var(--fg)}
+.msg .h{font-size:11px;color:var(--dim);margin-bottom:4px;display:flex;gap:6px;align-items:center}
+.sys{font-size:11.5px;color:var(--dim);display:flex;gap:10px;align-items:center}
+.sys::before,.sys::after{content:"";flex:1;height:1px;background:var(--line)}
+.compose{margin:0 18px 16px;border:1px solid var(--line2);border-radius:18px;background:#0a0a0a}
+.compose .ta{padding:11px 14px;color:var(--fg2);font-size:13px;line-height:1.6;min-height:84px}
+.compose .tb{display:flex;gap:6px;align-items:center;padding:6px 10px 10px;font-size:12px;color:var(--mut)}
+.side{border-left:1px solid var(--line);padding:14px;display:flex;flex-direction:column;gap:12px;font-size:12.5px}
+.kv{display:grid;grid-template-columns:96px minmax(0,1fr);gap:6px 10px}
+.kv dt{color:var(--dim)}.kv dd{color:var(--fg2)}
+.seq div{display:grid;grid-template-columns:16px 1fr auto;gap:8px;align-items:center;height:26px;font-size:12px;color:var(--fg2)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--faint);justify-self:center}
+.dot.d{background:var(--ok)}.dot.n{background:var(--warn)}
+/* vault */
+.vault{display:grid;grid-template-columns:220px minmax(0,1fr) 300px;height:600px}
+.vnav{border-right:1px solid var(--line);padding:10px 8px;display:flex;flex-direction:column;gap:1px}
+.vnav a{height:30px;display:flex;align-items:center;gap:8px;padding:0 9px;border-radius:8px;color:var(--fg2);text-decoration:none;font-size:12.5px}
+.vnav a.on{background:var(--sel);color:var(--fg)}.vnav a .c{margin-left:auto;color:var(--dim);font-size:11.5px}
+.vnav .g{font-size:11px;color:var(--dim);padding:12px 9px 4px}
+table.grid{width:100%;border-collapse:collapse;font-size:12.5px}
+.grid th{text-align:left;font-weight:500;color:var(--dim);font-size:11.5px;padding:7px 12px;border-bottom:1px solid var(--line2);white-space:nowrap}
+.grid td{padding:0 12px;height:34px;border-bottom:1px solid var(--line);color:var(--fg2);white-space:nowrap}
+.grid td.nm{color:var(--fg);font-weight:500}
+/* writer */
+.writer{display:grid;grid-template-columns:260px minmax(0,1fr) 300px;height:640px}
+.req{border-right:1px solid var(--line);padding:14px;font-size:12.5px;display:flex;flex-direction:column;gap:10px}
+.req h5,.side h5{font-size:11.5px;color:var(--dim);font-weight:500}
+.paper{padding:22px 34px;overflow:hidden;font-size:13.5px;line-height:1.75;color:var(--fg2)}
+.paper h4{font-size:15px;color:var(--fg);margin-bottom:8px}
+.paper p{max-width:none;margin-top:10px}
+.cite{font:600 10px var(--mono);color:var(--pri2);vertical-align:super;margin-left:1px}
+.hl{background:rgba(251,191,36,.14);color:var(--fg);border-radius:3px;padding:0 2px}
+.fact{display:grid;grid-template-columns:22px minmax(0,1fr);gap:6px;font-size:12px;color:var(--fg2);padding:5px 0;border-bottom:1px solid var(--line)}
+.fact .i{font:600 10px var(--mono);color:var(--pri2)}
+.q{color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="bar"><div class="in"><b>gradcode · pipeline, inbox, vault, writer</b><a href="#how">How it connects</a><a href="#pipe">Pipeline A B</a><a href="#vault">Vault</a><a href="#writer">Writer</a><a href="#decide">Decide</a></div></div>
+<main class="doc">
+<h1>Outreach like a sales pipeline, and an hq inside the app</h1>
+<p><b>gradcode artifacts.</b> These pages are the approved design for the repo EhsanulHaqueSiam/gradcode, kept in its docs/mocks folder: <a href="https://y3j2cbv19xjl.postplan.dev" target="_blank" rel="noopener noreferrer">Main spec</a> · <a href="https://b9y2xzrirkk3.postplan.dev" target="_blank" rel="noopener noreferrer">Journey</a> · <b>Pipeline, Vault and Writer</b> (this page) · <a href="https://igc9ez9zbtyo.postplan.dev" target="_blank" rel="noopener noreferrer">Plan and status</a>.</p>
+<p>Every professor becomes a deal that moves from <b>to contact</b> to <b>funded</b>. Mail and LinkedIn land in one inbox, sorted by whose turn it is, with follow-ups that run on their own and stop when someone answers. Behind it sits a <b>vault</b>: every fact about you with its proof, every document, every scholarship and program. The agent writes your SOP, CV and emails from it, citing the fact behind each claim.</p>
+
+<h2 id="how"><span class="n">1</span>How each channel connects</h2>
+<table class="spec">
+<thead><tr><th>Channel</th><th>Send</th><th>Receive</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td class="k">Email</td><td>Your mailbox over SMTP (app password), scheduled, warm-up capped</td><td>IMAP sync every few minutes: replies, bounces, out-of-office</td><td>Works with Gmail and Outlook, no developer setup per user. treg has no mail endpoints, so this is direct.</td></tr>
+<tr><td class="k">LinkedIn</td><td>Assisted: gradcode drafts, opens the person's message box with the text copied; you press send</td><td>LinkedIn's "new message" notification emails, read by the same inbox sync</td><td>LinkedIn has no allowed messaging API for personal accounts, and automating your account risks a ban. treg has no LinkedIn messaging either.</td></tr>
+<tr><td class="k">LinkedIn, full</td><td>Optional bridge (for example Unipile) that connects your account</td><td>Real two-way sync</td><td>Paid, and outside LinkedIn's terms: your call, off by default.</td></tr>
+</tbody></table>
+
+<h2 id="pipe"><span class="n">2</span>Pipeline: pick one</h2>
+<div class="vh"><span class="k">A</span><b>Board</b><span class="s">a CRM: every professor is a card that moves through stages</span></div>
+<div class="scroll"><div class="win">
+<div class="top"><span class="t">Pipeline</span><span class="seg"><span class="on">Board</span><span>Inbox</span></span><span class="r"><span>42 professors · 6 need you</span><span class="btn">Send queue <b>5</b></span></span></div>
+<div class="board">
+<div class="colm"><h4>To contact <b>12</b></h4>
+<div class="card"><div class="n">Ge Gao <span class="ch m">M</span></div><div class="s">UMD · human-LLM coordination</div><div class="x"><span class="ok">fit 4</span> · money tier 2 · draft ready</div></div>
+<div class="card"><div class="n">Shweta Yadav <span class="ch m">M</span></div><div class="s">UIC · clinical NLP</div><div class="x">money tier 3 · ask email</div></div>
+<div class="card"><div class="n">Yulin Yu <span class="ch l">in</span></div><div class="s">Arizona · comp. social science</div><div class="x">recruiting post on LinkedIn</div></div>
+</div>
+<div class="colm"><h4>Contacted <b>14</b></h4>
+<div class="card"><div class="n">Rui Zhang <span class="ch m">M</span></div><div class="s">Penn State · LLM agents</div><div class="x dim">sent Oct 6 · follow-up Oct 15</div></div>
+<div class="card"><div class="n">Mohan Zalake <span class="ch m">M</span></div><div class="s">UIC · health LLM agents</div><div class="x dim">sent Oct 7</div></div>
+</div>
+<div class="colm"><h4>Follow-up due <b>3</b></h4>
+<div class="card due"><div class="n">Gondy Leroy <span class="ch m">M</span></div><div class="s">Arizona · clinical NLP</div><div class="x warn">follow-up 1 ready · send today</div></div>
+<div class="card due"><div class="n">Kenton Murray <span class="ch l">in</span><span class="ch m">M</span></div><div class="s">GMU · multilingual NLP</div><div class="x warn">no reply 9 days</div></div>
+</div>
+<div class="colm"><h4>Replied <b>4</b></h4>
+<div class="card turn"><div class="n">Kevin Lybarger <span class="ch m">M</span></div><div class="s">GMU · clinical NLP</div><div class="x ind">your turn · asked for your CV</div></div>
+<div class="card"><div class="n">Ziyu Yao <span class="ch m">M</span></div><div class="s">GMU · LLM reasoning</div><div class="x dim">"apply and list me"</div></div>
+</div>
+<div class="colm"><h4>Call <b>2</b></h4>
+<div class="card turn"><div class="n">Marcos Zampieri <span class="ch m">M</span></div><div class="s">GMU · Bangla LLMs</div><div class="x ind">call Thu 9:00 · prep pack ready</div></div>
+</div>
+<div class="colm"><h4>Applied <b>5</b></h4>
+<div class="card"><div class="n">GMU CS PhD</div><div class="s">names Lybarger, Yao, Zampieri</div><div class="x dim">submitted Nov 28 · decision Mar</div></div>
+</div>
+<div class="colm"><h4>Offer <b>0</b></h4><div class="card" style="border-style:dashed"><div class="s">Funded offers land here. The hunt settles when one is accepted.</div></div></div>
+</div>
+</div></div>
+<p class="note">Good for the big picture and for dragging stages by hand. Weak at the actual work: replying needs another click into the conversation.</p>
+
+<div class="vh"><span class="k">B</span><b>Inbox</b><span class="s">mail and LinkedIn in one list by whose turn it is; the thread, the professor and the sequence side by side</span><span class="rec">recommended, with A as a toggle</span></div>
+<div class="scroll"><div class="win">
+<div class="top"><span class="t">Pipeline</span><span class="seg"><span>Board</span><span class="on">Inbox</span></span><span class="r"><span>mail synced 2m ago</span><span class="btn">Send queue <b>5</b></span></span></div>
+<div class="inb">
+<div class="list">
+<div class="grp">Your turn · 2</div>
+<div class="it on"><span class="a">Kevin Lybarger</span><span class="c"><span class="ch m">M</span>1h</span><span class="b">Thanks for reaching out. Could you send your CV and a short note on...</span></div>
+<div class="it"><span class="a">Marcos Zampieri</span><span class="c"><span class="ch m">M</span>3h</span><span class="b">Thursday 9:00 works. Here's the meeting link.</span></div>
+<div class="grp">Follow-up due · 3</div>
+<div class="it"><span class="a">Gondy Leroy</span><span class="c"><span class="ch m">M</span>8d</span><span class="b">Follow-up 1 drafted: "On your 2026 text simplification paper..."</span></div>
+<div class="it"><span class="a">Kenton Murray</span><span class="c"><span class="ch l">in</span>9d</span><span class="b">LinkedIn note, no reply. Switch to email?</span></div>
+<div class="grp">Their turn · 14</div>
+<div class="it"><span class="a">Rui Zhang</span><span class="c"><span class="ch m">M</span>1d</span><span class="b">You: Dear Professor Zhang, I read your hiring page...</span></div>
+<div class="it"><span class="a">Mohan Zalake</span><span class="c"><span class="ch m">M</span>today</span><span class="b">You: Dear Dr. Zalake, I followed the join-us steps...</span></div>
+</div>
+<div class="conv">
+<div class="top" style="border-bottom:0"><span class="t">Kevin Lybarger</span><span class="dim">GMU · clinical NLP</span><span class="r"><span class="ok">fit 5</span><span>money tier 2</span></span></div>
+<div class="msgs">
+<div class="msg me"><div class="h"><span class="ch m">M</span>You · Oct 7, 08:00 their time · first email</div>Dear Dr. Lybarger, I'm applying to GMU's PhD in Information Technology for Fall 2027 (subject "PhD 2027", as your page asks). Your DF-RAG work is close to the RAG evaluation I did on a university helpdesk assistant...</div>
+<div class="msg"><div class="h"><span class="ch m">M</span>Kevin Lybarger · today 09:12</div>Thanks for reaching out. Could you send your CV and a short note on what you'd want to work on in clinical NLP?</div>
+<div class="sys">reply classified: interested, asks for CV and a research note · drafted below</div>
+</div>
+<div class="compose"><div class="ta">Dear Dr. Lybarger, thank you. My CV is attached. In clinical NLP I'd like to work on retrieval for patient-facing question answering, building on...</div>
+<div class="tb"><span class="ch m">M</span>Reply by email · CV (Oct 2026) attached from the vault<span style="margin-left:auto" class="btn gh">Edit</span><span class="btn pri">Send now</span></div></div>
+</div>
+<div class="side">
+<h5>Professor</h5>
+<dl class="kv"><dt>Money</dt><dd>NIH team grant $4.65M</dd><dt>Contact</dt><dd>email, subject "PhD 2027"</dd><dt>Program</dt><dd>PhD in IT · Dec 1</dd></dl>
+<h5>Sequence</h5>
+<div class="seq">
+<div><span class="dot d"></span>First email<span class="dim">Oct 7</span></div>
+<div><span class="dot d"></span>Reply received<span class="dim">today</span></div>
+<div><span class="dot n"></span>Send CV + note<span class="warn">now</span></div>
+<div><span class="dot"></span>Follow-ups paused<span class="dim">they replied</span></div>
+<div><span class="dot"></span>After applying: "I named you"<span class="dim">on submit</span></div>
+</div>
+<h5>Next</h5><div class="mut">Answering moves them to "Call" if they propose one; the stage changes on its own.</div>
+</div>
+</div>
+</div></div>
+<p class="note">Built for doing: open, read, the answer is already drafted, send. Stages move from what happens (a reply, a call, a submitted application), so the board in A stays current without dragging.</p>
+
+<h2 id="vault"><span class="n">3</span>Vault: an hq inside the app</h2>
+<div class="scroll"><div class="win"><div class="vault">
+<nav class="vnav">
+<span class="g">You</span>
+<a class="on">Facts<span class="c">38</span></a>
+<a>Documents<span class="c">14</span></a>
+<a>Writing<span class="c">6</span></a>
+<span class="g">Opportunities</span>
+<a>Scholarships<span class="c">9</span></a>
+<a>Programs<span class="c">11</span></a>
+<a>Applications<span class="c">5</span></a>
+<span class="g">Inbox</span>
+<a>To file<span class="c">3</span></a>
+</nav>
+<section>
+<div class="top"><span class="t">Facts</span><span class="seg"><span class="on">All</span><span>Education</span><span>Papers</span><span>Projects</span><span>Tests</span><span>Work</span></span><span class="r"><span class="btn">Add from file</span></span></div>
+<table class="grid"><thead><tr><th>Fact</th><th>Proof</th><th>Status</th><th>Used in</th></tr></thead><tbody>
+<tr><td class="nm">BSc in Computer Science, 2025, 4 years</td><td>transcript.pdf</td><td class="ok">confirmed</td><td>CV, SOP x3</td></tr>
+<tr><td class="nm">CGPA 3.8 / 4.0</td><td>transcript.pdf</td><td class="ok">confirmed</td><td>CV, 4 forms</td></tr>
+<tr><td class="nm">Paper: low-resource sentiment, workshop 2025, 2nd author</td><td>DOI link</td><td class="ok">confirmed</td><td>CV, SOP x3, 6 emails</td></tr>
+<tr><td class="nm">IELTS: booked Nov 2026, no score yet</td><td class="dim">none yet</td><td class="warn">planned</td><td>never claimed as a score</td></tr>
+<tr><td class="nm">Medium-of-instruction certificate</td><td>moi-certificate.pdf</td><td class="ok">confirmed</td><td>3 applications</td></tr>
+<tr><td class="nm">Citizenship: Bangladesh</td><td>passport.pdf</td><td class="ok">confirmed</td><td>eligibility filters</td></tr>
+<tr><td class="nm">"Led a team of 5"</td><td class="dim">none</td><td class="err">needs proof</td><td>blocked from writing</td></tr>
+</tbody></table>
+</section>
+<aside class="side">
+<h5>To file · 3</h5>
+<div class="mut">New things the agent found or you dropped in, waiting for a place:</div>
+<div class="fact"><span class="i">PDF</span><span>ielts-booking.pdf: test on Nov 21. File as a planned test?</span></div>
+<div class="fact"><span class="i">MAIL</span><span>Reply from Lybarger asks for a research note. Add a task to Writing?</span></div>
+<div class="fact"><span class="i">WEB</span><span>Fulbright Bangladesh round opens Feb. Add to Scholarships?</span></div>
+<h5>Documents expiring</h5>
+<div class="mut">Passport valid to 2031. No test score yet; 3 programs require one by Dec 15.</div>
+</aside>
+</div></div></div>
+<p class="note">One place for everything, like hq: each fact has its proof and lists where it's used. A fact without proof can't be written into anything. Mail attachments, dropped files and agent findings land in "To file", and nothing is filed without a click.</p>
+
+<h2 id="writer"><span class="n">4</span>Writer: SOP, CV and emails from the vault</h2>
+<div class="scroll"><div class="win"><div class="writer">
+<aside class="req">
+<h5>For</h5><div><b>GMU · PhD in Information Technology</b><div class="mut">SOP, max 2 pages · due Dec 1</div></div>
+<h5>Program asks for</h5><div class="mut">research interests, fit with faculty, career goals, preparation</div>
+<h5>Name these professors</h5><div>Lybarger (replied), Yao, Zampieri</div>
+<h5>Your other documents here</h5><div class="mut">CV v4 (Oct 2026) · transcript · MOI certificate</div>
+<div style="display:flex;gap:6px;flex-wrap:wrap"><span class="btn">Tailor to another program</span><span class="btn gh">Export PDF</span><span class="btn gh">DOCX</span></div>
+</aside>
+<section class="paper">
+<h4>Statement of purpose, draft 3</h4>
+<p>I want to build retrieval systems that patients and clinicians can trust. During my BSc in Computer Science<span class="cite">1</span>, I built a retrieval-augmented helpdesk assistant for my university and evaluated its answers against staff responses<span class="cite">4</span>, which taught me how often fluent answers are wrong.</p>
+<p>My workshop paper on low-resource sentiment analysis<span class="cite">3</span> showed me how much performance depends on data the community overlooks. At GMU, Dr. Lybarger's work on query-aware retrieval for health text is where I'd like to continue, <span class="hl">and I led a team of five on the helpdesk project</span>.</p>
+<p>I'd also value working with Dr. Zampieri on Bangla language models, given my Bangladeshi background<span class="cite">6</span>...</p>
+</section>
+<aside class="side">
+<h5>Facts used</h5>
+<div class="fact"><span class="i">1</span><span>BSc in Computer Science, 2025</span></div>
+<div class="fact"><span class="i">3</span><span>Workshop paper, 2025, 2nd author</span></div>
+<div class="fact"><span class="i">4</span><span>Helpdesk RAG project, GitHub</span></div>
+<div class="fact"><span class="i">6</span><span>Citizenship: Bangladesh</span></div>
+<h5>Blocked</h5>
+<div class="fact q"><span class="i">!</span><span>"Led a team of five" has no proof in the vault. Add proof, or cut the line.</span></div>
+<h5>Checks</h5>
+<div class="mut">2 pages · names 2 of 3 professors · no test score claimed · no em dashes</div>
+</aside>
+</div></div></div>
+<p class="note">Every claim carries a numbered citation to a vault fact; an unproven claim is highlighted and blocks export. One draft tailors to each program's prompt and faculty. The same engine writes the CV (from Facts), cover emails, follow-ups and scholarship essays.</p>
+
+<h2 id="decide"><span class="n">5</span>Decide</h2>
+<table class="spec">
+<thead><tr><th>#</th><th>Question</th><th>My default</th></tr></thead>
+<tbody>
+<tr><td class="k">1</td><td><b>Pipeline layout:</b> A board, B inbox, or B with A as a toggle?</td><td>B with A as a toggle</td></tr>
+<tr><td class="k">2</td><td><b>Email:</b> IMAP and SMTP with an app password first (any provider), Gmail sign-in later?</td><td>Yes</td></tr>
+<tr><td class="k">3</td><td><b>LinkedIn:</b> assisted send plus replies from notification emails, or also the paid bridge that automates your account?</td><td>Assisted only</td></tr>
+<tr><td class="k">4</td><td><b>Vault on your install:</b> the app's own vault, mirrored into hq through <code>hq tell</code>, or hq stays the vault and the app reads it?</td><td>hq stays the source for you; everyone else uses the app's vault</td></tr>
+<tr><td class="k">5</td><td><b>Writer output:</b> PDF and DOCX export, or copy-paste text first?</td><td>Text and PDF first</td></tr>
+</tbody></table>
+</main>
+</body>
+</html>

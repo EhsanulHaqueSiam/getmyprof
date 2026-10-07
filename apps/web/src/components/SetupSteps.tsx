@@ -192,19 +192,14 @@ export function BudgetStep(props: {
         <div className="grid grid-cols-3 gap-2.5">
           {(
             [
-              ["brief", "Brief", "fit, money, taking students, email", "~5 columns · cheapest"],
+              ["brief", "Brief", "fit, money, taking students, email", "6 columns · cheapest"],
               [
                 "std",
                 "Standard",
-                "adds how long the money lasts, contact rule, stage",
-                "~8 columns",
+                "adds how long the money lasts, eligibility, contact rule, stage",
+                "10 columns",
               ],
-              [
-                "deep",
-                "Deep",
-                "adds why they fit you and every source",
-                "~10 columns · most calls",
-              ],
+              ["deep", "Deep", "adds why they fit you and every source", "12 columns · most calls"],
             ] as const
           ).map(([id, title, body, note]) => (
             <button

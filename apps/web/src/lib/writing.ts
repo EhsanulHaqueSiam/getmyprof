@@ -8,6 +8,7 @@ import {
   unbackedScore,
   type Writing,
 } from "@gradcode/contracts";
+import { strToU8, zipSync } from "fflate";
 
 export { unbackedScore };
 
@@ -20,6 +21,17 @@ export const WRITING_LABEL = {
   letter: "Negotiation letter",
   note: "Note",
   visa: "Visa steps",
+} as const satisfies Record<Writing["kind"], string>;
+
+/** The heading a piece carries on paper, in the PDF and the Word file. */
+export const PAPER_TITLE = {
+  sop: "Statement of Purpose",
+  cv: "Curriculum Vitae",
+  essay: "Essay",
+  prep: "Interview Preparation",
+  letter: "Letter",
+  note: "Note",
+  visa: "Visa Steps",
 } as const satisfies Record<Writing["kind"], string>;
 
 /** Only what leaves the app has to stand on proven facts; prep packs and visa plans stay private. */
@@ -100,3 +112,37 @@ export const plainText = (w: Writing) =>
     .replace(/\s*\[\d+\]/g, "")
     .replace(/[ \t]+\n/g, "\n")
     .trim();
+
+// Text inside Word's XML: markup escaped, control characters XML forbids dropped.
+const xmlText = (s: string) =>
+  s
+    // oxlint-disable-next-line no-control-regex -- these are exactly the characters a .docx can't hold
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "")
+    .replace(/[&<>]/g, (c) => (c === "&" ? "&amp;" : c === "<" ? "&lt;" : "&gt;"));
+
+/** One paragraph in 12pt Times; single newlines inside it, as in a CV, become line breaks. */
+const wordParagraph = (text: string, props = "") =>
+  `<w:p><w:pPr><w:spacing w:after="240"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>${props}<w:sz w:val="24"/></w:rPr>${text
+    .split("\n")
+    .map((line) => `<w:t xml:space="preserve">${xmlText(line)}</w:t>`)
+    .join("<w:br/>")}</w:r></w:p>`;
+
+/** The piece as a .docx: the same heading and plain text the PDF prints, editable in Word. */
+export function docx(w: Writing) {
+  const body = [
+    wordParagraph(PAPER_TITLE[w.kind], "<w:b/>"),
+    ...paragraphs(plainText(w)).map((p) => wordParagraph(p.text)),
+  ].join("");
+  const head = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  return zipSync({
+    "[Content_Types].xml": strToU8(
+      `${head}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`,
+    ),
+    "_rels/.rels": strToU8(
+      `${head}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`,
+    ),
+    "word/document.xml": strToU8(
+      `${head}<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}</w:body></w:document>`,
+    ),
+  });
+}

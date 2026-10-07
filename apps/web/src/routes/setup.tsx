@@ -56,6 +56,8 @@ function Setup() {
     setTreg(app.settings.treg);
     setProfileSource(app.settings.profileSource);
     setGradhunt(app.settings.gradhunt);
+    setDetail(app.settings.detail);
+    setBudget(app.settings.budget);
     if (app.hunt) setPrefs(app.hunt.prefs);
     setApplicant((a) => a ?? app.applicant);
     if (app.settings.profileSource === "app") setFacts(app.facts);

@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vite-plus/test";
+import { capProblem } from "./agent/tools.ts";
 import { openDb } from "./db.ts";
 import { fillPlaceholders, hookLoop, nextRun, saveLoop } from "./loops.ts";
 import { intakeStart, monthsAfter } from "./sources.ts";
+import { DEFAULT_SETTINGS } from "./state.ts";
+import { createThread } from "./threads.ts";
 
 describe("nextRun", () => {
   const from = new Date(2026, 9, 7, 9, 30); // Wed Oct 7 2026, 09:30 local
@@ -54,6 +57,22 @@ describe("a webhook loop", () => {
     expect(
       fillPlaceholders(base.instructions, { pi: "Ge Gao", org: { name: "UMD" }, id: 2443387 }),
     ).toBe("Vet Ge Gao at UMD, award 2443387.");
+  });
+});
+
+describe("a loop run's cap", () => {
+  it("is its own loop's budget, not the default", () => {
+    const db = openDb(":memory:");
+    const loop = saveLoop(db, {
+      name: "Nightly sweep",
+      instructions: "Sweep.",
+      schedule: { kind: "daily", at: "02:00" },
+      budgetUsd: 0.1,
+      enabled: true,
+    });
+    const run = { db, settings: DEFAULT_SETTINGS, threadId: createThread(db, "run", loop.id).id };
+    expect(capProblem(run, 0.2)).toBe("This would pass the $0.1 cap for this loop run.");
+    expect(capProblem(run, 0.05)).toBeNull();
   });
 });
 

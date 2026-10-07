@@ -1,6 +1,7 @@
 import type { Applicant, ProfileFact, Writing } from "@gradcode/contracts";
+import { strFromU8, unzipSync } from "fflate";
 import { describe, expect, it } from "vite-plus/test";
-import { checks, citations, layout, plainText, strayMarkers } from "./writing";
+import { checks, citations, docx, layout, plainText, strayMarkers } from "./writing";
 
 const fact = (id: string, f: Partial<ProfileFact> = {}): ProfileFact => ({
   id,
@@ -59,5 +60,23 @@ describe("the Writer's reading of a piece", () => {
     expect(plainText(piece)).toBe(
       "I did a BSc. I led a team of five. Lybarger's work fits.\n\nIELTS 7.5 later.",
     );
+  });
+
+  it("exports a Word file with the printed heading and text, markup escaped, lines kept", () => {
+    const cv = { ...piece, kind: "cv" as const, body: "R&D <lab> [1]\nTA, 2024\n\nAwards [2]" };
+    const files = unzipSync(docx(cv));
+    expect(Object.keys(files).toSorted()).toEqual([
+      "[Content_Types].xml",
+      "_rels/.rels",
+      "word/document.xml",
+    ]);
+    const text = [
+      ...strFromU8(files["word/document.xml"] ?? new Uint8Array()).matchAll(
+        /<w:t[^>]*>([^<]*)<\/w:t>|<w:br\/>|<\/w:p>/g,
+      ),
+    ]
+      .map((m) => m[1] ?? (m[0] === "<w:br/>" ? "\n" : "|"))
+      .join("");
+    expect(text).toBe("Curriculum Vitae|R&amp;D &lt;lab&gt;\nTA, 2024|Awards|");
   });
 });

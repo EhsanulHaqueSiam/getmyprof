@@ -20,3 +20,12 @@ export function guessKind(name: string, fallback: DocKind): DocKind {
   if (/certificate|moi/.test(n)) return "certificate";
   return fallback;
 }
+
+/** Saves bytes or text as a file in the browser's downloads. */
+export function download(name: string, data: BlobPart, type: string) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([data], { type }));
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href));
+}

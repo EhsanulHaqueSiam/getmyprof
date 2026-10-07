@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { PlusIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
+import { download } from "~/lib/files";
 import { interviewIcs } from "~/lib/vault";
 import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
@@ -72,14 +73,13 @@ export function Interviews({
             <Button
               size="xs"
               variant="ghost-muted"
-              onClick={() => {
-                const a = document.createElement("a");
-                a.href = URL.createObjectURL(
-                  new Blob([interviewIcs(i, program?.university ?? "")], { type: "text/calendar" }),
-                );
-                a.download = `interview-${i.with.replace(/\W+/g, "-").toLowerCase()}.ics`;
-                a.click();
-              }}
+              onClick={() =>
+                download(
+                  `interview-${i.with.replace(/\W+/g, "-").toLowerCase()}.ics`,
+                  interviewIcs(i, program?.university ?? ""),
+                  "text/calendar",
+                )
+              }
             >
               Calendar
             </Button>

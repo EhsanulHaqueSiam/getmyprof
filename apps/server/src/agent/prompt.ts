@@ -1,4 +1,11 @@
-import type { Applicant, DetailLevel, Hunt, ProfileFact, Settings } from "@gradcode/contracts";
+import {
+  type Applicant,
+  type DetailLevel,
+  factStatus,
+  type Hunt,
+  type ProfileFact,
+  type Settings,
+} from "@gradcode/contracts";
 
 const DEGREE = {
   phd: "a funded PhD",
@@ -50,7 +57,8 @@ export function systemPrompt(
         .join("\n")
     : "";
   const p = hunt?.prefs;
-  const confirmed = facts.filter((f) => f.confirmed && !f.question);
+  // Only facts with proof: the same rule the Writer and drafts follow.
+  const confirmed = facts.filter((f) => factStatus(f) === "confirmed");
   return [
     "You are gradcode's research agent. You find professors who can fund this applicant and the money behind them.",
     `Today is ${today.toISOString().slice(0, 10)}.`,

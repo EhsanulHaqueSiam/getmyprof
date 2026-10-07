@@ -64,9 +64,11 @@ export const Settings = z.object({
   /** Siam's install: mirror ~/Personal/gradhunt records and write back through scout.py. */
   gradhunt: z.boolean(),
   setupDone: z.boolean(),
-  mcpServers: z.array(McpServer).default([]),
+  // No .default() here: a partial update would fill it in and wipe the saved value.
+  // getSettings fills missing keys from DEFAULT_SETTINGS instead.
+  mcpServers: z.array(McpServer),
   /** Bearer token other agents use to reach gradcode's own MCP endpoint, /api/mcp. */
-  mcpToken: z.string().default(""),
+  mcpToken: z.string(),
 });
 export type Settings = z.infer<typeof Settings>;
 

@@ -1,3 +1,4 @@
+import { Methods } from "@gradcode/contracts";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
@@ -11,6 +12,7 @@ import { build, sameToken } from "./mcp.ts";
 import { createOutreach } from "./outreach/service.ts";
 import { blankProfessor, putRecord } from "./records.ts";
 import { createHandlers } from "./rpc.ts";
+import { getSettings, updateSettings } from "./state.ts";
 
 const textOf = (r: unknown) => JSON.stringify(r).match(/"text":"((?:[^"\\]|\\.)*)"/)?.[1] ?? "";
 
@@ -68,6 +70,22 @@ describe("gradcode as an MCP server", () => {
       ),
     ).toMatch(/^Started thread thr_/);
     await client.close();
+  });
+
+  it("keeps your servers and its token when another setting changes", () => {
+    const db = openDb(":memory:");
+    const before = updateSettings(db, {
+      mcpServers: [
+        { transport: "http", name: "papers", url: "https://example.com/mcp", trusted: false },
+      ],
+    });
+    // Through the wire's own input schema, the way the Settings page sends it.
+    updateSettings(db, Methods["settings.update"].input.parse({ detail: "brief" }));
+    expect(getSettings(db)).toMatchObject({
+      detail: "brief",
+      mcpServers: before.mcpServers,
+      mcpToken: before.mcpToken,
+    });
   });
 
   it("answers only to its own token", () => {

@@ -4,6 +4,7 @@
 import { type AwardSource, type Hunt, type Settings, Stage } from "@gradcode/contracts";
 import { z } from "zod";
 import type { Db } from "../db.ts";
+import { listLoops } from "../loops.ts";
 import { propose, listRecords } from "../records.ts";
 import {
   arcAwards,
@@ -319,7 +320,9 @@ export const HUNT_TOOLS = [
 export function capProblem(ctx: Pick<ToolContext, "db" | "threadId" | "settings">, price: number) {
   const { budget } = ctx.settings;
   const thread = getThread(ctx.db, ctx.threadId);
-  const threadCap = thread?.loopId ? budget.perLoopRun : budget.perThread;
+  // A loop run is capped by its loop's own budget; a deleted loop falls back to the default.
+  const loop = thread?.loopId ? listLoops(ctx.db).find((l) => l.id === thread.loopId) : null;
+  const threadCap = thread?.loopId ? (loop?.budgetUsd ?? budget.perLoopRun) : budget.perThread;
   if (threadSpend(ctx.db, ctx.threadId) + price > threadCap)
     return `This would pass the $${threadCap} cap for this ${thread?.loopId ? "loop run" : "thread"}.`;
   if (daySpend(ctx.db) + price > budget.perDay)

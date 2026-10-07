@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>gradcode · the whole journey</title>
+<style>
+:root{--fg:#f1f3f7;--fg2:#d4d4d8;--mut:#a3a3a3;--dim:#737373;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.12);--hov:#191a1d;--ok:#34d399;--warn:#fbbf24;--err:#f87171;--info:#60a5fa;--mono:ui-monospace,"SF Mono",Menlo,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#000;color:var(--fg);font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.doc{max-width:1180px;margin:0 auto;padding:0 20px 100px}
+.bar{position:sticky;top:0;background:rgba(0,0,0,.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line);z-index:5}
+.bar .in{max-width:1180px;margin:0 auto;padding:0 20px;height:44px;display:flex;gap:18px;align-items:center;font-size:13px;overflow-x:auto;white-space:nowrap}
+.bar a{color:var(--mut);text-decoration:none}.bar a:hover{color:var(--fg)}
+h1{font-size:22px;font-weight:600;letter-spacing:-.015em;margin:36px 0 6px}
+h2{font-size:16px;font-weight:600;margin:52px 0 12px;scroll-margin-top:60px}
+h2 .n{color:var(--dim);font-weight:500;margin-right:8px}
+h3{font-size:13.5px;font-weight:600;margin:24px 0 8px}
+p{color:var(--fg2);max-width:88ch}p+p{margin-top:8px}
+b{color:var(--fg);font-weight:600}
+code{font:12px var(--mono);background:rgba(255,255,255,.05);padding:1px 5px;border-radius:5px;color:var(--fg)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-weight:500;color:var(--mut);font-size:12px;padding:8px 14px 8px 0;border-bottom:1px solid var(--line2);white-space:nowrap}
+td{padding:8px 14px 8px 0;border-bottom:1px solid var(--line);vertical-align:top;color:var(--fg2)}
+td.k{color:var(--fg);font-weight:500;white-space:nowrap}
+td.m{font-family:var(--mono);font-size:12px;color:var(--mut);white-space:nowrap}
+.p0{color:var(--ok)}.p1{color:var(--info)}.p2{color:var(--mut)}
+.ok{color:var(--ok)}.warn{color:var(--warn)}.err{color:var(--err)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:28px}@media(max-width:900px){.cols{grid-template-columns:1fr}}
+.flow{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:6px}
+@media(max-width:900px){.flow{grid-template-columns:repeat(2,1fr)}}
+.flow div{background:#000;padding:10px 12px;font-size:12px;color:var(--mut)}
+.flow b{display:block;font-size:13px;margin-bottom:3px}
+.flow .now{color:var(--fg2)}.flow .now b::after{content:" · built";color:var(--ok);font-weight:400;font-size:11px}
+.ladder td:first-child{width:70px}
+.note{color:var(--mut);font-size:12.5px;margin-top:10px;max-width:96ch}
+ul.pl{margin:8px 0 0 18px;color:var(--fg2)}ul.pl li{margin:3px 0}ul.pl li::marker{color:var(--dim)}
+</style>
+</head>
+<body>
+<div class="bar"><div class="in"><b>gradcode · the whole journey</b><a href="#who">Who</a><a href="#journey">Journey</a><a href="#profile">Profile</a><a href="#sources">Sources</a><a href="#money">Funding clues</a><a href="#outreach">Outreach</a><a href="#after">After outreach</a><a href="#features">Features</a><a href="#treg">treg map</a><a href="#decide">Decide</a></div></div>
+<main class="doc">
+<h1>From "I want a funded degree" to "I accepted a full offer"</h1>
+<p><b>gradcode artifacts.</b> These pages are the approved design for the repo EhsanulHaqueSiam/gradcode, kept in its docs/mocks folder: <a href="https://y3j2cbv19xjl.postplan.dev" target="_blank" rel="noopener noreferrer">Main spec</a> · <b>Journey</b> (this page) · <a href="https://81t2rbxgjuh0.postplan.dev" target="_blank" rel="noopener noreferrer">Pipeline, Vault and Writer</a> · <a href="https://igc9ez9zbtyo.postplan.dev" target="_blank" rel="noopener noreferrer">Plan and status</a>.</p>
+<p>v1 finds professors and money. A student needs more: the search has to know who they are and where they're from, it has to read every source (not only LinkedIn), it has to <b>ask</b> when no funding clue exists, follow up more than once, and stay with them through applications, interviews and offers until full funding is secured. This page maps that journey, the features it needs, and the treg endpoints that power each one.</p>
+
+<h2 id="who"><span class="n">1</span>Who the student is, and why it changes the search</h2>
+<table>
+<thead><tr><th>Track</th><th>What they need</th><th>What changes in the search</th></tr></thead>
+<tbody>
+<tr><td class="k">Direct PhD</td><td>An advisor with money, a program that funds every year</td><td>Advisor money matters most. Professor outreach is the application in advisor-funded systems; in committee systems (top US CS) it's "apply and name me".</td></tr>
+<tr><td class="k">MS + PhD</td><td>A master's that converts to a funded PhD, or a PhD that awards an MS on the way</td><td>Program structure matters: funded from year 1 or only after qualifying exams. Europe often requires a master's before the PhD, so this track opens Europe.</td></tr>
+<tr><td class="k">Funded master's</td><td>Tuition plus a living stipend for the whole program</td><td>Advisors matter less, scholarships matter more: government and program schemes, many of them tied to the student's citizenship.</td></tr>
+</tbody></table>
+<h3>Home country is a hard filter, not a detail</h3>
+<table>
+<thead><tr><th>What it decides</th><th>Examples</th></tr></thead>
+<tbody>
+<tr><td class="k">Who may be paid</td><td>US NIH T32 training grants and the NSF GRFP fund US citizens and permanent residents only, so an international admit needs a department guarantee or a PI's grant. Some UK studentships cap international places.</td></tr>
+<tr><td class="k">Which scholarships exist</td><td>Fulbright (US, run by country commissions), Chevening (UK master's), Commonwealth, Erasmus Mundus (EU joint master's, any nationality), DAAD EPOS (Germany, development-related courses), MEXT (Japan), CSC (China), GKS (Korea).</td></tr>
+<tr><td class="k">Tests and waivers</td><td>Whether a medium-of-instruction certificate replaces IELTS or TOEFL depends on the program and the student's country; so do application-fee waivers.</td></tr>
+<tr><td class="k">Degree fit</td><td>A 3-year bachelor's may not qualify for a US PhD or a European master's; a 4-year one may skip the master's in some systems.</td></tr>
+<tr><td class="k">Visa and money</td><td>Proof-of-funds rules, visa steps and timelines, and whether a stipend covers rent for someone with dependents.</td></tr>
+</tbody></table>
+
+<h2 id="journey"><span class="n">2</span>The journey, end to end</h2>
+<div class="flow">
+<div class="now"><b>Profile</b>who you are, citizenship, tests, papers</div>
+<div class="now"><b>Target</b>tracks, places, fields, funding floor</div>
+<div class="now"><b>Discover</b>professors and programs from every source</div>
+<div class="now"><b>Vet money</b>grants, guarantees, hiring signals</div>
+<div><b>Reach out</b>personal email, sent from your account</div>
+<div><b>Follow up</b>2 to 3 touches, stop on reply</div>
+<div><b>Apply</b>deadlines, fees, SOPs, recommenders</div>
+<div><b>Offer</b>interviews, compare, negotiate, accept</div>
+</div>
+<p class="note">The hunt ends when a fully funded offer is accepted, not when emails are sent. Every stage after "Vet money" is new work.</p>
+
+<h2 id="profile"><span class="n">3</span>Profile: gather enough to search properly</h2>
+<div class="cols">
+<div>
+<table><thead><tr><th>Field</th><th>Why the agent needs it</th></tr></thead><tbody>
+<tr><td class="k">Citizenship, residence</td><td>Eligibility, scholarships, visa, fee waivers</td></tr>
+<tr><td class="k">Degree, years, GPA and scale</td><td>Track eligibility (3 vs 4-year), honest GPA conversion</td></tr>
+<tr><td class="k">Tests, taken or planned, with dates</td><td>Which deadlines are reachable; MOI-friendly programs first</td></tr>
+<tr><td class="k">Papers, projects, work</td><td>Fit, and the one fact each email leads with</td></tr>
+<tr><td class="k">Money constraints</td><td>Can pay application fees? Dependents? Minimum stipend</td></tr>
+<tr><td class="k">Recommenders</td><td>How many, and when to ask them</td></tr>
+</tbody></table>
+</div>
+<div>
+<h3 style="margin-top:0">How it's gathered</h3>
+<ul class="pl">
+<li>A CV (PDF) read by Claude, confirmed fact by fact (built).</li>
+<li>Links: personal site, Scholar, GitHub, ORCID, LinkedIn. Each is fetched and cross-checked, not trusted alone.</li>
+<li>A short interview for what a CV never says: citizenship, test plans, dependents, fee budget. Asked once, in setup.</li>
+<li>Gaps become questions in the sidebar (the Input status), never guesses.</li>
+</ul>
+</div>
+</div>
+
+<h2 id="sources"><span class="n">4</span>Every source, not only LinkedIn</h2>
+<table>
+<thead><tr><th>Need</th><th>Sources, cheapest first</th><th>Cost</th></tr></thead>
+<tbody>
+<tr><td class="k">Who works on X at school Y</td><td>Department faculty pages (web search then fetch), CSRankings by area (rendered page), OpenAlex authors by institution and topic, then <code>treg.people.search</code> / <code>apollo.people.search</code> by title and org</td><td class="m">free · $0.0009 search</td></tr>
+<tr><td class="k">What they work on now</td><td>OpenAlex recent works, ACL Anthology, arXiv, Google Scholar (<code>serper.google.serp.scholar</code>), <code>exa.web.search.publications</code></td><td class="m">free · $0.001 · $0.007</td></tr>
+<tr><td class="k">Their money</td><td>NSF and NIH (built), and per target country: UKRI Gateway to Research, CORDIS for ERC and Horizon, DFG GEPRIS, NSERC and ARC award lists</td><td class="m">free</td></tr>
+<tr><td class="k">Are they hiring</td><td>Lab "join us" pages, X posts (<code>treg.x.search.posts</code>), Reddit r/PhD and r/gradadmissions, LinkedIn jobs for "PhD position" (European PhDs are jobs), EURAXESS, jobs.ac.uk, AcademicPositions via search and extract</td><td class="m">$0.0005 to $0.002</td></tr>
+<tr><td class="k">Program facts</td><td>Program pages via fetch; <code>treg.web.extract.structured</code> for rendered pages; <code>exa.web.answer</code> for one cited fact ("does it accept MOI?")</td><td class="m">free · $0.01 · $0.005</td></tr>
+<tr><td class="k">Their email</td><td>Official pages and CV PDFs first; <code>treg.people.email.find</code> only when those fail; always <code>treg.people.email.verify</code></td><td class="m">$0.0048 · $0 verify</td></tr>
+<tr><td class="k">Their profile, to confirm identity</td><td><code>getleadsio.people.enrich.from_linkedin</code> to check a match, never as the main source</td><td class="m">$0</td></tr>
+</tbody></table>
+<p class="note">Every value keeps its source URL. Two sources that disagree become a question, not a pick.</p>
+
+<h2 id="money"><span class="n">5</span>When there's no clear funding clue</h2>
+<table class="ladder">
+<thead><tr><th>Tier</th><th>Evidence</th><th>What gradcode does</th></tr></thead>
+<tbody>
+<tr><td class="ok">1 · clear</td><td>A posted funded opening, or "I have funding for 1 to 2 students in Fall 2027"</td><td>Top of the list; outreach in cover-letter mode, citing the post</td></tr>
+<tr><td class="ok">2 · strong</td><td>An active grant as PI that lasts past the intake; a new hire's startup package (first 1 to 3 years); a program that funds every admit</td><td>Email, naming what you'd work on under that grant</td></tr>
+<tr><td class="warn">3 · indirect</td><td>Lab growing (new students on the page), recent industry gifts or awards, senior students graduating, steady student-led papers</td><td>Email that asks, politely, whether they're taking funded students</td></tr>
+<tr><td class="err">4 · none found</td><td>Nothing public either way</td><td>Don't drop them: a short "are you taking students?" email is the cheapest evidence there is. Their reply becomes the record.</td></tr>
+</tbody></table>
+<p class="note">Fit and money are scored separately and shown as two numbers, so a perfect-fit professor with tier-4 money gets an asking email instead of silence.</p>
+
+<h2 id="outreach"><span class="n">6</span>Outreach: mail, then follow up until someone answers</h2>
+<div class="cols">
+<div>
+<h3 style="margin-top:0">Sending</h3>
+<ul class="pl">
+<li>Drafts come from confirmed facts plus one or two of the professor's recent papers; lint blocks any claim the profile lacks.</li>
+<li>Approve one, a day, or all; schedule for 08:00 in the professor's timezone, Tuesday to Thursday.</li>
+<li>Warm-up for a new mailbox: 5 a day in week 1, 10 in week 2, then 15; at most 2 a day per university.</li>
+<li>Sent from the student's own mailbox. treg has no send endpoint, so: connect Gmail (send and read), or IMAP/SMTP with an app password, or "open in my mail app" for people who connect nothing.</li>
+<li>Plain text, one recipient, 1 to 2 links, no tracking pixels.</li>
+</ul>
+</div>
+<div>
+<h3 style="margin-top:0">Follow-ups and replies</h3>
+<table><thead><tr><th>Touch</th><th>When</th><th>Says</th></tr></thead><tbody>
+<tr><td class="k">First</td><td>day 0</td><td>Who you are, one fit fact, one question</td></tr>
+<tr><td class="k">Follow-up 1</td><td>+7 business days</td><td>Short bump, a new angle (their latest paper)</td></tr>
+<tr><td class="k">Follow-up 2</td><td>+14 business days</td><td>Last note, offers a CV or a call</td></tr>
+<tr><td class="k">After applying</td><td>on submit</td><td>"I applied and named you", with the application ID</td></tr>
+</tbody></table>
+<p class="note">Stops on any reply, bounce, out-of-office with a return date (re-timed), or "not taking students". Never follows up apply-only professors. Replies are classified (interested, call, apply first, not taking, needs info) and an answer is drafted within hours.</p>
+</div>
+</div>
+
+<h2 id="after"><span class="n">7</span>After outreach: stay until the money is real</h2>
+<table>
+<thead><tr><th>Stage</th><th>What the student needs</th></tr></thead>
+<tbody>
+<tr><td class="k">Applications</td><td>One row per program: deadline countdown, fee and waiver, required tests, documents, portal status, and which professors to name. A tailored statement of purpose per program from confirmed facts.</td></tr>
+<tr><td class="k">Recommenders</td><td>Who writes which letter, gentle reminders before each deadline, a thank-you note after.</td></tr>
+<tr><td class="k">Interviews</td><td>A prep pack per professor (their recent papers, likely questions), calendar entry, a thank-you email.</td></tr>
+<tr><td class="k">Offers</td><td>Compare stipend against local rent, tuition coverage, guaranteed years, insurance, TA load; draft a polite negotiation; track response deadlines (April 15 in the US).</td></tr>
+<tr><td class="k">Accept and move</td><td>Visa steps for the destination country, documents, dates. The hunt settles here.</td></tr>
+</tbody></table>
+
+<h2 id="features"><span class="n">8</span>Features, in build order</h2>
+<table>
+<thead><tr><th>Pri</th><th>Feature</th><th>Uses</th></tr></thead>
+<tbody>
+<tr><td class="p0">P0</td><td><b>Eligibility profile.</b> Citizenship, residence, degree years, tests with dates, money limits, in setup and the prompt. Every row shows "you qualify / you don't / unknown".</td><td>setup, prompt, records</td></tr>
+<tr><td class="p0">P0</td><td><b>Money tier and fit as two scores</b>, with the evidence behind the tier.</td><td>records, Results</td></tr>
+<tr><td class="p0">P0</td><td><b>Outreach drafts and a send queue</b>: draft, lint, approve, schedule, warm-up caps, send from Gmail or mailto.</td><td>Gmail API or SMTP, prompt</td></tr>
+<tr><td class="p0">P0</td><td><b>Follow-up sequences and reply sync</b>: touches, stop rules, reply classification, drafted answers.</td><td>Gmail read or IMAP</td></tr>
+<tr><td class="p0">P0</td><td><b>Conversations view</b> by whose turn it is (theirs, yours, follow-up due).</td><td>store</td></tr>
+<tr><td class="p1">P1</td><td><b>More sources as tools</b>: web search, rendered-page extract, X and Reddit hiring posts, LinkedIn jobs, Scholar, routed people search, free email verify.</td><td>treg (below)</td></tr>
+<tr><td class="p1">P1</td><td><b>Country grant databases</b>: UKRI, CORDIS, then DFG, NSERC, ARC, chosen by the hunt's places.</td><td>free APIs</td></tr>
+<tr><td class="p1">P1</td><td><b>Programs and Applications</b>: deadlines, fees, waivers, documents, recommenders, portal status.</td><td>store, loops</td></tr>
+<tr><td class="p1">P1</td><td><b>Scholarships matched to citizenship and track.</b></td><td>web search, extract</td></tr>
+<tr><td class="p2">P2</td><td><b>Interviews and offers</b>: prep packs, calendar, offer comparison, negotiation drafts.</td><td>calendar, web answer</td></tr>
+<tr><td class="p2">P2</td><td><b>Input status</b>: the agent asks you a question and the thread waits in indigo.</td><td>runner</td></tr>
+</tbody></table>
+
+<h2 id="treg"><span class="n">9</span>treg endpoints to wire in</h2>
+<table>
+<thead><tr><th>Job</th><th>Endpoint</th><th>Price</th><th>For</th></tr></thead>
+<tbody>
+<tr><td class="k">Web search</td><td><code>treg.google.serp.organic</code> (9 providers)</td><td class="m">$0.0009</td><td>Faculty directories, program pages, scholarships</td></tr>
+<tr><td class="k">Rendered page</td><td><code>litescrape.web.fetch.post</code></td><td class="m">$0.00015</td><td>CSRankings and other client-rendered lists</td></tr>
+<tr><td class="k">Structured extract</td><td><code>treg.web.extract.structured</code></td><td class="m">$0.01</td><td>Faculty tables, deadlines, fees into fields</td></tr>
+<tr><td class="k">One cited fact</td><td><code>exa.web.answer</code></td><td class="m">$0.005</td><td>"Accepts MOI?", "fee waiver for Bangladesh?"</td></tr>
+<tr><td class="k">Scholar</td><td><code>serper.google.serp.scholar</code></td><td class="m">$0.001</td><td>Recent papers when OpenAlex is thin</td></tr>
+<tr><td class="k">Publications</td><td><code>exa.web.search.publications</code></td><td class="m">$0.007</td><td>Topic search across papers</td></tr>
+<tr><td class="k">People by role</td><td><code>treg.people.search</code> · <code>apollo.people.search</code></td><td class="m">$0</td><td>Professors by title and university</td></tr>
+<tr><td class="k">Identity check</td><td><code>getleadsio.people.enrich.from_linkedin</code></td><td class="m">$0</td><td>Confirm a person, never the main source</td></tr>
+<tr><td class="k">Email find</td><td><code>treg.people.email.find</code> (23 providers)</td><td class="m">$0.0048</td><td>Only when official pages fail</td></tr>
+<tr><td class="k">Email verify</td><td><code>treg.people.email.verify</code> (11 providers)</td><td class="m">$0</td><td>Before every send; replaces the paid verify step</td></tr>
+<tr><td class="k">X posts</td><td><code>treg.x.search.posts</code></td><td class="m">$0.00075</td><td>"Looking for PhD students" posts</td></tr>
+<tr><td class="k">Reddit</td><td><code>tikhub.x.reddit-app-fetch-dynamic-search</code></td><td class="m">$0.001</td><td>Admissions results, lab reputations</td></tr>
+<tr><td class="k">Job boards</td><td><code>anyapi.linkedin.search.jobs</code></td><td class="m">$0.0005</td><td>European PhD positions posted as jobs</td></tr>
+<tr><td class="k">Send email</td><td><span class="err">none in the catalog</span></td><td class="m">n/a</td><td>Use the student's Gmail or SMTP; worth a catalog request</td></tr>
+<tr><td class="k">Cost of living</td><td><span class="err">none in the catalog</span></td><td class="m">n/a</td><td>Offer comparison via web search and extract</td></tr>
+</tbody></table>
+<p class="note">Prices are treg's catalog list prices on 2026-10-07. A full sweep of one school (search, 20 faculty pages, OpenAlex, awards, 15 email verifies) costs about $0.03 with these, most of it optional.</p>
+
+<h2 id="decide"><span class="n">10</span>Decide</h2>
+<table>
+<thead><tr><th>#</th><th>Question</th><th>My default</th></tr></thead>
+<tbody>
+<tr><td class="m">1</td><td><b>Mailbox.</b> Gmail connection (send and read replies), IMAP/SMTP with an app password, or mailto only?</td><td>Gmail first, mailto as the fallback; IMAP/SMTP later.</td></tr>
+<tr><td class="m">2</td><td><b>Follow-up cadence.</b> +7 and +14 business days, then stop?</td><td>Yes, editable per hunt.</td></tr>
+<tr><td class="m">3</td><td><b>Country grant databases first.</b> UKRI and CORDIS (UK, EU), then Germany and Canada?</td><td>Pick from each user's places automatically.</td></tr>
+<tr><td class="m">4</td><td><b>Build order.</b> P0 now (eligibility, two scores, outreach, follow-ups, Conversations), then P1?</td><td>Yes. Mocks for Outreach and Conversations first, then build.</td></tr>
+</tbody></table>
+</main>
+</body>
+</html>

@@ -1,6 +1,27 @@
 import { useState } from "react";
+import { encode } from "uqr";
 import { Button } from "~/components/ui/button";
 import { useStore } from "~/state/store";
+
+/** The link as a QR code a phone camera opens: dark modules on a light square, quiet zone included. */
+function QrCode({ text }: { text: string }) {
+  const { data, size } = encode(text, { border: 4 });
+  const modules = data
+    .flatMap((row, y) => row.map((dark, x) => (dark ? `M${x} ${y}h1v1h-1z` : "")))
+    .join("");
+  return (
+    <svg
+      viewBox={`0 0 ${size} ${size}`}
+      className="size-36"
+      shapeRendering="crispEdges"
+      role="img"
+      aria-label={`QR code for ${text}`}
+    >
+      <rect width={size} height={size} className="fill-foreground" />
+      <path d={modules} className="fill-background" />
+    </svg>
+  );
+}
 
 /** Settings' row for opening gradcode on a phone or laptop over the tailnet. */
 export function PairSettings() {
@@ -30,6 +51,7 @@ export function PairSettings() {
           {copied ? "Copied" : "Copy"}
         </Button>
       </span>
+      {link.served ? <QrCode text={link.url} /> : null}
       <span className="text-muted-foreground">
         {link.served
           ? "Open it on any device signed in to your tailnet. The agent keeps running here."

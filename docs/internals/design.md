@@ -1,6 +1,7 @@
 # Design
 
-The approved direction is [docs/mocks/phase1.html](../mocks/phase1.html). It follows T3 Code:
+The approved direction is [docs/mocks/phase1.html](../mocks/phase1.html), with the Pipeline,
+Vault and Writer screens in [outreach-vault.html](../mocks/outreach-vault.html). It follows T3 Code:
 clean, keyboard-first, and powerful through the palette and the inbox sidebar rather than more
 panes.
 

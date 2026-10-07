@@ -94,7 +94,9 @@ export function VaultOffers() {
   const vault = useStore((s) => s.vault);
   const navigate = useNavigate();
   const offers = vault?.offers ?? [];
-  const lefts = offers.map(leftAfterRent);
+  // With dependents, rent is for a family home.
+  const family = useStore((s) => s.app?.applicant.dependents ?? false);
+  const lefts = offers.map((o) => leftAfterRent(o, family));
   const best = Math.max(...lefts.map((l) => l ?? Number.NEGATIVE_INFINITY));
   const accepted = offers.find((o) => o.status === "accepted");
   const of = (label: string, i: number) => `${label}, offer ${i + 1}`;
@@ -210,6 +212,21 @@ export function VaultOffers() {
                       label={of("Rent a month", i)}
                       onSave={(rentPerMonth) => save({ ...o, rentPerMonth })}
                     />
+                    {o.rentPerMonth == null ? (
+                      <Button
+                        size="xs"
+                        variant="ghost-muted"
+                        onClick={async () => {
+                          const t = await call("threads.create", {
+                            title: `Rent near ${o.university}`,
+                            text: `Find the current median monthly rent for a 1-bedroom near ${o.university}${family ? " and for a 2-bedroom" : ""}, from a page that states it, and record the 1-bedroom figure in USD with set_offer_rent (offer ${o.id}).`,
+                          });
+                          void navigate({ to: "/t/$threadId", params: { threadId: t.id } });
+                        }}
+                      >
+                        Find rent
+                      </Button>
+                    ) : null}
                   </Cell>
                 ))}
               </Field>

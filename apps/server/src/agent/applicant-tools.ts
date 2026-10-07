@@ -5,12 +5,37 @@ import { z } from "zod";
 import { classify } from "../outreach/inbox.ts";
 import { getMessage, issuesFor, saveDraft } from "../outreach/store.ts";
 import { recordKey } from "../records.ts";
-import { proposeFinding, saveWriting } from "../vault.ts";
+import { listOffers, proposeFinding, saveEdit, saveWriting } from "../vault.ts";
 import type { HuntTool } from "./tools.ts";
 
 const define = <S extends z.ZodRawShape>(t: HuntTool<S>) => t;
 
 export const APPLICANT_TOOLS = [
+  define({
+    name: "set_offer_rent",
+    description:
+      "Record the local monthly rent (USD, a 1-bedroom near campus) on an offer in the Vault, from a page that states it, so offers compare after rent. Give the offer id and the page.",
+    shape: {
+      offerId: z.string(),
+      usdPerMonth: z.number().positive(),
+      source: z.string().describe("The page the figure is from"),
+    },
+    paid: false,
+    price: () => 0,
+    run: async ({ offerId, usdPerMonth, source }, ctx) => {
+      const offer = listOffers(ctx.db).find((o) => o.id === offerId);
+      if (!offer) return { summary: "no offer", text: `No offer ${offerId} in the Vault.` };
+      saveEdit(ctx.db, {
+        kind: "offer",
+        value: { ...offer, rentPerMonth: Math.round(usdPerMonth) },
+      });
+      ctx.vaultChanged();
+      return {
+        summary: `$${Math.round(usdPerMonth)} a month`,
+        text: `Saved on the offer at ${offer.university}, from ${source}. Say the source in your reply.`,
+      };
+    },
+  }),
   define({
     name: "draft_email",
     description:

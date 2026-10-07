@@ -146,7 +146,7 @@ function remindRecommenders() {
   for (const r of due) {
     const brief = writingBrief(db, profileFacts(db), {
       kind: "note",
-      programId: null,
+      programId: r.programId,
       scholarshipId: null,
       basedOn: null,
       about: r.about,

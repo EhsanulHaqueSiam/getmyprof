@@ -23,6 +23,7 @@ export function dueReminders(db: Db, now = new Date()) {
       .filter((r) => r.status === "asked" || r.status === "agreed")
       .map((r) => ({
         key: `${app.id}:${r.name}:${milestone}`,
+        programId: program.id,
         about: `Reminder to ${r.name} (${r.email || "no email"}): their recommendation letter for ${program.university} ${program.name} is due ${program.deadline}, ${days} day${days === 1 ? "" : "s"} from now. Short, warm and thankful; offer anything they need.`,
       }))
       .filter((r) => !asked.has(r.key));

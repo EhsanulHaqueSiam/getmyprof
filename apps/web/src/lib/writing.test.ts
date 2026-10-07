@@ -8,6 +8,7 @@ const fact = (id: string, f: Partial<ProfileFact> = {}): ProfileFact => ({
   text: id,
   source: "cv.pdf",
   kind: "other",
+  date: "",
   confirmed: true,
   question: false,
   ...f,

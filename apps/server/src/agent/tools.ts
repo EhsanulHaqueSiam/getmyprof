@@ -5,6 +5,7 @@ import { type AwardSource, type Hunt, type Settings, Stage } from "@gradcode/con
 import { z } from "zod";
 import type { Db } from "../db.ts";
 import { listLoops } from "../loops.ts";
+import { searchVault } from "../okf.ts";
 import { propose, listRecords } from "../records.ts";
 import {
   arcAwards,
@@ -242,6 +243,27 @@ export const HUNT_TOOLS = [
     run: async ({ question }, ctx) => {
       ctx.ask(question);
       return { summary: "asked", text: "Asked. End your turn now and wait for the answer." };
+    },
+  }),
+  define({
+    name: "vault_search",
+    description:
+      "Search the applicant's vault (their facts with proof, documents, programs, applications, writing; on some installs their hq notes too) by words. Each hit comes with the notes it links to: a fact and its proof, a role and the paper from it. Use it before writing anything about the applicant. Free.",
+    shape: { query: z.string().describe("Words to find, e.g. 'leadership team lab'") },
+    paid: false,
+    price: () => 0,
+    run: async ({ query }, ctx) => {
+      const hits = searchVault(ctx.db, query);
+      if (hits.length === 0) return { summary: "nothing found", text: "No note matches." };
+      return {
+        summary: `${hits.length} note${hits.length === 1 ? "" : "s"}`,
+        text: hits
+          .map(
+            (h) =>
+              `${h.type} · ${h.title} (${h.path})\n  ${h.snippet}${h.linked.length ? `\n  linked: ${h.linked.map((l) => l.title || l.path).join("; ")}` : ""}`,
+          )
+          .join("\n"),
+      };
     },
   }),
   define({

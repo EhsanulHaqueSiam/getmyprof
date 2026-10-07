@@ -13,6 +13,11 @@ const Extracted = z.object({
         ),
       source: z.string().describe("Where it came from, e.g. 'CV p1' or a URL"),
       kind: FactKind.describe("education, paper, project, test, work, or other"),
+      date: z
+        .string()
+        .describe(
+          'When it happened, only as precise as the source says: "2025", "2025-05" or "2025-05-14"; for a span, its end (or start if ongoing). Empty if the source gives none',
+        ),
       question: z
         .boolean()
         .describe(
@@ -82,6 +87,7 @@ export async function extractFacts(
       text: f.text,
       source: f.source,
       kind: f.kind,
+      date: f.date,
       question: f.question,
       confirmed: false,
     }));
@@ -96,6 +102,7 @@ export const fakeFacts = (): ProfileFact[] => [
     text: "BSc in Computer Science, 2025",
     source: "CV p1",
     kind: "education",
+    date: "2025",
     confirmed: false,
     question: false,
   },
@@ -104,6 +111,7 @@ export const fakeFacts = (): ProfileFact[] => [
     text: "GPA 3.8 / 4.0",
     source: "CV p1",
     kind: "education",
+    date: "2025",
     confirmed: false,
     question: false,
   },
@@ -112,6 +120,7 @@ export const fakeFacts = (): ProfileFact[] => [
     text: '"Fluent English": which test or certificate proves it?',
     source: "CV p2",
     kind: "test",
+    date: "",
     confirmed: false,
     question: true,
   },

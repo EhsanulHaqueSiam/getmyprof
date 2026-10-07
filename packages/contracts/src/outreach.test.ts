@@ -7,6 +7,7 @@ const fact = (id: string, source: string) => ({
   text: id,
   source,
   kind: "other" as const,
+  date: "",
   confirmed: true,
   question: false,
 });

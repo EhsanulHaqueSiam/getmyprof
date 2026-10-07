@@ -104,6 +104,8 @@ export const ProfileFact = z.object({
   /** Its proof: the document or link it was read from. A fact without one is never written into anything. */
   source: z.string(),
   kind: FactKind.default("other"),
+  /** When it happened, as precise as the source says: "2025", "2025-05" or "2025-05-14". Empty when undated. */
+  date: z.string().default(""),
   confirmed: z.boolean(),
   /** A fact the agent couldn't verify becomes a question for the user. */
   question: z.boolean(),

@@ -142,7 +142,12 @@ export function createHandlers(svc: Services): Handlers {
       return hunt;
     },
     "applicant.save": (applicant) => saveApplicant(db, applicant),
-    "facts.save": ({ facts }) => saveFacts(db, facts),
+    "facts.save": ({ facts }) => {
+      const saved = saveFacts(db, facts);
+      // Every view of the facts (Lifeline, Facts, the Writer's checks) and the bundle follow.
+      bus.push({ type: "changed", what: "state" });
+      return saved;
+    },
     "facts.extract": async (input) =>
       svc.fake ? fakeFacts() : extractFacts(input, getSettings(db).model),
 

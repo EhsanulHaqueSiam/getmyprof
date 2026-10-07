@@ -220,13 +220,16 @@ test("writer: a statement cites its facts, and an unproven one blocks export unt
   await expect(page.locator("[data-blocked]")).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Export PDF" })).toBeDisabled();
 
-  // Confirming the fact in the Vault unblocks the claim without rewriting anything.
+  // Confirming the fact on the Vault's Lifeline unblocks the claim without rewriting anything.
   await page.goto("/vault");
-  await page
-    .getByTestId("vault-fact")
-    .filter({ hasText: "GPA 3.8 / 4.0" })
-    .getByRole("button", { name: "Confirm" })
-    .click();
+  await page.getByTestId("lifeline-item").filter({ hasText: "GPA 3.8 / 4.0" }).click();
+  const note = page.getByTestId("fact-note");
+  await expect(note).toContainText("2025");
+  await note.getByRole("button", { name: "Confirm" }).click();
+  await expect(note).toContainText("confirmed");
+  // The CV tab lays the facts out by section.
+  await page.getByRole("button", { name: "CV", exact: true }).click();
+  await expect(page.getByTestId("cv-view")).toContainText("Education");
   await page.goto(writer);
   await expect(page.getByTestId("blocked")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Export PDF" })).toBeEnabled();

@@ -156,6 +156,21 @@ An hq inside the app. Facts are the profile facts above, each with its proof (`s
 without proof is never written into anything. On Siam's install hq stays the source and the
 Vault shows its facts read-only.
 
+- **An OKF bundle, like hq.** `okf.ts` writes the whole Vault (facts by kind, documents, programs,
+  professors, applications, offers, writing) to `GRADCODE_HOME/vault` as typed markdown notes
+  with relative links: a fact links its proof, an application its program and professors, a piece
+  of writing the facts it cites. It is one way, rebuilt a moment after any change: the app is the
+  source, the folder is for Obsidian and for search. On Siam's install hq keeps the facts and
+  gradcode writes none of them.
+- **The agent searches before it writes.** The same notes (plus hq's own facts, documents,
+  decisions and research on an install that reads hq) fill an FTS5 table, `notes`. `vault_search`
+  returns the best notes with what they link to and what links to them, so a fact comes with its
+  proof in one call. The table is derived and never backed up.
+- **The Lifeline is the front page.** Facts carry a date, as precise as their source; the
+  Lifeline lists facts and documents by year. Its panel shows the note, the facts as a CV, or
+  the file (a PDF is served without the sandbox header so Chrome will show it; everything else
+  keeps it).
+
 - **One table, typed by kind.** Documents, scholarships, programs, applications and To file
   share the `vault` table; `vault.ts` parses each kind with its zod schema on read.
 - **Files stay private.** Document bytes live in `GRADCODE_HOME/files`, mode 0600, named by id

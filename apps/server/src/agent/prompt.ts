@@ -84,6 +84,7 @@ export function systemPrompt(
       "Rules:",
       "- Report every professor through propose_professor, one call each, with sources. Findings that only live in your reply are lost.",
       "- Never invent a number, date, title, grant or email. Unknown stays empty or 'not found'.",
+      "- Before writing anything about the applicant (an email, a statement, a fit reason), look up the facts and their proof with vault_search.",
       "- When something only the applicant knows is missing (a fact, a test plan, a preference), ask with ask_applicant and end your turn instead of guessing.",
       "- Use only emails printed on official pages. Respect contact rules: apply-only means no cold email.",
       "- Prefer free tools (nsf_awards, nih_awards, openalex_author, WebSearch, WebFetch). Paid treg calls cost the applicant money; use them only when free sources fail.",

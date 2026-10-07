@@ -27,14 +27,14 @@ import { useStore } from "~/state/store";
 type Col = { key: keyof Professor | "select"; label: string; source?: string; level: DetailLevel };
 const COLUMNS: Col[] = [
   { key: "fit", label: "Fit", level: "brief" },
-  { key: "name", label: "Professor", level: "brief" },
+  { key: "name", label: "Professor", source: "web · free", level: "brief" },
   { key: "moneyTier", label: "Money tier", level: "brief" },
   { key: "taking", label: "Taking students?", source: "page · free", level: "brief" },
   { key: "money", label: "Money", source: "NSF, NIH · free", level: "brief" },
-  { key: "emailCheck", label: "Email", source: "verify", level: "brief" },
+  { key: "emailCheck", label: "Email", source: "page free · find $0.0048", level: "brief" },
   { key: "lasts", label: "Lasts", source: "awards · free", level: "std" },
   { key: "eligibility", label: "Eligible", level: "std" },
-  { key: "contact", label: "Contact rule", level: "std" },
+  { key: "contact", label: "Contact rule", source: "page · free", level: "std" },
   { key: "stage", label: "Stage", level: "std" },
   { key: "fitsBecause", label: "Fits because", source: "your profile", level: "deep" },
   { key: "sources", label: "Sources", level: "deep" },
@@ -106,6 +106,12 @@ export function Results({ view, threadId }: { view: ThreadView; threadId: string
       s.has(key) ? new Set([...s].filter((k) => k !== key)) : new Set([...s, key]),
     );
 
+  // What the row actions that fill this cell's column spent on this row.
+  const cellCost = (key: string, field: string) =>
+    OPS.filter((op) => ROW_OPS[op].field === field).reduce(
+      (n, op) => n + (view.costs[key]?.[op] ?? 0),
+      0,
+    );
   const opPrice = (op: RowOp) => (op === "email" && settings?.treg ? ROW_OPS.email.priceUsd : 0);
   const runOp = (op: RowOp, confirmed = false) => {
     const cost = opPrice(op) * keys.length;
@@ -201,6 +207,7 @@ export function Results({ view, threadId }: { view: ThreadView; threadId: string
                   {cols.map((c) => {
                     const isRunning = running?.keys.includes(r.key) && running.field === c.key;
                     const isChanged = changed.get(r.key)?.has(String(c.key));
+                    const cost = cellCost(r.key, String(c.key));
                     const value =
                       c.key === "sources"
                         ? r.sources
@@ -238,7 +245,14 @@ export function Results({ view, threadId }: { view: ThreadView; threadId: string
                             </span>
                           </Link>
                         ) : (
-                          value || <span className="text-placeholder">?</span>
+                          <>
+                            {value || <span className="text-placeholder">?</span>}
+                            {cost ? (
+                              <span className="ml-1.5 font-mono text-2xs text-muted-foreground">
+                                {usd(cost)}
+                              </span>
+                            ) : null}
+                          </>
                         )}
                       </td>
                     );

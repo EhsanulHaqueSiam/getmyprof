@@ -13,6 +13,8 @@ import {
   Proposal,
   Schedule,
   Settings,
+  TregConnect,
+  TregStatus,
 } from "./domain.ts";
 import { Conversation, MailConnect, MailStatus } from "./outreach.ts";
 import { RowOp, ThreadEvent, ThreadSummary } from "./threads.ts";
@@ -36,6 +38,7 @@ export const AppState = z.object({
   host: z.string(),
   adapters: z.object({ hq: z.boolean(), gradhunt: z.boolean(), treg: z.boolean() }),
   mail: MailStatus,
+  treg: TregStatus,
   /** Where a phone on the tailnet opens gradcode, and whether it's being served there. */
   tailnet: z.object({ url: z.string(), served: z.boolean() }).nullable(),
 });
@@ -46,6 +49,8 @@ export const ThreadView = z.object({
   events: z.array(ThreadEvent),
   rows: z.array(Professor),
   proposals: z.array(Proposal),
+  /** What row actions spent per sheet row, by row action: {key: {email: 0.0048}}. */
+  costs: z.record(z.string(), z.record(z.string(), z.number())),
 });
 export type ThreadView = z.infer<typeof ThreadView>;
 
@@ -178,6 +183,10 @@ export const Methods = {
   "mail.connect": { input: MailConnect, output: MailStatus },
   "mail.disconnect": { input: z.object({}), output: MailStatus },
   "mail.sync": { input: z.object({}), output: MailStatus },
+
+  /** Checks the pinned token with treg before saving it; switches paid lookups on. */
+  "treg.connect": { input: TregConnect, output: TregStatus },
+  "treg.disconnect": { input: z.object({}), output: TregStatus },
 
   "outreach.list": { input: z.object({}), output: z.array(Conversation) },
   /** Schedules drafts into send slots; replies and LinkedIn notes are ready at once. */

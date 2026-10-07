@@ -12,6 +12,7 @@ const t = (id: string, status: ThreadSummary["status"]): ThreadSummary => ({
   workingSince: null,
   updatedAt: "",
   spendUsd: 0,
+  spendDayUsd: 0,
   loopId: null,
   pendingReview: 0,
   rows: 0,

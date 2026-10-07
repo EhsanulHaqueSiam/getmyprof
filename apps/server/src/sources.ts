@@ -1,7 +1,6 @@
-// Data sources the agent and the Funding view use. NSF, NIH RePORTER and OpenAlex are free
-// public APIs; treg is paid, so only endpoints with a known price may be called.
+// Data sources the agent and the Funding view use: free public APIs (NSF, NIH RePORTER, UKRI,
+// CORDIS, ARC, OpenAlex). Paid lookups go through treg.ts.
 import type { Award } from "@gradcode/contracts";
-import * as NodeChild from "node:child_process";
 
 const TIMEOUT_MS = 20_000;
 
@@ -11,7 +10,7 @@ async function getJson(url: string, init?: RequestInit): Promise<unknown> {
   return res.json();
 }
 
-const asRecord = (v: unknown): Record<string, unknown> =>
+export const asRecord = (v: unknown): Record<string, unknown> =>
   v && typeof v === "object" ? (v as Record<string, unknown>) : {};
 const asArray = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
 const text = (v: unknown) => (v == null ? "" : String(v));
@@ -365,48 +364,4 @@ export async function openAlexAuthor(name: string, university?: string): Promise
       link: text(w.doi) || text(asRecord(w.primary_location).landing_page_url),
     })),
   };
-}
-
-/** treg endpoints gradcode may call, with their price per call in USD. */
-export const TREG_PRICES: Record<string, number> = {
-  "treg.people.email.verify": 0,
-  "treg.people.search": 0,
-  "apollo.people.search": 0,
-  "getleadsio.people.enrich.from_linkedin": 0,
-  "litescrape.web.fetch.post": 0.00015,
-  "anyapi.linkedin.search.jobs": 0.0005,
-  "treg.x.search.posts": 0.00075,
-  "treg.google.serp.organic": 0.0009,
-  "serper.google.serp.scholar": 0.001,
-  "tikhub.x.reddit-app-fetch-dynamic-search": 0.001,
-  "treg.people.email.find": 0.0048,
-  "exa.web.search.publications": 0.007,
-  "treg.web.extract.structured": 0.01,
-  "tinyfish.web.search": 0,
-  "anyapi.x.search.posts": 0.0006,
-  "anyapi.google.scholar": 0.001,
-  "millionverifier.people.email.verify": 0.0018,
-  "bounceban.people.email.verify": 0.004,
-  "exa.web.answer": 0.005,
-  "exa.people.search": 0.007,
-  "prospeo.people.email.find": 0.0245,
-};
-
-/** One treg call through its CLI (the credential is injected server-side by treg). */
-export function tregCall(endpoint: string, data: Record<string, unknown>): Promise<unknown> {
-  return new Promise((resolve, reject) => {
-    NodeChild.execFile(
-      "treg",
-      ["--json", "call", endpoint, "--data", JSON.stringify(data)],
-      { timeout: 120_000 },
-      (err, stdout) => {
-        if (err) return reject(new Error(`treg ${endpoint}: ${err.message.slice(0, 200)}`));
-        try {
-          resolve(asRecord(JSON.parse(stdout)).result ?? null);
-        } catch {
-          reject(new Error(`treg ${endpoint}: unreadable output`));
-        }
-      },
-    );
-  });
 }

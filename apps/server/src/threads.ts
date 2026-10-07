@@ -17,6 +17,7 @@ function summarize(db: Db, r: Row): ThreadSummary {
     workingSince: str(r.working_since),
     updatedAt: String(r.updated_at),
     spendUsd: threadSpend(db, id),
+    spendDayUsd: daySpend(db, id),
     loopId: str(r.loop_id),
     pendingReview: pendingCount(db, id),
     rows: Number(
@@ -117,13 +118,53 @@ export const listEvents = (db: Db, threadId: string) =>
     .all(threadId)
     .map((r) => ThreadEvent.parse(JSON.parse(String(r.body))));
 
-export function recordSpend(db: Db, threadId: string | null, what: string, usd: number) {
-  db.prepare("INSERT INTO spend (thread_id, what, usd, at) VALUES (?, ?, ?, ?)").run(
-    threadId,
-    what,
-    usd,
-    now(),
-  );
+/**
+ * One line in the spend ledger: what a paid call really cost, under treg's call id. `feature` is
+ * what the call was for (hunt, loop, row-email...), `subject` the sheet row it was about.
+ */
+export function recordSpend(
+  db: Db,
+  e: {
+    threadId: string | null;
+    what: string;
+    usd: number;
+    callId?: string | null;
+    feature?: string;
+    subject?: string | null;
+  },
+) {
+  db.prepare(
+    "INSERT INTO spend (thread_id, what, usd, at, call_id, feature, subject) VALUES (?, ?, ?, ?, ?, ?, ?)",
+  ).run(e.threadId, e.what, e.usd, now(), e.callId ?? null, e.feature ?? null, e.subject ?? null);
+}
+
+/** Spend since `since`, in total and by feature, for Settings. */
+export function usageSince(db: Db, since: string) {
+  const byFeature = db
+    .prepare(
+      "SELECT COALESCE(feature, 'hunt') AS feature, SUM(usd) AS usd, COUNT(*) AS calls FROM spend WHERE at >= ? GROUP BY 1 ORDER BY 2 DESC",
+    )
+    .all(since)
+    .map((r) => ({ feature: String(r.feature), usd: Number(r.usd), calls: Number(r.calls) }));
+  return {
+    usd: byFeature.reduce((n, f) => n + f.usd, 0),
+    calls: byFeature.reduce((n, f) => n + f.calls, 0),
+    byFeature,
+  };
+}
+
+/** What row actions spent on each sheet row in a thread, by row action: {key: {email: 0.0048}}. */
+export function rowCosts(db: Db, threadId: string) {
+  const costs: Record<string, Record<string, number>> = {};
+  for (const r of db
+    .prepare(
+      "SELECT subject, feature, SUM(usd) AS usd FROM spend WHERE thread_id = ? AND subject IS NOT NULL AND feature LIKE 'row-%' GROUP BY 1, 2",
+    )
+    .all(threadId)) {
+    const row = (costs[String(r.subject)] ??= {});
+    row[String(r.feature).slice(4)] = Number(r.usd);
+  }
+  return costs;
 }
 
 export const threadSpend = (db: Db, threadId: string) =>
@@ -132,11 +173,14 @@ export const threadSpend = (db: Db, threadId: string) =>
       ?.s ?? 0,
   );
 
-export const daySpend = (db: Db) =>
+/** Spend in the last 24 hours, the window the day cap counts: all of it, or one thread's. */
+export const daySpend = (db: Db, threadId?: string) =>
   Number(
     db
-      .prepare("SELECT COALESCE(SUM(usd), 0) AS s FROM spend WHERE at >= ?")
-      .get(new Date(Date.now() - 864e5).toISOString())?.s ?? 0,
+      .prepare(
+        `SELECT COALESCE(SUM(usd), 0) AS s FROM spend WHERE at >= ?${threadId ? " AND thread_id = ?" : ""}`,
+      )
+      .get(new Date(Date.now() - 864e5).toISOString(), ...(threadId ? [threadId] : []))?.s ?? 0,
   );
 
 /** Approvals still waiting when the server stopped can't be answered any more. */

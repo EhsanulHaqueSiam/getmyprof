@@ -2,6 +2,7 @@ import type { ServerMessage, ThreadEvent } from "@gradcode/contracts";
 import { describe, expect, it } from "vite-plus/test";
 import { createBus } from "../bus.ts";
 import { openDb } from "../db.ts";
+import { saveLoop } from "../loops.ts";
 import { resolveProposal, threadProposals } from "../records.ts";
 import { updateSettings } from "../state.ts";
 import {
@@ -80,6 +81,36 @@ describe("a fake agent turn", () => {
     expect(listEvents(db, thread).some((e) => e.type === "tool" && e.status === "denied")).toBe(
       true,
     );
+  });
+});
+
+describe("a loop run at its cap", () => {
+  it("stops and says why, without paying", async () => {
+    const db = openDb(":memory:");
+    updateSettings(db, { treg: true });
+    const loop = saveLoop(db, {
+      name: "Nightly sweep",
+      instructions: "Sweep.",
+      schedule: { kind: "daily", at: "02:00" },
+      budgetUsd: 0.01,
+      enabled: true,
+    });
+    const runner = createRunner({
+      db,
+      bus: createBus(),
+      provider: fakeProvider(1),
+      sources: fixtureSources,
+    });
+    const thread = createThread(db, "Nightly sweep", loop.id).id;
+    runner.send(thread, "sweep", "send");
+    await until(() => listEvents(db, thread).some((e) => e.type === "system"));
+    await until(() => getThread(db, thread)?.status === "idle");
+    const stop = listEvents(db, thread).find((e) => e.type === "system");
+    expect(stop?.type === "system" && stop.text).toBe(
+      "Stopped: This would pass the $0.01 cap for this loop run.",
+    );
+    expect(threadSpend(db, thread)).toBe(0);
+    expect(listEvents(db, thread).some((e) => e.type === "approval")).toBe(false);
   });
 });
 

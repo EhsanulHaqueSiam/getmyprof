@@ -16,6 +16,8 @@ export const ThreadSummary = z.object({
   workingSince: z.string().nullable(),
   updatedAt: z.string(),
   spendUsd: z.number(),
+  /** Spend in the last 24 hours, the window the day cap counts. */
+  spendDayUsd: z.number(),
   loopId: z.string().nullable(),
   pendingReview: z.number(),
   rows: z.number(),
@@ -71,9 +73,12 @@ export const ThreadEvent = z.discriminatedUnion("type", [
 ]);
 export type ThreadEvent = z.infer<typeof ThreadEvent>;
 
-/** Row actions the Results dock runs on selected rows. Each is an agent turn. */
+/**
+ * Row actions the Results dock runs on selected rows. Each is an agent turn. `priceUsd` is the
+ * usual cost a row with paid lookups on: finding an address no official page lists.
+ */
 export const ROW_OPS = {
-  email: { label: "Find and check emails", priceUsd: 0, field: "emailCheck" },
+  email: { label: "Find and check emails", priceUsd: 0.0048, field: "emailCheck" },
   lasts: { label: "Check money (NSF, NIH)", priceUsd: 0, field: "lasts" },
   taking: { label: "Taking students?", priceUsd: 0, field: "taking" },
   draft: { label: "Draft first emails", priceUsd: 0, field: "stage" },

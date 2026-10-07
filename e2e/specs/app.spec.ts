@@ -8,7 +8,11 @@ test.describe.configure({ mode: "serial" });
 test("first run: setup saves a hunt, confirmed facts and loops", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveURL(/\/setup$/);
-  await page.getByRole("button", { name: "Off" }).click(); // paid lookups on
+  // Paid lookups: the scripted stack accepts any token without reaching treg.
+  await page.getByLabel("Customer id").fill("cust_e2e");
+  await page.getByLabel("treg token").fill("tok_e2e_fake");
+  await page.getByTestId("treg-connect").getByRole("button", { name: "Connect" }).click();
+  await expect(page.getByTestId("treg-connected")).toContainText("cust_e2e");
   await page.getByRole("button", { name: "Continue" }).click();
 
   await page.getByRole("textbox", { name: "Add" }).fill("Bangladesh");
@@ -43,6 +47,10 @@ test("a hunt asks before paying, proposes rows, and settles once reviewed", asyn
   await expect(page.getByText("Settled · nothing waits on you")).toBeVisible();
   // The settled thread leaves the main list but stays visible while it's open.
   await expect(page.getByRole("button", { name: /Settled/ })).toBeVisible();
+
+  // The paid call's real cost is in the ledger, and Settings shows it for this customer.
+  await page.goto("/settings");
+  await expect(page.getByTestId("treg-connected")).toContainText("$0.0245 this month · 1 call");
 });
 
 test("results: a row action fills cells, and accepting clears the blue", async ({ page }) => {
@@ -55,10 +63,20 @@ test("results: a row action fills cells, and accepting clears the blue", async (
   await expect(page.getByRole("columnheader", { name: /Money tier/ })).toBeVisible();
   await expect(page.getByText("2 strong").first()).toBeVisible();
 
+  // Three rows of email finding cost more than $0.01, so the dock asks first.
   await page.getByLabel("Select Kevin Lybarger").check();
   await page.getByLabel("Select Mohan Zalake").check();
+  await page.getByLabel("Select Natalie Parde").check();
+  await page.getByRole("button", { name: /Find and check emails/ }).click();
+  await expect(page.getByTestId("row-approval")).toContainText("3 rows · $0.0144");
+  await page.getByTestId("row-approval").getByRole("button", { name: "Deny" }).click();
+  await page.getByLabel("Select Natalie Parde").uncheck();
   await page.getByRole("button", { name: /Find and check emails/ }).click();
   await expect(page.getByText("2 proposed cells")).toBeVisible();
+  // Each Email cell shows what finding that address cost.
+  await expect(page.getByTestId("result-row").filter({ hasText: "Kevin Lybarger" })).toContainText(
+    "$0.0048",
+  );
   await page.getByRole("button", { name: "Accept", exact: true }).click();
   await expect(page.getByText("0 proposed cells")).toBeVisible();
 });
@@ -90,7 +108,7 @@ test("outreach: drafts wait for approval, a sent email's reply comes back as you
   await page.getByLabel("Your name").fill("Test Applicant");
   await page.getByLabel("Address").fill("me@example.com");
   await page.getByLabel("App password").fill("app-password");
-  await page.getByRole("button", { name: "Connect" }).click();
+  await page.getByRole("button", { name: "Connect", exact: true }).click();
   await expect(page.getByText("me@example.com")).toBeVisible();
 
   await page.goto("/");

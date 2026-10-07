@@ -92,6 +92,7 @@ export const fakeProvider = (
         };
         const price = treg.price(args);
         const cap = capProblem(s.toolContext, price);
+        if (cap) s.toolContext.capHit(cap);
         const ok =
           !cap &&
           (price <= s.askOver ||
@@ -274,13 +275,23 @@ export const fakeProvider = (
     }
 
     async function rowAction(op: RowOp, keys: string[]) {
-      const rows = keys
-        .map((k) =>
-          FIXTURE_PROFESSORS.find((p) => k.startsWith(p.name.toLowerCase().replaceAll(" ", "-"))),
-        )
-        .filter((p) => p !== undefined);
+      const rows = keys.flatMap((key) => {
+        const p = FIXTURE_PROFESSORS.find((x) =>
+          key.startsWith(x.name.toLowerCase().replaceAll(" ", "-")),
+        );
+        return p ? [{ ...p, key }] : [];
+      });
       let skipped = 0;
       for (const p of rows) {
+        // With paid lookups on, an address no official page lists is found through treg,
+        // tagged with its row so the cell shows what it cost.
+        if (op === "email" && tool("treg"))
+          await call("treg", `email find · ${p.name}`, {
+            endpoint: "treg.people.email.find",
+            data: { full_name: p.name, company: p.university },
+            purpose: "No official page lists the address",
+            about: p.key,
+          });
         if (op === "draft" && p.contact.startsWith("apply-only")) {
           skipped++;
           continue;

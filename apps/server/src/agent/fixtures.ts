@@ -1,5 +1,6 @@
 // The fake agent's world: three professors, two scholarships, a program, and free sources that
 // answer from fixtures. Emails use example.edu, so nothing here can reach a real person.
+import { TREG_ENDPOINTS } from "../treg.ts";
 import type { Sources } from "./tools.ts";
 
 export const FIXTURE_PROFESSORS = [
@@ -130,5 +131,10 @@ export const fixtureSources: Sources = {
     topics: ["NLP"],
     recent: [],
   }),
-  treg: async () => ({ result: "deliverable" }),
+  treg: async (req) => ({
+    ok: true,
+    result: "deliverable",
+    callId: `fake-${req.endpoint}`,
+    costUsd: TREG_ENDPOINTS[req.endpoint]?.usd ?? 0,
+  }),
 };

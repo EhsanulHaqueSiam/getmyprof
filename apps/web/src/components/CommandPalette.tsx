@@ -204,13 +204,6 @@ export function CommandPalette() {
       hint: "view",
       run: go("/settings"),
     },
-    ...threads.map((t) => ({
-      id: t.id,
-      icon: <MessageSquareIcon />,
-      label: t.title,
-      hint: "thread",
-      run: go("/t/$threadId", { threadId: t.id }),
-    })),
     ...[...new Set(people.map((p) => p.university))].map((u) => ({
       id: `school-${u}`,
       icon: <GraduationCapIcon />,
@@ -220,6 +213,13 @@ export function CommandPalette() {
         setOpen(false);
         void navigate({ to: "/professors", search: { school: u } });
       },
+    })),
+    ...threads.map((t) => ({
+      id: t.id,
+      icon: <MessageSquareIcon />,
+      label: t.title,
+      hint: "thread",
+      run: go("/t/$threadId", { threadId: t.id }),
     })),
     ...people.map((p) => ({
       id: p.key,

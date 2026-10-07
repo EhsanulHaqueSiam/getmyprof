@@ -231,7 +231,10 @@ const server = NodeHttp.createServer((req, res) => {
   // file can't run on our origin; a PDF goes without it, because Chrome won't show a PDF in a
   // sandboxed frame, and nosniff keeps anything else from being read as a page.
   const file = /^\/api\/files\/([\w-]+)$/.exec(req.url ?? "");
-  const doc = file && req.method === "GET" ? listDocuments(db).find((d) => d.id === file[1]) : null;
+  const doc =
+    file && (req.method === "GET" || req.method === "HEAD")
+      ? listDocuments(db).find((d) => d.id === file[1])
+      : null;
   if (doc && NodeFS.existsSync(documentPath(doc.id))) {
     res.writeHead(200, {
       "content-type": doc.mime,
@@ -239,7 +242,8 @@ const server = NodeHttp.createServer((req, res) => {
       ...(doc.mime === "application/pdf" ? {} : { "content-security-policy": "sandbox" }),
       "x-content-type-options": "nosniff",
     });
-    NodeFS.createReadStream(documentPath(doc.id)).pipe(res);
+    if (req.method === "HEAD") res.end();
+    else NodeFS.createReadStream(documentPath(doc.id)).pipe(res);
     return;
   }
   res.writeHead(404).end();

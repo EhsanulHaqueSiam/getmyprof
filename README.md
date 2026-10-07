@@ -1,11 +1,11 @@
 # gradcode
 
 A T3 Code-shaped app for anyone hunting a funded degree. Every thread is a Claude Code session
-on your own subscription, with free sources (NSF, NIH RePORTER, OpenAlex, CSRankings, faculty
-pages) and optional paid lookups through treg. It finds professors who can fund you and the money
-behind them, by your preferences: degree, places, fields, funding floor, detail level and loops.
-Siam's install also reads hq and `~/Personal/gradhunt`, so Scout and the cloud outreach routine
-keep working.
+on your own subscription, with free sources (NSF and NIH awards, UKRI, CORDIS and ARC grants,
+OpenAlex, web search and faculty pages) and optional paid lookups through treg. It finds
+professors who can fund you and the money behind them, then carries you through outreach,
+applications and offers. Siam's install also reads hq and `~/Personal/gradhunt`, so Scout and the
+cloud outreach routine keep working.
 
 Design and the full spec: [docs/mocks/phase1.html](docs/mocks/phase1.html) (round 2).
 
@@ -23,52 +23,58 @@ Taken from the running app on the scripted agent (`GRADCODE_AGENT=fake`), so the
 
 ![Loops on intervals, weekdays or webhooks](docs/screenshots/loops.png)
 
-## Done (v1)
+## What it does
 
-| #   | Done when                                                                                                                                                                                 | Check                                                                               |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| 1   | **First run in five minutes.** Finds your Claude Code login. Free sources need no keys; a treg key is optional.                                                                           | A fresh Mac with no keys has a first hunt running in five minutes.                  |
-| 2   | **Profile from a CV.** The agent drafts each fact with its source; you confirm it. Drafts and fit use confirmed facts only. Siam's install reads hq.                                      | An unconfirmed fact never appears in a draft.                                       |
-| 3   | **Hunt preferences.** Degree types, intake, places, fields and adjacent domains, funding floor, test rules, schools per sweep, what matters most. Every turn and loop reads them.         | Raise the funding floor and the next sweep stops proposing partly funded programs.  |
-| 4   | **Detail level.** Brief, Standard or Deep, per install and per thread: columns, evidence depth, cost per row.                                                                             | Brief shows 5 columns and costs less per row than Deep.                             |
-| 5   | **Threads and the inbox sidebar.** Stream, stop, resume; settle, snooze, auto-settle; queue and steer. Runs on the host, so closing the laptop never stops a hunt.                        | End of day: every thread is settled, snoozed or working.                            |
-| 6   | **Results and row actions.** Every thread has a Results grid. Select rows and run Find emails, Check money, Taking students? or Draft from the dock; cells fill in place with their cost. | Select 3 rows, Find emails: three cells fill and spend rises by exactly their cost. |
-| 7   | **Records and Review.** Field diffs; accept writes to the local store (through `scout.py` on Siam's install). Auto-accept is off. A rejected row never comes back.                        | Reject a professor; the next sweep doesn't propose them again.                      |
-| 8   | **Finders and pages.** Professor finder, funding finder (NSF and NIH awards, months left after your intake), professor pages with every fact sourced.                                     | Every field opens its source.                                                       |
-| 9   | **Loops.** Recurring hunts you configure: what, when, scope, budget, autonomy. Each run is a thread that settles once reviewed.                                                           | A nightly sweep runs with the laptop closed and waits in the morning.               |
-| 10  | **Spend you control.** Every call priced; paid actions over $0.01 ask; caps per thread, per loop run, per day.                                                                            | A loop stops at its cap and says why.                                               |
-| 11  | **Your data stays yours.** One local SQLite file, CSV import and export, no telemetry.                                                                                                    | Export, wipe, import: nothing lost.                                                 |
-| 12  | **Polish bar.** T3 Code's feel: ⌘K for everything, keyboard-first, one-shot motion, nothing animates forever.                                                                             | A full morning of triage without the mouse.                                         |
+| What                                                                                                                                                                                                                                                                                                | Check                                                                                 |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| **First run.** Setup walks the hunt, your profile, eligibility and loops. The agent uses the Claude Code login already on the machine. Free sources need no keys; a treg key is optional.                                                                                                           | A fresh install with no keys finishes setup and starts a hunt.                        |
+| **Profile from a CV.** The agent reads a CV and your profile links into facts, each with its source, and you confirm them. The agent, drafts and the Writer use only confirmed facts with proof. Siam's install reads hq.                                                                           | A confirmed fact without proof never reaches the agent or an export.                  |
+| **Hunt preferences.** Degree types, intake and fallback, places, fields and adjacent domains, funding floor, test waivers, what matters most, and your eligibility: citizenship, tests, GPA, fee budget, minimum stipend. Every turn and loop reads them.                                           | Set the funding floor to full: every turn is told partly funded programs don't count. |
+| **Detail level.** Brief, Standard or Deep for the install: 6, 10 or 12 Results columns, and how much evidence the agent gathers.                                                                                                                                                                    | Brief shows 6 columns; Deep adds Fits because and Sources.                            |
+| **Threads and the inbox sidebar.** Stream, stop, resume, fork, search; settle, snooze, auto-settle after 3 days; queue and steer; attach files. The agent asks you in Input when only you know. Runs on the host, so closing the laptop never stops a hunt.                                         | End of day: every thread is settled, snoozed or working.                              |
+| **Results and row actions.** Every thread has a Results grid. Select rows, or all of them, and run Find and check emails, Check money, Taking students? or Draft first emails from the dock; cells fill in place.                                                                                   | Select 3 rows, Find and check emails: three Email cells fill.                         |
+| **Records and Review.** Field diffs, and nothing is accepted without you. Accepting writes the local store; on Siam's install, changes to gradhunt's rows also go through `scout.py set`. A rejected new professor never comes back.                                                                | Reject a professor; the next sweep doesn't propose them again.                        |
+| **Finders and pages.** Professor finder; funding finder over NSF, NIH, UKRI, CORDIS and ARC with the months left after your intake; professor pages with their sources.                                                                                                                             | Every award in Funding shows how long it lasts after your intake.                     |
+| **Loops.** Every N hours, at a time on chosen weekdays, or on a webhook whose JSON fills the instructions. Each run gets a fresh thread or goes back to one; run now or pause. A loop's budget caps each run.                                                                                       | A nightly sweep runs with the laptop closed and waits in the morning.                 |
+| **Spend you control.** Every paid call is priced; calls over $0.01 ask; caps per thread, per loop run and per day. A call over a cap is refused with the reason, and the run carries on with free sources.                                                                                          | A loop run at its cap is told "This would pass the $0.5 cap for this loop run."       |
+| **Pipeline.** Your own mailbox (IMAP and SMTP with an app password) or your mail app. Drafts wait for your approval; sends go Tuesday to Thursday at 08:00 the professor's time within warm-up caps; follow-ups at +7 and +14 business days; replies come back to the thread. LinkedIn is assisted. | Approve a draft and it gets a slot; their reply makes it your turn.                   |
+| **Vault and Writer.** Facts with proof, documents with expiry, scholarships, programs, applications and a To file inbox. The Writer drafts statements, CVs and essays citing your facts; an unproven claim blocks export to text, PDF or Word.                                                      | Unconfirm a cited fact: export turns off until it has proof.                          |
+| **After applying.** Interview prep packs, calendar files and thank-yous; offers compared after rent; negotiation letters; visa steps; reminders and thanks for recommenders.                                                                                                                        | Two offers side by side: the one leaving more after a year of rent is marked best.    |
+| **MCP both ways.** Other agents drive gradcode at `/api/mcp` with a token. Your own MCP servers join every session and ask before each call unless you trust them.                                                                                                                                  | Paste the config from Settings into another agent and search the sheet.               |
+| **Your data stays yours.** One local SQLite file. A full backup of every table and Vault file downloads and restores in one click; professors also export and import as CSV. gradcode sends no telemetry.                                                                                           | Download a backup, wipe, restore: nothing lost.                                       |
+| **Polish bar.** T3 Code's feel: ⌘K jumps to any view, thread or professor and searches what was said; j/k, s, e, a/r and composer shortcuts; one-shot motion, nothing animates forever. On a phone, open the tailnet link or scan its QR code in Settings.                                          | Triage the thread list without the mouse.                                             |
 
-**Not in v1:** sending mail for other users (Siam's install keeps the cloud routine), a hosted
-service, a phone app beyond reading and approving, providers other than Claude, shared hunts.
+**Not yet**, against the original spec: a detail level per thread (the thread toggle sets the
+install's); a cost per row in Results (row actions are free turns, and a paid lookup inside one
+still asks); setup detecting the Claude Code login (a missing one shows on the first turn); a
+source link on every field of a professor page; loop scope and autonomy settings; ⌘K actions
+(approvals, row actions and Pipeline approval need the mouse); `scout.py add` and `exclude` on
+Siam's install; schools per sweep, which is stored but unused; Gmail sign-in.
+
+**By design:** no hosted service, no native phone app, no providers other than Claude, no shared
+hunts. On Siam's install, gradhunt's own rows stay with its cloud outreach routine.
 
 ## Shape
 
-```
-browser (React) ⇄ WebSocket ⇄ local server (Node, Mac mini)
-                                  └ Claude Agent SDK ─ Claude Code CLI
-                                      ├ treg MCP              search, people, email checks
-                                      ├ hunt MCP (in-process)  propose_* tools, zod schemas
-                                      ├ scout.py               allowlisted Bash, the only writer
-                                      └ NSF + NIH APIs         free grant search
-store: gradhunt/loopany/prof-scout/data (JSON) · hq (facts read-only, signals)
-```
-
 Built like T3 Code: a pnpm monorepo on Vite+ (`vp` for lint, format, test and staged hooks),
 TypeScript 7, React 19 with the React Compiler, TanStack Router, Zustand, Base UI with T3 Code's
-`components/ui` kit (MIT, notice kept), Tailwind v4, lucide icons and zod contracts. No database:
-gradhunt's JSON stays the source of truth.
+`components/ui` kit (MIT, notice kept), Tailwind v4, lucide icons and zod contracts. A local Node
+server runs the agent sessions, loops and the send queue; everything lives in one SQLite file
+under `~/.gradcode`. How the pieces fit: [docs/internals/overview.md](docs/internals/overview.md).
 
 ## Run it
+
+Needs Node 24+, pnpm and tmux.
 
 ```sh
 pnpm install
 scripts/dev-local.sh up      # server :4311 + web http://127.0.0.1:5174, in tmux
+scripts/dev-local.sh share   # open it from your phone over Tailscale
 scripts/dev-local.sh down
 
 # tests: unit, then e2e on a fresh stack with the scripted agent (free, deterministic)
 pnpm test
+scripts/dev-local.sh down
 rm -rf /tmp/gc-e2e && GRADCODE_HOME=/tmp/gc-e2e GRADCODE_AGENT=fake scripts/dev-local.sh up
 pnpm e2e
 ```

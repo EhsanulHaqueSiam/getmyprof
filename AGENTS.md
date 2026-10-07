@@ -3,10 +3,10 @@
 gradcode is a T3 Code-shaped app for anyone hunting a funded degree. A Node WebSocket server runs
 Claude Code sessions (Claude Agent SDK, on the user's own subscription) that use free grant APIs,
 the web and optional paid treg lookups to find professors who can fund a student and the money
-behind them. A React client shows threads, Results, Review, Funding and Loops. Everything lives in
-one local SQLite file. Siam's install also reads hq (profile facts) and `~/Personal/gradhunt`
-(records, written back through `scout.py`). The v1 definition of done is in [README.md](README.md);
-the approved design is [docs/mocks/phase1.html](docs/mocks/phase1.html).
+behind them. A React client shows threads, Results, Review, Funding, Pipeline, Vault and Loops.
+Everything lives in one local SQLite file. Siam's install also reads hq (profile facts) and
+`~/Personal/gradhunt` (records, written back through `scout.py`). What's built and what isn't yet
+is in [README.md](README.md); the approved design is [docs/mocks/phase1.html](docs/mocks/phase1.html).
 
 Channel "measure twice, cut once" and "yagni". Simple systems, no machinery for its own sake.
 
@@ -105,4 +105,4 @@ changes, rewrite the text; don't append. Never commit plans or scratch notes.
 | Architecture, wire, agent sessions, tailnet | [docs/internals/overview.md](docs/internals/overview.md)                    |
 | Tokens, status hues, motion, copy           | [docs/internals/design.md](docs/internals/design.md)                        |
 | gradhunt data, scout.py writes, hq facts    | [docs/internals/gradhunt.md](docs/internals/gradhunt.md)                    |
-| What v1 must do                             | [README.md](README.md) and [docs/mocks/phase1.html](docs/mocks/phase1.html) |
+| What is built, what is not yet              | [README.md](README.md) and [docs/mocks/phase1.html](docs/mocks/phase1.html) |

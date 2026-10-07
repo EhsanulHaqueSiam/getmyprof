@@ -1,6 +1,12 @@
 // Outreach as a running service: the mailbox login, the send worker, reply sync, and the agent
 // turns that read replies and draft follow-ups. bin.ts ticks it; rpc.ts calls it.
-import type { MailConnect, MailStatus, OutreachMessage } from "@gradcode/contracts";
+import type {
+  Application,
+  MailConnect,
+  MailStatus,
+  OutreachMessage,
+  Program,
+} from "@gradcode/contracts";
 import { z } from "zod";
 import type { Runner } from "../agent/runner.ts";
 import type { Bus } from "../bus.ts";
@@ -36,6 +42,7 @@ const NEVER_SYNCED = { cursor: null, at: null, error: "" };
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e)).slice(0, 300);
 
 export const FOLLOW_UP_TAG = "[follow-up]";
+export const AFTER_APPLYING_TAG = "[after-applying]";
 export const REPLY_TAG = "[reply:";
 
 export function createOutreach(deps: {
@@ -189,6 +196,28 @@ export function createOutreach(deps: {
     },
 
     tick,
+
+    /** Once an application is in, the agent drafts "I applied and named you" to each named professor. */
+    afterApplying(app: Application, program: Program) {
+      const named = app.professors.flatMap((key) => {
+        const r = getRecord(db, key);
+        return r && r.email && r.origin === "app" ? [r] : [];
+      });
+      if (named.length === 0) return;
+      const lines = named.map((r) => {
+        const zone =
+          listMessages(db, r.key).find((m) => m.direction === "out" && m.timeZone)?.timeZone ??
+          "America/New_York";
+        return `- ${r.name} | ${r.university} | key ${r.key} | to ${r.email} | zone ${zone}`;
+      });
+      const t = createThread(db, `Applied · ${program.university}`);
+      runner.send(
+        t.id,
+        `${AFTER_APPLYING_TAG} app=${app.id}\nThe applicant submitted their application to ${program.name} at ${program.university} and named the professors below. Draft a short note to each with draft_email (touch after-applying): they applied to that program and named them. Skip anyone apply-only.\n${lines.join("\n")}`,
+        "send",
+        `Draft ${named.length} "I applied" note${named.length === 1 ? "" : "s"}`,
+      );
+    },
 
     async approve(ids: string[]) {
       const c = connected();

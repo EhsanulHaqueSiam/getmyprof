@@ -6,6 +6,7 @@ export const DetailLevel = z.enum(["brief", "std", "deep"]);
 export type DetailLevel = z.infer<typeof DetailLevel>;
 
 export const Degree = z.enum(["phd", "ms_phd", "funded_ms"]);
+export type Degree = z.infer<typeof Degree>;
 export const Priority = z.enum(["money", "recruiting", "topic", "deadline", "rank"]);
 
 /** What a person is hunting for. Every agent turn and loop reads it. */
@@ -48,10 +49,15 @@ export const Settings = z.object({
 });
 export type Settings = z.infer<typeof Settings>;
 
+export const FactKind = z.enum(["education", "paper", "project", "test", "work", "other"]);
+export type FactKind = z.infer<typeof FactKind>;
+
 export const ProfileFact = z.object({
   id: z.string(),
   text: z.string(),
+  /** Its proof: the document or link it was read from. A fact without one is never written into anything. */
   source: z.string(),
+  kind: FactKind.default("other"),
   confirmed: z.boolean(),
   /** A fact the agent couldn't verify becomes a question for the user. */
   question: z.boolean(),

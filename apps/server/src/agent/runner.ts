@@ -159,6 +159,7 @@ export function createRunner(deps: {
           bus.push({ type: "changed", what: "outreach" });
           bus.push({ type: "changed", what: "records" });
         },
+        vaultChanged: () => bus.push({ type: "changed", what: "vault" }),
       },
     });
     sessions.set(threadId, session);

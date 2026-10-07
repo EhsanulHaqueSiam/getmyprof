@@ -22,6 +22,15 @@ import { health } from "./health.ts";
 import { listLoops, saveLoop, STARTER_LOOPS } from "./loops.ts";
 import type { Outreach } from "./outreach/service.ts";
 import { conversations } from "./outreach/store.ts";
+import {
+  listPrograms,
+  removeEntry,
+  resolveFinding,
+  saveDocument,
+  saveEdit,
+  startApplication,
+  vaultState,
+} from "./vault.ts";
 import { getRecord, listRecords, resolveProposal, threadProposals, threadRows } from "./records.ts";
 import { intakeStart, monthsAfter } from "./sources.ts";
 import {
@@ -282,6 +291,43 @@ export function createHandlers(svc: Services): Handlers {
     "outreach.markSent": ({ id }) => {
       outreach.markSent(id);
       return OK;
+    },
+
+    "vault.get": () => vaultState(db),
+    "vault.save": (edit) => {
+      const before = saveEdit(db, edit);
+      if (
+        edit.kind === "application" &&
+        edit.value.status === "submitted" &&
+        before?.status !== "submitted"
+      ) {
+        const app = { ...edit.value, submittedAt: edit.value.submittedAt ?? now() };
+        saveEdit(db, { kind: "application", value: app });
+        const program = listPrograms(db).find((p) => p.id === app.programId);
+        if (program) outreach.afterApplying(app, program);
+      }
+      bus.push({ type: "changed", what: "vault" });
+      return OK;
+    },
+    "vault.remove": ({ kind, id }) => {
+      removeEntry(db, kind, id);
+      bus.push({ type: "changed", what: "vault" });
+      return OK;
+    },
+    "documents.upload": (input) => {
+      const doc = saveDocument(db, input);
+      bus.push({ type: "changed", what: "vault" });
+      return doc;
+    },
+    "toFile.resolve": ({ id, decision }) => {
+      resolveFinding(db, id, decision);
+      bus.push({ type: "changed", what: "vault" });
+      return OK;
+    },
+    "applications.start": ({ programId }) => {
+      const app = startApplication(db, programId);
+      bus.push({ type: "changed", what: "vault" });
+      return app;
     },
   };
 }

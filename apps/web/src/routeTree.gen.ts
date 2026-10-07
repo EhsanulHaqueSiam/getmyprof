@@ -17,6 +17,7 @@ import { Route as ShellLoopsRouteImport } from './routes/_shell.loops'
 import { Route as ShellPipelineRouteImport } from './routes/_shell.pipeline'
 import { Route as ShellReviewRouteImport } from './routes/_shell.review'
 import { Route as ShellSettingsRouteImport } from './routes/_shell.settings'
+import { Route as ShellVaultRouteImport } from './routes/_shell.vault'
 import { Route as ShellProfessorsIndexRouteImport } from './routes/_shell.professors.index'
 import { Route as ShellProfessorsKeyRouteImport } from './routes/_shell.professors.$key'
 import { Route as ShellTThreadIdRouteImport } from './routes/_shell.t.$threadId'
@@ -60,6 +61,11 @@ const ShellSettingsRoute = ShellSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => ShellRoute,
 } as any)
+const ShellVaultRoute = ShellVaultRouteImport.update({
+  id: '/vault',
+  path: '/vault',
+  getParentRoute: () => ShellRoute,
+} as any)
 const ShellProfessorsIndexRoute = ShellProfessorsIndexRouteImport.update({
   id: '/professors/',
   path: '/professors/',
@@ -84,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/pipeline': typeof ShellPipelineRoute
   '/review': typeof ShellReviewRoute
   '/settings': typeof ShellSettingsRoute
+  '/vault': typeof ShellVaultRoute
   '/professors/$key': typeof ShellProfessorsKeyRoute
   '/t/$threadId': typeof ShellTThreadIdRoute
   '/professors/': typeof ShellProfessorsIndexRoute
@@ -95,6 +102,7 @@ export interface FileRoutesByTo {
   '/pipeline': typeof ShellPipelineRoute
   '/review': typeof ShellReviewRoute
   '/settings': typeof ShellSettingsRoute
+  '/vault': typeof ShellVaultRoute
   '/': typeof ShellIndexRoute
   '/professors/$key': typeof ShellProfessorsKeyRoute
   '/t/$threadId': typeof ShellTThreadIdRoute
@@ -109,6 +117,7 @@ export interface FileRoutesById {
   '/_shell/pipeline': typeof ShellPipelineRoute
   '/_shell/review': typeof ShellReviewRoute
   '/_shell/settings': typeof ShellSettingsRoute
+  '/_shell/vault': typeof ShellVaultRoute
   '/_shell/': typeof ShellIndexRoute
   '/_shell/professors/$key': typeof ShellProfessorsKeyRoute
   '/_shell/t/$threadId': typeof ShellTThreadIdRoute
@@ -124,6 +133,7 @@ export interface FileRouteTypes {
     | '/pipeline'
     | '/review'
     | '/settings'
+    | '/vault'
     | '/professors/$key'
     | '/t/$threadId'
     | '/professors/'
@@ -135,6 +145,7 @@ export interface FileRouteTypes {
     | '/pipeline'
     | '/review'
     | '/settings'
+    | '/vault'
     | '/'
     | '/professors/$key'
     | '/t/$threadId'
@@ -148,6 +159,7 @@ export interface FileRouteTypes {
     | '/_shell/pipeline'
     | '/_shell/review'
     | '/_shell/settings'
+    | '/_shell/vault'
     | '/_shell/'
     | '/_shell/professors/$key'
     | '/_shell/t/$threadId'
@@ -217,6 +229,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellSettingsRouteImport
       parentRoute: typeof ShellRoute
     }
+    '/_shell/vault': {
+      id: '/_shell/vault'
+      path: '/vault'
+      fullPath: '/vault'
+      preLoaderRoute: typeof ShellVaultRouteImport
+      parentRoute: typeof ShellRoute
+    }
     '/_shell/professors/': {
       id: '/_shell/professors/'
       path: '/professors'
@@ -247,6 +266,7 @@ interface ShellRouteChildren {
   ShellPipelineRoute: typeof ShellPipelineRoute
   ShellReviewRoute: typeof ShellReviewRoute
   ShellSettingsRoute: typeof ShellSettingsRoute
+  ShellVaultRoute: typeof ShellVaultRoute
   ShellIndexRoute: typeof ShellIndexRoute
   ShellProfessorsKeyRoute: typeof ShellProfessorsKeyRoute
   ShellTThreadIdRoute: typeof ShellTThreadIdRoute
@@ -259,6 +279,7 @@ const ShellRouteChildren: ShellRouteChildren = {
   ShellPipelineRoute: ShellPipelineRoute,
   ShellReviewRoute: ShellReviewRoute,
   ShellSettingsRoute: ShellSettingsRoute,
+  ShellVaultRoute: ShellVaultRoute,
   ShellIndexRoute: ShellIndexRoute,
   ShellProfessorsKeyRoute: ShellProfessorsKeyRoute,
   ShellTThreadIdRoute: ShellTThreadIdRoute,

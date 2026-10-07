@@ -8,6 +8,7 @@ import { BudgetStep, HuntStep, LOOP_NAMES } from "~/components/SetupSteps";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
+import { toBase64 } from "~/lib/files";
 import { useStore } from "~/state/store";
 
 export const Route = createFileRoute("/setup")({ component: Setup });
@@ -25,14 +26,6 @@ const DEFAULT_PREFS: HuntPrefs = {
   sweep: { reach: 3, match: 3, safety: 3 },
   priorities: ["money", "recruiting", "topic", "deadline", "rank"],
 };
-
-const toBase64 = (file: File) =>
-  new Promise<string>((resolve, reject) => {
-    const r = new FileReader();
-    r.addEventListener("load", () => resolve(String(r.result).split(",")[1] ?? ""));
-    r.addEventListener("error", () => reject(r.error));
-    r.readAsDataURL(file);
-  });
 
 function Setup() {
   const app = useStore((s) => s.app);

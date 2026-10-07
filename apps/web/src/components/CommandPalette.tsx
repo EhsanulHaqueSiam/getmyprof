@@ -8,6 +8,7 @@ import {
   PlusIcon,
   RepeatIcon,
   SendIcon,
+  ArchiveIcon,
   SettingsIcon,
   UserIcon,
   UsersIcon,
@@ -47,6 +48,7 @@ export function CommandPalette() {
     { id: "prof", icon: <UsersIcon />, label: "Professors", hint: "view", run: go("/professors") },
     { id: "fund", icon: <LandmarkIcon />, label: "Funding", hint: "view", run: go("/funding") },
     { id: "pipe", icon: <SendIcon />, label: "Pipeline", hint: "view", run: go("/pipeline") },
+    { id: "vault", icon: <ArchiveIcon />, label: "Vault", hint: "view", run: go("/vault") },
     { id: "loops", icon: <RepeatIcon />, label: "Loops", hint: "view", run: go("/loops") },
     { id: "review", icon: <InboxIcon />, label: "Review", hint: "view", run: go("/review") },
     {

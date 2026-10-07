@@ -124,3 +124,51 @@ test("outreach: drafts wait for approval, a sent email's reply comes back as you
     "your turn",
   );
 });
+
+test("vault: the agent's finds wait in To file, and submitting an application drafts the notes", async ({
+  page,
+}) => {
+  await page.goto("/vault?section=documents");
+  await page.getByLabel("Upload document").setInputFiles({
+    name: "passport.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from("%PDF-1.4 passport"),
+  });
+  await expect(page.getByTestId("documents")).toContainText("passport.pdf");
+
+  await page.goto("/vault?section=scholarships");
+  await page.getByRole("button", { name: "Find scholarships" }).click();
+  await expect(page.getByText("2 wait in your To file.")).toBeVisible();
+  await page.goto("/vault?section=scholarships");
+  await expect(page.getByTestId("to-file")).toHaveCount(2);
+  await page
+    .getByTestId("to-file")
+    .filter({ hasText: "Fulbright" })
+    .getByRole("button", { name: "File" })
+    .click();
+  await page
+    .getByTestId("to-file")
+    .filter({ hasText: "Chevening" })
+    .getByRole("button", { name: "File" })
+    .click();
+  // "Fits me" keeps the one open to this applicant's citizenship and PhD track.
+  await expect(page.getByTestId("scholarships").locator("tbody tr")).toHaveCount(1);
+  await expect(page.getByTestId("scholarships")).toContainText("Fulbright");
+
+  await page.goto("/vault?section=programs");
+  await page.getByRole("button", { name: "Find programs" }).click();
+  await expect(page.getByText("1 wait in your To file.")).toBeVisible();
+  await page.goto("/vault?section=programs");
+  await page.getByTestId("to-file").getByRole("button", { name: "File" }).click();
+  await page.getByRole("button", { name: "Start application" }).click();
+  const app = page.getByTestId("application");
+  await expect(app).toContainText("PhD in Information Technology");
+  await expect(app.getByRole("button", { name: "Kevin Lybarger" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  await app.getByLabel("Application status").selectOption("submitted");
+  await page.goto("/pipeline");
+  await expect(page.getByTestId("turn-yours")).toContainText("submitted my application");
+});

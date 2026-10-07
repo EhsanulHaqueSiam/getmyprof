@@ -8,7 +8,8 @@ browser (React) ⇄ /api, /ws ⇄ Vite (127.0.0.1:5174) ⇄ server (127.0.0.1:43
                                                       │    └ hunt tools: nsf_awards, nih_awards, openalex_author,
                                                       │      sheet_search, propose_professor, treg (paid)
                                                       ├ adapters: hq facts, gradhunt (scout.py), CSV
-                                                      └ outreach: mailbox (IMAP + SMTP), send queue, reply sync
+                                                      ├ outreach: mailbox (IMAP + SMTP), send queue, reply sync
+                                                      └ vault: documents, scholarships, programs, applications
 ```
 
 ## Single origin
@@ -72,3 +73,19 @@ crosses the wire.
   LinkedIn's notification emails. No account automation.
 - `GRADCODE_AGENT=fake` also swaps in `fakeMailer`: sends stay in memory and fixture professors
   answer on the next sync.
+
+## Vault
+
+An hq inside the app. Facts are the profile facts above, each with its proof (`source`): a fact
+without proof is never written into anything. On Siam's install hq stays the source and the
+Vault shows its facts read-only.
+
+- **One table, typed by kind.** Documents, scholarships, programs, applications and To file
+  share the `vault` table; `vault.ts` parses each kind with its zod schema on read.
+- **Files stay private.** Document bytes live in `GRADCODE_HOME/files`, mode 0600, named by id
+  only. `/api/files/<id>` serves them with `Content-Security-Policy: sandbox`, so an uploaded
+  HTML file can't run on the app's origin.
+- **Nothing is filed without a click.** The agent's `propose_program` and `propose_scholarship`
+  land in To file; File or Dismiss decides. A dismissed find never comes back.
+- **Submitting closes the loop.** Marking an application submitted hands the professors it names
+  to the agent, which drafts "I applied and named you" notes into the Pipeline.

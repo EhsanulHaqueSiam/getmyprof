@@ -139,9 +139,8 @@ export function saveDraft(db: Db, d: DraftInput): OutreachMessage | { problem: s
   return message;
 }
 
-/** First emails and follow-ups claim send slots; everything else is ready at once. */
-const usesSlot = (m: OutreachMessage) =>
-  m.channel === "email" && (m.touch === "first" || !!m.touch?.startsWith("follow-up"));
+/** Mail to someone who hasn't written takes a send slot; answers go at once. */
+const usesSlot = (m: OutreachMessage) => m.channel === "email" && m.touch !== "reply";
 
 /** Slots already taken by scheduled or sent mail, for warm-up and per-university caps. */
 function takenSlots(db: Db) {

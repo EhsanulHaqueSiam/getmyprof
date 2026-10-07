@@ -15,6 +15,7 @@ import {
 } from "./domain.ts";
 import { Conversation, MailConnect, MailStatus } from "./outreach.ts";
 import { RowOp, ThreadEvent, ThreadSummary } from "./threads.ts";
+import { Application, DocKind, VaultDocument, VaultEdit, VaultState } from "./vault.ts";
 
 const id = z.object({ id: z.string() });
 const ok = z.object({ ok: z.literal(true) });
@@ -143,6 +144,32 @@ export const Methods = {
   "outreach.cancel": { input: id, output: ok },
   /** LinkedIn is assisted: the user sends it there, then marks it sent here. */
   "outreach.markSent": { input: id, output: ok },
+
+  "vault.get": { input: z.object({}), output: VaultState },
+  "vault.save": { input: VaultEdit, output: ok },
+  "vault.remove": {
+    input: z.object({
+      kind: z.enum(["document", "scholarship", "program", "application"]),
+      id: z.string(),
+    }),
+    output: ok,
+  },
+  "documents.upload": {
+    input: z.object({
+      name: z.string().min(1),
+      kind: DocKind,
+      mime: z.string(),
+      base64: z.string().min(1),
+      expires: z.string().nullable(),
+    }),
+    output: VaultDocument,
+  },
+  /** File one of the agent's finds into the vault, or drop it for good. */
+  "toFile.resolve": {
+    input: z.object({ id: z.string(), decision: z.enum(["file", "dismiss"]) }),
+    output: ok,
+  },
+  "applications.start": { input: z.object({ programId: z.string() }), output: Application },
 } as const;
 
 export type Method = keyof typeof Methods;
@@ -166,7 +193,7 @@ export const ServerMessage = z.discriminatedUnion("type", [
   z.object({ type: z.literal("event"), threadId: z.string(), event: ThreadEvent }),
   z.object({
     type: z.literal("changed"),
-    what: z.enum(["records", "proposals", "loops", "state", "outreach"]),
+    what: z.enum(["records", "proposals", "loops", "state", "outreach", "vault"]),
     threadId: z.string().optional(),
   }),
 ]);

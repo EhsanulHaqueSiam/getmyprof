@@ -3,6 +3,7 @@ import type {
   Conversation,
   Settings,
   ThreadEvent,
+  VaultState,
   ThreadSummary,
   ThreadView,
 } from "@gradcode/contracts";
@@ -16,6 +17,8 @@ type Store = {
   views: Record<string, ThreadView>;
   /** Everyone in the pipeline. Reloaded whenever outreach changes. */
   conversations: Conversation[];
+  /** Documents, opportunities and To file. Reloaded whenever the vault changes. */
+  vault: VaultState | null;
   /** Bumped when records or loops change, so views that list them refetch. */
   recordsVersion: number;
   loopsVersion: number;
@@ -26,6 +29,7 @@ type Store = {
   loadApp: () => Promise<void>;
   loadView: (threadId: string) => Promise<void>;
   loadOutreach: () => Promise<void>;
+  loadVault: () => Promise<void>;
   saveSettings: (patch: Partial<Settings>) => Promise<void>;
   setPalette: (open: boolean) => void;
   setNotice: (notice: string | null) => void;
@@ -38,6 +42,7 @@ export const useStore = create<Store>()((set, get) => ({
   threads: [],
   views: {},
   conversations: [],
+  vault: null,
   recordsVersion: 0,
   loopsVersion: 0,
   sidebarOpen: true,
@@ -52,6 +57,7 @@ export const useStore = create<Store>()((set, get) => ({
     set((s) => ({ views: { ...s.views, [threadId]: view } }));
   },
   loadOutreach: async () => set({ conversations: await call("outreach.list", {}) }),
+  loadVault: async () => set({ vault: await call("vault.get", {}) }),
   saveSettings: async (patch) => {
     const settings = await call("settings.update", patch);
     const app = get().app;
@@ -79,6 +85,7 @@ export function subscribe() {
       setState({ live: true });
       void getState().loadApp();
       void getState().loadOutreach();
+      void getState().loadVault();
       for (const id of Object.keys(getState().views)) void getState().loadView(id);
     }
     if (m.type === "threads") {
@@ -109,6 +116,7 @@ export function subscribe() {
       if (m.what === "loops") setState((s) => ({ loopsVersion: s.loopsVersion + 1 }));
       if (m.what === "state") void getState().loadApp();
       if (m.what === "outreach") void getState().loadOutreach();
+      if (m.what === "vault") void getState().loadVault();
     }
   });
 }

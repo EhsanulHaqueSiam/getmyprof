@@ -17,3 +17,4 @@ export * from "./domain.ts";
 export * from "./threads.ts";
 export * from "./rpc.ts";
 export * from "./outreach.ts";
+export * from "./vault.ts";

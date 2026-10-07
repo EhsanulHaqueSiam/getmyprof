@@ -60,6 +60,10 @@ export function describeTool(name: string, input: Record<string, unknown>) {
   if (short === "draft_email")
     return { name: short, detail: `${s(input.touch)} · ${s(input.name)}` };
   if (short === "classify_reply") return { name: short, detail: s(input.replyClass) };
+  if (short === "propose_program")
+    return { name: short, detail: `${s(input.name)} · ${s(input.university)}` };
+  if (short === "propose_scholarship")
+    return { name: short, detail: `${s(input.name)} · ${s(input.sponsor)}` };
   if (short === "treg") return { name: `treg ${s(input.endpoint)}`, detail: s(input.purpose) };
   if (short === "nsf_awards" || short === "nih_awards")
     return {

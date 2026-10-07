@@ -1,4 +1,5 @@
 import { ClientRequest, type ServerMessage } from "@gradcode/contracts";
+import * as NodeFS from "node:fs";
 import * as NodeHttp from "node:http";
 import { WebSocketServer } from "ws";
 import { importGradhunt } from "./adapters.ts";
@@ -15,6 +16,7 @@ import { createOutreach } from "./outreach/service.ts";
 import { createHandlers, dispatch } from "./rpc.ts";
 import { getSettings } from "./state.ts";
 import { createThread, expireApprovals, getThread, settleStale } from "./threads.ts";
+import { documentPath, listDocuments } from "./vault.ts";
 
 const PORT = Number(process.env.SERVER_PORT ?? 4311);
 const fake = process.env.GRADCODE_AGENT === "fake";
@@ -74,6 +76,19 @@ setInterval(() => settleStale(db), 3_600_000);
 const server = NodeHttp.createServer((req, res) => {
   if (req.method === "GET" && req.url === "/api/health") {
     res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify(health()));
+    return;
+  }
+  // A vault document, opened in a tab. Sandboxed, so an uploaded HTML file can't run on our origin.
+  const file = /^\/api\/files\/([\w-]+)$/.exec(req.url ?? "");
+  const doc = file && req.method === "GET" ? listDocuments(db).find((d) => d.id === file[1]) : null;
+  if (doc && NodeFS.existsSync(documentPath(doc.id))) {
+    res.writeHead(200, {
+      "content-type": doc.mime,
+      "content-disposition": `inline; filename*=UTF-8''${encodeURIComponent(doc.name)}`,
+      "content-security-policy": "sandbox",
+      "x-content-type-options": "nosniff",
+    });
+    NodeFS.createReadStream(documentPath(doc.id)).pipe(res);
     return;
   }
   res.writeHead(404).end();

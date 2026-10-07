@@ -1,6 +1,12 @@
 // Bridges to Siam's install (gradhunt records, hq facts) and CSV for everyone. Each adapter
 // reads its source on demand; gradhunt writes go back only through scout.py, one at a time.
-import { type Change, Professor, type ProfileFact, Stage } from "@gradcode/contracts";
+import {
+  type Change,
+  type FactKind,
+  Professor,
+  type ProfileFact,
+  Stage,
+} from "@gradcode/contracts";
 import * as NodeChild from "node:child_process";
 import * as NodeFS from "node:fs";
 import * as NodeOS from "node:os";
@@ -12,6 +18,16 @@ const s = (v: unknown) => (v == null ? "" : String(v));
 
 export const hqDir = (env = process.env) =>
   env.HQ_DIR ?? NodePath.join(NodeOS.homedir(), "Personal/hq");
+
+/** hq files facts by folder (papers/, projects/, roles/) or name (education*.md). */
+function hqKind(file: string): FactKind {
+  if (file.startsWith("papers/")) return "paper";
+  if (file.startsWith("projects/")) return "project";
+  if (file.startsWith("roles/")) return "work";
+  if (file.startsWith("education")) return "education";
+  if (/english|ielts|toefl|gre/i.test(file)) return "test";
+  return "other";
+}
 
 /** hq's fact notes as confirmed, read-only profile facts: title and description, with the note as source. */
 export function readHqFacts(dir = hqDir()): ProfileFact[] {
@@ -36,6 +52,7 @@ export function readHqFacts(dir = hqDir()): ProfileFact[] {
         id: `hq:${file}`,
         text: description ? `${title}: ${description}` : title,
         source: `hq/facts/${file}`,
+        kind: hqKind(file),
         confirmed: true,
         question: false,
       },

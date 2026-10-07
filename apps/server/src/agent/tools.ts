@@ -1,7 +1,15 @@
 // The hunt tools the agent calls. Both providers run these same handlers: Claude through an
 // in-process MCP server, the fake provider directly. A handler returns a one-line summary
 // (shown in the work log) and the full text the model reads.
-import { Channel, type Hunt, ReplyClass, type Settings, Stage, Touch } from "@gradcode/contracts";
+import {
+  Channel,
+  Degree,
+  type Hunt,
+  ReplyClass,
+  type Settings,
+  Stage,
+  Touch,
+} from "@gradcode/contracts";
 import { z } from "zod";
 import type { Db } from "../db.ts";
 import { classify, getMessage, saveDraft } from "../outreach/store.ts";
@@ -17,6 +25,7 @@ import {
   tregCall,
 } from "../sources.ts";
 import { daySpend, getThread, recordSpend, threadSpend } from "../threads.ts";
+import { proposeFinding } from "../vault.ts";
 
 export type Sources = {
   nsf: typeof nsfAwards;
@@ -42,6 +51,8 @@ export type ToolContext = {
   changed: () => void;
   /** Tells clients a draft or a reply changed. */
   outreachChanged: () => void;
+  /** Tells clients the vault changed (a find landed in To file). */
+  vaultChanged: () => void;
 };
 
 export type ToolResult = { summary: string; text: string };
@@ -286,6 +297,57 @@ export const HUNT_TOOLS = [
       classify(ctx.db, args.messageId, args.replyClass, args.note);
       ctx.outreachChanged();
       return { summary: args.replyClass, text: "Recorded." };
+    },
+  }),
+  define({
+    name: "propose_program",
+    description:
+      "File a program the applicant could apply to. It waits in their To file until they click File. One call per program, with sources.",
+    shape: {
+      university: z.string(),
+      name: z.string().describe("The program's own name, e.g. 'PhD in Information Technology'"),
+      degree: Degree,
+      deadline: z.string().nullable().describe("YYYY-MM-DD for the applicant's intake, or null"),
+      fee: z.string().describe("Application fee, e.g. '$75'"),
+      waiver: z.string().describe("Fee waiver rules for this applicant, or 'none found'"),
+      english: z.string().describe("English rules, e.g. 'IELTS 6.5; MOI considered'"),
+      funding: z.string().describe("How admits are funded, e.g. '5 years guaranteed, RA/TA'"),
+      url: z.string(),
+      sources: z.array(z.string()).min(1),
+      why: z.string().describe("One line: why it fits this applicant"),
+    },
+    paid: false,
+    price: () => 0,
+    run: async ({ why, ...item }, ctx) => {
+      const r = proposeFinding(ctx.db, { kind: "program", item, why, threadId: ctx.threadId });
+      if ("skipped" in r) return { summary: r.skipped, text: `Not filed: ${r.skipped}.` };
+      ctx.vaultChanged();
+      return { summary: "to file", text: "Waiting in the applicant's To file." };
+    },
+  }),
+  define({
+    name: "propose_scholarship",
+    description:
+      "File a scholarship the applicant is eligible for (check citizenship and degree track). It waits in their To file until they click File. One call each, with sources.",
+    shape: {
+      name: z.string(),
+      sponsor: z.string(),
+      studyIn: z.string().describe("Where it pays for study, e.g. 'USA', 'UK', 'any'"),
+      citizenship: z.array(z.string()).describe("Citizenships it is open to; empty for any"),
+      tracks: z.array(Degree),
+      amount: z.string().describe("What it pays, e.g. 'tuition, stipend, travel'"),
+      deadline: z.string().nullable().describe("YYYY-MM-DD of the next round, or null"),
+      url: z.string(),
+      sources: z.array(z.string()).min(1),
+      why: z.string().describe("One line: why the applicant qualifies"),
+    },
+    paid: false,
+    price: () => 0,
+    run: async ({ why, ...item }, ctx) => {
+      const r = proposeFinding(ctx.db, { kind: "scholarship", item, why, threadId: ctx.threadId });
+      if ("skipped" in r) return { summary: r.skipped, text: `Not filed: ${r.skipped}.` };
+      ctx.vaultChanged();
+      return { summary: "to file", text: "Waiting in the applicant's To file." };
     },
   }),
   define({

@@ -48,7 +48,8 @@ Channel "measure twice, cut once" and "yagni". Simple systems, no machinery for 
 apps/server               Node WebSocket + HTTP server. rpc.ts maps contract methods to services:
                           db/state/threads/records/loops (SQLite), sources (NSF, NIH, OpenAlex, treg),
                           adapters (gradhunt, hq, CSV), agent/ (runner, claude, fake, tools, prompt),
-                          outreach/ (mail, store, service, plan: drafts, send queue, reply sync)
+                          outreach/ (mail, store, service, plan: drafts, send queue, reply sync),
+                          vault (documents, scholarships, programs, applications, To file)
 apps/web                  React 19 + Vite+. src/routes (TanStack file routes), src/state (Zustand),
                           src/components/ui (T3 Code's Base UI kit, vendored), src/lib
 packages/contracts        zod schemas for everything on the wire. Decode untrusted input with .parse.

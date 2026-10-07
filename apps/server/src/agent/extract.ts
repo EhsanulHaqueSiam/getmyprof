@@ -1,5 +1,5 @@
 import { query, type SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
-import type { ProfileFact } from "@gradcode/contracts";
+import { FactKind, type ProfileFact } from "@gradcode/contracts";
 import { z } from "zod";
 import { newId } from "../db.ts";
 
@@ -12,6 +12,7 @@ const Extracted = z.object({
           "One fact, in the applicant's terms: a degree, grade, paper, project, test, citizenship",
         ),
       source: z.string().describe("Where it came from, e.g. 'CV p1' or a URL"),
+      kind: FactKind.describe("education, paper, project, test, work, or other"),
       question: z
         .boolean()
         .describe(
@@ -78,6 +79,7 @@ export async function extractFacts(
       id: newId("fact"),
       text: f.text,
       source: f.source,
+      kind: f.kind,
       question: f.question,
       confirmed: false,
     }));
@@ -91,14 +93,23 @@ export const fakeFacts = (): ProfileFact[] => [
     id: newId("fact"),
     text: "BSc in Computer Science, 2025",
     source: "CV p1",
+    kind: "education",
     confirmed: false,
     question: false,
   },
-  { id: newId("fact"), text: "GPA 3.8 / 4.0", source: "CV p1", confirmed: false, question: false },
+  {
+    id: newId("fact"),
+    text: "GPA 3.8 / 4.0",
+    source: "CV p1",
+    kind: "education",
+    confirmed: false,
+    question: false,
+  },
   {
     id: newId("fact"),
     text: '"Fluent English": which test or certificate proves it?',
     source: "CV p2",
+    kind: "test",
     confirmed: false,
     question: true,
   },

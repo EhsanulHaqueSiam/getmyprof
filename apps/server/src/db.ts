@@ -31,6 +31,10 @@ CREATE TABLE IF NOT EXISTS messages (
   id TEXT PRIMARY KEY, record_key TEXT NOT NULL, status TEXT NOT NULL, message_id TEXT,
   body TEXT NOT NULL, created_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS vault (
+  id TEXT PRIMARY KEY, kind TEXT NOT NULL, body TEXT NOT NULL, created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS vault_kind ON vault (kind);
 CREATE INDEX IF NOT EXISTS messages_record ON messages (record_key);
 CREATE INDEX IF NOT EXISTS messages_message_id ON messages (message_id);
 CREATE INDEX IF NOT EXISTS proposals_thread ON proposals (thread_id, status);

@@ -48,6 +48,49 @@ const FIXTURE_PROFESSORS = [
   },
 ];
 
+const FIXTURE_SCHOLARSHIPS = [
+  {
+    name: "Fulbright Foreign Student Program",
+    sponsor: "US Department of State",
+    studyIn: "USA",
+    citizenship: ["Bangladesh"],
+    tracks: ["phd", "ms_phd", "funded_ms"],
+    amount: "tuition, stipend, travel",
+    deadline: "2027-02-15",
+    url: "https://bd.usembassy.gov/education-culture/fulbright/",
+    sources: ["https://bd.usembassy.gov/education-culture/fulbright/"],
+    why: "open to Bangladeshi citizens for a US master's or PhD",
+  },
+  {
+    name: "Chevening Scholarship",
+    sponsor: "UK Foreign Office",
+    studyIn: "UK",
+    citizenship: [],
+    tracks: ["funded_ms"],
+    amount: "tuition, stipend, flights",
+    deadline: "2026-11-04",
+    url: "https://www.chevening.org/",
+    sources: ["https://www.chevening.org/"],
+    why: "one-year UK master's; only fits a funded-master's track",
+  },
+];
+
+const FIXTURE_PROGRAMS = [
+  {
+    university: "George Mason University",
+    name: "PhD in Information Technology",
+    degree: "phd",
+    deadline: "2026-12-01",
+    fee: "$75",
+    waiver: "on request for international applicants",
+    english: "IELTS 6.5; MOI considered",
+    funding: "GRA/GTA for most admits",
+    url: "https://cec.gmu.edu/academics/doctoral-programs/phd-information-technology",
+    sources: ["https://cec.gmu.edu/academics/doctoral-programs/phd-information-technology"],
+    why: "Lybarger and Yao advise through it",
+  },
+];
+
 export const fixtureSources: Sources = {
   nsf: async () => [
     {
@@ -91,6 +134,7 @@ const VALUE_FOR: Record<RowOp, string> = {
 /** Row actions, replies and follow-ups reach the agent as tagged prompts (runner, outreach/service). */
 const ROW_TAG = /^\[row-action:(email|lasts|taking|draft)\] keys=(\S+)/;
 const REPLY = /^\[reply:(\S+)\] (.+?) \((.+?)\) wrote back/;
+const AFTER_LINE = /^- (.+?) \| (.+?) \| key \S+ \| to (\S+) \| zone (\S+)/gm;
 const FOLLOW_UP_LINE =
   /^- (.+?) \| (.+?) \| key \S+ \| (follow-up-[12]) \| to (\S+) \| zone (\S+)/gm;
 const ZONE: Record<string, string> = {
@@ -230,6 +274,33 @@ export const fakeProvider = (
       say(`Drafted ${drafted} follow-up${drafted === 1 ? "" : "s"}.`);
     }
 
+    async function vaultFinds(text: string) {
+      const scholarships = /^Find scholarships/i.test(text);
+      const finds = scholarships ? FIXTURE_SCHOLARSHIPS : FIXTURE_PROGRAMS;
+      for (const f of finds)
+        await call(scholarships ? "propose_scholarship" : "propose_program", f.name, f);
+      say(`${finds.length} wait in your To file.`);
+    }
+
+    async function afterApplying(text: string) {
+      let drafted = 0;
+      for (const m of text.matchAll(AFTER_LINE)) {
+        const [, name = "", university = "", to = "", timeZone = ""] = m;
+        await call("draft_email", `after-applying · ${name}`, {
+          name,
+          university,
+          channel: "email",
+          touch: "after-applying",
+          to,
+          subject: "Applied for Fall 2027",
+          body: `Dear Dr. ${name.split(" ").at(-1)},\n\nI've submitted my application for Fall 2027 and named you as a faculty member I'd like to work with.\n\nBest regards`,
+          timeZone,
+        });
+        drafted++;
+      }
+      say(`Drafted ${drafted} note${drafted === 1 ? "" : "s"} for after applying.`);
+    }
+
     async function rowAction(op: RowOp, keys: string[]) {
       const rows = keys
         .map((k) =>
@@ -268,6 +339,8 @@ export const fakeProvider = (
       if (row?.[1] && row[2]) await rowAction(row[1] as RowOp, row[2].split(","));
       else if (reply?.[1] && reply[2] && reply[3]) await answerReply(reply[1], reply[2], reply[3]);
       else if (text.startsWith("[follow-up]")) await followUps(text);
+      else if (text.startsWith("[after-applying]")) await afterApplying(text);
+      else if (/^Find (scholarships|programs)/i.test(text)) await vaultFinds(text);
       else if (n === 0) await hunt();
       else {
         await pause();

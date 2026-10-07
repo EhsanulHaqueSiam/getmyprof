@@ -15,6 +15,7 @@ import {
   RotateCcwIcon,
   SearchIcon,
   SendIcon,
+  ArchiveIcon,
   SettingsIcon,
   SquarePenIcon,
   UsersIcon,
@@ -297,6 +298,7 @@ export function Sidebar() {
 
   const review = threads.reduce((n, t) => n + t.pendingReview, 0);
   const outreach = useStore((st) => st.conversations.filter(needsYou).length);
+  const toFile = useStore((st) => st.vault?.toFile.length);
   const today = threads
     .filter((t) => now - Date.parse(t.updatedAt) < 864e5)
     .reduce((n, t) => n + t.spendUsd, 0);
@@ -346,6 +348,7 @@ export function Sidebar() {
         <NavLink to="/professors" icon={<UsersIcon />} label="Professors" count={professors} />
         <NavLink to="/funding" icon={<LandmarkIcon />} label="Funding" />
         <NavLink to="/pipeline" icon={<SendIcon />} label="Pipeline" count={outreach} accent />
+        <NavLink to="/vault" icon={<ArchiveIcon />} label="Vault" count={toFile} accent />
         <NavLink to="/loops" icon={<RepeatIcon />} label="Loops" />
         <NavLink to="/review" icon={<InboxIcon />} label="Review" count={review} accent />
       </nav>

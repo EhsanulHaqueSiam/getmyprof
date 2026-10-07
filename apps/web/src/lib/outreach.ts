@@ -22,6 +22,8 @@ export const STAGE_LABEL: Record<PipelineStage, string> = {
   "follow-up": "Follow-up due",
   replied: "Replied",
   call: "Call",
+  applied: "Applied",
+  offer: "Offer",
   closed: "Closed",
 };
 
@@ -100,6 +102,18 @@ export function cardLine(c: Conversation) {
       return c.turn === "yours"
         ? `your turn${reply?.note ? ` · ${reply.note}` : ""}`
         : (reply?.note ?? "answered");
+    case "applied":
+      return [
+        c.program?.name ?? "applied",
+        c.applied?.submittedAt ? `submitted ${day(c.applied.submittedAt, zone)}` : "",
+        c.applied && c.applied.status !== "submitted" ? c.applied.status : "",
+      ]
+        .filter(Boolean)
+        .join(" · ");
+    case "offer":
+      return c.offer?.status === "accepted"
+        ? "offer accepted · funded"
+        : `offer ${c.offer?.status ?? ""}`;
     case "closed":
       return c.stopped ?? "closed";
   }
@@ -110,7 +124,10 @@ export function nextStep(c: Conversation, draftIssues: string[] = []) {
   const zone = zoneOf(c);
   const draft = openDraft(c);
   const queued = out(c).find((m) => m.status === "scheduled");
+  if (c.offer?.status === "accepted") return "You accepted their offer. The hunt is over.";
   if (c.turn === "closed") return `Closed: ${c.stopped ?? "nothing more to do"}.`;
+  if (c.stage === "offer" && !draft)
+    return "They made an offer: compare it in Vault, Offers, and answer by the deadline.";
   if (c.stopped === "bounced") return "The address bounced. Find another one before writing again.";
   if (c.turn === "yours")
     return draft ? "Read their message, then send the drafted answer." : "Answer them.";
@@ -122,6 +139,7 @@ export function nextStep(c: Conversation, draftIssues: string[] = []) {
   if (c.turn === "approve") return "Approve the draft to give it a send slot, or send it now.";
   if (queued) return `Goes out ${theirTime(queued)}.`;
   if (c.followUpAt) return `Follow-up on ${day(c.followUpAt, zone)} if they don't answer.`;
+  if (c.stage === "applied") return "You applied and named them: waiting on the decision.";
   return "Waiting on them.";
 }
 
@@ -198,6 +216,14 @@ export function sequence(c: Conversation): Step[] {
       state: due && c.turn === "follow-up" ? "now" : "later",
     });
   }
+  // The "I applied and named you" note is planned from the start; it's drafted on submit.
+  if (!c.messages.some((m) => m.touch === "after-applying" && m.status !== "cancelled"))
+    steps.push({
+      id: "plan-applied",
+      label: "After applying: I named you",
+      when: c.applied ? "draft on its way" : "on submit",
+      state: c.applied ? "now" : "later",
+    });
   // What happened, then what waits on the user, then what's planned. sort is stable.
   const rank = { done: 0, now: 1, later: 2, off: 3 } as const;
   return steps.toSorted((a, b) => rank[a.state] - rank[b.state]);

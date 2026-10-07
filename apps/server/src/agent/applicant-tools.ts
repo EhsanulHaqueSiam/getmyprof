@@ -2,7 +2,8 @@
 // finds into the vault, and writing statements. tools.ts lists them with the research tools.
 import { Channel, Degree, ReplyClass, Touch, WritingKind } from "@gradcode/contracts";
 import { z } from "zod";
-import { classify, getMessage, issuesFor, saveDraft } from "../outreach/store.ts";
+import { classify } from "../outreach/inbox.ts";
+import { getMessage, issuesFor, saveDraft } from "../outreach/store.ts";
 import { recordKey } from "../records.ts";
 import { proposeFinding, saveWriting } from "../vault.ts";
 import type { HuntTool } from "./tools.ts";
@@ -33,6 +34,10 @@ export const APPLICANT_TOOLS = [
       timeZone: z
         .string()
         .describe("The professor's IANA time zone, e.g. America/Chicago; sends go at 08:00 there"),
+      attach: z
+        .array(z.string())
+        .optional()
+        .describe("Vault document ids to attach (email only), only when they asked, e.g. the CV"),
     },
     paid: false,
     price: () => 0,
@@ -46,6 +51,7 @@ export const APPLICANT_TOOLS = [
         body: args.body,
         timeZone: args.timeZone,
         threadId: ctx.threadId,
+        attach: args.attach,
       });
       if ("problem" in draft)
         return { summary: "not drafted", text: `Not drafted: ${draft.problem}.` };

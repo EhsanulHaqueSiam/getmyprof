@@ -92,6 +92,8 @@ function Composer({
     { facts: app?.facts ?? [], applicant: app?.applicant, emailCheck },
   );
   const blocked = issues.length > 0;
+  const docs = useStore((s) => s.vault?.documents) ?? [];
+  const attached = docs.filter((d) => draft.attachments.includes(d.id)).map((d) => d.name);
   const dashes = (body.match(/—/g) ?? []).length;
   const save = () => (dirty ? call("outreach.edit", { id: draft.id, subject, body }) : null);
   const then = (next: () => Promise<unknown>) => act(Promise.resolve(save()).then(next));
@@ -130,6 +132,11 @@ function Composer({
         rows={8}
         className="block w-full resize-none bg-transparent px-3.5 py-2.5 text-sm leading-relaxed outline-none"
       />
+      {attached.length ? (
+        <div className="px-3.5 pb-2 text-muted-foreground text-xs" data-testid="draft-attachments">
+          Attached: {attached.join(", ")}
+        </div>
+      ) : null}
       {blocked ? (
         <ul
           className="flex flex-col gap-0.5 px-3.5 pb-2 text-warning-foreground text-xs"
@@ -296,6 +303,12 @@ export function ConversationView({ c, connected }: { c: Conversation; connected:
               ["Money", r.money],
               ["Lasts", r.lasts],
               ["Contact", r.contact],
+              [
+                "Program",
+                c.program
+                  ? `${c.program.name}${c.program.deadline ? ` · due ${c.program.deadline}` : ""}`
+                  : "",
+              ],
               ["Email", r.email ? `${r.email}${r.emailCheck ? ` · ${r.emailCheck}` : ""}` : ""],
             ] as const
           ).map(([k, v]) => (

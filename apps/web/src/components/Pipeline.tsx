@@ -64,6 +64,8 @@ export function InboxList({
   onSelect: (key: string) => void;
 }) {
   const app = useStore((s) => s.app);
+  // "Approve a day": as many as today's warm-up lets go out.
+  const cap = app?.mail.dailyCap ?? 0;
   // A draft with an issue (unproven claim, unchecked address...) waits for a fix, not approval.
   const needsFix = (c: Conversation) => {
     const d = openDraft(c);
@@ -87,11 +89,23 @@ export function InboxList({
           <div key={turn} data-testid={`turn-${turn}`}>
             <div className="flex h-8 items-center gap-1.5 px-2 pt-2 text-muted-foreground text-xs">
               {TURN_LABEL[turn]} · {items.length}
-              {turn === "approve" && ready.length > 1 && connected ? (
+              {turn === "approve" && ready.length > cap && cap > 0 && connected ? (
                 <Button
                   size="xs"
                   variant="ghost-muted"
                   className="ml-auto"
+                  onClick={() =>
+                    act(call("outreach.approve", { ids: ready.slice(0, cap).map((d) => d.id) }))
+                  }
+                >
+                  Approve a day ({cap})
+                </Button>
+              ) : null}
+              {turn === "approve" && ready.length > 1 && connected ? (
+                <Button
+                  size="xs"
+                  variant="ghost-muted"
+                  className={ready.length > cap && cap > 0 ? undefined : "ml-auto"}
                   onClick={() => act(call("outreach.approve", { ids: ready.map((d) => d.id) }))}
                 >
                   {ready.length === drafts.length ? "Approve all" : `Approve ${ready.length} ready`}
@@ -164,10 +178,18 @@ export function Board({
                 >
                   <div className="flex items-center gap-1.5 font-medium text-sm">
                     <span className="truncate">{c.record.name}</span>
-                    <ChannelBadge channel={c.messages.at(-1)?.channel ?? "email"} />
+                    {[...new Set(c.messages.map((m) => m.channel))].map((ch) => (
+                      <ChannelBadge key={ch} channel={ch} />
+                    ))}
                   </div>
                   <div className="truncate text-muted-foreground text-xs">
-                    {[c.record.university, c.record.niche].filter(Boolean).join(" · ")}
+                    {[
+                      c.record.university,
+                      `fit ${c.record.fit}`,
+                      c.record.moneyTier ? `tier ${c.record.moneyTier}` : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </div>
                   <div className="mt-1.5 text-secondary-label text-xs">{cardLine(c)}</div>
                 </button>

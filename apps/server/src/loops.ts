@@ -1,6 +1,7 @@
 import { Loop, type Schedule } from "@gradcode/contracts";
 import * as NodeCrypto from "node:crypto";
 import { type Db, newId } from "./db.ts";
+import { acceptedOffer } from "./vault.ts";
 
 const clock = (hhmm: string) => {
   const [h = 0, m = 0] = hhmm.split(":").map(Number);
@@ -101,8 +102,13 @@ export function markRan(db: Db, loop: Loop, ranAt: Date, threadId: string) {
   return next;
 }
 
+/** Loops whose time has come. None once an offer is accepted: the hunt is over (Run now still works). */
 export const dueLoops = (db: Db, nowAt = new Date()) =>
-  listLoops(db).filter((l) => l.enabled && l.nextRunAt !== null && new Date(l.nextRunAt) <= nowAt);
+  acceptedOffer(db)
+    ? []
+    : listLoops(db).filter(
+        (l) => l.enabled && l.nextRunAt !== null && new Date(l.nextRunAt) <= nowAt,
+      );
 
 /** The enabled webhook loop a token belongs to, compared in constant time. */
 export function hookLoop(db: Db, token: string) {

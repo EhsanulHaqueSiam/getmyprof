@@ -21,6 +21,8 @@ export const HuntPrefs = z.object({
   preferTestWaivers: z.boolean(),
   sweep: z.object({ reach: z.number(), match: z.number(), safety: z.number() }),
   priorities: z.array(Priority),
+  /** Business days after the first email that follow-ups 1 and 2 go out. */
+  followUpDays: z.tuple([z.number().int().min(1), z.number().int().min(1)]).default([7, 14]),
 });
 export type HuntPrefs = z.infer<typeof HuntPrefs>;
 

@@ -5,6 +5,7 @@ import {
   type MailSignIn,
   MailStatus,
   OutreachMessage,
+  addressChecked,
   Program,
   stripCitations,
 } from "@gradcode/contracts";
@@ -14,6 +15,7 @@ import type { Bus } from "../bus.ts";
 import { type Db, getKv, now, setKv } from "../db.ts";
 import { getRecord, listRecords } from "../records.ts";
 import { sameSchool } from "../sources.ts";
+import { documentPath, listDocuments } from "../vault.ts";
 import { createThread, getThread } from "../threads.ts";
 import {
   Cursor,
@@ -25,12 +27,13 @@ import {
   saveMailConfig,
 } from "./mail.ts";
 import { finishSignIn, OAUTH_PROVIDERS, redirectUri, startSignIn } from "./oauth.ts";
+import { ingest } from "./inbox.ts";
+import { followUpsToDraft } from "./pipeline.ts";
+import { dailyCap } from "./plan.ts";
 import {
   approve,
   dueToSend,
-  followUpsToDraft,
   getMessage,
-  ingest,
   issuesFor,
   listMessages,
   markSent,
@@ -99,6 +102,7 @@ export function createOutreach(deps: {
       warmupStart: config?.warmupStart ?? null,
       lastSyncAt: s.at,
       error: s.error,
+      dailyCap: config ? dailyCap(new Date(config.warmupStart), new Date()) : 0,
     };
   }
 
@@ -123,6 +127,11 @@ export function createOutreach(deps: {
         subject: m.subject,
         text: stripCitations(m.body),
         inReplyTo: m.inReplyTo,
+        attachments: listDocuments(db).flatMap((doc) =>
+          m.attachments.includes(doc.id)
+            ? [{ filename: doc.name, path: documentPath(doc.id) }]
+            : [],
+        ),
       });
       markSent(db, m.id, { messageId, from: c.address });
     } catch (e) {
@@ -146,10 +155,19 @@ export function createOutreach(deps: {
         `Subject: ${m.subject}`,
         `"""\n${m.body.slice(0, 4000)}\n"""`,
         `Classify it with classify_reply (message id ${m.id}), then draft the answer with draft_email (touch reply, channel ${m.channel}). If they ask for something only the applicant can provide, say so in your reply instead of inventing it.`,
+        documentsLine(),
       ].join("\n"),
       "send",
       `${record.name} wrote back`,
     );
+  }
+
+  /** The vault documents a draft may attach (draft_email `attach`), e.g. the CV a professor asked for. */
+  function documentsLine() {
+    const docs = listDocuments(db);
+    return docs.length
+      ? `Documents you may attach with draft_email's attach, only when they asked: ${docs.map((d) => `${d.id} ${d.name} (${d.kind})`).join("; ")}.`
+      : "";
   }
 
   /** One thread drafts every follow-up that came due, once per step. */
@@ -163,13 +181,17 @@ export function createOutreach(deps: {
       db,
       `Follow-ups · ${at.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
     );
-    const lines = due.map(
-      (f) =>
-        `- ${f.record.name} | ${f.record.university} | key ${f.record.key} | ${f.touch} | to ${f.last?.to ?? f.record.email} | zone ${f.last?.timeZone ?? "America/New_York"} | last email "${f.last?.subject ?? ""}": ${(f.last?.body ?? "").slice(0, 300)}`,
-    );
+    const lines = due.map((f) => {
+      // A LinkedIn note that got no answer follows up by email when the sheet has a checked address.
+      const byEmail =
+        f.last?.channel === "linkedin" && !!f.record.email && addressChecked(f.record.emailCheck);
+      const channel = byEmail ? "email" : (f.last?.channel ?? "email");
+      const to = byEmail ? f.record.email : (f.last?.to ?? f.record.email);
+      return `- ${f.record.name} | ${f.record.university} | key ${f.record.key} | ${f.touch} | channel ${channel} | to ${to} | zone ${f.last?.timeZone ?? "America/New_York"} | last message "${f.last?.subject ?? ""}": ${(f.last?.body ?? "").slice(0, 300)}`;
+    });
     runner.send(
       t.id,
-      `${FOLLOW_UP_TAG} keys=${due.map((f) => f.record.key).join(",")}\nNo reply yet from the professors below. Draft the follow-up named on each line with draft_email. Follow-up 1 is a short bump with a new angle (their latest paper); follow-up 2 is a last note offering a CV or a call. Keep the same subject with "Re: ".\n${lines.join("\n")}`,
+      `${FOLLOW_UP_TAG} keys=${due.map((f) => f.record.key).join(",")}\nNo reply yet from the professors below. Draft the follow-up named on each line with draft_email. Follow-up 1 is a short bump with a new angle (their latest paper); follow-up 2 is a last note offering a CV or a call. Keep the same subject with "Re: ". Use the channel on each line: a LinkedIn note with no reply moves to email.\n${lines.join("\n")}`,
       "send",
       `Draft ${due.length} follow-up${due.length === 1 ? "" : "s"}`,
     );
@@ -288,7 +310,7 @@ export function createOutreach(deps: {
       const t = createThread(db, `Applied · ${program.university}`);
       runner.send(
         t.id,
-        `${AFTER_APPLYING_TAG} app=${app.id}\nThe applicant submitted their application to ${program.name} at ${program.university} and named the professors below. Draft a short note to each with draft_email (touch after-applying): they applied to that program and named them. Skip anyone apply-only.\n${lines.join("\n")}`,
+        `${AFTER_APPLYING_TAG} app=${app.id}\nThe applicant submitted their application to ${program.name} at ${program.university} and named the professors below.${app.applicationId ? ` The application ID is ${app.applicationId}; quote it.` : ""} Draft a short note to each with draft_email (touch after-applying): they applied to that program and named them. Skip anyone apply-only.\n${lines.join("\n")}`,
         "send",
         `Draft ${named.length} "I applied" note${named.length === 1 ? "" : "s"}`,
       );

@@ -1,25 +1,23 @@
-// Outreach messages in the store, the rules a draft must pass, and where each professor stands.
+// Outreach messages in the store, the rules a draft must pass, and where one professor stands.
 // Stage and turn are derived from the messages on every read, so they never drift from what
-// actually happened.
+// actually happened. pipeline.ts lists everyone; inbox.ts files synced mail.
 import {
   type Channel,
   type Conversation,
   draftIssues,
   OutreachMessage,
   type Professor,
-  type ReplyClass,
   Touch,
 } from "@gradcode/contracts";
 import { profileFacts } from "../adapters.ts";
 import { type Db, newId, now } from "../db.ts";
-import { getRecord, listRecords, putRecord } from "../records.ts";
+import { getRecord, putRecord } from "../records.ts";
 import { getApplicant } from "../state.ts";
-import { numberCitations } from "../vault.ts";
-import type { Incoming } from "./mail.ts";
-import { classifyMail, followUpDue, nextSlot, returnDate } from "./plan.ts";
+import { acceptedOffer, listDocuments, numberCitations } from "../vault.ts";
+import { followUpDue, nextSlot, returnDate } from "./plan.ts";
 
 const parse = (r: Record<string, unknown>) => OutreachMessage.parse(JSON.parse(String(r.body)));
-const when = (m: OutreachMessage) => m.at ?? m.scheduledAt ?? m.createdAt;
+export const when = (m: OutreachMessage) => m.at ?? m.scheduledAt ?? m.createdAt;
 const byTime = (a: OutreachMessage, b: OutreachMessage) => when(a).localeCompare(when(b));
 
 export function putMessage(db: Db, m: OutreachMessage) {
@@ -44,7 +42,7 @@ export const listMessages = (db: Db, recordKey?: string) =>
     .map(parse)
     .toSorted(byTime);
 
-const setStage = (db: Db, record: Professor, stage: Professor["stage"]) =>
+export const setStage = (db: Db, record: Professor, stage: Professor["stage"]) =>
   putRecord(db, { ...record, stage, updatedAt: now() });
 
 export type DraftInput = {
@@ -56,6 +54,8 @@ export type DraftInput = {
   body: string;
   timeZone: string;
   threadId: string | null;
+  /** Vault document ids to send with it (email only), e.g. the CV they asked for. */
+  attach?: string[] | undefined;
 };
 
 const validZone = (timeZone: string) => {
@@ -66,7 +66,7 @@ const validZone = (timeZone: string) => {
   }
 };
 
-const isReply = (m: OutreachMessage) =>
+export const isReply = (m: OutreachMessage) =>
   m.direction === "in" && (m.kind === "reply" || m.kind === "linkedin");
 
 /**
@@ -114,6 +114,11 @@ export function saveDraft(db: Db, d: DraftInput): OutreachMessage | { problem: s
   const messages = listMessages(db, d.recordKey);
   const problem = draftProblem(record, messages, d);
   if (problem || !record) return { problem: problem ?? "no record" };
+  const attach = d.attach ?? [];
+  if (attach.length && d.channel !== "email") return { problem: "only email carries attachments" };
+  const docs = listDocuments(db);
+  const unknown = attach.filter((id) => !docs.some((doc) => doc.id === id));
+  if (unknown.length) return { problem: `no document ${unknown.join(", ")} in the vault` };
   const lastIn = messages.findLast(isReply);
   const existing = messages.find(
     (m) => m.direction === "out" && m.status === "draft" && m.touch === d.touch,
@@ -131,6 +136,7 @@ export function saveDraft(db: Db, d: DraftInput): OutreachMessage | { problem: s
     to: d.to.trim(),
     subject: d.subject.trim() || (lastIn ? `Re: ${lastIn.subject.replace(/^re:\s*/i, "")}` : ""),
     ...numberCitations(d.body.trim()),
+    attachments: attach,
     timeZone: validZone(d.timeZone) ? d.timeZone : "America/New_York",
     scheduledAt: null,
     at: null,
@@ -196,14 +202,18 @@ export function approve(db: Db, ids: string[], at: Date, warmupStart: Date) {
 }
 
 /** Scheduled email whose time has come. LinkedIn notes wait for the user to send them. */
-export const dueToSend = (db: Db, at: Date) =>
-  listMessages(db).filter(
+export function dueToSend(db: Db, at: Date) {
+  // Once an offer is accepted the hunt is over: answers and thank-yous still go, cold mail doesn't.
+  const ended = acceptedOffer(db) !== null;
+  return listMessages(db).filter(
     (m) =>
       m.status === "scheduled" &&
       m.channel === "email" &&
       m.scheduledAt !== null &&
-      new Date(m.scheduledAt) <= at,
+      new Date(m.scheduledAt) <= at &&
+      !(ended && m.touch !== "reply" && m.touch !== "thank-you"),
   );
+}
 
 /** Records a message as sent and moves the professor's stage along. */
 export function markSent(db: Db, id: string, sent: { messageId: string | null; from: string }) {
@@ -216,103 +226,30 @@ export function markSent(db: Db, id: string, sent: { messageId: string | null; f
   return next;
 }
 
-/** Which professor an incoming message is about. Mail from anyone not contacted is ignored. */
-function matchRecord(db: Db, mail: Incoming, kind: OutreachMessage["kind"]) {
-  const sent = listMessages(db).filter((m) => m.direction === "out" && m.status === "sent");
-  const refs = new Set([mail.inReplyTo, ...mail.references]);
-  const byRef = sent.find((m) => m.messageId && refs.has(m.messageId));
-  if (byRef) return byRef.recordKey;
-  const contacted = listRecords(db).filter((r) => sent.some((m) => m.recordKey === r.key));
-  if (kind === "bounce") {
-    const text = mail.text.toLowerCase();
-    return (
-      sent.find(
-        (m) =>
-          m.channel === "email" &&
-          ((m.messageId && mail.text.includes(m.messageId)) || text.includes(m.to.toLowerCase())),
-      )?.recordKey ?? null
-    );
-  }
-  if (kind === "linkedin") {
-    const hay = `${mail.subject}\n${mail.text}`.toLowerCase();
-    return contacted.find((r) => hay.includes(r.name.toLowerCase()))?.key ?? null;
-  }
-  const from = mail.from.toLowerCase();
-  return contacted.find((r) => r.email && r.email.toLowerCase() === from)?.key ?? null;
-}
-
-/** Files one synced message under its professor. Returns it, or null when it isn't outreach. */
-export function ingest(db: Db, mail: Incoming): OutreachMessage | null {
-  if (
-    mail.messageId &&
-    db.prepare("SELECT 1 FROM messages WHERE message_id = ?").get(mail.messageId)
-  )
-    return null;
-  const kind = classifyMail({ from: mail.from, subject: mail.subject, body: mail.text });
-  const key = matchRecord(db, mail, kind);
-  const record = key ? getRecord(db, key) : null;
-  if (!key || !record) return null;
-  const back = kind === "auto-reply" ? returnDate(mail.text, new Date(mail.date)) : null;
-  const message = putMessage(db, {
-    id: newId("in"),
-    recordKey: key,
-    channel: kind === "linkedin" ? "linkedin" : "email",
-    direction: "in",
-    touch: null,
-    kind,
-    replyClass: null,
-    status: "received",
-    citations: {},
-    from: mail.from,
-    to: "",
-    subject: mail.subject,
-    body: mail.text.slice(0, 20_000),
-    timeZone: "",
-    scheduledAt: null,
-    at: mail.date,
-    messageId: mail.messageId,
-    inReplyTo: mail.inReplyTo,
-    threadId: null,
-    note: back
-      ? `away until ${back.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`
-      : "",
-    createdAt: now(),
-  });
-  if ((kind === "reply" || kind === "linkedin") && record.stage !== "replied")
-    setStage(db, record, "replied");
-  if (kind === "bounce")
-    putRecord(db, { ...record, emailCheck: `bounced ${mail.date.slice(0, 10)}`, updatedAt: now() });
-  return message;
-}
-
-/** What a reply says about taking students, for the record's `taking` cell. */
-const TAKING: Partial<Record<ReplyClass, string>> = {
-  interested: "yes",
-  call: "yes",
-  "not-taking": "no",
+/** What the rest of the hunt says about a professor, beyond their messages. */
+export type Links = {
+  /** A submitted application names them. */
+  applied: boolean;
+  /** That application's school made an offer. */
+  offer: boolean;
+  /** An offer was accepted somewhere: the hunt is over. */
+  ended: boolean;
+  followUpDays: readonly number[];
 };
-
-/** The agent's reading of a reply: what they want, in one line. */
-export function classify(db: Db, id: string, replyClass: ReplyClass, note: string) {
-  const m = getMessage(db, id);
-  if (!m || m.direction !== "in") return null;
-  // What they said about taking students becomes the record, dated, over any earlier guess.
-  const record = getRecord(db, m.recordKey);
-  const taking = TAKING[replyClass];
-  if (record && taking)
-    putRecord(db, {
-      ...record,
-      taking: `${taking}, they replied ${(m.at ?? m.createdAt).slice(0, 10)}`,
-      updatedAt: now(),
-    });
-  return putMessage(db, { ...m, replyClass, note });
-}
+const NO_LINKS: Links = { applied: false, offer: false, ended: false, followUpDays: [7, 14] };
 
 /**
- * Where a professor stands, from their messages alone. Follow-ups run +7 and +14 business days
- * after the first email, wait out an out-of-office, and stop on any reply or bounce.
+ * Where a professor stands: from their messages, then what the hunt adds (an application that
+ * names them, an offer, an accepted offer anywhere). Follow-ups run on the hunt's business days
+ * after the first email, wait out an out-of-office, and stop on a reply, a bounce, applying, or
+ * an accepted offer.
  */
-export function standing(record: Professor, messages: OutreachMessage[], at: Date) {
+export function standing(
+  record: Professor,
+  messages: OutreachMessage[],
+  at: Date,
+  links: Links = NO_LINKS,
+) {
   const out = messages.filter((m) => m.direction === "out");
   const sent = out.filter((m) => m.status === "sent");
   const first = sent.findLast((m) => m.touch === "first");
@@ -330,31 +267,40 @@ export function standing(record: Professor, messages: OutreachMessage[], at: Dat
       ? "they replied"
       : bounced
         ? "bounced"
-        : null;
+        : links.ended
+          ? "you accepted an offer"
+          : links.applied
+            ? "you applied and named them"
+            : null;
 
   const away = incoming.findLast((m) => m.kind === "auto-reply");
   const back = away ? returnDate(away.body, new Date(when(away))) : null;
   const followUps = sent.filter((m) => m.touch?.startsWith("follow-up")).length;
-  let followUpAt = !stopped && first?.at ? followUpDue(new Date(first.at), followUps) : null;
+  let followUpAt =
+    !stopped && first?.at ? followUpDue(new Date(first.at), followUps, links.followUpDays) : null;
   if (followUpAt && back && back > followUpAt) followUpAt = back;
 
   const stage: Conversation["stage"] = notTaking
     ? "closed"
-    : lastReply
-      ? replies.some((m) => m.replyClass === "call")
-        ? "call"
-        : "replied"
-      : bounced
-        ? "to-contact"
-        : first
-          ? followUpAt && followUpAt <= at
-            ? "follow-up"
-            : "contacted"
-          : record.stage === "replied"
-            ? "replied"
-            : record.stage === "sent"
-              ? "contacted"
-              : "to-contact";
+    : links.offer
+      ? "offer"
+      : links.applied
+        ? "applied"
+        : lastReply
+          ? replies.some((m) => m.replyClass === "call")
+            ? "call"
+            : "replied"
+          : bounced
+            ? "to-contact"
+            : first
+              ? followUpAt && followUpAt <= at
+                ? "follow-up"
+                : "contacted"
+              : record.stage === "replied"
+                ? "replied"
+                : record.stage === "sent"
+                  ? "contacted"
+                  : "to-contact";
 
   const last = messages.at(-1);
   const answered = !!lastReply && sent.some((m) => when(m) > lastReply.createdAt);
@@ -368,13 +314,15 @@ export function standing(record: Professor, messages: OutreachMessage[], at: Dat
         ? "queued"
         : (lastReply && !answered) || bounced
           ? "yours"
-          : stage === "follow-up"
-            ? "follow-up"
-            : waiting
-              ? "approve"
-              : stage === "to-contact"
-                ? "yours"
-                : "theirs";
+          : links.ended && !waiting
+            ? "closed"
+            : stage === "follow-up"
+              ? "follow-up"
+              : waiting
+                ? "approve"
+                : stage === "to-contact" || stage === "offer"
+                  ? "yours"
+                  : "theirs";
 
   return {
     stage,
@@ -386,47 +334,4 @@ export function standing(record: Professor, messages: OutreachMessage[], at: Dat
     followUpAt: followUpAt?.toISOString() ?? null,
     lastAt: last ? when(last) : record.updatedAt,
   };
-}
-
-/** Everyone in the pipeline: anyone with outreach, or an app record already past "new". */
-export function conversations(db: Db, at = new Date()): Conversation[] {
-  const all = listMessages(db);
-  return listRecords(db)
-    .flatMap((record) => {
-      const messages = all.filter((m) => m.recordKey === record.key);
-      const inPlay =
-        messages.length > 0 ||
-        (record.origin === "app" && ["drafted", "sent", "replied"].includes(record.stage));
-      if (!inPlay) return [];
-      const s = standing(record, messages, at);
-      return [
-        {
-          record,
-          messages,
-          stage: s.stage,
-          turn: s.turn,
-          followUpAt: s.followUpAt,
-          stopped: s.stopped,
-          lastAt: s.lastAt,
-        },
-      ];
-    })
-    .toSorted((a, b) => b.lastAt.localeCompare(a.lastAt));
-}
-
-/** Follow-ups due now with no draft yet, and which step each one is. */
-export function followUpsToDraft(db: Db, at = new Date()) {
-  return conversations(db, at).flatMap((c) => {
-    if (c.stage !== "follow-up") return [];
-    const sent = c.messages.filter((m) => m.direction === "out" && m.status === "sent");
-    const step = Touch.safeParse(
-      `follow-up-${sent.filter((m) => m.touch?.startsWith("follow-up")).length + 1}`,
-    );
-    if (!step.success) return [];
-    const touch = step.data;
-    const drafted = c.messages.some(
-      (m) => m.direction === "out" && m.touch === touch && m.status !== "cancelled",
-    );
-    return drafted ? [] : [{ record: c.record, touch, last: sent.at(-1) }];
-  });
 }

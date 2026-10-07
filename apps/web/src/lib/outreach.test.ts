@@ -48,6 +48,7 @@ const msg = (m: Partial<OutreachMessage>): OutreachMessage => ({
   threadId: null,
   note: "",
   citations: {},
+  attachments: [],
   createdAt: "2026-10-12T00:00:00.000Z",
   ...m,
 });
@@ -60,6 +61,9 @@ const convo = (c: Partial<Conversation>): Conversation => ({
   followUpAt: null,
   stopped: null,
   lastAt: "2026-10-13T12:00:00.000Z",
+  program: null,
+  applied: null,
+  offer: null,
   ...c,
 });
 
@@ -70,8 +74,20 @@ describe("the Pipeline's reading of a conversation", () => {
       "First email:done",
       "Follow-up 1:later",
       "Follow-up 2:later",
+      "After applying: I named you:later",
     ]);
     expect(cardLine(waiting)).toBe("sent Oct 13 · follow-up Oct 22");
+
+    // Once they're named in a submitted application, the note is the next thing to do.
+    const applied = convo({
+      stage: "applied",
+      stopped: "you applied and named them",
+      messages: [msg({})],
+      program: { name: "PhD in IT", deadline: null },
+      applied: { status: "submitted", submittedAt: "2026-11-02T12:00:00.000Z" },
+    });
+    expect(sequence(applied).find((s) => s.id === "plan-applied")?.state).toBe("now");
+    expect(cardLine(applied)).toBe("PhD in IT · submitted Nov 2");
 
     const replied = convo({
       stage: "replied",

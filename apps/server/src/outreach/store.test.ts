@@ -31,6 +31,7 @@ const msg = (m: Partial<OutreachMessage>): OutreachMessage => ({
   threadId: null,
   note: "",
   citations: {},
+  attachments: [],
   createdAt: "2026-10-12T00:00:00.000Z",
   ...m,
 });

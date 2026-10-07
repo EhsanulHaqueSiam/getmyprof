@@ -254,6 +254,16 @@ function ApplicationView({
             }
             className="h-6.5 flex-1 rounded-md border border-input bg-transparent px-2 outline-none placeholder:text-placeholder"
           />
+          <input
+            defaultValue={app.applicationId}
+            placeholder="application ID"
+            aria-label="Application ID"
+            onBlur={(e) =>
+              e.target.value !== app.applicationId &&
+              save({ ...app, applicationId: e.target.value.trim() })
+            }
+            className="h-6.5 w-36 rounded-md border border-input bg-transparent px-2 outline-none placeholder:text-placeholder"
+          />
         </div>
       </Row>
       <Row label="Interviews">

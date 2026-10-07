@@ -26,6 +26,7 @@ const DEFAULT_PREFS: HuntPrefs = {
   preferTestWaivers: true,
   sweep: { reach: 3, match: 3, safety: 3 },
   priorities: ["money", "recruiting", "topic", "deadline", "rank"],
+  followUpDays: [7, 14],
 };
 
 function Setup() {

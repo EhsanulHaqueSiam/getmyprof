@@ -62,6 +62,8 @@ function Loops() {
     setPickedId(saved.id);
   };
   const runs = threads.filter((t) => t.loopId && t.loopId === pickedId).slice(0, 8);
+  // An accepted offer ends the hunt: the server stops running loops on schedule.
+  const accepted = useStore((s) => s.vault?.offers.find((o) => o.status === "accepted"));
 
   return (
     <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_380px]">
@@ -69,7 +71,9 @@ function Loops() {
         <header className="flex h-12 shrink-0 items-center gap-2.5 px-4">
           <h1 className="font-semibold text-sm">Loops</h1>
           <span className="text-muted-foreground text-xs">
-            {loops.filter((l) => l.enabled).length} on
+            {accepted
+              ? `paused: you accepted ${accepted.university}'s offer. Run now still works`
+              : `${loops.filter((l) => l.enabled).length} on`}
           </span>
           <Button
             variant="outline"

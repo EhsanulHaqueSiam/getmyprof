@@ -22,7 +22,7 @@ import { type Db, newId, now } from "./db.ts";
 import { health, tailnetLink } from "./health.ts";
 import { listLoops, saveLoop, STARTER_LOOPS } from "./loops.ts";
 import type { Outreach } from "./outreach/service.ts";
-import { conversations } from "./outreach/store.ts";
+import { conversations } from "./outreach/pipeline.ts";
 import {
   findsWaiting,
   listPrograms,
@@ -135,7 +135,12 @@ export function createHandlers(svc: Services): Handlers {
       bus.push({ type: "changed", what: "state" });
       return next;
     },
-    "hunt.save": ({ name, prefs }) => saveHunt(db, name, prefs),
+    "hunt.save": ({ name, prefs }) => {
+      const hunt = saveHunt(db, name, prefs);
+      // Follow-up timing lives in the prefs, so the Pipeline's due dates move with it.
+      bus.push({ type: "changed", what: "outreach" });
+      return hunt;
+    },
     "applicant.save": (applicant) => saveApplicant(db, applicant),
     "facts.save": ({ facts }) => saveFacts(db, facts),
     "facts.extract": async (input) =>

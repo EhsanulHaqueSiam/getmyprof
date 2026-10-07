@@ -26,7 +26,13 @@ if (getSettings(db).gradhunt) importGradhunt(db);
 
 const bus = createBus();
 const sources = fake ? fixtureSources : realSources;
-const runner = createRunner({ db, bus, provider: fake ? fakeProvider() : claudeProvider, sources });
+const runner = createRunner({
+  db,
+  bus,
+  provider: fake ? fakeProvider() : claudeProvider,
+  sources,
+  signAs: () => outreach.status().name,
+});
 // The fake agent pairs with a fake mailbox: nothing leaves this machine in tests or e2e.
 const sandboxMail = fakeMailer();
 const outreach = createOutreach({

@@ -57,7 +57,7 @@ export const PipelineStage = z.enum([...PIPELINE_STAGES, "closed"]);
 export type PipelineStage = z.infer<typeof PipelineStage>;
 
 /** Inbox groups: whose move it is. */
-export const Turn = z.enum(["yours", "follow-up", "approve", "theirs", "closed"]);
+export const Turn = z.enum(["yours", "follow-up", "approve", "queued", "theirs", "closed"]);
 export type Turn = z.infer<typeof Turn>;
 
 /** One professor in the pipeline: their messages and where things stand. */

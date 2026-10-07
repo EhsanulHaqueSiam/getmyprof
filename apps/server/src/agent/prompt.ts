@@ -26,6 +26,8 @@ export function systemPrompt(
   facts: ProfileFact[],
   settings: Settings,
   applicant: Applicant | null = null,
+  /** The connected mailbox's display name; drafts are signed with it. */
+  signAs = "",
   today = new Date(),
 ) {
   const a = applicant;
@@ -82,8 +84,11 @@ export function systemPrompt(
       "- Emails: official pages first; treg.people.email.find only if they fail; always check with treg.people.email.verify (free).",
       "- Outreach goes through draft_email, never in your reply. Every draft waits for the applicant to approve it. Plain text, one recipient, at most two links, no tracking. First email: who the applicant is, one fit fact tied to the professor's recent work, one question. Follow the professor's contact rule (subject line, apply first). Claim only confirmed facts.",
       "- When a professor writes back, classify it with classify_reply before drafting the answer.",
+      signAs ? `- Sign every email as ${signAs}.` : "",
       "- End with a short reply: who you found, what needs the applicant, nothing else.",
-    ].join("\n"),
+    ]
+      .filter(Boolean)
+      .join("\n"),
   ]
     .filter(Boolean)
     .join("\n\n");

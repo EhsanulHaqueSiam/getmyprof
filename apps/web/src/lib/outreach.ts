@@ -6,10 +6,11 @@ export const TURN_LABEL: Record<Turn, string> = {
   yours: "Your turn",
   "follow-up": "Follow-up due",
   approve: "To approve",
+  queued: "Queued",
   theirs: "Their turn",
   closed: "Closed",
 };
-export const TURN_ORDER: Turn[] = ["yours", "follow-up", "approve", "theirs", "closed"];
+export const TURN_ORDER: Turn[] = ["yours", "follow-up", "approve", "queued", "theirs", "closed"];
 
 /** Conversations the sidebar counts: the next move is the user's. */
 export const needsYou = (c: Conversation) =>
@@ -80,6 +81,7 @@ export function cardLine(c: Conversation) {
     case "contacted":
       return [
         first?.at ? `sent ${day(first.at)}` : "sent outside gradcode",
+        c.messages.findLast((m) => m.kind === "auto-reply")?.note ?? "",
         c.followUpAt ? `follow-up ${day(c.followUpAt)}` : "",
       ]
         .filter(Boolean)

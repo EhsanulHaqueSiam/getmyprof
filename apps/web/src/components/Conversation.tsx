@@ -8,13 +8,14 @@ import { nextStep, openDraft, sequence, theirTime } from "~/lib/outreach";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
 
-function Bubble({ m, name }: { m: OutreachMessage; name: string }) {
+/** One message. Times read in the professor's zone, both ways, so a quick reply looks quick. */
+function Bubble({ m, name, zone }: { m: OutreachMessage; name: string; zone: string }) {
   const mine = m.direction === "out";
   const head = mine
     ? m.status === "scheduled"
       ? `Queued · ${theirTime(m)}`
       : `You · ${theirTime(m)} · ${m.touch ? TOUCH_LABEL[m.touch] : ""}`
-    : `${name} · ${m.at ? new Date(m.at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : ""}`;
+    : `${name} · ${theirTime({ at: m.at, scheduledAt: null, timeZone: zone })}`;
   return (
     <div
       data-testid="message"
@@ -63,7 +64,16 @@ function Divider({ children }: { children: string }) {
 }
 
 /** The open draft: edit it, then schedule or send it. LinkedIn notes are sent by hand. */
-function Composer({ draft, connected }: { draft: OutreachMessage; connected: boolean }) {
+function Composer({
+  draft,
+  connected,
+  checked,
+}: {
+  draft: OutreachMessage;
+  connected: boolean;
+  /** Whether the address passed its deliverability check. */
+  checked: boolean;
+}) {
   const [subject, setSubject] = useState(draft.subject);
   const [body, setBody] = useState(draft.body);
   const dirty = subject !== draft.subject || body !== draft.body;
@@ -108,6 +118,9 @@ function Composer({ draft, connected }: { draft: OutreachMessage; connected: boo
         <ChannelBadge channel={draft.channel} />
         <span className="truncate">
           {draft.touch ? TOUCH_LABEL[draft.touch] : ""} · to {draft.to}
+          {draft.channel === "email" && !checked ? (
+            <span className="text-warning-foreground"> · address not checked</span>
+          ) : null}
           {draft.status === "failed" ? ` · not sent: ${draft.note}` : ""}
         </span>
         <Button
@@ -165,6 +178,7 @@ function Composer({ draft, connected }: { draft: OutreachMessage; connected: boo
 export function ConversationView({ c, connected }: { c: Conversation; connected: boolean }) {
   const draft = openDraft(c);
   const r = c.record;
+  const zone = c.messages.find((m) => m.direction === "out" && m.timeZone)?.timeZone ?? "";
   // Drafts and failed sends live in the composer, not the transcript.
   const shown = c.messages.filter(
     (m) => m.status !== "cancelled" && m.status !== "draft" && m.status !== "failed",
@@ -197,7 +211,7 @@ export function ConversationView({ c, connected }: { c: Conversation; connected:
         <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 py-4">
           {shown.map((m) => (
             <div key={m.id} className="flex flex-col gap-3">
-              <Bubble m={m} name={r.name} />
+              <Bubble m={m} name={r.name} zone={zone} />
               {m.direction === "in" && m.replyClass ? (
                 <Divider>
                   {`reply read as ${m.replyClass.replace("-", " ")}${m.note ? `, ${m.note}` : ""}${draft?.touch === "reply" ? " · answer drafted below" : ""}`}
@@ -218,6 +232,7 @@ export function ConversationView({ c, connected }: { c: Conversation; connected:
             key={`${draft.id}:${draft.subject}:${draft.body}`}
             draft={draft}
             connected={connected}
+            checked={/^ok\b/i.test(r.emailCheck)}
           />
         ) : null}
       </div>

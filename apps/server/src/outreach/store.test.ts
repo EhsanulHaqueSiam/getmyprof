@@ -33,8 +33,12 @@ const msg = (m: Partial<OutreachMessage>): OutreachMessage => ({
   createdAt: "2026-10-12T00:00:00.000Z",
   ...m,
 });
-const reply = (m: Partial<OutreachMessage> = {}) =>
-  msg({ direction: "in", touch: null, kind: "reply", status: "received", ...m });
+/** An incoming message, received (createdAt) when its Date header says unless told otherwise. */
+const incoming = (m: Partial<OutreachMessage>) => {
+  const at = m.at ?? "2026-10-14T09:00:00.000Z";
+  return msg({ direction: "in", touch: null, status: "received", at, createdAt: at, ...m });
+};
+const reply = (m: Partial<OutreachMessage> = {}) => incoming({ kind: "reply", ...m });
 
 // First email Tue Oct 13 2026. +7 business days is Thu Oct 22; +14 is Mon Nov 2.
 const first = msg({});
@@ -64,6 +68,11 @@ describe("where a professor stands", () => {
     expect(standing(prof, [first, theirs, answer], new Date()).turn).toBe("theirs");
   });
 
+  it("still waits on you when their server's clock stamps the reply before our send", () => {
+    const skewed = reply({ at: "2026-10-13T11:59:00.000Z", createdAt: "2026-10-13T12:03:00.000Z" });
+    expect(standing(prof, [first, skewed], new Date()).turn).toBe("yours");
+  });
+
   it("moves to Call when they propose one, and closes when they aren't taking students", () => {
     expect(standing(prof, [first, reply({ replyClass: "call" })], new Date()).stage).toBe("call");
     const no = standing(prof, [first, reply({ replyClass: "not-taking" })], new Date());
@@ -71,11 +80,8 @@ describe("where a professor stands", () => {
   });
 
   it("waits out an out-of-office before following up", () => {
-    const away = msg({
-      direction: "in",
-      touch: null,
+    const away = incoming({
       kind: "auto-reply",
-      status: "received",
       at: "2026-10-13T12:05:00.000Z",
       body: "I am out of the office until November 9, 2026.",
     });
@@ -85,13 +91,7 @@ describe("where a professor stands", () => {
   });
 
   it("puts a bounce back in your hands", () => {
-    const bounce = msg({
-      direction: "in",
-      touch: null,
-      kind: "bounce",
-      status: "received",
-      at: "2026-10-13T12:01:00.000Z",
-    });
+    const bounce = incoming({ kind: "bounce", at: "2026-10-13T12:01:00.000Z" });
     expect(standing(prof, [first, bounce], new Date())).toMatchObject({
       stage: "to-contact",
       turn: "yours",

@@ -40,6 +40,8 @@ export function createRunner(deps: {
   bus: Bus;
   provider: AgentProvider;
   sources: Sources;
+  /** The name drafts are signed with: the connected mailbox's display name. */
+  signAs?: () => string;
 }) {
   const { db, bus, provider, sources } = deps;
   const sessions = new Map<string, AgentSession>();
@@ -132,7 +134,13 @@ export function createRunner(deps: {
       threadId,
       resumeId: sessionId(db, threadId),
       firstText: text,
-      systemPrompt: systemPrompt(hunt, getFacts(db), settings, getApplicant(db)),
+      systemPrompt: systemPrompt(
+        hunt,
+        getFacts(db),
+        settings,
+        getApplicant(db),
+        deps.signAs?.() ?? "",
+      ),
       model: settings.model,
       tools: toolsFor(settings),
       askOver: settings.budget.askOver,

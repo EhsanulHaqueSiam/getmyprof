@@ -253,7 +253,9 @@ export function ingest(db: Db, mail: Incoming): OutreachMessage | null {
     messageId: mail.messageId,
     inReplyTo: mail.inReplyTo,
     threadId: null,
-    note: back ? `away until ${back.toISOString().slice(0, 10)}` : "",
+    note: back
+      ? `away until ${back.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`
+      : "",
     createdAt: now(),
   });
   if ((kind === "reply" || kind === "linkedin") && record.stage !== "replied")
@@ -282,7 +284,9 @@ export function standing(record: Professor, messages: OutreachMessage[], at: Dat
   const replies = incoming.filter(isReply);
   const lastReply = replies.at(-1);
   const bounce = incoming.findLast((m) => m.kind === "bounce");
-  const bounced = !!bounce && !!first && when(bounce) >= when(first) && !lastReply;
+  // Ordering against our own sends uses when we received a message (createdAt, our clock),
+  // not its Date header: another server's clock can run behind ours.
+  const bounced = !!bounce && !!first && bounce.createdAt >= when(first) && !lastReply;
   const notTaking = replies.some((m) => m.replyClass === "not-taking");
   const stopped = notTaking
     ? "not taking students"
@@ -317,21 +321,24 @@ export function standing(record: Professor, messages: OutreachMessage[], at: Dat
               : "to-contact";
 
   const last = messages.at(-1);
-  const answered = !!lastReply && sent.some((m) => when(m) > when(lastReply));
+  const answered = !!lastReply && sent.some((m) => when(m) > lastReply.createdAt);
   const waiting = out.some((m) => m.status === "draft" || m.status === "failed");
   const scheduled = out.some((m) => m.status === "scheduled");
+  // Something approved and waiting for its slot needs nobody: it's queued.
   const turn: Conversation["turn"] =
     stage === "closed"
       ? "closed"
-      : (lastReply && !answered) || bounced
-        ? "yours"
-        : stage === "follow-up"
-          ? "follow-up"
-          : waiting
-            ? "approve"
-            : stage === "to-contact" && !scheduled
-              ? "yours"
-              : "theirs";
+      : scheduled
+        ? "queued"
+        : (lastReply && !answered) || bounced
+          ? "yours"
+          : stage === "follow-up"
+            ? "follow-up"
+            : waiting
+              ? "approve"
+              : stage === "to-contact"
+                ? "yours"
+                : "theirs";
 
   return {
     stage,

@@ -147,7 +147,8 @@ export function imapMailer(c: MailConnect): Mailer {
  */
 export function fakeMailer() {
   const sent: Outgoing[] = [];
-  const inbox: (Incoming & { uid: number })[] = [];
+  // Replies get their Date when a sync first sees them, so they always land after the send.
+  const inbox: (Omit<Incoming, "date"> & { uid: number; date: string | null })[] = [];
   let uid = 0;
   const reply = (inReplyTo: string, from: string, subject: string, text: string) =>
     inbox.push({
@@ -158,7 +159,7 @@ export function fakeMailer() {
       from,
       subject,
       text,
-      date: new Date().toISOString(),
+      date: null,
     });
 
   const mailer: Mailer & { sent: Outgoing[] } = {
@@ -192,9 +193,11 @@ export function fakeMailer() {
     async fetchNew(cursor) {
       const newest = inbox.at(-1)?.uid ?? 0;
       if (!cursor) return { cursor: { uidValidity: "fake", lastUid: newest }, messages: [] };
+      const fresh = inbox.filter((m) => m.uid > cursor.lastUid);
+      for (const m of fresh) m.date ??= new Date().toISOString();
       return {
         cursor: { uidValidity: "fake", lastUid: Math.max(cursor.lastUid, newest) },
-        messages: inbox.filter((m) => m.uid > cursor.lastUid),
+        messages: fresh.map((m) => ({ ...m, date: m.date ?? new Date().toISOString() })),
       };
     },
   };

@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_shell/settings")({ component: SettingsPa
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="grid grid-cols-[180px_minmax(0,1fr)] items-center gap-4 border-b py-3 text-sm">
+    <div className="grid grid-cols-1 items-center gap-1.5 border-b py-3 text-sm md:grid-cols-[180px_minmax(0,1fr)] md:gap-4">
       <span className="text-muted-foreground text-xs">{label}</span>
       <div className="flex flex-wrap items-center gap-1.5">{children}</div>
     </div>

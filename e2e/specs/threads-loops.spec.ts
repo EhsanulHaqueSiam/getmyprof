@@ -168,4 +168,8 @@ test("phone: the sidebar opens over the page and closes on the way somewhere", a
   await expect(page).toHaveURL(/\/funding$/);
   await expect(sidebar).toBeHidden();
   await expect(page.getByRole("heading", { name: "Funding" })).toBeVisible();
+  // The Vault stacks too: its content column keeps the width.
+  await page.goto("/vault?section=facts");
+  const width = await page.locator("main").evaluate((m) => m.scrollWidth <= m.clientWidth + 1);
+  expect(width).toBe(true);
 });

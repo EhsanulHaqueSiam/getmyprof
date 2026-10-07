@@ -266,7 +266,10 @@ export function MailLabel() {
   const now = useMinuteClock();
   if (!mail?.connected)
     return (
-      <Link to="/settings" className="text-info-foreground text-xs underline">
+      <Link
+        to="/settings"
+        className="shrink-0 text-info-foreground text-xs whitespace-nowrap underline"
+      >
         Connect a mailbox
       </Link>
     );

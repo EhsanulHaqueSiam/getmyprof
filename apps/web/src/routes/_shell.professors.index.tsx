@@ -111,7 +111,7 @@ function Professors() {
           <DownloadIcon /> Export
         </Button>
       </header>
-      <div className="flex items-center gap-0.5 px-3 pb-2">
+      <div className="flex flex-wrap items-center gap-0.5 px-3 pb-2">
         {VIEWS.map(([id, label]) => (
           <button
             key={id}

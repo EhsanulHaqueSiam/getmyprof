@@ -290,7 +290,7 @@ export function professorFromAward(existing: Professor | null, a: Award): Profes
   const base = existing ?? {
     ...blankProfessor(a.pi, a.university),
     moneyTier: (a.monthsAfterIntake ?? 0) > 0 ? 2 : 3,
-    money: `${a.source} ${a.id}: ${a.title}`,
+    money: `${a.source} award as PI${a.amount ? `, ${a.currency} ${Math.round(a.amount).toLocaleString("en-US")}` : ""}`,
     lasts: a.ends ?? "",
   };
   return {

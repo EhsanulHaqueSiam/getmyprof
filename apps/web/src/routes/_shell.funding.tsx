@@ -200,13 +200,13 @@ function Funding() {
                       ((m !== null && m < 0) || a.fit === 0) && "opacity-45",
                     )}
                   >
-                    <td className="h-9 max-w-[260px] truncate border-b px-3 text-secondary-label">
+                    <td className="h-9 max-w-[200px] truncate border-b px-3 text-secondary-label">
                       {a.title}
                     </td>
                     <td className="border-b px-3 font-medium whitespace-nowrap">
                       {a.pi || <span className="text-muted-foreground">not listed</span>}
                     </td>
-                    <td className="max-w-[160px] truncate border-b px-3 text-secondary-label">
+                    <td className="max-w-[120px] truncate border-b px-3 text-secondary-label">
                       {a.university}
                     </td>
                     <td className="border-b px-3 tabular-nums">{money(a)}</td>
@@ -325,7 +325,11 @@ function Funding() {
             </div>
           </>
         ) : (
-          <p className="text-muted-foreground text-xs">Pick an award to see it here.</p>
+          <p className="text-muted-foreground text-xs">
+            {tab === "awards"
+              ? "Pick an award to see it here."
+              : "Programs and fellowships are kept in the Vault, with their notes and status."}
+          </p>
         )}
       </aside>
     </div>

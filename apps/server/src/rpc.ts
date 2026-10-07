@@ -177,6 +177,8 @@ export function createHandlers(svc: Services): Handlers {
     "loops.save": (input) => {
       const loop = saveLoop(db, input);
       bus.push({ type: "changed", what: "loops" });
+      // The sidebar counts loops on.
+      bus.push({ type: "changed", what: "state" });
       return loop;
     },
     "loops.run": ({ id }) => svc.startLoop(id),

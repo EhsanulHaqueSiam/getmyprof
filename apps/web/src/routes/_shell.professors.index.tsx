@@ -224,7 +224,7 @@ function Professors() {
                     className="size-3.5 accent-foreground"
                   />
                 </td>
-                <td className="h-9 border-b px-3 font-mono font-semibold">{p.fit}</td>
+                <td className="h-9 border-b px-3 font-mono font-semibold">{p.fit || "?"}</td>
                 <td className="border-b px-3 font-medium whitespace-nowrap">
                   <Link to="/professors/$key" params={{ key: p.key }} className="hover:underline">
                     {p.name}
@@ -259,7 +259,9 @@ function Professors() {
         </table>
         {shown.length === 0 ? (
           <div className="px-6 py-16 text-center text-muted-foreground text-xs">
-            No professors yet. Start a thread and accept what it finds.
+            {rows.length
+              ? "No professor matches these filters."
+              : "No professors yet. Start a thread and accept what it finds."}
           </div>
         ) : null}
       </div>

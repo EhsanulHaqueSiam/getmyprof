@@ -79,7 +79,10 @@ function ProfessorPage() {
   if (error) return <div className="flex-1 p-8 text-muted-foreground text-sm">{error}</div>;
   if (!data) return <div className="flex-1" />;
   const p = data.record;
-  const src = data.fieldSources;
+  // A field set by an accepted change shows that change's sources; one that came in another way
+  // (Add PI, a CSV, gradhunt) shows the record's own.
+  const own = p.sources.length ? { sources: p.sources, at: p.updatedAt } : undefined;
+  const sourceOf = (field: string) => data.fieldSources[field] ?? own;
   const last = p.name.split(" ").at(-1) ?? p.name;
   // The record's grants first, then any the free APIs know that it doesn't.
   const grants = [
@@ -113,14 +116,14 @@ function ProfessorPage() {
         </p>
         <div className="mt-2 flex flex-wrap gap-3 text-muted-foreground text-xs">
           <span>
-            fit <b className="text-foreground">{p.fit}</b>
+            fit <b className="text-foreground">{p.fit || "?"}</b>
           </span>
           <span>
             tier <b className="text-foreground">{TIER_LABEL[p.moneyTier]}</b>
           </span>
           <span>
             email <b className="text-foreground">{p.emailCheck || "unchecked"}</b>
-            {src.emailCheck ? ` ${src.emailCheck.at.slice(0, 10)}` : ""}
+            {data.fieldSources.emailCheck ? ` ${data.fieldSources.emailCheck.at.slice(0, 10)}` : ""}
           </span>
           <span>
             stage <b className="text-foreground">{p.stage}</b>
@@ -164,7 +167,7 @@ function ProfessorPage() {
         </div>
 
         <Section title="Money">
-          <Line source={<Source of={src.money} />}>
+          <Line source={<Source of={sourceOf("money")} />}>
             {p.money || <span className="text-placeholder">not found</span>}
             {p.lasts ? <span className="text-muted-foreground"> · lasts {p.lasts}</span> : null}
           </Line>
@@ -203,20 +206,20 @@ function ProfessorPage() {
         </Section>
 
         <Section title="Taking students">
-          <Line source={<Source of={src.taking} />}>
+          <Line source={<Source of={sourceOf("taking")} />}>
             {p.taking || <span className="text-placeholder">not found</span>}
           </Line>
         </Section>
 
         <Section title="How to reach">
-          <Line source={<Source of={src.contact} />}>
+          <Line source={<Source of={sourceOf("contact")} />}>
             {p.contact ? (
               <blockquote className="border-l-2 pl-3">{p.contact}</blockquote>
             ) : (
               <span className="text-placeholder">not found</span>
             )}
           </Line>
-          <Line source={<Source of={src.email ?? src.emailCheck} />}>
+          <Line source={<Source of={data.fieldSources.email ?? sourceOf("emailCheck")} />}>
             {p.email || <span className="text-placeholder">no address yet</span>}
             {p.emailCheck ? <span className="text-muted-foreground"> · {p.emailCheck}</span> : null}
           </Line>
@@ -257,7 +260,7 @@ function ProfessorPage() {
         </Section>
 
         <Section title="Interests">
-          <Line source={<Source of={src.niche} />}>
+          <Line source={<Source of={sourceOf("niche")} />}>
             {interests.length ? (
               interests.join(" · ")
             ) : (
@@ -268,7 +271,7 @@ function ProfessorPage() {
 
         {p.fitsBecause ? (
           <Section title="Fits because">
-            <Line source={<Source of={src.fitsBecause} />}>{p.fitsBecause}</Line>
+            <Line source={<Source of={sourceOf("fitsBecause")} />}>{p.fitsBecause}</Line>
           </Section>
         ) : null}
 

@@ -101,10 +101,10 @@ export function CommandPalette() {
             label: `Accept everything in Review (${reviewing.reduce((n, t) => n + t.pendingReview, 0)})`,
             hint: "action",
             run: act(async () => {
-              const views = await Promise.all(
+              const opened = await Promise.all(
                 reviewing.map((t) => call("threads.view", { id: t.id })),
               );
-              const ids = views.flatMap((v) =>
+              const ids = opened.flatMap((v) =>
                 v.proposals.filter((p) => p.status === "pending").map((p) => p.id),
               );
               if (ids.length) await call("proposals.resolve", { ids, decision: "accept" });

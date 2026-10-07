@@ -48,6 +48,8 @@ export type Outgoing = {
 };
 
 export type Incoming = {
+  /** Files that came with it (under 10 MB each); filing puts them in the Vault. */
+  attachments?: { filename: string; mime: string; base64: string }[];
   messageId: string | null;
   inReplyTo: string | null;
   references: string[];
@@ -146,6 +148,13 @@ export function imapMailer(c: MailLogin): Mailer {
               subject: p.subject ?? "",
               text: p.text ?? "",
               date: (p.date ?? new Date()).toISOString(),
+              attachments: p.attachments
+                .filter((a) => a.filename && a.size < 10e6)
+                .map((a) => ({
+                  filename: a.filename ?? "attachment",
+                  mime: a.contentType,
+                  base64: a.content.toString("base64"),
+                })),
             });
           }
         return { cursor: { uidValidity, lastUid }, messages };

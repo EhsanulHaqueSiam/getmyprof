@@ -1,3 +1,4 @@
+import { DropToFile } from "~/components/DropToFile";
 import type { FileItem } from "@gradcode/contracts";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Button } from "~/components/ui/button";
@@ -149,7 +150,11 @@ function VaultPage() {
       <Nav section={section} go={go} />
       <div className="flex min-h-0 min-w-0 flex-col">
         {section === "lifeline" ? <VaultLifeline /> : null}
-        {section === "toFile" ? <Side /> : null}
+        {section === "toFile" ? (
+          <DropToFile>
+            <Side />
+          </DropToFile>
+        ) : null}
         {section === "facts" ? <VaultFacts /> : null}
         {section === "documents" ? <VaultDocuments /> : null}
         {section === "writing" ? <VaultWriting /> : null}

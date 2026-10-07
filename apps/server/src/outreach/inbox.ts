@@ -5,6 +5,7 @@ import { type Db, newId, now } from "../db.ts";
 import { getRecord, listRecords, putRecord } from "../records.ts";
 import type { Incoming } from "./mail.ts";
 import { classifyMail, returnDate } from "./plan.ts";
+import { saveDocument } from "../vault.ts";
 import { getMessage, listMessages, putMessage, setStage } from "./store.ts";
 
 /** Which professor an incoming message is about. Mail from anyone not contacted is ignored. */
@@ -70,6 +71,17 @@ export function ingest(db: Db, mail: Incoming): OutreachMessage | null {
       : "",
     createdAt: now(),
   });
+  // What they attached (a paper, a form, an offer letter) goes to the Vault's documents.
+  const docs = (mail.attachments ?? []).map((f) =>
+    saveDocument(db, {
+      name: `${record.name}: ${f.filename}`,
+      kind: "other",
+      mime: f.mime,
+      expires: null,
+      base64: f.base64,
+    }),
+  );
+  if (docs.length) putMessage(db, { ...message, attachments: docs.map((d) => d.id) });
   if ((kind === "reply" || kind === "linkedin") && record.stage !== "replied")
     setStage(db, record, "replied");
   if (kind === "bounce")

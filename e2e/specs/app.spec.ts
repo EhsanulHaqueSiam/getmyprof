@@ -157,7 +157,7 @@ test("vault: the agent's finds wait in To file, and submitting an application dr
 
   await page.goto("/vault?section=programs");
   await page.getByRole("button", { name: "Find programs" }).click();
-  await expect(page.getByText("1 wait in your To file.")).toBeVisible();
+  await expect(page.getByText("1 waits in your To file.")).toBeVisible();
   await page.goto("/vault?section=programs");
   await page.getByTestId("to-file").getByRole("button", { name: "File" }).click();
   await page.getByRole("button", { name: "Start application" }).click();

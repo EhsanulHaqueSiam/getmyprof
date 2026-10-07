@@ -197,5 +197,7 @@ export function sequence(c: Conversation): Step[] {
       state: due && c.turn === "follow-up" ? "now" : "later",
     });
   }
-  return steps;
+  // What happened, then what waits on the user, then what's planned. sort is stable.
+  const rank = { done: 0, now: 1, later: 2, off: 3 } as const;
+  return steps.toSorted((a, b) => rank[a.state] - rank[b.state]);
 }

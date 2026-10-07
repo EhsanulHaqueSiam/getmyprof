@@ -30,6 +30,7 @@ function ThreadPage() {
         .filter((m) => m.threadId === threadId && m.status === "draft").length,
   );
   const finds = useStore((s) => s.vault?.toFile.filter((f) => f.threadId === threadId).length ?? 0);
+  const findsIn = useStore((s) => s.vault?.toFile.find((f) => f.threadId === threadId)?.kind);
   const [mode, setMode] = useState<"chat" | "results">("chat");
   const [panel, setPanel] = useState(true);
   const status = view?.thread.status;
@@ -171,7 +172,12 @@ function ThreadPage() {
                 Review <span className="text-info-foreground tabular-nums">{reviewCount}</span>
               </span>
             </div>
-            <Review proposals={view.proposals} drafts={drafts} finds={finds} />
+            <Review
+              proposals={view.proposals}
+              drafts={drafts}
+              finds={finds}
+              findsIn={findsIn === "program" ? "programs" : findsIn ? "scholarships" : undefined}
+            />
           </aside>
         </div>
       )}

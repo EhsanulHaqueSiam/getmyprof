@@ -20,10 +20,13 @@ export function Review({
   proposals,
   drafts = 0,
   finds = 0,
+  findsIn,
 }: {
   proposals: Proposal[];
   drafts?: number;
   finds?: number;
+  /** The Vault section the finds belong in. */
+  findsIn?: "scholarships" | "programs" | undefined;
 }) {
   const pending = proposals.filter((p) => p.status === "pending");
   const [ref] = useAutoAnimate<HTMLDivElement>({
@@ -75,12 +78,16 @@ export function Review({
             Accepted changes are in your sheet.
             {drafts ? (
               <Link to="/pipeline" className="mt-2 block text-info-foreground hover:underline">
-                {drafts} draft{drafts === 1 ? "" : "s"} wait in Pipeline
+                {drafts === 1 ? "1 draft waits" : `${drafts} drafts wait`} in Pipeline
               </Link>
             ) : null}
             {finds ? (
-              <Link to="/vault" className="mt-2 block text-info-foreground hover:underline">
-                {finds} find{finds === 1 ? "" : "s"} wait in To file
+              <Link
+                to="/vault"
+                search={findsIn ? { section: findsIn } : {}}
+                className="mt-2 block text-info-foreground hover:underline"
+              >
+                {finds === 1 ? "1 find waits" : `${finds} finds wait`} in To file
               </Link>
             ) : null}
           </div>

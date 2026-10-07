@@ -62,6 +62,7 @@ export function Td({
 }) {
   return (
     <td
+      title={typeof children === "string" ? children : undefined}
       className={cn(
         "h-9 max-w-[260px] truncate border-b px-3 whitespace-nowrap",
         strong && "font-medium text-foreground",

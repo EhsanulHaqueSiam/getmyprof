@@ -85,7 +85,7 @@ export function VaultDocuments() {
                 href={`/api/files/${d.id}`}
                 target="_blank"
                 rel="noreferrer"
-                className="hover:underline"
+                className="underline decoration-muted-foreground underline-offset-2 hover:text-foreground"
               >
                 {d.name}
               </a>

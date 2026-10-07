@@ -25,9 +25,12 @@ function Recommenders({ app }: { app: Application }) {
   return (
     <div className="flex flex-col gap-1">
       {app.recommenders.map((r, i) => (
-        <div key={`${r.email}-${r.name}`} className="flex items-center gap-2">
-          <span className="text-foreground">{r.name}</span>
-          <span className="text-muted-foreground">{r.email}</span>
+        <div
+          key={`${r.email}-${r.name}`}
+          className="grid grid-cols-[9rem_11rem_auto_auto] items-center gap-2"
+        >
+          <span className="truncate text-foreground">{r.name}</span>
+          <span className="truncate text-muted-foreground">{r.email}</span>
           <Choice
             label={`Status of ${r.name}`}
             value={r.status}
@@ -106,7 +109,7 @@ function ApplicationView({
   const left = app.documents.filter((d) => !d.done).length;
   return (
     <section className="border-b px-4 py-3 text-xs" data-testid="application">
-      <div className="mb-2 flex items-center gap-2">
+      <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 whitespace-nowrap">
         <h2 className="font-semibold text-sm">
           {program ? `${program.university} · ${program.name}` : "Program removed"}
         </h2>
@@ -174,7 +177,7 @@ function ApplicationView({
                     href={`/api/files/${doc.id}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-muted-foreground hover:underline"
+                    className="text-muted-foreground underline decoration-muted-foreground underline-offset-2 hover:text-foreground"
                   >
                     {doc.name}
                   </a>

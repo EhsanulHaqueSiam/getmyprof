@@ -130,20 +130,25 @@ export function proposeFinding(db: Db, f: NewFinding): FileItem | { skipped: str
   return finding;
 }
 
-/** Files a find into the vault, or drops it so it never comes back. */
+/** Files a find into the vault, or drops it so it never comes back. Returns the find. */
 export function resolveFinding(db: Db, id: string, decision: "file" | "dismiss") {
   const f = items(db, "toFile", FileItem).find((x) => x.id === id);
-  if (!f) return;
+  if (!f) return null;
   removeItem(db, "toFile", id);
   if (decision === "dismiss") {
     const dismissed = getKv(db, "vault.dismissed", (v) => z.array(z.string()).parse(v), []);
     setKv(db, "vault.dismissed", [...dismissed, findingKey(f)]);
-    return;
+    return f;
   }
   if (f.kind === "scholarship")
     putItem(db, "scholarship", { ...f.item, id: newId("sch"), status: "watch", note: "" });
   else putItem(db, "program", { ...f.item, id: newId("prog"), note: "" });
+  return f;
 }
+
+/** Whether a thread still has finds waiting in To file. */
+export const findsWaiting = (db: Db, threadId: string) =>
+  items(db, "toFile", FileItem).some((f) => f.threadId === threadId);
 
 const CHECKLIST = [
   ["CV", "cv"],

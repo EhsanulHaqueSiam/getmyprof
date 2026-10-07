@@ -158,7 +158,7 @@ export function VaultFacts() {
                     href={`/api/files/${doc.id}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="underline decoration-border underline-offset-2 hover:decoration-current"
+                    className="underline decoration-muted-foreground underline-offset-2 hover:text-foreground"
                   >
                     {f.source}
                   </a>

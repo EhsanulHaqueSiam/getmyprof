@@ -23,6 +23,7 @@ import { listLoops, saveLoop, STARTER_LOOPS } from "./loops.ts";
 import type { Outreach } from "./outreach/service.ts";
 import { conversations } from "./outreach/store.ts";
 import {
+  findsWaiting,
   listPrograms,
   removeEntry,
   resolveFinding,
@@ -320,7 +321,10 @@ export function createHandlers(svc: Services): Handlers {
       return doc;
     },
     "toFile.resolve": ({ id, decision }) => {
-      resolveFinding(db, id, decision);
+      const f = resolveFinding(db, id, decision);
+      // The thread that found it settles once nothing it found waits on the user.
+      if (f?.threadId && !findsWaiting(db, f.threadId) && settleIfDone(db, f.threadId))
+        pushThreads();
       bus.push({ type: "changed", what: "vault" });
       return OK;
     },

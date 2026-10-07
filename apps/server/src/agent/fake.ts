@@ -287,7 +287,7 @@ export const fakeProvider = (
       }
       say(
         filed
-          ? `${filed} wait in your To file.`
+          ? `${filed} ${filed === 1 ? "waits" : "wait"} in your To file.`
           : "Nothing new: everything I found is already in your vault.",
       );
     }

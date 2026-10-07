@@ -305,6 +305,12 @@ export function standing(
   const last = messages.at(-1);
   const answered = !!lastReply && sent.some((m) => when(m) > lastReply.createdAt);
   const waiting = out.some((m) => m.status === "draft" || m.status === "failed");
+  // After an accepted offer only warm mail (answers, thank-yous) still has somewhere to go.
+  const waitingWarm = out.some(
+    (m) =>
+      (m.status === "draft" || m.status === "failed") &&
+      (m.touch === "reply" || m.touch === "thank-you"),
+  );
   const scheduled = out.some((m) => m.status === "scheduled");
   // Something approved and waiting for its slot needs nobody: it's queued.
   const turn: Conversation["turn"] =
@@ -314,7 +320,7 @@ export function standing(
         ? "queued"
         : (lastReply && !answered) || bounced
           ? "yours"
-          : links.ended && !waiting
+          : links.ended && !waitingWarm
             ? "closed"
             : stage === "follow-up"
               ? "follow-up"

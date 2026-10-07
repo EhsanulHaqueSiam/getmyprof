@@ -99,7 +99,18 @@ describe("the pipeline after applying", () => {
     putMessage(db, { ...sent, ...queued, id: "out_2", recordKey: prof.key, touch: "follow-up-1" });
     putMessage(db, { ...sent, ...queued, id: "out_3", recordKey: prof.key, touch: "reply" });
 
+    // A cold draft waiting for approval can't go anywhere once the hunt is over.
+    const zalake = {
+      ...blankProfessor("Mohan Zalake", "UIC"),
+      email: "z@uic.edu",
+      emailCheck: "ok",
+    };
+    putRecord(db, zalake);
+    putMessage(db, { ...sent, id: "out_4", recordKey: zalake.key, status: "draft", at: null });
+    expect(conversations(db).find((c) => c.record.key === zalake.key)?.turn).toBe("approve");
+
     saveEdit(db, { kind: "offer", value: offer("accepted") });
+    expect(conversations(db).find((c) => c.record.key === zalake.key)?.turn).toBe("closed");
     expect(dueLoops(db, later)).toEqual([]);
     expect(dueToSend(db, later).map((m) => m.id)).toEqual(["out_3"]);
     expect(conversations(db)[0]?.stopped).toBe("you accepted an offer");

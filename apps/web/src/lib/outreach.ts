@@ -129,6 +129,10 @@ export function nextStep(c: Conversation, draftIssues: string[] = []) {
   if (c.stage === "offer" && !draft)
     return "They made an offer: compare it in Vault, Offers, and answer by the deadline.";
   if (c.stopped === "bounced") return "The address bounced. Find another one before writing again.";
+  if (c.turn === "yours" && c.stage === "to-contact" && c.stopped !== "bounced")
+    return draft
+      ? "Approve the first email, or send it now."
+      : "Ready to contact: draft a first email from Results with Draft first emails.";
   if (c.turn === "yours")
     return draft ? "Read their message, then send the drafted answer." : "Answer them.";
   if (c.turn === "follow-up")

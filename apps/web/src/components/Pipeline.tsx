@@ -154,7 +154,7 @@ export function Board({
   onOpen: (key: string) => void;
 }) {
   return (
-    <div className="grid min-h-0 flex-1 grid-cols-5 gap-px overflow-x-auto bg-border">
+    <div className="grid min-h-0 flex-1 auto-cols-[minmax(176px,1fr)] grid-flow-col gap-px overflow-x-auto bg-border">
       {PIPELINE_STAGES.map((stage) => {
         const cards = conversations.filter((c) => c.stage === stage);
         return (

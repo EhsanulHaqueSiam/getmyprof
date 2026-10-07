@@ -1,0 +1,21 @@
+packages:
+  - apps/*
+  - packages/*
+  - e2e
+  - oxlint-plugin-gradcode
+
+# One version per shared dependency. Packages depend on "catalog:".
+catalog:
+  "@types/node": ^26.6.4
+  "@tailwindcss/vite": 4.3.3
+  tailwindcss: 4.3.3
+  typescript: 7.0.2
+  vite: npm:@voidzero-dev/vite-plus-core@1.0.0
+  vite-plus: 1.0.0
+  ws: 8.22.0
+  zod: ^4.6.5
+
+# vite is aliased to vite-plus-core (version 1.0.0), which satisfies every vite peer range.
+peerDependencyRules:
+  allowedVersions:
+    vite: "*"

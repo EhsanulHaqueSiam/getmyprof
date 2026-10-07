@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.DS_Store
+# e2e and /verify output: proof gets uploaded, never committed
+test-results/
+playwright-report/
+evidence/

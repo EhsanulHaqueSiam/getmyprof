@@ -1,4 +1,4 @@
-import { ROW_OPS, type RowOp } from "@gradcode/contracts";
+import { ROW_OPS, type RowOp, type TregStatus } from "@gradcode/contracts";
 import { useState } from "react";
 import { Chip } from "~/components/FormParts";
 import { Button } from "~/components/ui/button";
@@ -22,6 +22,10 @@ export function TregSettings() {
   const [busy, setBusy] = useState(false);
   if (!app) return null;
   const { treg, settings } = app;
+
+  // The new status shows at once, so the row doesn't wait for the state push to change shape.
+  const apply = (status: TregStatus) =>
+    useStore.setState((st) => (st.app ? { app: { ...st.app, treg: status } } : {}));
 
   const run = async (work: () => Promise<unknown>) => {
     setBusy(true);
@@ -55,7 +59,7 @@ export function TregSettings() {
             size="xs"
             variant="ghost-muted"
             disabled={busy}
-            onClick={() => void run(() => call("treg.disconnect", {}))}
+            onClick={() => void run(async () => apply(await call("treg.disconnect", {})))}
           >
             Disconnect
           </Button>
@@ -77,7 +81,7 @@ export function TregSettings() {
       className="flex max-w-md flex-col gap-2"
       onSubmit={(e) => {
         e.preventDefault();
-        void run(() => call("treg.connect", form));
+        void run(async () => apply(await call("treg.connect", form)));
       }}
     >
       <Input

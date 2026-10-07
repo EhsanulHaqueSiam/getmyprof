@@ -31,7 +31,7 @@ const COLUMNS: Col[] = [
   { key: "moneyTier", label: "Money tier", level: "brief" },
   { key: "taking", label: "Taking students?", source: "page · free", level: "brief" },
   { key: "money", label: "Money", source: "NSF, NIH · free", level: "brief" },
-  { key: "emailCheck", label: "Email", source: "page free · find $0.005", level: "brief" },
+  { key: "emailCheck", label: "Email", source: "page free · find $0.0048", level: "brief" },
   { key: "lasts", label: "Lasts", source: "awards · free", level: "std" },
   { key: "eligibility", label: "Eligible", level: "std" },
   { key: "contact", label: "Contact rule", source: "page · free", level: "std" },

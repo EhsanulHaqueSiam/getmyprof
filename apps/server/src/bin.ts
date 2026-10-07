@@ -2,6 +2,7 @@ import { ClientRequest, type ServerMessage } from "@gradcode/contracts";
 import * as NodeFS from "node:fs";
 import * as NodeHttp from "node:http";
 import { WebSocketServer } from "ws";
+import { z } from "zod";
 import { importGradhunt } from "./adapters.ts";
 import { claudeProvider } from "./agent/claude.ts";
 import { fakeProvider } from "./agent/fake.ts";
@@ -227,7 +228,13 @@ new WebSocketServer({
         type: "reply",
         id: req.id,
         ok: false,
-        error: error instanceof Error ? error.message : String(error),
+        // A bad input reads as its field and rule ("customer: letters, digits..."), not zod's JSON.
+        error:
+          error instanceof z.ZodError
+            ? error.issues.map((i) => `${i.path.join(".") || "input"}: ${i.message}`).join("; ")
+            : error instanceof Error
+              ? error.message
+              : String(error),
       });
     }
   });

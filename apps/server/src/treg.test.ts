@@ -165,6 +165,7 @@ describe("the treg tool", () => {
       ask: () => {},
       feature: () => "row-email",
       capHit: (reason: string) => stops.push(reason),
+      spent: () => {},
     };
     const r = await treg!.run(
       {

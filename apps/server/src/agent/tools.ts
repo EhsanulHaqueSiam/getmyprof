@@ -75,6 +75,8 @@ export type ToolContext = {
   feature: () => string;
   /** A paid call hit a cap or was refused for good: a loop run stops here and says why. */
   capHit: (reason: string) => void;
+  /** Money was spent: Settings' month total and the footer refresh. */
+  spent: () => void;
 };
 
 export type ToolResult = { summary: string; text: string };
@@ -334,6 +336,7 @@ export const HUNT_TOOLS = [
           subject: args.about ?? null,
         });
       ctx.changed();
+      ctx.spent();
       const cost = `${out.costUsd ? `$${Number(out.costUsd.toFixed(6))}` : "free"}`;
       if (!out.ok) {
         if (out.stop) ctx.capHit(out.reason);

@@ -204,6 +204,7 @@ export function createRunner(deps: {
           }),
         feature: () =>
           features.get(threadId) ?? (getThread(db, threadId)?.loopId ? "loop" : "hunt"),
+        spent: () => bus.push({ type: "changed", what: "state" }),
         capHit(reason) {
           // A thread keeps going on free sources; a loop run ends at its cap and says why.
           if (!getThread(db, threadId)?.loopId) return;

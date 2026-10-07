@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>gradcode · phase 1: what done looks like</title>
+<title>gradcode · round 2</title>
 <style>
 :root{--fg:#f1f3f7;--fg2:#d4d4d8;--mut:#a3a3a3;--dim:#737373;--faint:#4a4a4a;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.12);--input:rgba(255,255,255,.18);--hov:#191a1d;--sel:rgba(241,243,247,.07);--pri:oklch(.571 .21 264);--pri2:oklch(.74 .14 264);--ok:#34d399;--warn:#fbbf24;--err:#f87171;--info:#60a5fa;--ind:#a5b4fc;--ease:cubic-bezier(.32,.72,0,1);--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;--mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -291,6 +291,77 @@ mark{background:rgba(251,191,36,.16);color:var(--fg);border-radius:3px;padding:0
 .motion td:nth-child(3){font-family:var(--mono);font-size:12px;color:var(--mut);white-space:nowrap}
 td.ok{color:var(--ok)}td.err{color:var(--err)}td.dim,td.no2{color:var(--dim)}td.qd2{color:var(--faint)}
 .keys td:first-child{font-family:var(--mono);font-size:12px;color:var(--fg);white-space:nowrap;width:140px}
+/* round 2 */
+.decided td:first-child{color:var(--fg);font-weight:500;width:18%;white-space:nowrap}
+.flow-pre{font:12px/1.7 var(--mono);color:var(--fg2);background:#0a0a0a;border:1px solid var(--line);border-radius:10px;padding:12px 14px;overflow-x:auto;white-space:pre}
+.appX{display:grid;grid-template-columns:252px minmax(0,1fr) 320px;grid-template-rows:minmax(0,1fr);height:820px;font-size:13px;transition:grid-template-columns 240ms var(--ease)}
+.appX.m-grid{grid-template-columns:0px minmax(0,1fr) 320px}
+.appX.m-grid.sb-open{grid-template-columns:252px minmax(0,1fr) 320px}
+.appX .sb{min-width:0}
+.gX td,.gX th{padding-left:8px;padding-right:8px}
+.gX td{max-width:170px}
+.appX.m-grid:not(.sb-open) .sb{visibility:hidden;padding:0;border:0}
+.pane-x{display:none;min-height:0;flex-direction:column;flex:1}
+.pane-x.on{display:flex;animation:fadeup 160ms ease-out both}
+.rpane{display:none;height:100%;flex-direction:column;min-height:0}
+.rpane.on{display:flex}
+.seg span{cursor:pointer;transition:background-color 120ms,color 120ms;user-select:none}
+.seg span:hover{color:var(--fg)}
+.seg .c{color:var(--dim);margin-left:5px;font-variant-numeric:tabular-nums}
+.xtool{display:flex;align-items:center;gap:8px;padding:2px 16px 10px;flex:none}
+.xtool .r{margin-left:auto;color:var(--dim);font-size:12px}
+.gX td{height:36px}
+.gX .cb{cursor:pointer}
+.gX td.cell-run{color:var(--info)}
+.gX td.filled{animation:cellfill 600ms ease-out}
+@keyframes cellfill{from{background:oklch(.571 .21 264 / .22)}}
+.gX tr.x td{opacity:.45}
+.d-brief .c-std,.d-brief .c-deep,.d-std .c-deep{display:none}
+.dock-h{padding:12px 14px 4px;font-size:12px;color:var(--dim);display:flex;align-items:center;gap:6px}
+.dock-h b{color:var(--fg);font-weight:600}
+.ops{display:flex;flex-direction:column;padding:2px 6px 6px}
+.op{display:grid;grid-template-columns:16px minmax(0,1fr) auto;gap:10px;align-items:center;height:34px;padding:0 8px;border-radius:8px;cursor:pointer;transition:background-color 120ms,opacity 160ms;font-size:12.5px;user-select:none}
+.op:hover{background:var(--hov)}.op .i{color:var(--mut)}.op .m{font:11.5px var(--mono);color:var(--dim)}
+.op:active{scale:.99}
+.ops.off .op{opacity:.4;pointer-events:none}
+.dlog{display:flex;flex-direction:column;padding:4px 14px 0;border-top:1px solid var(--line);margin-top:4px;overflow:auto;flex:1;min-height:0}
+.dlog .tr{grid-template-columns:16px minmax(0,1fr) auto}
+.dock .cw{padding:0 12px 12px}
+.xap{margin:6px 12px 0}
+.appO{display:grid;grid-template-columns:230px minmax(0,1fr);min-height:640px;font-size:13px}
+.steps{border-right:1px solid var(--line);padding:14px 10px;display:flex;flex-direction:column;gap:2px}
+.steps .brand{padding:0 10px 12px;display:flex;align-items:center;gap:8px}
+.step{display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;color:var(--mut);cursor:pointer;transition:background-color 120ms,color 120ms;user-select:none}
+.step:hover{background:var(--hov);color:var(--fg)}.step.on{background:var(--sel);color:var(--fg)}
+.step .sn{width:18px;height:18px;border-radius:50%;border:1px solid var(--line2);font:11px/16px var(--mono);text-align:center;color:var(--dim);flex:none}
+.step.done .sn{background:var(--fg);color:#000;border-color:var(--fg)}
+.opane{display:none;padding:22px 28px 28px;max-width:820px}
+.opane.on{display:block;animation:fadeup 160ms ease-out both}
+.opane h5{font-size:17px;font-weight:600;letter-spacing:-.01em}
+.opane .sub{color:var(--mut);font-size:12.5px;margin-top:2px;margin-bottom:10px}
+.fr{display:grid;grid-template-columns:160px minmax(0,1fr);gap:16px;padding:11px 0;border-bottom:1px solid var(--line);align-items:start}
+.fr .k{color:var(--dim);font-size:12.5px;padding-top:3px}
+.fr .v{color:var(--fg2);font-size:13px}
+.fr .v .s{color:var(--dim);font-size:12px}
+.opts{display:flex;flex-wrap:wrap;gap:6px}
+.opt{height:26px;padding:0 10px;border:1px solid var(--line2);border-radius:7px;display:inline-flex;align-items:center;gap:6px;color:var(--mut);font-size:12px;white-space:nowrap}
+.opt.on{border-color:transparent;background:var(--hov);color:var(--fg)}
+.opt.on::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--pri)}
+.fx{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:12.5px;color:var(--fg2)}
+.fx .s{color:var(--dim);font-size:11.5px;white-space:nowrap}
+.fx.q{color:var(--warn)}
+.drop{border:1px dashed var(--line2);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;color:var(--mut);font-size:12.5px;margin:6px 0 10px}
+.rank{display:flex;flex-direction:column}
+.rank div{display:grid;grid-template-columns:18px 22px minmax(0,1fr);gap:8px;align-items:center;height:30px;color:var(--fg2);font-size:12.5px;border-bottom:1px solid var(--line)}
+.rank .h{color:var(--faint);font-family:var(--mono);font-size:11px}
+.rank .n{color:var(--dim);font-family:var(--mono);font-size:11.5px}
+.lv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:8px}
+.lv>div{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--fg2)}
+.lv>div.on{border-color:var(--line2);background:#0a0a0a}
+.lv b{display:block;color:var(--fg);font-size:12.5px;margin-bottom:4px}
+.lv .s{color:var(--dim);font:11px var(--mono)}
+.appL{display:grid;grid-template-columns:minmax(0,1fr) 360px;grid-template-rows:minmax(0,1fr);height:600px;font-size:13px}
+.ta2{border:1px solid var(--line2);border-radius:10px;background:#0a0a0a;padding:10px 12px;font-size:12.5px;line-height:1.6;color:var(--fg2)}
 </style>
 </head>
 <body>
@@ -335,34 +406,237 @@ td.ok{color:var(--ok)}td.err{color:var(--err)}td.dim,td.no2{color:var(--dim)}td.
 <symbol id="i-book" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
 </svg>
 
-<div class="bar"><div class="in"><b>gradcode · phase 1</b><nav><a href="#done">Done</a><a href="#flow">Workflow</a><a href="#shell">Shell A B C</a><a href="#screens">Screens</a><a href="#motion">Motion and keys</a><a href="#build">Build</a><a href="#decide">Decide</a></nav></div></div>
+<div class="bar"><div class="in"><b>gradcode · round 2</b><nav><a href="#decided">Decided</a><a href="#done">Done</a><a href="#shell">Shell</a><a href="#firstrun">First run</a><a href="#loops">Loops</a><a href="#flow">Workflow</a><a href="#screens">Screens</a><a href="#motion">Motion and keys</a><a href="#build">Build</a><a href="#decide">Questions</a><a href="#round1">Round 1</a></nav></div></div>
 
 <main class="doc">
-<h1>gradcode: what done looks like</h1>
-<p>A T3 Code-shaped app for the PhD hunt. Every thread is a Claude Code session, and treg is its tool belt. Two jobs: <b>find professors who can fund a student</b>, and <b>find the money behind them</b>. It runs on the Mac mini on top of gradhunt's data, so Scout, the cloud outreach routine and the current dashboard keep working.</p>
-<p>Three rules borrowed from T3 Code: you fire off a hunt and walk away, and the sidebar only asks for you when a thread needs you. Findings arrive as records you review like a diff, not as prose. Every cent and every source stays visible.</p>
+<h1>gradcode: round 2</h1>
+<p>Your picks are in, and the scope grew: gradcode is for anyone hunting a funded degree. Each person brings their own Claude subscription, profile, preferences, loops and level of detail, and finds full funding on their own terms. Your install keeps reading hq and gradhunt. Round 1 is at the bottom.</p>
 
-<h2 id="done"><span class="n">1</span>Done, v1</h2>
+<h2 id="decided"><span class="n">1</span>Decided</h2>
+<table class="spec decided"><tbody>
+<tr><td>Shell</td><td>A is the frame. C's grid is each thread's <b>Results</b> view, and B's agent dock sits beside it to run row actions on the selected rows: find emails, check money, check who is taking students, draft.</td></tr>
+<tr><td>Build</td><td>Our own app, with T3 Code's UI kit copied in. The harness is in PR #1, CI green.</td></tr>
+<tr><td>Auto-accept</td><td>Off at first. Every change waits in Review.</td></tr>
+<tr><td>Sending</td><td>Your install keeps the cloud routine. Everyone else copies a draft or opens it in their mail app.</td></tr>
+<tr><td>Audience</td><td>Anyone. One install is one person's, like T3 Code: their subscription, their data, their rules. No accounts, no hosted service.</td></tr>
+</tbody></table>
+
+<h2 id="done"><span class="n">2</span>Done, v1 (for anyone)</h2>
 <table class="spec">
 <thead><tr><th>#</th><th>Done when</th><th>Check</th></tr></thead>
 <tbody>
-<tr><td class="n">1</td><td><b>Threads.</b> Start, rename, resume and stop threads. Each is a Claude Code session that streams text and tool calls. It runs on the Mac mini, so closing the laptop never stops a hunt, and it survives a server restart.</td><td class="c">Close the laptop mid-turn, reopen from the phone, and the thread has kept going.</td></tr>
-<tr><td class="n">2</td><td><b>The sidebar is an inbox.</b> Threads that need you come first: Approval (amber), Input (indigo), Done and unread. Working rows fade back. Settle and Snooze appear on hover. Settled and Snoozed shelves start collapsed. Untouched threads auto-settle after 3 days.</td><td class="c">End of day: every thread is settled, snoozed or working.</td></tr>
-<tr><td class="n">3</td><td><b>Threads settle themselves.</b> A thread settles once nothing waits on you: every proposal reviewed, no approval pending. Optional auto-accept rules (verified email, official source, fit 4+) let a hunt finish without you ever opening it.</td><td class="c">Review the last proposal and the thread drops into Settled.</td></tr>
-<tr><td class="n">4</td><td><b>Queue and steer.</b> A message sent mid-turn waits and goes out after the next tool call. Steer sends it now.</td><td class="c">Queue a message, press Steer, and the agent picks it up within one tool call.</td></tr>
-<tr><td class="n">5</td><td><b>Scoped threads.</b> A thread can be about a school, a professor or a search, and opening one loads that record into context. Start one with <code>@</code> or from any row.</td><td class="c">"Ask about Lybarger" answers from the record without fetching it again.</td></tr>
-<tr><td class="n">6</td><td><b>treg in view.</b> Every call shows its endpoint, price, time and result. Thread spend and treg balance are always on screen. Calls over $0.01 ask first, and each thread has a hard cap.</td><td class="c">A $0.0245 Prospeo lookup raises an approval.</td></tr>
-<tr><td class="n">7</td><td><b>Results are records.</b> The agent reports through typed tools (<code>propose_professor</code>, <code>propose_program</code>, <code>propose_grant</code>). Proposals land in Review as field diffs. Accept writes through scout.py; reject records the reason in the exclusions.</td><td class="c">Accept 3 and reject 1. Scout's next nightly run sees all four.</td></tr>
-<tr><td class="n">8</td><td><b>Professor finder.</b> Search by niche and school, or say "next school in the queue". Candidates fill a table: fit, recruiting evidence, money, email check, contact rule. Keep, drop, dig deeper or draft from any row.</td><td class="c">"health NLP at GMU, UIC, Arizona" returns rows that all link sources.</td></tr>
-<tr><td class="n">9</td><td><b>Funding finder.</b> Follow the money: NSF and NIH awards by topic at tracked schools (both APIs are free), with PI, amount, end date, months left after Fall 2027, and whether the PI is in the sheet. One click adds a PI. Program funding sits beside it: guarantee for internationals, stipend, fee, deadline.</td><td class="c">"language model" at UMD shows Ge Gao's CAREER award as not in the sheet yet.</td></tr>
-<tr><td class="n">10</td><td><b>Professor page.</b> Every fact links its source: interests, recent works, grants, recruiting quote, contact rule, email check, threads, draft state.</td><td class="c">Every field opens its source.</td></tr>
-<tr><td class="n">11</td><td><b>Facts guard.</b> The agent reads hq facts and the Scout spec and claims nothing hq lacks. A draft only shows after <code>scout.py lint-drafts</code> passes.</td><td class="c">A draft claiming a fact hq lacks fails lint in the UI.</td></tr>
-<tr><td class="n">12</td><td><b>Polish bar.</b> Every action is in the ⌘K palette and the app is keyboard-first. Motion follows the spec below. Nothing animates forever, and reduced motion turns every transition off.</td><td class="c">A full morning of triage without touching the mouse.</td></tr>
-</tbody>
-</table>
-<p class="note">Not in v1: sending mail and inbox sync (the cloud routine keeps both), the send queue and Conversations (the current dashboard keeps them until v2 ports them), auth, a phone layout beyond reading and approving, hosting, more than one user.</p>
+<tr><td class="n">1</td><td><b>First run in five minutes.</b> It finds your Claude Code login (your subscription). Free sources work with no keys; a treg key is optional and unlocks paid lookups.</td><td class="c">A fresh Mac with no keys has a first hunt running within five minutes.</td></tr>
+<tr><td class="n">2</td><td><b>Profile from a CV.</b> Drop a PDF or paste links. The agent drafts each fact with its source and you confirm it. Drafts and fit scores only use confirmed facts. Your install reads hq instead.</td><td class="c">An unconfirmed fact never shows up in a draft.</td></tr>
+<tr><td class="n">3</td><td><b>Hunt preferences.</b> Degree types, intake, places, fields and niches (with suggested adjacent domains), funding floor, test rules, schools per sweep, and what matters most. Every turn and loop reads them.</td><td class="c">Raise the funding floor and the next sweep stops proposing partly funded programs.</td></tr>
+<tr><td class="n">4</td><td><b>Detail level.</b> Brief, Standard or Deep, for the install and per thread. It sets the columns, how much evidence the agent gathers, and what a row costs.</td><td class="c">Brief shows 5 columns and costs less per row than Deep.</td></tr>
+<tr><td class="n">5</td><td><b>Threads and the inbox sidebar.</b> Stream, stop, resume; settle, snooze, auto-settle; queue and steer. Runs on the host machine, so closing the laptop never stops a hunt.</td><td class="c">End of day: every thread is settled, snoozed or working.</td></tr>
+<tr><td class="n">6</td><td><b>Results and row actions.</b> Every thread has a Results grid. Select rows and run an action from the dock. Each cell fills in place and shows its cost.</td><td class="c">Select 3 rows and run Find emails: three cells fill, and spend rises by exactly their cost.</td></tr>
+<tr><td class="n">7</td><td><b>Records and Review.</b> Changes land as field diffs. Accept writes to the local store, or through scout.py on your install. A rejected row never comes back.</td><td class="c">Reject a professor; the next sweep doesn't propose them again.</td></tr>
+<tr><td class="n">8</td><td><b>Finders and pages.</b> Professor finder, funding finder (NSF and NIH awards, months left after your intake) and a professor page where every fact links its source.</td><td class="c">Same checks as round 1.</td></tr>
+<tr><td class="n">9</td><td><b>Loops.</b> Recurring hunts you configure: what to do, when, scope, budget and autonomy. Each run lands as a thread and settles itself once reviewed.</td><td class="c">A nightly sweep runs with the laptop closed and is waiting in the morning.</td></tr>
+<tr><td class="n">10</td><td><b>Spend you control.</b> Every call shows its price, and paid actions over $0.01 ask first. There are caps per thread, per loop run and per day.</td><td class="c">A loop stops at its cap and says why.</td></tr>
+<tr><td class="n">11</td><td><b>Your data stays yours.</b> One local SQLite file, CSV import and export, no telemetry. Only the calls you allow leave the machine.</td><td class="c">Export, wipe and import, and nothing is lost.</td></tr>
+<tr><td class="n">12</td><td><b>Polish bar.</b> T3 Code's feel: ⌘K for everything, keyboard-first, one-shot motion, nothing that animates forever.</td><td class="c">A full morning of triage without the mouse.</td></tr>
+</tbody></table>
+<p class="note">Not in v1: sending mail for other users, a hosted service, a phone app beyond reading and approving, providers other than Claude (an adapter later, the way T3 Code does it), shared hunts.</p>
 
-<h2 id="flow"><span class="n">2</span>Workflow</h2>
+<h3>How it fits together</h3>
+<div class="flow-pre">browser ⇄ /api, /ws ⇄ server on your machine ⇄ Claude Code (your subscription)
+sources   free: NSF awards, NIH RePORTER, OpenAlex, CSRankings, faculty and lab pages
+          paid: treg, only with your key (people search, email finding and checks)
+store     ~/.gradcode/gradcode.sqlite  (Node's built-in node:sqlite, no dependency)
+adapters  hq: profile facts, read-only  ·  gradhunt: records through scout.py   (your install)</div>
+
+<h2 id="shell"><span class="n">3</span>Shell: A + B + C</h2>
+<p>One thread, two views. <b>Chat</b> is A: the conversation, with Review on the right. <b>Results</b> is C: every row the thread found, in a grid whose columns fill in. The right side becomes B's dock: the same thread, scoped to the rows you select, with one-click row actions.</p>
+<div class="try"><span>switch Chat and Results</span><span>tick rows, then run an action from the dock</span><span>select 6 or more rows and Find emails asks first (over $0.01)</span><span>switch Detail: Brief, Standard, Deep</span><span>Accept the blue cells</span></div>
+<div class="scroll"><div class="win" id="mockX" style="min-width:1320px"><div class="appX m-grid" id="xApp">
+ <aside class="sb">
+  <div class="sb-top"><div class="lights"><i></i><i></i><i></i></div><span class="brand">gradcode</span><span class="ib"><svg class="i sm"><use href="#i-search"/></svg></span><span class="ib"><svg class="i sm"><use href="#i-pen"/></svg></span></div>
+  <div class="nv">
+   <a><svg class="i sm"><use href="#i-plus"/></svg>New thread<span class="kbd">⌘N</span></a>
+   <a><svg class="i sm"><use href="#i-users"/></svg>Professors<span class="c">117</span></a>
+   <a><svg class="i sm"><use href="#i-bank"/></svg>Funding<span class="c">7</span></a>
+   <a><svg class="i sm"><use href="#i-clock"/></svg>Loops<span class="c">4</span></a>
+   <a><svg class="i sm"><use href="#i-inbox"/></svg>Review<span class="c pri" id="xNavRc">2</span></a>
+  </div>
+  <div class="ph"><svg class="i sm"><use href="#i-chev-d"/></svg>Fall 2027 · funded PhD</div>
+  <div class="rows">
+   <div class="row active"><span class="dot"></span><span class="tt">Health NLP · GMU, UIC, Arizona</span><span class="st dim">now</span></div>
+   <div class="row unread"><span class="dot"></span><span class="tt">New awards · weekly</span><span class="st dim">2h</span></div>
+   <div class="row"><span class="dot"></span><span class="tt">Vet Yulin Yu</span><span class="st ind"><svg class="i xs"><use href="#i-ask"/></svg>Input</span></div>
+   <div class="row"><span class="dot"></span><span class="tt">UIC: BHIS or CS PhD?</span><span class="st dim">2d</span></div>
+  </div>
+  <div class="shelf"><div class="sh"><svg class="i xs chev"><use href="#i-chev-d"/></svg>Working<span class="c">1</span></div><div class="rows">
+   <div class="row recede"><span class="dot"></span><span class="tt">Nightly sweep · Purdue</span><span class="st info">Working 6m</span></div>
+  </div></div>
+  <div class="shelf collapsed"><div class="sh"><svg class="i xs chev"><use href="#i-chev-d"/></svg>Settled<span class="c">22</span></div></div>
+  <div class="sb-f">
+   <a><svg class="i sm"><use href="#i-monitor"/></svg>This Mac<span class="okdot"></span><span class="r">Claude Code</span></a>
+   <a><svg class="i sm"><use href="#i-wallet"/></svg>today <span class="tn" id="xToday">$0.38</span><span class="r">cap $2.00</span></a>
+  </div>
+ </aside>
+
+ <section class="mn">
+  <div class="tb"><span class="ib" data-act="x-sb" title="Sidebar ⌘B"><svg class="i sm" style="transform:scaleX(-1)"><use href="#i-panel"/></svg></span><span class="title">Health NLP · GMU, UIC, Arizona</span>
+   <span class="seg" id="xMode"><span data-mode="chat">Chat</span><span class="on" data-mode="grid">Results<span class="c">7</span></span></span>
+   <span class="sp"><span class="spend" id="xSpend">$0.17 / $0.50</span><span class="ib"><svg class="i sm"><use href="#i-more"/></svg></span></span></div>
+
+  <div class="pane-x" data-xpane="chat"><div class="chat"><div class="col" id="xCol">
+   <div class="u">Find clinical or health NLP professors at George Mason, UIC and Arizona who have money for Fall 2027 and are taking students.</div>
+   <div class="u-meta">9:12</div>
+   <div class="wl"><div class="wl-h"><svg class="i xs chev"><use href="#i-chev-r"/></svg>Worked for 3m 05s · 52 calls · $0.17</div></div>
+   <div class="as">
+    <p>Seven came up. Five can likely take a student for Fall 2027. Bethard isn't reviewing applications before Dec 2027, and Parde wants applications, not cold email.</p>
+    <p>Every row is in Results. Two changes are waiting in Review.</p>
+   </div>
+   <div><span class="btn sm" data-act="x-results"><svg class="i xs"><use href="#i-table"/></svg>Open Results <span class="kbd">⌘J</span></span></div>
+   <div class="wl" id="xChatOps" style="display:none"><div class="wl-b"></div></div>
+  </div></div>
+  <div class="cw"><div class="cmp"><div class="ta">Ask anything. @ a school or professor to scope it.</div><div class="ctb"><span class="chip">Opus 5.5<svg class="i xs"><use href="#i-chev-d"/></svg></span><span class="chip"><svg class="i"><use href="#i-zap"/></svg>Hunt<svg class="i xs"><use href="#i-chev-d"/></svg></span><span class="chip"><svg class="i"><use href="#i-file"/></svg>Standard</span><span class="send"><svg class="i"><use href="#i-up"/></svg></span></div></div></div>
+  </div>
+
+  <div class="pane-x on" data-xpane="grid">
+   <div class="xtool"><span class="seg" id="xDetail"><span data-detail="brief">Brief</span><span class="on" data-detail="std">Standard</span><span data-detail="deep">Deep</span></span><span class="dd">Filter <b>all</b><svg class="i xs"><use href="#i-chev-d"/></svg></span><span class="r">7 rows · <span id="xSelTop">3</span> selected</span></div>
+   <div class="gridw d-std" id="xGridWrap"><table class="grid gC gX">
+    <thead><tr><th></th><th>Fit</th><th>Professor<span class="src2">exa · $0.007</span></th><th>Taking students?<span class="src2">page · free</span></th><th>Money<span class="src2">NSF, NIH · free</span></th><th>Email<span class="src2">verify · $0.0018</span></th><th class="c-std">Lasts<span class="src2">awards · free</span></th><th class="c-std">Contact rule<span class="src2">agent</span></th><th class="c-std">Stage</th><th class="c-deep">Fits because<span class="src2">agent · profile</span></th><th class="c-deep">Sources</th></tr></thead>
+    <tbody id="xRows">
+     <tr data-email="ok" data-lasts="team grant, not PI" data-recruit="yes"><td><span class="cb"></span></td><td class="fit">5</td><td class="nm">Kevin Lybarger <span class="dim">GMU</span></td><td data-col="recruit" class="ok">yes, "PhD 2027" subject</td><td>NIH team grant $4.65M</td><td data-col="email" class="ok">ok</td><td data-col="lasts" class="c-std dim">?</td><td class="c-std">email, subject "PhD 2027"</td><td data-col="stage" class="c-std">drafted</td><td class="c-deep">clinical NLP, RAG for health</td><td class="c-deep dim">lab news, homepage</td></tr>
+     <tr data-email="ok" data-lasts="NIA pilot grants" data-recruit="yes, join-us page"><td><span class="cb"></span></td><td class="fit">5</td><td class="nm">Mohan Zalake <span class="dim">UIC</span></td><td data-col="recruit" class="ok">yes, join-us page</td><td>NIA-funded pilot, C3EN</td><td data-col="email" class="ok">ok</td><td data-col="lasts" class="c-std dim">?</td><td class="c-std">follow join-us steps</td><td data-col="stage" class="c-std">drafted</td><td class="c-deep">LLM agents in health</td><td class="c-deep dim">lab site, profile</td></tr>
+     <tr data-email="ok" data-lasts="MIS funds all admits" data-recruit="not stated"><td><span class="cb"></span></td><td class="fit">5</td><td class="nm">Gondy Leroy <span class="dim">Arizona</span></td><td data-col="recruit" class="dim">not stated</td><td>$5.7M as PI, career</td><td data-col="email" class="ok">ok</td><td data-col="lasts" class="c-std">MIS funds all admits</td><td class="c-std">email</td><td data-col="stage" class="c-std">drafted</td><td class="c-deep">clinical text simplification</td><td class="c-deep dim">faculty bio, lab site</td></tr>
+     <tr class="sel" data-email="ok" data-lasts="startup" data-recruit="not stated"><td><span class="cb on"><svg class="i"><use href="#i-check"/></svg></span></td><td class="fit">5</td><td class="nm">Shweta Yadav <span class="dim">UIC</span></td><td data-col="recruit" class="dim">?</td><td>new hire, startup</td><td data-col="email" class="dim">unchecked</td><td data-col="lasts" class="c-std dim">?</td><td class="c-std">email</td><td data-col="stage" class="c-std dim">new</td><td class="c-deep">clinical NLP, biomedical text</td><td class="c-deep dim">UIC profile</td></tr>
+     <tr class="sel" data-email="ok" data-lasts="none listed" data-recruit="not stated"><td><span class="cb on"><svg class="i"><use href="#i-check"/></svg></span></td><td class="fit">5</td><td class="nm">Barbara Di Eugenio <span class="dim">UIC</span></td><td data-col="recruit" class="dim">not stated</td><td>long-running NLP Lab</td><td data-col="email" class="dim">unchecked</td><td data-col="lasts" class="c-std dim">?</td><td class="c-std">email</td><td data-col="stage" class="c-std dim">new</td><td class="c-deep">clinical summarization</td><td class="c-deep dim">lab site</td></tr>
+     <tr class="sel" data-email="ok" data-lasts="1 NSF award" data-recruit="apply, list me" data-apply-only="1"><td><span class="cb on"><svg class="i"><use href="#i-check"/></svg></span></td><td class="fit f4">3</td><td class="nm">Natalie Parde <span class="dim">UIC</span></td><td data-col="recruit">apply, list me</td><td>NSF ~$1.2M, rehab NLP</td><td data-col="email" class="dim">unchecked</td><td data-col="lasts" class="c-std dim">?</td><td class="c-std">apply-only, no cold email</td><td data-col="stage" class="c-std dim">apply-only</td><td class="c-deep">health NLP, multimodal</td><td class="c-deep dim">team page</td></tr>
+     <tr class="x" data-email="ok" data-lasts="none" data-recruit="no"><td><span class="cb"></span></td><td class="fit f4">3</td><td class="nm">Steven Bethard <span class="dim">Arizona</span></td><td data-col="recruit" class="err">no, not before Dec 2027</td><td class="dim">none found</td><td data-col="email" class="ok">ok</td><td data-col="lasts" class="c-std dim">none</td><td class="c-std">no RA emails</td><td data-col="stage" class="c-std dim">skip</td><td class="c-deep dim">skip</td><td class="c-deep dim">FAQ page</td></tr>
+    </tbody>
+   </table></div>
+   <div class="stb"><span class="fgc"><span id="xSelBot">3</span> selected</span><span id="xCost">52 calls · $0.17</span><span class="r"><span id="xProp" class="dim">0 proposed cells</span><span class="btn gh sm" data-act="x-reject">Reject</span><span class="btn sm" data-act="x-accept"><svg class="i xs"><use href="#i-check"/></svg>Accept</span></span></div>
+  </div>
+ </section>
+
+ <aside class="rp dock">
+  <div class="rpane" data-xr="review">
+   <div class="tabs"><span class="tab on">Review <span class="c" id="xRvC">2</span></span><span class="tab">Professor</span><span class="tab">Source</span></div>
+   <div class="pane on" id="xRv">
+    <div class="pr"><div class="pr-h"><span class="nm">Mohan Zalake</span><span class="sc">UIC</span><span class="k">update</span></div><div class="df"><div class="a">contact_note: follow the join-us page steps</div></div><div class="src"><svg class="i xs"><use href="#i-link"/></svg>vare.ahs.uic.edu/join-us</div></div>
+    <div class="pr"><div class="pr-h"><span class="nm">Natalie Parde</span><span class="sc">UIC</span><span class="k">update</span></div><div class="df"><div class="d">contact: email</div><div class="a">contact: apply-only</div></div><div class="src"><svg class="i xs"><use href="#i-link"/></svg>natalieparde.com/team.html</div></div>
+   </div>
+  </div>
+  <div class="rpane on" data-xr="dock">
+   <div class="tb" style="padding-left:16px"><span class="title">Agent</span><span class="scope"><svg class="i xs"><use href="#i-table"/></svg><span id="xScope">3 selected</span></span></div>
+   <div class="dock-h">Row actions</div>
+   <div class="ops" id="xOps">
+    <div class="op" data-op="email"><svg class="i sm"><use href="#i-mail"/></svg><span>Find and check emails</span><span class="m" data-price="0.0018">$0.0054</span></div>
+    <div class="op" data-op="lasts"><svg class="i sm"><use href="#i-bank"/></svg><span>Check money (NSF, NIH)</span><span class="m" data-price="0">free</span></div>
+    <div class="op" data-op="recruit"><svg class="i sm"><use href="#i-user"/></svg><span>Taking students?</span><span class="m" data-price="0">free</span></div>
+    <div class="op" data-op="stage"><svg class="i sm"><use href="#i-pen"/></svg><span>Draft first emails</span><span class="m" data-price="0">free</span></div>
+   </div>
+   <div class="clp out xap" id="xAp"><div><div class="ap">
+    <div class="ap-h"><svg class="i sm"><use href="#i-alert"/></svg>Approval · paid action<span class="r">over the $0.01 limit</span></div>
+    <div class="ap-b" id="xApText">Find emails for 6 rows · $0.0108</div>
+    <div class="ap-a"><span class="btn gh sm" data-act="x-deny">Deny</span><span class="btn pri sm" data-act="x-allow">Allow once <span class="kbd">↵</span></span></div>
+   </div></div></div>
+   <div class="dlog" id="xLog"><div class="dim" style="font-size:12px;padding:8px 0">Actions on the selected rows show up here and in the chat.</div></div>
+   <div class="cw"><div class="cmp"><div class="ta" style="font-size:13px">Ask about <span id="xScope2">3 selected</span> rows</div><div class="ctb"><span class="chip"><svg class="i"><use href="#i-zap"/></svg>Hunt</span><span class="send"><svg class="i"><use href="#i-up"/></svg></span></div></div></div>
+  </div>
+ </aside>
+</div></div></div>
+<p class="note">Row actions are ordinary agent turns, recorded in the thread, so Chat shows them too. A cell an action changed stays blue until you accept it. Draft skips apply-only professors and says so. Detail sets the columns: Brief keeps 5, Deep adds why each professor fits you and the sources.</p>
+
+<h2 id="firstrun"><span class="n">4</span>First run</h2>
+<p>Four steps, about five minutes, and every one can be changed later in Settings. The example applicant is made up.</p>
+<div class="try"><span>click the steps on the left</span></div>
+<div class="scroll"><div class="win" id="mockO" style="min-width:1100px"><div class="appO">
+ <nav class="steps">
+  <div class="brand"><div class="lights"><i></i><i></i><i></i></div><b style="font-size:13px">gradcode</b></div>
+  <div class="step done" data-step="1"><span class="sn">1</span>Connect</div>
+  <div class="step done" data-step="2"><span class="sn">2</span>You</div>
+  <div class="step on" data-step="3"><span class="sn">3</span>Your hunt</div>
+  <div class="step" data-step="4"><span class="sn">4</span>Detail and budget</div>
+ </nav>
+ <section style="overflow:auto">
+  <div class="opane" data-opane="1">
+   <h5>Connect</h5><div class="sub">gradcode runs Claude Code on this machine with your own login. Nothing goes through a gradcode server.</div>
+   <div class="fr"><span class="k">Agent</span><span class="v"><span class="ok">●</span> Claude Code, signed in <span class="s">· your subscription pays for the thinking</span></span></div>
+   <div class="fr"><span class="k">Runs on</span><span class="v">This Mac <span class="s">· pick a machine that stays on, so loops run while you sleep. Open it from your laptop or phone over Tailscale.</span></span></div>
+   <div class="fr"><span class="k">Free sources</span><span class="v"><span class="opts"><span class="opt on">NSF awards</span><span class="opt on">NIH RePORTER</span><span class="opt on">OpenAlex</span><span class="opt on">CSRankings</span><span class="opt on">faculty and lab pages</span></span></span></div>
+   <div class="fr"><span class="k">treg <span class="s">(optional)</span></span><span class="v">Paid lookups: people search, email finding and checks. <span class="btn sm" style="margin-left:6px">Add key</span><br><span class="s">Without it, gradcode only uses emails printed on official pages.</span></span></div>
+   <div class="fr"><span class="k">Profile from</span><span class="v"><span class="seg"><span class="on">This app</span><span>A notes vault (hq)</span><span>A file</span></span></span></div>
+  </div>
+  <div class="opane" data-opane="2">
+   <h5>You</h5><div class="sub">Drop a CV or paste links. Confirm each fact; drafts and fit scores only use the ones you confirm.</div>
+   <div class="drop"><svg class="i"><use href="#i-file"/></svg><span><b class="fgc" style="font-weight:500">sample-applicant-cv.pdf</b> · 2 pages read</span><span style="margin-left:auto" class="dim">or paste your site, Scholar or LinkedIn</span></div>
+   <div class="fx"><span class="cb on"><svg class="i"><use href="#i-check"/></svg></span><span>BSc in Computer Science, 2025</span><span class="s">CV p1</span></div>
+   <div class="fx"><span class="cb on"><svg class="i"><use href="#i-check"/></svg></span><span>GPA 3.8 / 4.0</span><span class="s">CV p1</span></div>
+   <div class="fx"><span class="cb on"><svg class="i"><use href="#i-check"/></svg></span><span>Paper: low-resource sentiment analysis, workshop 2025, second author</span><span class="s">CV p1 · DOI</span></div>
+   <div class="fx"><span class="cb on"><svg class="i"><use href="#i-check"/></svg></span><span>Project: retrieval chatbot for a university helpdesk</span><span class="s">GitHub</span></div>
+   <div class="fx"><span class="cb on"><svg class="i"><use href="#i-check"/></svg></span><span>Citizenship: Bangladesh <span class="dim">· some US training grants fund only citizens</span></span><span class="s">you</span></div>
+   <div class="fx q"><span class="cb"></span><span>"Fluent English": which test or certificate proves it?</span><span class="s">CV p2 · needs an answer</span></div>
+  </div>
+  <div class="opane on" data-opane="3">
+   <h5>Your hunt</h5><div class="sub">Every turn and every loop reads this. Change it any time.</div>
+   <div class="fr"><span class="k">Degree</span><span class="v"><span class="opts"><span class="opt on">PhD, funded</span><span class="opt on">MS + PhD, funded</span><span class="opt">Fully funded MS</span></span></span></div>
+   <div class="fr"><span class="k">Intake</span><span class="v">Fall 2027 <span class="s">· then Spring 2028</span></span></div>
+   <div class="fr"><span class="k">Places</span><span class="v"><span class="opts"><span class="opt on">USA</span><span class="opt on">Canada</span><span class="opt on">Germany</span><span class="opt">UK</span><span class="opt">Australia</span><span class="opt"><svg class="i xs"><use href="#i-plus"/></svg>Add</span></span></span></div>
+   <div class="fr"><span class="k">Fields</span><span class="v"><span class="opts"><span class="opt on">NLP</span><span class="opt on">LLMs</span><span class="opt on">low-resource NLP</span><span class="opt on">retrieval and RAG</span><span class="opt on">efficient LLMs</span><span class="opt">LLM safety</span></span></span></div>
+   <div class="fr"><span class="k">Adjacent domains</span><span class="v"><span class="opts"><span class="opt on">clinical NLP</span><span class="opt on">computational social science</span><span class="opt">education</span><span class="opt">legal NLP</span><span class="opt">digital humanities</span></span><span class="s" style="display:block;margin-top:6px">Suggested from your fields: these labs need your skills and get fewer applicants.</span></span></div>
+   <div class="fr"><span class="k">Funding floor</span><span class="v"><span class="seg"><span class="on">Full: tuition and stipend, every year</span><span>Tuition only is fine</span></span></span></div>
+   <div class="fr"><span class="k">English tests</span><span class="v"><span class="opts"><span class="opt on">Prefer programs that accept a medium-of-instruction certificate or waive tests</span></span></span></div>
+   <div class="fr"><span class="k">Each sweep</span><span class="v">3 reach · 3 match · 3 safety schools</span></div>
+   <div class="fr"><span class="k">What matters</span><span class="v"><div class="rank">
+    <div><span class="h">⋮⋮</span><span class="n">1</span>Money that lasts into my first year</div>
+    <div><span class="h">⋮⋮</span><span class="n">2</span>Taking students for my intake</div>
+    <div><span class="h">⋮⋮</span><span class="n">3</span>Topic fit</div>
+    <div><span class="h">⋮⋮</span><span class="n">4</span>Nearest deadline</div>
+    <div><span class="h">⋮⋮</span><span class="n">5</span>School rank</div>
+   </div></span></div>
+  </div>
+  <div class="opane" data-opane="4">
+   <h5>Detail and budget</h5><div class="sub">How much to dig per professor, and what you'll spend.</div>
+   <div class="fr"><span class="k">Detail</span><span class="v"><div class="lv">
+    <div><b>Brief</b>fit, money, taking students, email<br><span class="s">~5 columns · cheapest</span></div>
+    <div class="on"><b>Standard</b>adds how long the money lasts, contact rule, stage<br><span class="s">~8 columns</span></div>
+    <div><b>Deep</b>adds why they fit you, recent work, every source<br><span class="s">~11 columns · most calls</span></div>
+   </div></span></div>
+   <div class="fr"><span class="k">Budget</span><span class="v">$0.50 a thread · $0.50 a loop run · $2.00 a day <span class="s">· ask before any action over $0.01</span></span></div>
+   <div class="fr"><span class="k">Start these loops</span><span class="v"><span class="opts"><span class="opt on">Nightly sweep</span><span class="opt on">Recruiting watch</span><span class="opt on">New awards</span><span class="opt on">Deadline watch</span></span></span></div>
+   <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end"><span class="btn gh sm">Back</span><span class="btn pri sm">Start hunting</span></div>
+  </div>
+ </section>
+</div></div></div>
+
+<h2 id="loops"><span class="n">5</span>Loops</h2>
+<p>Recurring hunts. Each run is a thread, so it shows up in the sidebar while it works, asks when it needs you, and settles itself once you've reviewed its changes.</p>
+<div class="scroll"><div class="win"><div class="appL">
+ <section class="mn">
+  <div class="tbar"><span class="title">Loops</span><span class="dim">4 on</span><span style="margin-left:auto" class="btn sm"><svg class="i xs"><use href="#i-plus"/></svg>New loop</span></div>
+  <div class="gridw"><table class="grid">
+   <thead><tr><th>Loop</th><th>Does</th><th>When</th><th>Last run</th><th>Found 7d</th><th>Spend 7d</th><th>State</th></tr></thead>
+   <tbody>
+    <tr><td class="nm">Nightly sweep</td><td>next school in the queue, CS and adjacent departments</td><td>daily 23:00</td><td>Purdue: 3 new, 1 change</td><td class="tn">9</td><td class="tn">$0.84</td><td class="ok">on</td></tr>
+    <tr><td class="nm">Recruiting watch</td><td>re-reads 41 faculty pages for "taking students" changes</td><td>every 6h</td><td>2 pages changed</td><td class="tn">2</td><td class="dim">free</td><td class="ok">on</td></tr>
+    <tr class="sel"><td class="nm">New awards</td><td>NSF and NIH awards in your fields at tracked schools</td><td>Mon 08:00</td><td>Ge Gao, CAREER, UMD</td><td class="tn">1</td><td class="dim">free</td><td class="ok">on</td></tr>
+    <tr><td class="nm">Deadline watch</td><td>program pages: dates, fees, English rules</td><td>Sun 09:00</td><td>UMass posted Fall 2027</td><td class="tn">1</td><td class="dim">free</td><td class="ok">on</td></tr>
+    <tr><td class="nm">Scout (gradhunt)</td><td>your existing loop, shown read-only</td><td>daily 23:00</td><td>Purdue exhausted</td><td class="tn">3</td><td class="dim">n/a</td><td class="dim">external</td></tr>
+   </tbody>
+  </table></div>
+ </section>
+ <aside class="side">
+  <div class="dim" style="font-size:12px">Loop</div>
+  <h4>New awards</h4>
+  <div class="ta2">Search NSF and NIH for awards that started in the last 30 days at my tracked schools and match my fields. Propose each PI who isn't in my sheet, with the award as evidence and the months it has left after my intake.</div>
+  <div class="facts" style="margin-top:0"><span>scope <b>24 schools</b></span><span>when <b>Mon 08:00</b></span><span>budget <b>free sources only</b></span></div>
+  <div><span class="seg"><span class="on">Propose only</span><span>Auto-accept rules</span></span></div>
+  <div class="dim" style="font-size:12px;margin-top:4px">Runs</div>
+  <div class="rows">
+   <div class="row unread"><span class="dot"></span><span class="tt">New awards · Oct 7</span><span class="st dim">review 1</span></div>
+   <div class="row"><span class="dot"></span><span class="tt">New awards · Sep 30</span><span class="st dim">settled</span></div>
+   <div class="row"><span class="dot"></span><span class="tt">New awards · Sep 23</span><span class="st dim">settled</span></div>
+  </div>
+  <div class="acts2"><span class="btn sm">Run now</span><span class="btn gh sm">Pause</span></div>
+ </aside>
+</div></div></div>
+<h2 id="flow"><span class="n">6</span>Workflow</h2>
 <div class="cols">
 <div>
 <h3>A day with it</h3>
@@ -392,7 +666,196 @@ td.ok{color:var(--ok)}td.err{color:var(--err)}td.dim,td.no2{color:var(--dim)}td.
 </div>
 </div>
 
-<h2 id="shell"><span class="n">3</span>Shell: pick one</h2>
+<h2 id="screens"><span class="n">7</span>Screens</h2>
+<h3>New thread</h3>
+<div class="scroll"><div class="win" style="min-width:980px"><div class="solo">
+ <div class="tb"><span class="title dim">New thread</span><span class="scope"><svg class="i xs"><use href="#i-cap"/></svg>Fall 2027 · funded PhD</span></div>
+ <div class="start"><div class="in">
+  <h5>What should we find?</h5><div class="sub">Runs on the Mac mini. You can close this window.</div>
+  <div class="starters">
+   <div class="starter"><svg class="i"><use href="#i-users"/></svg><span>Find professors</span><span class="d">niche and schools, verified rows with sources</span><span class="kbd">1</span></div>
+   <div class="starter"><svg class="i"><use href="#i-bank"/></svg><span>Follow the money</span><span class="d">NSF and NIH awards, then the PIs who can pay</span><span class="kbd">2</span></div>
+   <div class="starter"><svg class="i"><use href="#i-user"/></svg><span>Vet a professor</span><span class="d">taking students, funded, contact rule, fit</span><span class="kbd">3</span></div>
+   <div class="starter"><svg class="i"><use href="#i-cap"/></svg><span>Check a program</span><span class="d">deadline, fee, English, funding for internationals</span><span class="kbd">4</span></div>
+   <div class="starter"><svg class="i"><use href="#i-chev-r"/></svg><span>Next school in the queue</span><span class="d">Scout's queue, CS and arbitrage departments both</span><span class="kbd">5</span></div>
+  </div>
+  <div class="cmp"><div class="ta">Describe what to find. @ a school or professor to scope it.</div><div class="ctb"><span class="chip">Opus 5.5<svg class="i xs"><use href="#i-chev-d"/></svg></span><span class="chip"><svg class="i"><use href="#i-zap"/></svg>Hunt<svg class="i xs"><use href="#i-chev-d"/></svg></span><span class="chip"><svg class="i"><use href="#i-wallet"/></svg>$0.50 cap</span><span class="send"><svg class="i"><use href="#i-up"/></svg></span></div></div>
+ </div></div>
+</div></div></div>
+<p class="note">Hunt mode can spend and propose. Ask mode is read-only and free: it answers from the sheet, hq and the free APIs.</p>
+
+<h3>Funding: follow the money</h3>
+<div class="scroll"><div class="win"><div class="appF">
+ <section class="mn">
+  <div class="tbar"><span class="title">Funding</span><span class="seg"><span class="on">Awards</span><span>Programs</span><span>Fellowships</span></span></div>
+  <div class="qbar" style="margin-top:0"><span class="qt">"language model" OR "natural language"<span class="sep">/</span>tracked schools (24)<span class="sep">/</span>NSF, NIH<span class="sep">/</span>active after Sep 2027</span><span class="est">free</span><span class="btn sm">Search</span></div>
+  <div class="gridw"><table class="grid">
+   <thead><tr><th>Award</th><th>PI</th><th>School</th><th>Amount</th><th>Ends</th><th>Left after Sep 2027</th><th>In sheet</th></tr></thead>
+   <tbody>
+    <tr class="sel"><td>CAREER: Self-Directed Human-LLM Coordination for Language Learning</td><td class="nm">Ge Gao</td><td>UMD</td><td class="tn">$591,098</td><td class="tn">2030-07</td><td><span class="rw"><span class="rwb"><i style="width:94%"></i></span><span class="tn">34 mo</span></span></td><td><span class="btn sm"><svg class="i xs"><use href="#i-plus"/></svg>Add PI</span></td></tr>
+    <tr><td>CAREER: Leveraging Grammar Books to Develop Language Technologies for Data-Scarce Languages</td><td class="nm">Antonios Anastasopoulos</td><td>George Mason</td><td class="tn">$599,956</td><td class="tn">2030-05</td><td><span class="rw"><span class="rwb"><i style="width:89%"></i></span><span class="tn">32 mo</span></span></td><td class="err">yes · not hiring</td></tr>
+    <tr><td>CAREER: Trustworthy Human-Centered Summarization</td><td class="nm">Rui Zhang</td><td>Penn State</td><td class="tn">$546,000</td><td class="tn">2029-08</td><td><span class="rw"><span class="rwb"><i style="width:67%"></i></span><span class="tn">24 mo</span></span></td><td class="ok">yes</td></tr>
+    <tr><td>Collaborative Research: Advancing Open-Access Resources for Languages</td><td class="nm">Liliana Sanchez</td><td>UIC</td><td class="tn">$240,470</td><td class="tn">2028-07</td><td><span class="rw"><span class="rwb"><i class="lo" style="width:31%"></i></span><span class="tn">11 mo</span></span></td><td><span class="btn gh sm">Vet</span></td></tr>
+    <tr><td>Collaborative Research: RI: Medium: Multilingual Long-form QA with Retrieval-Augmented</td><td class="nm">Mohit Iyyer</td><td>UMD</td><td class="tn">$554,150</td><td class="tn">2027-10</td><td><span class="rw"><span class="rwb"><i class="lo" style="width:6%"></i></span><span class="tn">2 mo</span></span></td><td class="ok">yes</td></tr>
+    <tr><td>CAREER: Building Creative Writing Assistants for Machine-in-the-Loop Storytelling</td><td class="nm">Mohit Iyyer</td><td>UMD</td><td class="tn">$532,291</td><td class="tn">2026-12</td><td class="dim">ends before you start</td><td class="ok">yes</td></tr>
+    <tr class="x" style="opacity:.45"><td>RI: Small: Gradient-Based Discrete Markov Chain Monte Carlo</td><td class="nm">Ruqi Zhang</td><td>Purdue</td><td class="tn">$600,000</td><td class="tn">2028-07</td><td class="dim">off topic</td><td class="dim">fit 1</td></tr>
+   </tbody>
+  </table></div>
+  <div class="stb"><span>7 awards · live from api.nsf.gov and api.reporter.nih.gov</span><span class="r"><span class="dim">ranked by months left, then fit</span></span></div>
+ </section>
+ <aside class="side">
+  <div class="dim" style="font-size:12px">NSF 2443387 · 2025-08 to 2030-07</div>
+  <h4>CAREER: Self-Directed Human-LLM Coordination for Language Learning and Information Seeking</h4>
+  <div class="facts" style="margin-top:0"><span>PI <b>Ge Gao</b></span><span>UMD</span><span><b>$591,098</b></span></div>
+  <div class="ab">Effective seeking of information is a crucial aspect of daily life that relies heavily on language skills. In societies with a diverse population, many people are not proficient in the majority language...</div>
+  <div class="ab dim">Not in the sheet. A CAREER award has 34 months left when you start, so this PI is likely hiring.</div>
+  <div class="acts2"><span class="btn pri sm"><svg class="i xs"><use href="#i-msg"/></svg>Vet in a thread</span><span class="btn sm"><svg class="i xs"><use href="#i-plus"/></svg>Add as candidate</span><span class="btn gh sm"><svg class="i xs"><use href="#i-ext"/></svg>nsf.gov</span></div>
+  <div style="border-top:1px solid var(--line);padding-top:12px;margin-top:4px">
+   <div class="dim" style="font-size:12px;margin-bottom:6px">Programs that fund every admit</div>
+   <table class="mt"><tbody>
+    <tr><td>UIC CS PhD</td><td class="dim">5 yrs guaranteed</td><td class="tn">Dec 15</td></tr>
+    <tr><td>CU Boulder CS</td><td class="dim">100% funded</td><td class="tn">Dec 1</td></tr>
+    <tr><td>Arizona MIS</td><td class="dim">RA/TA, no fee</td><td class="tn">Jan 15</td></tr>
+    <tr><td>Purdue MIS</td><td class="dim">years 1 to 5</td><td class="tn">Jan 15</td></tr>
+   </tbody></table>
+  </div>
+ </aside>
+</div></div></div>
+<p class="note">Awards and amounts above are real, pulled from the NSF API today. "Left after Sep 2027" answers the one question that matters: will this money still pay a student when you arrive?</p>
+
+<h3>Professor page</h3>
+<div class="scroll"><div class="win"><div class="appP">
+ <section class="ppm">
+  <div class="dim" style="font-size:12px">Professors / George Mason</div>
+  <h4 style="margin-top:6px">Kevin Lybarger</h4>
+  <div class="sub">Information Sciences and Technology · George Mason University</div>
+  <div class="facts"><span>fit <b>5</b></span><span>tier <b>safety</b></span><span>email <b class="ok">ok</b> 2026-10-04</span><span>via <b>email</b></span><span>stage <b>drafted</b></span></div>
+  <div class="acts2"><span class="btn pri sm"><svg class="i xs"><use href="#i-msg"/></svg>Ask about Lybarger</span><span class="btn sm"><svg class="i xs"><use href="#i-file"/></svg>Open draft</span><span class="btn gh sm"><svg class="i xs"><use href="#i-globe"/></svg>Website</span><span class="btn gh sm"><svg class="i xs"><use href="#i-book"/></svg>Scholar</span></div>
+  <div class="sec"><h6>Money</h6>
+   <div class="ln"><span>NIH team grant on chronic knee pain, $4.65M. Not listed as PI on RePORTER.</span><span class="s">lab news 2025-09-30</span></div>
+   <div class="ln"><span>Lab: 4 funded PhD students, 3 from Bangladeshi universities.</span><span class="s">lab page</span></div>
+  </div>
+  <div class="sec"><h6>How to reach</h6>
+   <blockquote>Admission runs through the PhD in Information Technology program: apply there first. To have me see your application, email with "PhD 2027" in the subject line, introduce yourself, say what you want to work on, attach your CV.</blockquote>
+  </div>
+  <div class="sec"><h6>Recent work</h6>
+   <div class="ln"><span>DF-RAG: Query-Aware Diversity for Retrieval-Augmented Generation</span><span class="s">2026 · ACL Anthology</span></div>
+   <div class="ln"><span>Efficient Information Extraction Using LLMs and Knowledge Distillation: A Study on HPV Health Communication</span><span class="s">2026 · DOI</span></div>
+   <div class="ln"><span>Classifying Human-Generated and AI-Generated Election Claims in Social Media</span><span class="s">2024 · DOI</span></div>
+  </div>
+  <div class="sec"><h6>Interests</h6><div style="color:var(--fg2)">clinical NLP · LLM patient simulation · RAG for healthcare · text simplification · AI-generated text detection</div></div>
+ </section>
+ <aside class="side">
+  <div class="dim" style="font-size:12px">Timeline</div>
+  <div class="tl">
+   <div><span>10-07</span>Grants made structured, accepted in Review</div>
+   <div><span>10-04</span>Email checked: ok</div>
+   <div><span>08-27</span>Draft written by Scout</div>
+   <div><span>08-27</span>Added by Scout</div>
+  </div>
+  <div class="dim" style="font-size:12px;margin-top:6px">Threads</div>
+  <div class="rows"><div class="row"><span class="dot"></span><span class="tt">Funded NLP at GMU + Arizona</span><span class="st dim">settled</span></div></div>
+  <div class="dim" style="font-size:12px;margin-top:6px">Program</div>
+  <div style="font-size:12.5px;color:var(--fg2)">PhD in Information Technology · deadline not verified yet <span class="btn gh sm" style="margin-left:4px">Check</span></div>
+  <div class="dim" style="font-size:12px;margin-top:6px">Draft</div>
+  <div style="font-size:12.5px;color:var(--fg2)">Drafted, not scheduled. Scheduling stays in the current dashboard for v1.</div>
+ </aside>
+</div></div></div>
+
+<h2 id="motion"><span class="n">8</span>Motion and keys</h2>
+<div class="cols">
+<div>
+<table class="spec motion">
+<thead><tr><th>Moment</th><th>Motion</th><th>Timing</th></tr></thead>
+<tbody>
+<tr><td>Press a button</td><td>Scales to 0.97</td><td>100ms ease-out</td></tr>
+<tr><td>Hover a thread row</td><td>Time fades out, Settle and Snooze fade in</td><td>120ms</td></tr>
+<tr><td>Settle, Snooze</td><td>Row folds shut, shelf count ticks, row unfolds in its shelf</td><td>220ms drawer curve</td></tr>
+<tr><td>Open or close a panel</td><td>Panel slides, chat column re-centers</td><td>240ms drawer curve</td></tr>
+<tr><td>Tool call lands</td><td>Row fades up 4px</td><td>160ms ease-out</td></tr>
+<tr><td>Accept, Reject</td><td>Row tints green or red, then folds</td><td>300ms + 220ms</td></tr>
+<tr><td>A row action fills a cell</td><td>The cell tints indigo, then fades to normal</td><td>600ms ease-out</td></tr>
+<tr><td>Approval resolved</td><td>Card folds, its result lands in the work log</td><td>220ms</td></tr>
+<tr><td>Working</td><td>Blue label and elapsed time. No shimmer, no spinner.</td><td>none</td></tr>
+<tr><td>Done</td><td>One white dot. No toast, no sound.</td><td>none</td></tr>
+<tr><td>Needs you</td><td>Amber or indigo label, one system notification</td><td>once</td></tr>
+<tr><td>Reduced motion</td><td>Every transition off</td><td>0ms</td></tr>
+</tbody></table>
+<p class="note">Drawer curve is T3 Code's <code>cubic-bezier(0.32, 0.72, 0, 1)</code>. Folding animates grid rows from 1fr to 0fr, so nothing measures heights in JS.</p>
+</div>
+<div>
+<table class="spec keys">
+<thead><tr><th>Key</th><th>Does</th></tr></thead>
+<tbody>
+<tr><td>⌘K</td><td>Palette: every action, thread, professor and school</td></tr>
+<tr><td>⌘N · ⌘⇧O</td><td>New thread, from anywhere</td></tr>
+<tr><td>j k</td><td>Move through threads, rows or proposals</td></tr>
+<tr><td>e · s</td><td>Settle · snooze the current thread</td></tr>
+<tr><td>a · r · ⇧A</td><td>Accept · reject · accept all</td></tr>
+<tr><td>↵ · esc</td><td>Allow once · deny the open approval</td></tr>
+<tr><td>⌘↵ · ⌘.</td><td>Steer the queued message · stop the turn</td></tr>
+<tr><td>⌘\ · ⌘1 to 4</td><td>Toggle the panel · switch panel tab</td></tr>
+<tr><td>@</td><td>Scope the message to a school or professor</td></tr>
+</tbody></table>
+</div>
+</div>
+
+<h2 id="build"><span class="n">9</span>Build</h2>
+<div class="cols">
+<div>
+<h3>What T3 Code's UI is made of</h3>
+<p>Base UI (<code>@base-ui/react</code>) primitives, styled with Tailwind v4, class-variance-authority and tailwind-merge in a shadcn-style kit under <code>components/ui</code>. Icons are lucide-react, with Zustand for state, TanStack Router, a Tiptap composer, dnd-kit for sidebar drag, @legendapp/list for long lists and @pierre/diffs for diffs. System font, true black canvas, 8% white hairlines, <code>#191a1d</code> hover, indigo primary. MIT licensed.</p>
+<p>T3 is cleaner than Orca and does more. Its power comes from keys, the palette and the inbox sidebar, not from more panes. gradcode copies that.</p>
+</div>
+<div>
+<h3>gradcode</h3>
+<ul class="pl">
+<li><b>Take:</b> T3's <code>components/ui</code>, copied with the MIT notice. Buttons, menus, tooltips, dialogs and kbd come out identical.</li>
+<li><b>Add:</b> Claude Agent SDK on a small Node server over a WebSocket, treg MCP, a hunt MCP holding the zod-typed <code>propose_*</code> tools, and scout.py as the only writer.</li>
+<li><b>Skip for v1:</b> Effect, Tiptap (a textarea does it), dnd-kit (hover buttons and keys settle; drag-to-settle later), a diff library (record diffs are three lines of text).</li>
+<li><b>Store:</b> one SQLite file through Node's built-in <code>node:sqlite</code>. hq and gradhunt become adapters for your install.</li>
+<li><b>Stack:</b> pnpm, Vite, React, TypeScript, Tailwind v4, Base UI, Zustand, TanStack Router.</li>
+</ul>
+</div>
+</div>
+
+<h2 id="decide"><span class="n">10</span>Open questions</h2>
+<table class="spec">
+<thead><tr><th>#</th><th>Question</th><th>My default</th></tr></thead>
+<tbody>
+<tr><td class="n">1</td><td><b>Store.</b> One local SQLite file (Node's built-in <code>node:sqlite</code>, no dependency), with hq and gradhunt as adapters for your install?</td><td class="c">Yes. Your Scout loop and dashboard keep working untouched.</td></tr>
+<tr><td class="n">2</td><td><b>Open source it</b> under MIT, like T3 Code, so anyone can install it?</td><td class="c">Yes, once v1 works on your hunt.</td></tr>
+<tr><td class="n">3</td><td><b>Providers.</b> Claude only in v1, Codex later through an adapter?</td><td class="c">Yes. The agent sits behind one interface from day one.</td></tr>
+<tr><td class="n">4</td><td><b>Free sources:</b> NSF, NIH RePORTER, OpenAlex, CSRankings, faculty pages. Anything to add?</td><td class="c">These five.</td></tr>
+<tr><td class="n">5</td><td><b>Name.</b> Keep gradcode for a public tool?</td><td class="c">Keep it until v1 ships.</td></tr>
+</tbody></table>
+<h2 id="round1"><span class="n">11</span>Round 1</h2>
+<details><summary class="note" style="cursor:pointer">The first done list and shells A, B and C. A is still clickable.</summary>
+<h3>What done looked like in round 1</h3>
+<p>A T3 Code-shaped app for the PhD hunt. Every thread is a Claude Code session, and treg is its tool belt. Two jobs: <b>find professors who can fund a student</b>, and <b>find the money behind them</b>. It runs on the Mac mini on top of gradhunt's data, so Scout, the cloud outreach routine and the current dashboard keep working.</p>
+<p>Three rules borrowed from T3 Code: you fire off a hunt and walk away, and the sidebar only asks for you when a thread needs you. Findings arrive as records you review like a diff, not as prose. Every cent and every source stays visible.</p>
+
+<h2 id="r1-done"><span class="n">1</span>Done, v1</h2>
+<table class="spec">
+<thead><tr><th>#</th><th>Done when</th><th>Check</th></tr></thead>
+<tbody>
+<tr><td class="n">1</td><td><b>Threads.</b> Start, rename, resume and stop threads. Each is a Claude Code session that streams text and tool calls. It runs on the Mac mini, so closing the laptop never stops a hunt, and it survives a server restart.</td><td class="c">Close the laptop mid-turn, reopen from the phone, and the thread has kept going.</td></tr>
+<tr><td class="n">2</td><td><b>The sidebar is an inbox.</b> Threads that need you come first: Approval (amber), Input (indigo), Done and unread. Working rows fade back. Settle and Snooze appear on hover. Settled and Snoozed shelves start collapsed. Untouched threads auto-settle after 3 days.</td><td class="c">End of day: every thread is settled, snoozed or working.</td></tr>
+<tr><td class="n">3</td><td><b>Threads settle themselves.</b> A thread settles once nothing waits on you: every proposal reviewed, no approval pending. Optional auto-accept rules (verified email, official source, fit 4+) let a hunt finish without you ever opening it.</td><td class="c">Review the last proposal and the thread drops into Settled.</td></tr>
+<tr><td class="n">4</td><td><b>Queue and steer.</b> A message sent mid-turn waits and goes out after the next tool call. Steer sends it now.</td><td class="c">Queue a message, press Steer, and the agent picks it up within one tool call.</td></tr>
+<tr><td class="n">5</td><td><b>Scoped threads.</b> A thread can be about a school, a professor or a search, and opening one loads that record into context. Start one with <code>@</code> or from any row.</td><td class="c">"Ask about Lybarger" answers from the record without fetching it again.</td></tr>
+<tr><td class="n">6</td><td><b>treg in view.</b> Every call shows its endpoint, price, time and result. Thread spend and treg balance are always on screen. Calls over $0.01 ask first, and each thread has a hard cap.</td><td class="c">A $0.0245 Prospeo lookup raises an approval.</td></tr>
+<tr><td class="n">7</td><td><b>Results are records.</b> The agent reports through typed tools (<code>propose_professor</code>, <code>propose_program</code>, <code>propose_grant</code>). Proposals land in Review as field diffs. Accept writes through scout.py; reject records the reason in the exclusions.</td><td class="c">Accept 3 and reject 1. Scout's next nightly run sees all four.</td></tr>
+<tr><td class="n">8</td><td><b>Professor finder.</b> Search by niche and school, or say "next school in the queue". Candidates fill a table: fit, recruiting evidence, money, email check, contact rule. Keep, drop, dig deeper or draft from any row.</td><td class="c">"health NLP at GMU, UIC, Arizona" returns rows that all link sources.</td></tr>
+<tr><td class="n">9</td><td><b>Funding finder.</b> Follow the money: NSF and NIH awards by topic at tracked schools (both APIs are free), with PI, amount, end date, months left after Fall 2027, and whether the PI is in the sheet. One click adds a PI. Program funding sits beside it: guarantee for internationals, stipend, fee, deadline.</td><td class="c">"language model" at UMD shows Ge Gao's CAREER award as not in the sheet yet.</td></tr>
+<tr><td class="n">10</td><td><b>Professor page.</b> Every fact links its source: interests, recent works, grants, recruiting quote, contact rule, email check, threads, draft state.</td><td class="c">Every field opens its source.</td></tr>
+<tr><td class="n">11</td><td><b>Facts guard.</b> The agent reads hq facts and the Scout spec and claims nothing hq lacks. A draft only shows after <code>scout.py lint-drafts</code> passes.</td><td class="c">A draft claiming a fact hq lacks fails lint in the UI.</td></tr>
+<tr><td class="n">12</td><td><b>Polish bar.</b> Every action is in the ⌘K palette and the app is keyboard-first. Motion follows the spec below. Nothing animates forever, and reduced motion turns every transition off.</td><td class="c">A full morning of triage without touching the mouse.</td></tr>
+</tbody>
+</table>
+<p class="note">Not in v1: sending mail and inbox sync (the cloud routine keeps both), the send queue and Conversations (the current dashboard keeps them until v2 ports them), auth, a phone layout beyond reading and approving, hosting, more than one user.</p>
+
+<h2 id="r1-shell"><span class="n">3</span>Shell: pick one</h2>
 <p>Same data in all three. A follows T3 Code most closely and is clickable. B and C are static.</p>
 
 <div class="vh"><span class="k">A</span><span class="t">Threads</span><span class="s">T3 Code's shape: inbox sidebar, chat, Review panel on the right</span><span class="rec">recommended</span></div>
@@ -626,167 +1089,7 @@ td.ok{color:var(--ok)}td.err{color:var(--err)}td.dim,td.no2{color:var(--dim)}td.
 </div></div></div>
 <p class="note">Fastest way to sweep a new school, and the price of each column is clear before you run it. Bad at open questions: anything outside a column needs a chat. Strong candidate for A's Results tab.</p>
 
-<h2 id="screens"><span class="n">4</span>Screens in every shell</h2>
-<h3>New thread</h3>
-<div class="scroll"><div class="win" style="min-width:980px"><div class="solo">
- <div class="tb"><span class="title dim">New thread</span><span class="scope"><svg class="i xs"><use href="#i-cap"/></svg>Fall 2027 · funded PhD</span></div>
- <div class="start"><div class="in">
-  <h5>What should we find?</h5><div class="sub">Runs on the Mac mini. You can close this window.</div>
-  <div class="starters">
-   <div class="starter"><svg class="i"><use href="#i-users"/></svg><span>Find professors</span><span class="d">niche and schools, verified rows with sources</span><span class="kbd">1</span></div>
-   <div class="starter"><svg class="i"><use href="#i-bank"/></svg><span>Follow the money</span><span class="d">NSF and NIH awards, then the PIs who can pay</span><span class="kbd">2</span></div>
-   <div class="starter"><svg class="i"><use href="#i-user"/></svg><span>Vet a professor</span><span class="d">taking students, funded, contact rule, fit</span><span class="kbd">3</span></div>
-   <div class="starter"><svg class="i"><use href="#i-cap"/></svg><span>Check a program</span><span class="d">deadline, fee, English, funding for internationals</span><span class="kbd">4</span></div>
-   <div class="starter"><svg class="i"><use href="#i-chev-r"/></svg><span>Next school in the queue</span><span class="d">Scout's queue, CS and arbitrage departments both</span><span class="kbd">5</span></div>
-  </div>
-  <div class="cmp"><div class="ta">Describe what to find. @ a school or professor to scope it.</div><div class="ctb"><span class="chip">Opus 5.5<svg class="i xs"><use href="#i-chev-d"/></svg></span><span class="chip"><svg class="i"><use href="#i-zap"/></svg>Hunt<svg class="i xs"><use href="#i-chev-d"/></svg></span><span class="chip"><svg class="i"><use href="#i-wallet"/></svg>$0.50 cap</span><span class="send"><svg class="i"><use href="#i-up"/></svg></span></div></div>
- </div></div>
-</div></div></div>
-<p class="note">Hunt mode can spend and propose. Ask mode is read-only and free: it answers from the sheet, hq and the free APIs.</p>
-
-<h3>Funding: follow the money</h3>
-<div class="scroll"><div class="win"><div class="appF">
- <section class="mn">
-  <div class="tbar"><span class="title">Funding</span><span class="seg"><span class="on">Awards</span><span>Programs</span><span>Fellowships</span></span></div>
-  <div class="qbar" style="margin-top:0"><span class="qt">"language model" OR "natural language"<span class="sep">/</span>tracked schools (24)<span class="sep">/</span>NSF, NIH<span class="sep">/</span>active after Sep 2027</span><span class="est">free</span><span class="btn sm">Search</span></div>
-  <div class="gridw"><table class="grid">
-   <thead><tr><th>Award</th><th>PI</th><th>School</th><th>Amount</th><th>Ends</th><th>Left after Sep 2027</th><th>In sheet</th></tr></thead>
-   <tbody>
-    <tr class="sel"><td>CAREER: Self-Directed Human-LLM Coordination for Language Learning</td><td class="nm">Ge Gao</td><td>UMD</td><td class="tn">$591,098</td><td class="tn">2030-07</td><td><span class="rw"><span class="rwb"><i style="width:94%"></i></span><span class="tn">34 mo</span></span></td><td><span class="btn sm"><svg class="i xs"><use href="#i-plus"/></svg>Add PI</span></td></tr>
-    <tr><td>CAREER: Leveraging Grammar Books to Develop Language Technologies for Data-Scarce Languages</td><td class="nm">Antonios Anastasopoulos</td><td>George Mason</td><td class="tn">$599,956</td><td class="tn">2030-05</td><td><span class="rw"><span class="rwb"><i style="width:89%"></i></span><span class="tn">32 mo</span></span></td><td class="err">yes · not hiring</td></tr>
-    <tr><td>CAREER: Trustworthy Human-Centered Summarization</td><td class="nm">Rui Zhang</td><td>Penn State</td><td class="tn">$546,000</td><td class="tn">2029-08</td><td><span class="rw"><span class="rwb"><i style="width:67%"></i></span><span class="tn">24 mo</span></span></td><td class="ok">yes</td></tr>
-    <tr><td>Collaborative Research: Advancing Open-Access Resources for Languages</td><td class="nm">Liliana Sanchez</td><td>UIC</td><td class="tn">$240,470</td><td class="tn">2028-07</td><td><span class="rw"><span class="rwb"><i class="lo" style="width:31%"></i></span><span class="tn">11 mo</span></span></td><td><span class="btn gh sm">Vet</span></td></tr>
-    <tr><td>Collaborative Research: RI: Medium: Multilingual Long-form QA with Retrieval-Augmented</td><td class="nm">Mohit Iyyer</td><td>UMD</td><td class="tn">$554,150</td><td class="tn">2027-10</td><td><span class="rw"><span class="rwb"><i class="lo" style="width:6%"></i></span><span class="tn">2 mo</span></span></td><td class="ok">yes</td></tr>
-    <tr><td>CAREER: Building Creative Writing Assistants for Machine-in-the-Loop Storytelling</td><td class="nm">Mohit Iyyer</td><td>UMD</td><td class="tn">$532,291</td><td class="tn">2026-12</td><td class="dim">ends before you start</td><td class="ok">yes</td></tr>
-    <tr class="x" style="opacity:.45"><td>RI: Small: Gradient-Based Discrete Markov Chain Monte Carlo</td><td class="nm">Ruqi Zhang</td><td>Purdue</td><td class="tn">$600,000</td><td class="tn">2028-07</td><td class="dim">off topic</td><td class="dim">fit 1</td></tr>
-   </tbody>
-  </table></div>
-  <div class="stb"><span>7 awards · live from api.nsf.gov and api.reporter.nih.gov</span><span class="r"><span class="dim">ranked by months left, then fit</span></span></div>
- </section>
- <aside class="side">
-  <div class="dim" style="font-size:12px">NSF 2443387 · 2025-08 to 2030-07</div>
-  <h4>CAREER: Self-Directed Human-LLM Coordination for Language Learning and Information Seeking</h4>
-  <div class="facts" style="margin-top:0"><span>PI <b>Ge Gao</b></span><span>UMD</span><span><b>$591,098</b></span></div>
-  <div class="ab">Effective seeking of information is a crucial aspect of daily life that relies heavily on language skills. In societies with a diverse population, many people are not proficient in the majority language...</div>
-  <div class="ab dim">Not in the sheet. A CAREER award has 34 months left when you start, so this PI is likely hiring.</div>
-  <div class="acts2"><span class="btn pri sm"><svg class="i xs"><use href="#i-msg"/></svg>Vet in a thread</span><span class="btn sm"><svg class="i xs"><use href="#i-plus"/></svg>Add as candidate</span><span class="btn gh sm"><svg class="i xs"><use href="#i-ext"/></svg>nsf.gov</span></div>
-  <div style="border-top:1px solid var(--line);padding-top:12px;margin-top:4px">
-   <div class="dim" style="font-size:12px;margin-bottom:6px">Programs that fund every admit</div>
-   <table class="mt"><tbody>
-    <tr><td>UIC CS PhD</td><td class="dim">5 yrs guaranteed</td><td class="tn">Dec 15</td></tr>
-    <tr><td>CU Boulder CS</td><td class="dim">100% funded</td><td class="tn">Dec 1</td></tr>
-    <tr><td>Arizona MIS</td><td class="dim">RA/TA, no fee</td><td class="tn">Jan 15</td></tr>
-    <tr><td>Purdue MIS</td><td class="dim">years 1 to 5</td><td class="tn">Jan 15</td></tr>
-   </tbody></table>
-  </div>
- </aside>
-</div></div></div>
-<p class="note">Awards and amounts above are real, pulled from the NSF API today. "Left after Sep 2027" answers the one question that matters: will this money still pay a student when you arrive?</p>
-
-<h3>Professor page</h3>
-<div class="scroll"><div class="win"><div class="appP">
- <section class="ppm">
-  <div class="dim" style="font-size:12px">Professors / George Mason</div>
-  <h4 style="margin-top:6px">Kevin Lybarger</h4>
-  <div class="sub">Information Sciences and Technology · George Mason University</div>
-  <div class="facts"><span>fit <b>5</b></span><span>tier <b>safety</b></span><span>email <b class="ok">ok</b> 2026-10-04</span><span>via <b>email</b></span><span>stage <b>drafted</b></span></div>
-  <div class="acts2"><span class="btn pri sm"><svg class="i xs"><use href="#i-msg"/></svg>Ask about Lybarger</span><span class="btn sm"><svg class="i xs"><use href="#i-file"/></svg>Open draft</span><span class="btn gh sm"><svg class="i xs"><use href="#i-globe"/></svg>Website</span><span class="btn gh sm"><svg class="i xs"><use href="#i-book"/></svg>Scholar</span></div>
-  <div class="sec"><h6>Money</h6>
-   <div class="ln"><span>NIH team grant on chronic knee pain, $4.65M. Not listed as PI on RePORTER.</span><span class="s">lab news 2025-09-30</span></div>
-   <div class="ln"><span>Lab: 4 funded PhD students, 3 from Bangladeshi universities.</span><span class="s">lab page</span></div>
-  </div>
-  <div class="sec"><h6>How to reach</h6>
-   <blockquote>Admission runs through the PhD in Information Technology program: apply there first. To have me see your application, email with "PhD 2027" in the subject line, introduce yourself, say what you want to work on, attach your CV.</blockquote>
-  </div>
-  <div class="sec"><h6>Recent work</h6>
-   <div class="ln"><span>DF-RAG: Query-Aware Diversity for Retrieval-Augmented Generation</span><span class="s">2026 · ACL Anthology</span></div>
-   <div class="ln"><span>Efficient Information Extraction Using LLMs and Knowledge Distillation: A Study on HPV Health Communication</span><span class="s">2026 · DOI</span></div>
-   <div class="ln"><span>Classifying Human-Generated and AI-Generated Election Claims in Social Media</span><span class="s">2024 · DOI</span></div>
-  </div>
-  <div class="sec"><h6>Interests</h6><div style="color:var(--fg2)">clinical NLP · LLM patient simulation · RAG for healthcare · text simplification · AI-generated text detection</div></div>
- </section>
- <aside class="side">
-  <div class="dim" style="font-size:12px">Timeline</div>
-  <div class="tl">
-   <div><span>10-07</span>Grants made structured, accepted in Review</div>
-   <div><span>10-04</span>Email checked: ok</div>
-   <div><span>08-27</span>Draft written by Scout</div>
-   <div><span>08-27</span>Added by Scout</div>
-  </div>
-  <div class="dim" style="font-size:12px;margin-top:6px">Threads</div>
-  <div class="rows"><div class="row"><span class="dot"></span><span class="tt">Funded NLP at GMU + Arizona</span><span class="st dim">settled</span></div></div>
-  <div class="dim" style="font-size:12px;margin-top:6px">Program</div>
-  <div style="font-size:12.5px;color:var(--fg2)">PhD in Information Technology · deadline not verified yet <span class="btn gh sm" style="margin-left:4px">Check</span></div>
-  <div class="dim" style="font-size:12px;margin-top:6px">Draft</div>
-  <div style="font-size:12.5px;color:var(--fg2)">Drafted, not scheduled. Scheduling stays in the current dashboard for v1.</div>
- </aside>
-</div></div></div>
-
-<h2 id="motion"><span class="n">5</span>Motion and keys</h2>
-<div class="cols">
-<div>
-<table class="spec motion">
-<thead><tr><th>Moment</th><th>Motion</th><th>Timing</th></tr></thead>
-<tbody>
-<tr><td>Press a button</td><td>Scales to 0.97</td><td>100ms ease-out</td></tr>
-<tr><td>Hover a thread row</td><td>Time fades out, Settle and Snooze fade in</td><td>120ms</td></tr>
-<tr><td>Settle, Snooze</td><td>Row folds shut, shelf count ticks, row unfolds in its shelf</td><td>220ms drawer curve</td></tr>
-<tr><td>Open or close a panel</td><td>Panel slides, chat column re-centers</td><td>240ms drawer curve</td></tr>
-<tr><td>Tool call lands</td><td>Row fades up 4px</td><td>160ms ease-out</td></tr>
-<tr><td>Accept, Reject</td><td>Row tints green or red, then folds</td><td>300ms + 220ms</td></tr>
-<tr><td>Approval resolved</td><td>Card folds, its result lands in the work log</td><td>220ms</td></tr>
-<tr><td>Working</td><td>Blue label and elapsed time. No shimmer, no spinner.</td><td>none</td></tr>
-<tr><td>Done</td><td>One white dot. No toast, no sound.</td><td>none</td></tr>
-<tr><td>Needs you</td><td>Amber or indigo label, one system notification</td><td>once</td></tr>
-<tr><td>Reduced motion</td><td>Every transition off</td><td>0ms</td></tr>
-</tbody></table>
-<p class="note">Drawer curve is T3 Code's <code>cubic-bezier(0.32, 0.72, 0, 1)</code>. Folding animates grid rows from 1fr to 0fr, so nothing measures heights in JS.</p>
-</div>
-<div>
-<table class="spec keys">
-<thead><tr><th>Key</th><th>Does</th></tr></thead>
-<tbody>
-<tr><td>⌘K</td><td>Palette: every action, thread, professor and school</td></tr>
-<tr><td>⌘N · ⌘⇧O</td><td>New thread, from anywhere</td></tr>
-<tr><td>j k</td><td>Move through threads, rows or proposals</td></tr>
-<tr><td>e · s</td><td>Settle · snooze the current thread</td></tr>
-<tr><td>a · r · ⇧A</td><td>Accept · reject · accept all</td></tr>
-<tr><td>↵ · esc</td><td>Allow once · deny the open approval</td></tr>
-<tr><td>⌘↵ · ⌘.</td><td>Steer the queued message · stop the turn</td></tr>
-<tr><td>⌘\ · ⌘1 to 4</td><td>Toggle the panel · switch panel tab</td></tr>
-<tr><td>@</td><td>Scope the message to a school or professor</td></tr>
-</tbody></table>
-</div>
-</div>
-
-<h2 id="build"><span class="n">6</span>Build</h2>
-<div class="cols">
-<div>
-<h3>What T3 Code's UI is made of</h3>
-<p>Base UI (<code>@base-ui/react</code>) primitives, styled with Tailwind v4, class-variance-authority and tailwind-merge in a shadcn-style kit under <code>components/ui</code>. Icons are lucide-react, with Zustand for state, TanStack Router, a Tiptap composer, dnd-kit for sidebar drag, @legendapp/list for long lists and @pierre/diffs for diffs. System font, true black canvas, 8% white hairlines, <code>#191a1d</code> hover, indigo primary. MIT licensed.</p>
-<p>T3 is cleaner than Orca and does more. Its power comes from keys, the palette and the inbox sidebar, not from more panes. gradcode copies that.</p>
-</div>
-<div>
-<h3>gradcode</h3>
-<ul class="pl">
-<li><b>Take:</b> T3's <code>components/ui</code>, copied with the MIT notice. Buttons, menus, tooltips, dialogs and kbd come out identical.</li>
-<li><b>Add:</b> Claude Agent SDK on a small Node server over a WebSocket, treg MCP, a hunt MCP holding the zod-typed <code>propose_*</code> tools, and scout.py as the only writer.</li>
-<li><b>Skip for v1:</b> Effect, Tiptap (a textarea does it), dnd-kit (hover buttons and keys settle; drag-to-settle later), a diff library (record diffs are three lines of text), a database (gradhunt's JSON stays the store).</li>
-<li><b>Stack:</b> pnpm, Vite, React, TypeScript, Tailwind v4, Base UI, Zustand, TanStack Router.</li>
-</ul>
-</div>
-</div>
-
-<h2 id="decide"><span class="n">7</span>Decide</h2>
-<table class="spec">
-<thead><tr><th>#</th><th>Question</th><th>My default</th></tr></thead>
-<tbody>
-<tr><td class="n">1</td><td><b>Shell A, B or C?</b></td><td class="c">A. C's grid becomes A's Results tab, and B's sheet is A's Professors view.</td></tr>
-<tr><td class="n">2</td><td><b>Own app, fork T3 Code, or plug into T3 Code?</b> A fork means carrying 1,341 web source files of git, worktree and terminal code we would only delete. A plug-in (MCP server plus a page in T3's preview pane) is the least code, but records can never reach the sidebar or Review.</td><td class="c">Own app with T3's ui kit copied in.</td></tr>
-<tr><td class="n">3</td><td><b>Auto-accept rule.</b> Off, or accept when the email is verified, the source is an official page and fit is 4+?</td><td class="c">Off until a week of reviews shows the rule would have been right.</td></tr>
-<tr><td class="n">4</td><td><b>v1 leaves sending to the cloud routine.</b> OK?</td><td class="c">Yes. Port the send queue in v2.</td></tr>
-<tr><td class="n">5</td><td><b>Name and repo.</b></td><td class="c">gradcode, private on GitHub. Renaming is one command.</td></tr>
-</tbody></table>
+</details>
 </main>
 
 <script>
@@ -870,6 +1173,129 @@ A.addEventListener('click',function(ev){
   if(act==='steer'){fold(document.getElementById('qA'));var c=document.getElementById('colA');c.appendChild(el('<div class="u new-in">Do the same for UIC\'s BHIS program.</div>'));c.appendChild(el('<div class="u-meta new-in">steered · picked up after the current tool call</div>'));c.parentElement.scrollTop=c.parentElement.scrollHeight;return}
   if(act==='unqueue'){fold(document.getElementById('qA'));return}
 });
+})();
+</script>
+<script>
+(function(){
+var X=document.getElementById('mockX');
+if(X){
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var spent=0.17,today=0.38,calls=52,proposed=0,base=2,opItems=0,pending=null;
+  var LABEL={email:'Find and check emails',lasts:'Check money',recruit:'Taking students?',stage:'Draft first emails'};
+  var BUSY={email:'checking',lasts:'reading awards',recruit:'reading page',stage:'drafting'};
+  var ICON={email:'i-mail',lasts:'i-bank',recruit:'i-user',stage:'i-pen'};
+  var CHECK='<svg class="i"><use href="#i-check"/></svg>';
+  function qa(s,r){return Array.prototype.slice.call((r||X).querySelectorAll(s))}
+  function $(id){return document.getElementById(id)}
+  function money(v){return '$'+v.toFixed(4).replace(/0{1,2}$/,'')}
+  function name(row){return row.querySelector('.nm').firstChild.textContent.trim()}
+  function el(html){var d=document.createElement('div');d.innerHTML=html.trim();return d.firstChild}
+  function selected(){return qa('#xRows tr.sel')}
+  function update(){
+    $('xSpend').textContent=money(spent)+' / $0.50';$('xToday').textContent=money(today);
+    $('xCost').textContent=calls+' calls · '+money(spent);
+    $('xProp').textContent=proposed+' proposed cells';$('xProp').className=proposed?'fgc':'dim';
+    $('xRvC').textContent=base+opItems;$('xNavRc').textContent=base+opItems;
+  }
+  function syncSel(){
+    var n=selected().length;
+    $('xSelTop').textContent=n;$('xSelBot').textContent=n;
+    $('xScope').textContent=n+' selected';$('xScope2').textContent=n+' selected';
+    $('xOps').classList.toggle('off',n===0);
+    qa('#xOps .m').forEach(function(m){var p=parseFloat(m.getAttribute('data-price'));m.textContent=p?money(p*n):'free'});
+  }
+  function setMode(m){
+    qa('#xMode [data-mode]').forEach(function(s){s.classList.toggle('on',s.getAttribute('data-mode')===m)});
+    qa('[data-xpane]').forEach(function(p){p.classList.toggle('on',p.getAttribute('data-xpane')===m)});
+    qa('[data-xr]').forEach(function(p){p.classList.toggle('on',p.getAttribute('data-xr')===(m==='grid'?'dock':'review'))});
+    var app=$('xApp');app.classList.toggle('m-grid',m==='grid');app.classList.remove('sb-open');
+  }
+  function logRow(icon,label,meta){
+    var html='<div class="tr new-in"><svg class="i sm"><use href="#'+icon+'"/></svg><span class="l">'+label+'</span><span class="m">'+meta+'</span></div>';
+    var hint=$('xLog').querySelector('.dim');if(hint&&!hint.classList.contains('tr'))hint.remove();
+    $('xLog').appendChild(el(html));
+    var chat=$('xChatOps');chat.style.display='';chat.querySelector('.wl-b').appendChild(el(html));
+  }
+  function runOp(op){
+    var rows=selected();if(!rows.length)return;
+    var price=parseFloat(X.querySelector('[data-op="'+op+'"] .m').getAttribute('data-price'))||0;
+    if(price*rows.length>0.01&&pending!==op){
+      pending=op;$('xApText').textContent=LABEL[op]+' for '+rows.length+' rows · '+money(price*rows.length);
+      $('xAp').classList.remove('out');return;
+    }
+    pending=null;
+    var touched=[],skipped=[];
+    rows.forEach(function(row){
+      if(op==='stage'&&row.hasAttribute('data-apply-only')){skipped.push(name(row));return;}
+      var cell=row.querySelector('[data-col="'+op+'"]');if(!cell)return;
+      if(!cell.hasAttribute('data-prev')){cell.setAttribute('data-prev',cell.innerHTML);cell.setAttribute('data-prev-class',cell.className);}
+      cell.classList.remove('dim','ok','err','filled');cell.classList.add('cell-run');
+      cell.innerHTML='<span class="run"><svg class="i xs"><use href="#i-load"/></svg>'+BUSY[op]+'</span>';
+      touched.push(row);
+    });
+    touched.forEach(function(row,i){
+      setTimeout(function(){
+        var cell=row.querySelector('[data-col="'+op+'"]');
+        var v=op==='email'?row.getAttribute('data-email'):op==='lasts'?row.getAttribute('data-lasts'):op==='recruit'?row.getAttribute('data-recruit'):'drafted';
+        cell.classList.remove('cell-run');cell.textContent=v;
+        if(op==='email')cell.classList.add(v==='ok'?'ok':'err');
+        if(op==='recruit'&&/^yes/.test(v))cell.classList.add('ok');
+        if(/not stated|none/.test(v))cell.classList.add('dim');
+        cell.classList.add('filled','chg');
+      },reduce?0:600+i*220);
+    });
+    setTimeout(function(){
+      var cost=price*touched.length;
+      calls+=touched.length;spent+=cost;today+=cost;proposed+=touched.length;
+      if(touched.length){
+        opItems++;
+        var lines=touched.map(function(row){return '<div class="a">'+op.replace('stage','draft')+': '+(op==='email'?row.getAttribute('data-email'):op==='lasts'?row.getAttribute('data-lasts'):op==='recruit'?row.getAttribute('data-recruit'):'first email')+' · '+name(row)+'</div>'}).join('');
+        $('xRv').appendChild(el('<div class="pr op new-in"><div class="pr-h"><span class="nm">'+LABEL[op]+'</span><span class="sc">'+touched.length+' rows</span><span class="k">row action</span></div><div class="df">'+lines+'</div></div>'));
+        logRow(ICON[op],'<b>'+LABEL[op]+'</b> <span class="q">'+touched.length+' rows</span>',cost?money(cost):'free');
+      }
+      skipped.forEach(function(n){logRow('i-x','<b>skipped '+n+'</b> <span class="q">apply-only: name them in the application</span>','')});
+      update();
+    },reduce?0:650+touched.length*220);
+  }
+  function settleCells(accept){
+    qa('#xRows td.chg').forEach(function(cell){
+      if(!accept){cell.innerHTML=cell.getAttribute('data-prev');cell.className=cell.getAttribute('data-prev-class');}
+      cell.classList.remove('chg','filled');cell.removeAttribute('data-prev');cell.removeAttribute('data-prev-class');
+    });
+    qa('#xRv .pr.op').forEach(function(p){p.remove()});
+    proposed=0;opItems=0;update();
+  }
+  X.addEventListener('click',function(ev){
+    var t=ev.target.closest('[data-mode],[data-detail],[data-op],[data-act],.cb');if(!t||!X.contains(t))return;
+    if(t.hasAttribute('data-mode'))return setMode(t.getAttribute('data-mode'));
+    if(t.hasAttribute('data-detail')){
+      var d=t.getAttribute('data-detail');qa('#xDetail [data-detail]').forEach(function(s){s.classList.toggle('on',s===t)});
+      $('xGridWrap').className='gridw d-'+d;return;
+    }
+    if(t.hasAttribute('data-op'))return runOp(t.getAttribute('data-op'));
+    if(t.classList.contains('cb')){
+      var row=t.closest('tr');if(!row||row.classList.contains('x'))return;
+      var on=row.classList.toggle('sel');t.classList.toggle('on',on);t.innerHTML=on?CHECK:'';syncSel();return;
+    }
+    var act=t.getAttribute('data-act');
+    if(act==='x-results')return setMode('grid');
+    if(act==='x-sb')return $('xApp').classList.toggle('sb-open');
+    if(act==='x-allow'){$('xAp').classList.add('out');return runOp(pending);}
+    if(act==='x-deny'){$('xAp').classList.add('out');logRow('i-x','<b>'+LABEL[pending]+'</b> <span class="q">denied</span>','');pending=null;return;}
+    if(act==='x-accept')return settleCells(true);
+    if(act==='x-reject')return settleCells(false);
+  });
+  syncSel();update();
+}
+var O=document.getElementById('mockO');
+if(O){
+  O.addEventListener('click',function(ev){
+    var s=ev.target.closest('[data-step]');if(!s)return;
+    var n=s.getAttribute('data-step');
+    Array.prototype.forEach.call(O.querySelectorAll('[data-step]'),function(x){x.classList.toggle('on',x===s)});
+    Array.prototype.forEach.call(O.querySelectorAll('[data-opane]'),function(p){p.classList.toggle('on',p.getAttribute('data-opane')===n)});
+  });
+}
 })();
 </script>
 </body>

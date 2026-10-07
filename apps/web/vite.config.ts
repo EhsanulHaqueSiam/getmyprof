@@ -20,13 +20,17 @@ export default defineConfig({
   resolve: {
     alias: { "~": NodeURL.fileURLToPath(new URL("./src", import.meta.url)) },
   },
+  // Routes are split into lazy chunks; scanning every source file up front pre-bundles their
+  // deps at startup, so opening a route never re-optimizes deps and reloads the page mid-session.
+  optimizeDeps: { entries: ["src/**/*.tsx"] },
   server: {
     host: "127.0.0.1",
     port: Number(process.env.WEB_PORT ?? 5174),
     strictPort: true,
     allowedHosts: [".ts.net"],
     proxy: {
-      "/api": `http://${SERVER}`,
+      // Object form keeps the browser's Host, so the server can match it against Origin.
+      "/api": { target: `http://${SERVER}` },
       "/ws": { target: `ws://${SERVER}`, ws: true },
     },
   },

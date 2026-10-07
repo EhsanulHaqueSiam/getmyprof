@@ -8,11 +8,19 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.292",
     "@gradcode/contracts": "workspace:*",
-    "ws": "catalog:"
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "imapflow": "^2.2.6",
+    "mailparser": "^3.9.36",
+    "nodemailer": "^10.0.15",
+    "ws": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
+    "@types/mailparser": "^3.9.0",
     "@types/node": "catalog:",
+    "@types/nodemailer": "^8.0.2",
     "@types/ws": "^8.18.2",
     "typescript": "catalog:"
   }

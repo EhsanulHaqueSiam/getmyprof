@@ -14,18 +14,23 @@ One script: `scripts/dev-local.sh`. tmux session `gradcode-dev`, no infra.
 
 Open http://127.0.0.1:5174.
 
-Prerequisites: `pnpm install`, tmux. `GRADHUNT_DIR` defaults to `~/Personal/gradhunt`. Point it
-at a copy for anything that writes.
+Prerequisites: `pnpm install`, tmux. Environment it passes through:
 
-| Command               | Does                                                         |
-| --------------------- | ------------------------------------------------------------ |
-| `up`                  | starts both windows, idempotent, prints ports                |
-| `down`                | kills the session (only what this script started)            |
-| `status`              | windows, ports, and `/api/health`                            |
-| `logs server\|web`    | last 400 lines of a window                                   |
-| `restart server\|web` | restarts one window                                          |
-| `attach`              | attach to tmux (Ctrl-b d detaches)                           |
-| `share`               | `tailscale serve` in front of :5174 for the laptop and phone |
+- `GRADCODE_HOME`: data dir (default `~/.gradcode`). Use a temp dir for tests and verification.
+- `GRADCODE_AGENT=fake`: the scripted agent, free and deterministic. Unset means the real one.
+- `GRADHUNT_DIR`: gradhunt checkout for the sync (default `~/Personal/gradhunt`).
+
+Test stack: `rm -rf /tmp/gc-e2e && GRADCODE_HOME=/tmp/gc-e2e GRADCODE_AGENT=fake scripts/dev-local.sh up`.
+
+| Command               | Does                                                          |
+| --------------------- | ------------------------------------------------------------- |
+| `up`                  | starts both windows, idempotent, prints ports                 |
+| `down`                | kills the session (only what this script started)             |
+| `status`              | windows, ports, and `/api/health`                             |
+| `logs server\|web`    | last 400 lines of a window                                    |
+| `restart server\|web` | restarts one window                                           |
+| `attach`              | attach to tmux (Ctrl-b d detaches)                            |
+| `share`               | `tailscale serve` on https :8443 in front of :5174, never 443 |
 
 Troubleshooting:
 

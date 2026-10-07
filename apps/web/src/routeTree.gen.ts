@@ -9,50 +9,330 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as ShellRouteImport } from './routes/_shell'
+import { Route as SetupRouteImport } from './routes/setup'
+import { Route as ShellIndexRouteImport } from './routes/_shell.index'
+import { Route as ShellFundingRouteImport } from './routes/_shell.funding'
+import { Route as ShellLoopsRouteImport } from './routes/_shell.loops'
+import { Route as ShellPipelineRouteImport } from './routes/_shell.pipeline'
+import { Route as ShellReviewRouteImport } from './routes/_shell.review'
+import { Route as ShellSettingsRouteImport } from './routes/_shell.settings'
+import { Route as ShellVaultRouteImport } from './routes/_shell.vault'
+import { Route as PrintIdRouteImport } from './routes/print.$id'
+import { Route as ShellProfessorsIndexRouteImport } from './routes/_shell.professors.index'
+import { Route as ShellProfessorsKeyRouteImport } from './routes/_shell.professors.$key'
+import { Route as ShellTThreadIdRouteImport } from './routes/_shell.t.$threadId'
+import { Route as ShellVaultWritingIdRouteImport } from './routes/_shell.vault_.writing.$id'
 
-const IndexRoute = IndexRouteImport.update({
+const ShellRoute = ShellRouteImport.update({
+  id: '/_shell',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SetupRoute = SetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShellIndexRoute = ShellIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellFundingRoute = ShellFundingRouteImport.update({
+  id: '/funding',
+  path: '/funding',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellLoopsRoute = ShellLoopsRouteImport.update({
+  id: '/loops',
+  path: '/loops',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellPipelineRoute = ShellPipelineRouteImport.update({
+  id: '/pipeline',
+  path: '/pipeline',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellReviewRoute = ShellReviewRouteImport.update({
+  id: '/review',
+  path: '/review',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellSettingsRoute = ShellSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellVaultRoute = ShellVaultRouteImport.update({
+  id: '/vault',
+  path: '/vault',
+  getParentRoute: () => ShellRoute,
+} as any)
+const PrintIdRoute = PrintIdRouteImport.update({
+  id: '/print/$id',
+  path: '/print/$id',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ShellProfessorsIndexRoute = ShellProfessorsIndexRouteImport.update({
+  id: '/professors/',
+  path: '/professors/',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellProfessorsKeyRoute = ShellProfessorsKeyRouteImport.update({
+  id: '/professors/$key',
+  path: '/professors/$key',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellTThreadIdRoute = ShellTThreadIdRouteImport.update({
+  id: '/t/$threadId',
+  path: '/t/$threadId',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellVaultWritingIdRoute = ShellVaultWritingIdRouteImport.update({
+  id: '/vault_/writing/$id',
+  path: '/vault/writing/$id',
+  getParentRoute: () => ShellRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof ShellIndexRoute
+  '/setup': typeof SetupRoute
+  '/funding': typeof ShellFundingRoute
+  '/loops': typeof ShellLoopsRoute
+  '/pipeline': typeof ShellPipelineRoute
+  '/review': typeof ShellReviewRoute
+  '/settings': typeof ShellSettingsRoute
+  '/vault': typeof ShellVaultRoute
+  '/print/$id': typeof PrintIdRoute
+  '/professors/$key': typeof ShellProfessorsKeyRoute
+  '/t/$threadId': typeof ShellTThreadIdRoute
+  '/professors/': typeof ShellProfessorsIndexRoute
+  '/vault/writing/$id': typeof ShellVaultWritingIdRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/setup': typeof SetupRoute
+  '/funding': typeof ShellFundingRoute
+  '/loops': typeof ShellLoopsRoute
+  '/pipeline': typeof ShellPipelineRoute
+  '/review': typeof ShellReviewRoute
+  '/settings': typeof ShellSettingsRoute
+  '/vault': typeof ShellVaultRoute
+  '/print/$id': typeof PrintIdRoute
+  '/': typeof ShellIndexRoute
+  '/professors/$key': typeof ShellProfessorsKeyRoute
+  '/t/$threadId': typeof ShellTThreadIdRoute
+  '/professors': typeof ShellProfessorsIndexRoute
+  '/vault/writing/$id': typeof ShellVaultWritingIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/_shell': typeof ShellRouteWithChildren
+  '/setup': typeof SetupRoute
+  '/_shell/funding': typeof ShellFundingRoute
+  '/_shell/loops': typeof ShellLoopsRoute
+  '/_shell/pipeline': typeof ShellPipelineRoute
+  '/_shell/review': typeof ShellReviewRoute
+  '/_shell/settings': typeof ShellSettingsRoute
+  '/_shell/vault': typeof ShellVaultRoute
+  '/print/$id': typeof PrintIdRoute
+  '/_shell/': typeof ShellIndexRoute
+  '/_shell/professors/$key': typeof ShellProfessorsKeyRoute
+  '/_shell/t/$threadId': typeof ShellTThreadIdRoute
+  '/_shell/professors/': typeof ShellProfessorsIndexRoute
+  '/_shell/vault_/writing/$id': typeof ShellVaultWritingIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/setup'
+    | '/funding'
+    | '/loops'
+    | '/pipeline'
+    | '/review'
+    | '/settings'
+    | '/vault'
+    | '/print/$id'
+    | '/professors/$key'
+    | '/t/$threadId'
+    | '/professors/'
+    | '/vault/writing/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/setup'
+    | '/funding'
+    | '/loops'
+    | '/pipeline'
+    | '/review'
+    | '/settings'
+    | '/vault'
+    | '/print/$id'
+    | '/'
+    | '/professors/$key'
+    | '/t/$threadId'
+    | '/professors'
+    | '/vault/writing/$id'
+  id:
+    | '__root__'
+    | '/_shell'
+    | '/setup'
+    | '/_shell/funding'
+    | '/_shell/loops'
+    | '/_shell/pipeline'
+    | '/_shell/review'
+    | '/_shell/settings'
+    | '/_shell/vault'
+    | '/print/$id'
+    | '/_shell/'
+    | '/_shell/professors/$key'
+    | '/_shell/t/$threadId'
+    | '/_shell/professors/'
+    | '/_shell/vault_/writing/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  ShellRoute: typeof ShellRouteWithChildren
+  SetupRoute: typeof SetupRoute
+  PrintIdRoute: typeof PrintIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/_shell': {
+      id: '/_shell'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof ShellRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/setup': {
+      id: '/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof SetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_shell/': {
+      id: '/_shell/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+      preLoaderRoute: typeof ShellIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/funding': {
+      id: '/_shell/funding'
+      path: '/funding'
+      fullPath: '/funding'
+      preLoaderRoute: typeof ShellFundingRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/loops': {
+      id: '/_shell/loops'
+      path: '/loops'
+      fullPath: '/loops'
+      preLoaderRoute: typeof ShellLoopsRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/pipeline': {
+      id: '/_shell/pipeline'
+      path: '/pipeline'
+      fullPath: '/pipeline'
+      preLoaderRoute: typeof ShellPipelineRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/review': {
+      id: '/_shell/review'
+      path: '/review'
+      fullPath: '/review'
+      preLoaderRoute: typeof ShellReviewRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/settings': {
+      id: '/_shell/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof ShellSettingsRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/vault': {
+      id: '/_shell/vault'
+      path: '/vault'
+      fullPath: '/vault'
+      preLoaderRoute: typeof ShellVaultRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/print/$id': {
+      id: '/print/$id'
+      path: '/print/$id'
+      fullPath: '/print/$id'
+      preLoaderRoute: typeof PrintIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_shell/professors/': {
+      id: '/_shell/professors/'
+      path: '/professors'
+      fullPath: '/professors/'
+      preLoaderRoute: typeof ShellProfessorsIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/professors/$key': {
+      id: '/_shell/professors/$key'
+      path: '/professors/$key'
+      fullPath: '/professors/$key'
+      preLoaderRoute: typeof ShellProfessorsKeyRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/t/$threadId': {
+      id: '/_shell/t/$threadId'
+      path: '/t/$threadId'
+      fullPath: '/t/$threadId'
+      preLoaderRoute: typeof ShellTThreadIdRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/vault_/writing/$id': {
+      id: '/_shell/vault_/writing/$id'
+      path: '/vault/writing/$id'
+      fullPath: '/vault/writing/$id'
+      preLoaderRoute: typeof ShellVaultWritingIdRouteImport
+      parentRoute: typeof ShellRoute
     }
   }
 }
 
+interface ShellRouteChildren {
+  ShellFundingRoute: typeof ShellFundingRoute
+  ShellLoopsRoute: typeof ShellLoopsRoute
+  ShellPipelineRoute: typeof ShellPipelineRoute
+  ShellReviewRoute: typeof ShellReviewRoute
+  ShellSettingsRoute: typeof ShellSettingsRoute
+  ShellVaultRoute: typeof ShellVaultRoute
+  ShellIndexRoute: typeof ShellIndexRoute
+  ShellProfessorsKeyRoute: typeof ShellProfessorsKeyRoute
+  ShellTThreadIdRoute: typeof ShellTThreadIdRoute
+  ShellProfessorsIndexRoute: typeof ShellProfessorsIndexRoute
+  ShellVaultWritingIdRoute: typeof ShellVaultWritingIdRoute
+}
+
+const ShellRouteChildren: ShellRouteChildren = {
+  ShellFundingRoute: ShellFundingRoute,
+  ShellLoopsRoute: ShellLoopsRoute,
+  ShellPipelineRoute: ShellPipelineRoute,
+  ShellReviewRoute: ShellReviewRoute,
+  ShellSettingsRoute: ShellSettingsRoute,
+  ShellVaultRoute: ShellVaultRoute,
+  ShellIndexRoute: ShellIndexRoute,
+  ShellProfessorsKeyRoute: ShellProfessorsKeyRoute,
+  ShellTThreadIdRoute: ShellTThreadIdRoute,
+  ShellProfessorsIndexRoute: ShellProfessorsIndexRoute,
+  ShellVaultWritingIdRoute: ShellVaultWritingIdRoute,
+}
+
+const ShellRouteWithChildren = ShellRoute._addFileChildren(ShellRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  ShellRoute: ShellRouteWithChildren,
+  SetupRoute: SetupRoute,
+  PrintIdRoute: PrintIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

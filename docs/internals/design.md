@@ -43,9 +43,9 @@ every frame on high-refresh displays. `gradcode/no-forever-animation` and
 
 ## The inbox sidebar
 
-Threads that need Siam come first (Approval, Input, Done and unread). Working rows recede to
+Threads that need you come first (Approval, Input, Done and unread). Working rows recede to
 62% opacity. Settle and Snooze appear on hover; their shelves start collapsed, and the open
-thread never vanishes behind one. A thread settles itself once nothing waits on Siam: every
+thread never vanishes behind one. A thread settles itself once nothing waits on you: every
 proposal reviewed and no approval pending. Untouched threads auto-settle after 3 days.
 
 ## Copy

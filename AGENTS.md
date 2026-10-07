@@ -1,10 +1,12 @@
 # gradcode
 
-gradcode is a T3 Code-shaped app for Siam's PhD hunt. A Node WebSocket server runs Claude Code
-sessions (Claude Agent SDK) that use treg and free grant APIs to find professors who can fund a
-student and the money behind them. A React client shows threads, records and reviews. It sits on
-top of `~/Personal/gradhunt`, whose `scout.py` owns the data. The v1 definition of done is in
-[README.md](README.md); the approved design is [docs/mocks/phase1.html](docs/mocks/phase1.html).
+gradcode is a T3 Code-shaped app for anyone hunting a funded degree. A Node WebSocket server runs
+Claude Code sessions (Claude Agent SDK, on the user's own subscription) that use free grant APIs,
+the web and optional paid treg lookups to find professors who can fund a student and the money
+behind them. A React client shows threads, Results, Review, Funding and Loops. Everything lives in
+one local SQLite file. Siam's install also reads hq (profile facts) and `~/Personal/gradhunt`
+(records, written back through `scout.py`). The v1 definition of done is in [README.md](README.md);
+the approved design is [docs/mocks/phase1.html](docs/mocks/phase1.html).
 
 Channel "measure twice, cut once" and "yagni". Simple systems, no machinery for its own sake.
 
@@ -13,30 +15,41 @@ Channel "measure twice, cut once" and "yagni". Simple systems, no machinery for 
 - **hunt**: one admissions target (Fall 2027, funded PhD). Threads belong to a hunt.
 - **thread**: a durable Claude Code session about a school, a professor or a search. **turn**: one
   user-to-agent cycle.
-- **record**: a professor, program or grant row in gradhunt. **proposal**: a change to a record
-  the agent made through a `propose_*` tool, waiting in Review.
-- **settle**: mark a thread as needing nothing. **snooze**: hide it until a time.
+- **record**: a professor row in the store. **proposal**: a change the agent made through
+  `propose_professor`, waiting in Review. **row action**: an agent turn run on selected Results rows.
+- **settle**: mark a thread as needing nothing. **snooze**: hide it until a time. **loop**: a
+  scheduled hunt; each run is a thread.
+- **detail**: Brief, Standard or Deep: which fields the agent fills and the grid shows.
+- **provider**: the agent backend: `claude` (Agent SDK) or `fake` (scripted, for tests).
 - **Scout**: gradhunt's nightly agent loop. **hq**: `~/Personal/hq`, the only source of facts about
   Siam. **treg**: the paid data API catalog (search, people, email checks).
 
 ## The ways to hurt yourself
 
-1. **Writing gradhunt data.** `scout.py` is the only writer of `professors.json`, `excluded.json`
-   and `drafts/`. Shell out to `scout.py add|set|exclude`. Tests and `/verify` point
-   `GRADHUNT_DIR` at a copy, never at `~/Personal/gradhunt`. Lint: `gradcode/single-writer`.
-2. **Spending money in tests.** treg calls cost real money and email lookups hit real people.
-   Specs run with a $0 cap. Never call a paid endpoint to "see if it works".
-3. **Claiming facts about Siam.** Facts live once, in hq (`~/Personal/hq/CLAUDE.md`). Read them;
+1. **Touching real data.** The store is `~/.gradcode/gradcode.sqlite`; gradhunt's files belong to
+   `scout.py` alone (lint: `gradcode/single-writer`). Tests, e2e and `/verify` run with
+   `GRADCODE_HOME` set to a temp dir, `GRADCODE_AGENT=fake`, and gradhunt sync off.
+2. **Spending money or quota in tests.** treg calls cost money and email lookups hit real people;
+   real agent turns spend the user's subscription. The fake provider covers every flow for free.
+   Only a task that changes the Claude provider itself earns one short live turn.
+3. **Sending real email.** A connected mailbox sends to real professors. Tests and e2e use the
+   fake mailer (`GRADCODE_AGENT=fake`); to exercise IMAP and SMTP, run a local GreenMail
+   container, never a real inbox.
+4. **Claiming facts about Siam.** Facts live once, in hq (`~/Personal/hq/CLAUDE.md`). Read them;
    never copy them into this repo or invent one. A missing fact becomes a question.
-4. **Killing by pattern.** This Mac runs T3 Code, Scout and other agents. Never `pkill -f` or kill a
+5. **Killing by pattern.** This Mac runs T3 Code, Scout and other agents. Never `pkill -f` or kill a
    PID found by name. Stop what you started: `scripts/dev-local.sh down`.
-5. **Baking in origins.** Dev is single-origin: Vite proxies `/api` and `/ws`. Never put a server
+6. **Baking in origins.** Dev is single-origin: Vite proxies `/api` and `/ws`. Never put a server
    URL in the web bundle; it breaks every non-localhost client.
 
 ## Where code lives
 
 ```
-apps/server               Node WebSocket + HTTP server. Thin transport; logic in small tested functions.
+apps/server               Node WebSocket + HTTP server. rpc.ts maps contract methods to services:
+                          db/state/threads/records/loops (SQLite), sources (NSF, NIH, OpenAlex, treg),
+                          adapters (gradhunt, hq, CSV), agent/ (runner, claude, fake, tools, prompt),
+                          outreach/ (mail, store, service, plan: drafts, send queue, reply sync),
+                          vault (documents, scholarships, programs, applications, To file)
 apps/web                  React 19 + Vite+. src/routes (TanStack file routes), src/state (Zustand),
                           src/components/ui (T3 Code's Base UI kit, vendored), src/lib
 packages/contracts        zod schemas for everything on the wire. Decode untrusted input with .parse.
@@ -49,7 +62,8 @@ docs/internals            decisions and constraints the code can't carry
 ## Commands
 
 `pnpm install` · `scripts/dev-local.sh up|down|status|logs|share` · `pnpm lint` · `pnpm fmt` ·
-`pnpm typecheck` · `pnpm test` · `pnpm e2e` (stack must be up) · `pnpm build`.
+`pnpm typecheck` · `pnpm test` · `pnpm build`. e2e needs a fresh fake stack:
+`rm -rf /tmp/gc-e2e && GRADCODE_HOME=/tmp/gc-e2e GRADCODE_AGENT=fake scripts/dev-local.sh up`, then `pnpm e2e`.
 `vp` is Vite+: `pnpm exec vp test run <file>` for one test file.
 
 ## Taste

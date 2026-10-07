@@ -37,6 +37,9 @@ export type Upcoming = { id: string; text: string; urgent: boolean; days: number
  * The right panel's "Coming up": documents running out within a year, and deadlines within 45
  * days for applications with work left and scholarships the applicant is applying to.
  */
+// ponytail: most programs ask for three letters; store a per-program count if one asks otherwise.
+const LETTERS = 3;
+
 export function comingUp(
   v: VaultState,
   now = new Date(),
@@ -75,6 +78,20 @@ export function comingUp(
           urgent: true,
           text: `${t.name} on ${t.date} lands after ${p.university}'s deadline, ${p.deadline}`,
         });
+  }
+  // Letters take weeks: six weeks out, ask your recommenders. Most programs want three.
+  for (const a of v.applications) {
+    const p = v.programs.find((x) => x.id === a.programId);
+    if (!p?.deadline || !["planning", "in-progress"].includes(a.status)) continue;
+    const days = daysLeft(p.deadline, now);
+    const asked = a.recommenders.filter((r) => r.status !== "to-ask").length;
+    if (days >= 0 && days <= 42 && asked < LETTERS)
+      out.push({
+        id: `letters-${a.id}`,
+        days,
+        urgent: days <= 21,
+        text: `${p.university}: ask your recommenders now, ${asked} of ${LETTERS} asked, letters due ${due(p.deadline, now)}`,
+      });
   }
   for (const a of v.applications) {
     const p = v.programs.find((x) => x.id === a.programId);

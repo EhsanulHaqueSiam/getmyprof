@@ -6,7 +6,7 @@ import { createBus } from "../bus.ts";
 import { openDb } from "../db.ts";
 import { blankProfessor, getRecord, putRecord } from "../records.ts";
 import { saveFacts } from "../state.ts";
-import { fakeMailer } from "./mail.ts";
+import { fakeMailer, fakeTokenEndpoint } from "./mail.ts";
 import { createOutreach } from "./service.ts";
 import { conversations, listMessages, saveDraft } from "./store.ts";
 
@@ -101,6 +101,43 @@ describe("outreach on a mailbox", () => {
     await outreach.tick(later);
     expect(asked.filter((t) => t.startsWith("[follow-up]"))).toHaveLength(1);
     expect(asked[0]).toContain("follow-up-1");
+  });
+});
+
+describe("signing in to a mailbox", () => {
+  it("connects a Gmail box by OAuth and returns only to the app's own pages", async () => {
+    process.env.GRADCODE_HOME = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "gc-signin-"));
+    const outreach = createOutreach({
+      db: openDb(":memory:"),
+      bus: createBus(),
+      runner: { send: () => {} },
+      mailerFor: () => fakeMailer(),
+      signIn: { port: 4311, tokenFetch: fakeTokenEndpoint, scripted: true },
+    });
+    const start = (returnTo: string) =>
+      new URL(
+        outreach.startSignIn({
+          provider: "google",
+          clientId: "cid",
+          clientSecret: "secret",
+          name: "Ada",
+          returnTo,
+        }).url,
+      );
+    const ok = start("http://127.0.0.1:5174/settings");
+    expect(ok.origin + ok.pathname).toBe("http://127.0.0.1:4311/api/oauth/callback");
+    expect(
+      await outreach.finishSignIn(ok.searchParams.get("state")!, ok.searchParams.get("code")!),
+    ).toBe("http://127.0.0.1:5174/settings");
+    expect(outreach.status()).toMatchObject({
+      connected: true,
+      via: "google",
+      address: "applicant@example.com",
+      imapHost: "imap.gmail.com",
+      smtpHost: "smtp.gmail.com",
+    });
+    const away = start("https://evil.example/phish");
+    expect(await outreach.finishSignIn(away.searchParams.get("state")!, "scripted")).toBe("");
   });
 });
 

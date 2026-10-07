@@ -2,7 +2,7 @@
 // turns that read replies and draft follow-ups. bin.ts ticks it; rpc.ts calls it.
 import {
   type Application,
-  MailConnect,
+  type MailSignIn,
   MailStatus,
   OutreachMessage,
   Program,
@@ -18,11 +18,13 @@ import { createThread, getThread } from "../threads.ts";
 import {
   Cursor,
   type MailConfig,
+  type MailLogin,
   type Mailer,
   readMailConfig,
   removeMailConfig,
   saveMailConfig,
 } from "./mail.ts";
+import { finishSignIn, OAUTH_PROVIDERS, redirectUri, startSignIn } from "./oauth.ts";
 import {
   approve,
   dueToSend,
@@ -42,6 +44,20 @@ const SyncState = z.object({
 });
 const NEVER_SYNCED = { cursor: null, at: null, error: "" };
 
+/**
+ * Where the browser may come back to after a sign-in: this app's own pages only (loopback or the
+ * tailnet), so the callback can't be used to bounce someone to another site.
+ */
+function safeReturn(returnTo: string) {
+  try {
+    const u = new URL(returnTo);
+    const ours = ["127.0.0.1", "localhost"].includes(u.hostname) || u.hostname.endsWith(".ts.net");
+    return ours && (u.protocol === "http:" || u.protocol === "https:") ? u.toString() : "";
+  } catch {
+    return "";
+  }
+}
+
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e)).slice(0, 300);
 
 export const FOLLOW_UP_TAG = "[follow-up]";
@@ -53,7 +69,9 @@ export function createOutreach(deps: {
   db: Db;
   bus: Bus;
   runner: Pick<Runner, "send">;
-  mailerFor: (c: MailConnect) => Mailer;
+  mailerFor: (c: MailLogin) => Mailer;
+  /** Mailbox sign-in: this server's port for the OAuth callback, and the token endpoint to use. */
+  signIn?: { port: number; tokenFetch: typeof fetch; scripted: boolean };
 }) {
   const { db, bus, runner, mailerFor } = deps;
   let config: MailConfig | null = readMailConfig();
@@ -73,6 +91,7 @@ export function createOutreach(deps: {
     const s = syncState();
     return {
       connected: config !== null,
+      via: config?.oauth?.provider ?? "password",
       address: config?.address ?? "",
       name: config?.name ?? "",
       imapHost: config?.imapHost ?? "",
@@ -81,6 +100,19 @@ export function createOutreach(deps: {
       lastSyncAt: s.at,
       error: s.error,
     };
+  }
+
+  /** Verifies a login against both servers, then saves it. Warm-up keeps counting for the same box. */
+  async function connect(input: MailLogin) {
+    const mailer = mailerFor(input);
+    await mailer.verify();
+    const { cursor } = await mailer.fetchNew(null);
+    const sameBox = config?.address === input.address;
+    config = { ...input, warmupStart: sameBox && config ? config.warmupStart : now() };
+    saveMailConfig(config);
+    setKv(db, "mail.sync", { cursor, at: now(), error: "" });
+    bus.push({ type: "changed", what: "state" });
+    return status();
   }
 
   async function deliver(m: OutreachMessage, c: MailConfig) {
@@ -162,16 +194,32 @@ export function createOutreach(deps: {
   return {
     status,
 
-    async connect(input: MailConnect) {
-      const mailer = mailerFor(input);
-      await mailer.verify();
-      const { cursor } = await mailer.fetchNew(null);
-      const sameBox = config?.address === input.address;
-      config = { ...input, warmupStart: sameBox && config ? config.warmupStart : now() };
-      saveMailConfig(config);
-      setKv(db, "mail.sync", { cursor, at: now(), error: "" });
-      bus.push({ type: "changed", what: "state" });
-      return status();
+    connect,
+
+    /** The provider's consent page. The scripted stack skips it and calls its own callback. */
+    startSignIn(input: MailSignIn) {
+      const port = deps.signIn?.port ?? 4311;
+      const url = startSignIn({ ...input, returnTo: safeReturn(input.returnTo) }, port);
+      if (!deps.signIn?.scripted) return { url };
+      const state = new URL(url).searchParams.get("state") ?? "";
+      return { url: `${redirectUri(input.provider, port)}?state=${state}&code=scripted` };
+    },
+
+    /** The callback: trades the code, connects the mailbox, and says where the browser goes. */
+    async finishSignIn(state: string, code: string) {
+      const done = await finishSignIn(state, code, deps.signIn?.tokenFetch ?? fetch);
+      const p = OAUTH_PROVIDERS[done.oauth.provider];
+      await connect({
+        name: done.name,
+        address: done.address,
+        password: "",
+        imapHost: p.imap.host,
+        imapPort: p.imap.port,
+        smtpHost: p.smtp.host,
+        smtpPort: p.smtp.port,
+        oauth: done.oauth,
+      });
+      return done.returnTo;
     },
 
     disconnect() {

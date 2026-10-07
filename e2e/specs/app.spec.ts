@@ -389,3 +389,19 @@ test("your data: a backup holds everything and restores", async ({ request }) =>
   expect((await restore.json()).records).toBe(backup.tables.records.length);
   expect((await request.post("/api/backup", { data: { tables: {} } })).status()).toBe(400);
 });
+
+test("mailbox: sign in with Google through your own OAuth client", async ({ page }) => {
+  // The scripted stack skips Google's page and calls its own callback, which sends the browser
+  // back to Settings with the mailbox connected.
+  await page.goto("/settings");
+  await page.getByTestId("mail-connected").getByRole("button", { name: "Disconnect" }).click();
+  await page.getByRole("button", { name: "Sign in with Google" }).click();
+  const form = page.getByTestId("mail-signin");
+  await form.getByLabel("Your name").fill("Test Applicant");
+  await form.getByLabel("Client ID").fill("cid.apps.googleusercontent.com");
+  await form.getByLabel("Client secret").fill("client-secret");
+  await form.getByRole("button", { name: "Sign in with Google" }).click();
+  await expect(page).toHaveURL(/\/settings$/);
+  await expect(page.getByTestId("mail-connected")).toContainText("applicant@example.com");
+  await expect(page.getByTestId("mail-connected")).toContainText("signed in with Google");
+});

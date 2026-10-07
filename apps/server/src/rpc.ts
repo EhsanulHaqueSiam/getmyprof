@@ -306,6 +306,7 @@ export function createHandlers(svc: Services): Handlers {
     "loops.run": ({ id }) => svc.startLoop(id),
 
     "mail.connect": (input) => outreach.connect(input),
+    "mail.signIn": (input) => outreach.startSignIn(input),
     "mail.disconnect": () => outreach.disconnect(),
     "mail.sync": () => outreach.sync(),
 

@@ -113,8 +113,17 @@ real store, approval and settle paths without spending anything. Pick with `GRAD
 
 Messages to and from professors live in the `messages` table; stage and whose turn it is are
 derived from them on every read (`outreach/store.ts`), never stored. The user connects their own
-mailbox with an app password; the login sits in `GRADCODE_HOME/mail.json`, mode 0600, and never
-crosses the wire.
+mailbox with an app password, or signs in with Google (Gmail) or Microsoft (Outlook.com, which
+dropped app passwords). The login, password or refresh token, sits in `GRADCODE_HOME/mail.json`,
+mode 0600, and never crosses the wire.
+
+- **Each install brings its own OAuth client.** Gmail's mail scope is restricted: a client shared
+  by everyone needs Google's review and a yearly security assessment. A Desktop client the user
+  makes in Google Cloud (or a public app in Azure) needs neither. Its consent screen must be
+  published, or Google expires the sign-in every 7 days. The callback is
+  `http://127.0.0.1:<port>/api/oauth/callback` (Microsoft: `localhost`), on this server, with
+  PKCE; it connects the mailbox and sends the browser back to Settings, only ever to the app's
+  own pages. IMAP and SMTP log in with a fresh access token (XOAUTH2).
 
 - **Nothing sends without approval.** The agent only drafts (`draft_email`). Approving gives each
   first email or follow-up a slot: 08:00 in the professor's zone, Tuesday to Thursday, within

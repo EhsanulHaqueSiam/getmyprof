@@ -1,5 +1,6 @@
 // The mailbox: the login saved 0600 under GRADCODE_HOME, a real mailer over IMAP and SMTP with
-// an app password, and a scripted one for tests and e2e. Only outreach/service.ts uses a Mailer.
+// an app password or an OAuth sign-in, and a scripted one for tests and e2e. Only
+// outreach/service.ts uses a Mailer.
 import { MailConnect } from "@gradcode/contracts";
 import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
@@ -8,8 +9,13 @@ import * as NodePath from "node:path";
 import nodemailer from "nodemailer";
 import { z } from "zod";
 import { homeDir } from "../db.ts";
+import { accessToken, OAuthLogin } from "./oauth.ts";
 
-export const MailConfig = MailConnect.extend({ warmupStart: z.string() });
+/** A mailbox login: an app password, or an OAuth sign-in (then the password is empty). */
+export const MailLogin = MailConnect.extend({ password: z.string(), oauth: OAuthLogin.optional() });
+export type MailLogin = z.infer<typeof MailLogin>;
+
+export const MailConfig = MailLogin.extend({ warmupStart: z.string() });
 export type MailConfig = z.infer<typeof MailConfig>;
 
 const configPath = () => NodePath.join(homeDir(), "mail.json");
@@ -61,36 +67,43 @@ export type Mailer = {
   fetchNew(cursor: Cursor | null): Promise<{ cursor: Cursor; messages: Incoming[] }>;
 };
 
-const smtp = (c: MailConnect) =>
+// A signed-in mailbox logs in with a fresh access token (XOAUTH2); the rest with the app password.
+const smtp = async (c: MailLogin) =>
   nodemailer.createTransport({
     host: c.smtpHost,
     port: c.smtpPort,
     // 465 is TLS from the start; 587 upgrades with STARTTLS.
     secure: c.smtpPort === 465,
-    auth: { user: c.address, pass: c.password },
+    auth: c.oauth
+      ? { type: "OAuth2", user: c.address, accessToken: await accessToken(c.oauth) }
+      : { user: c.address, pass: c.password },
   });
 
-const imap = (c: MailConnect) =>
+const imap = async (c: MailLogin) =>
   new ImapFlow({
     host: c.imapHost,
     port: c.imapPort,
     secure: c.imapPort === 993,
-    auth: { user: c.address, pass: c.password },
+    auth: c.oauth
+      ? { user: c.address, accessToken: await accessToken(c.oauth) }
+      : { user: c.address, pass: c.password },
     logger: false,
   });
 
 const ids = (v: string | string[] | undefined) => (Array.isArray(v) ? v : v ? v.split(/\s+/) : []);
 
-export function imapMailer(c: MailConnect): Mailer {
+export function imapMailer(c: MailLogin): Mailer {
   return {
     async verify() {
-      await smtp(c).verify();
-      const client = imap(c);
+      await (await smtp(c)).verify();
+      const client = await imap(c);
       await client.connect();
       await client.logout();
     },
     async send(m) {
-      const info = await smtp(c).sendMail({
+      const info = await (
+        await smtp(c)
+      ).sendMail({
         from: m.from,
         to: m.to,
         subject: m.subject,
@@ -100,7 +113,7 @@ export function imapMailer(c: MailConnect): Mailer {
       return { messageId: info.messageId };
     },
     async fetchNew(cursor) {
-      const client = imap(c);
+      const client = await imap(c);
       await client.connect();
       const lock = await client.getMailboxLock("INBOX");
       try {
@@ -203,3 +216,11 @@ export function fakeMailer() {
   };
   return mailer;
 }
+
+/** The scripted stack's token endpoint: a sign-in that never reaches Google or Microsoft. */
+export const fakeTokenEndpoint: typeof fetch = async () =>
+  Response.json({
+    access_token: "fake-access",
+    refresh_token: "fake-refresh",
+    id_token: `x.${Buffer.from(JSON.stringify({ email: "applicant@example.com" })).toString("base64url")}.y`,
+  });

@@ -13,7 +13,7 @@ import { createBus } from "./bus.ts";
 import { openDb } from "./db.ts";
 import { health } from "./health.ts";
 import { dueLoops, fillPlaceholders, hookLoop, listLoops, markRan } from "./loops.ts";
-import { fakeMailer, imapMailer } from "./outreach/mail.ts";
+import { fakeMailer, fakeTokenEndpoint, imapMailer } from "./outreach/mail.ts";
 import { createOutreach } from "./outreach/service.ts";
 import { exportAll, importAll } from "./backup.ts";
 import { serveMcp } from "./mcp.ts";
@@ -46,7 +46,12 @@ const outreach = createOutreach({
   bus,
   runner,
   mailerFor: fake ? () => sandboxMail : imapMailer,
+  signIn: { port: PORT, tokenFetch: fake ? fakeTokenEndpoint : fetch, scripted: fake },
 });
+
+/** A one-line page for the end of a mailbox sign-in that has nowhere to send the browser back. */
+const plainPage = (text: string) =>
+  `<!doctype html><meta charset="utf-8"><title>gradcode</title><p>${text.replace(/[&<>]/g, (c) => (c === "&" ? "&amp;" : c === "<" ? "&lt;" : "&gt;"))}</p>`;
 
 /**
  * Starts one loop run: in a fresh thread, or back in the loop's one thread. A webhook's request
@@ -122,6 +127,27 @@ setInterval(() => settleStale(db), 3_600_000);
 const server = NodeHttp.createServer((req, res) => {
   if (req.method === "GET" && req.url === "/api/health") {
     res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify(health()));
+    return;
+  }
+  // The mailbox provider sends the browser back here after the applicant signs in.
+  if (req.method === "GET" && req.url?.startsWith("/api/oauth/callback?")) {
+    const q = new URL(req.url, "http://127.0.0.1").searchParams;
+    const page = (status: number, text: string) =>
+      res.writeHead(status, { "content-type": "text/html; charset=utf-8" }).end(plainPage(text));
+    if (q.get("error")) {
+      page(400, `Sign-in didn't finish: ${q.get("error")}. Start it again from Settings.`);
+      return;
+    }
+    void outreach
+      .finishSignIn(q.get("state") ?? "", q.get("code") ?? "")
+      .then((returnTo) =>
+        returnTo
+          ? res.writeHead(302, { location: returnTo }).end()
+          : page(200, "Your mailbox is connected. Close this tab and go back to gradcode."),
+      )
+      .catch((error: unknown) =>
+        page(400, `Sign-in failed: ${error instanceof Error ? error.message : String(error)}`),
+      );
     return;
   }
   // A webhook loop's trigger: POST JSON to /api/hooks/<token>; the body fills its placeholders.

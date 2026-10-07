@@ -6,7 +6,7 @@ describe("grant databases", () => {
     expect(sourcesFor(["UK", "Germany"])).toEqual(["UKRI", "CORDIS"]);
     expect(sourcesFor(["USA", "Australia"])).toEqual(["NSF", "NIH", "ARC"]);
     expect(sourcesFor([])).toEqual(["NSF", "NIH"]);
-    expect(sourcesFor(["Canada"])).toEqual(["NSF", "NIH"]);
+    expect(sourcesFor(["Canada"])).toEqual([]);
   });
 
   it("match a school however each database spells it", () => {

@@ -3,7 +3,7 @@ import * as NodeFS from "node:fs";
 import * as NodeHttp from "node:http";
 import { WebSocketServer } from "ws";
 import { z } from "zod";
-import { importGradhunt } from "./adapters.ts";
+import { importGradhunt, profileFacts } from "./adapters.ts";
 import { claudeProvider } from "./agent/claude.ts";
 import { fakeProvider } from "./agent/fake.ts";
 import { fixtureSources } from "./agent/fixtures.ts";
@@ -20,8 +20,9 @@ import { serveMcp } from "./mcp.ts";
 import { refreshVault } from "./okf.ts";
 import { createHandlers, dispatch } from "./rpc.ts";
 import { getSettings } from "./state.ts";
+import { dueReminders, markReminded } from "./reminders.ts";
 import { createThread, expireApprovals, getThread, settleStale } from "./threads.ts";
-import { documentPath, listDocuments } from "./vault.ts";
+import { documentPath, listDocuments, writingBrief } from "./vault.ts";
 
 const PORT = Number(process.env.SERVER_PORT ?? 4311);
 const fake = process.env.GRADCODE_AGENT === "fake";
@@ -136,7 +137,28 @@ const handlers = createHandlers({ db, bus, runner, sources, fake, startLoop, out
 setInterval(() => {
   for (const loop of dueLoops(db)) startLoop(loop.id);
   void outreach.tick();
+  remindRecommenders();
 }, 60_000);
+
+/** Recommenders still owing a letter get a drafted reminder 14 and 3 days before the deadline. */
+function remindRecommenders() {
+  const due = dueReminders(db);
+  for (const r of due) {
+    const brief = writingBrief(db, profileFacts(db), {
+      kind: "note",
+      programId: r.programId,
+      scholarshipId: null,
+      basedOn: null,
+      about: r.about,
+    });
+    runner.send(createThread(db, brief.threadTitle).id, brief.text, "send", brief.threadTitle);
+  }
+  if (due.length)
+    markReminded(
+      db,
+      due.map((r) => r.key),
+    );
+}
 setInterval(() => void outreach.sync(), 180_000);
 setInterval(() => settleStale(db), 3_600_000);
 

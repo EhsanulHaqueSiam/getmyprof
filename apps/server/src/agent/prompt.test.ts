@@ -39,6 +39,33 @@ describe("systemPrompt", () => {
   });
 });
 
+describe("the hunt's shape", () => {
+  it("changes with the track, and asks for the sweep's reach, match and safety mix", () => {
+    const prefs = {
+      degrees: ["funded_ms" as const],
+      intake: "Fall 2027",
+      fallbackIntake: "",
+      places: ["Germany"],
+      fields: ["NLP"],
+      adjacent: [],
+      fundingFloor: "full" as const,
+      preferTestWaivers: false,
+      sweep: { reach: 2, match: 3, safety: 4 },
+      priorities: ["money" as const],
+      followUpDays: [7, 14] as [number, number],
+    };
+    const prompt = systemPrompt(
+      { id: "h", name: "h", prefs },
+      [],
+      DEFAULT_SETTINGS,
+      DEFAULT_APPLICANT,
+    );
+    expect(prompt).toContain("scholarships and program funding matter more than advisors");
+    expect(prompt).toContain("about 2 reach, 3 match and 4 safety schools");
+    expect(prompt).toContain("EURAXESS");
+  });
+});
+
 describe("money tier", () => {
   it("is stored as a number when a proposal sets it", () => {
     openDb(":memory:");

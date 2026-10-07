@@ -219,7 +219,9 @@ export function sourcesFor(places: string[]): Award["source"][] {
   )
     picked.add("CORDIS");
   if (/\baustralia\b/.test(where)) picked.add("ARC");
-  return picked.size ? [...picked] : ["NSF", "NIH"];
+  // Places none of these cover (Canada, India...) get none: the agent searches the web for their
+  // funders (NSERC, DFG) instead of quietly reading US awards.
+  return picked.size || where.trim() ? [...picked] : ["NSF", "NIH"];
 }
 
 export async function nsfAwards(q: AwardQuery): Promise<RawAward[]> {

@@ -310,22 +310,24 @@ export function VaultOffers() {
                 {offers.map((o, i) => (
                   <Cell key={o.id}>
                     <span className="flex items-center gap-1">
-                      <Button
-                        size="xs"
-                        variant="outline"
-                        onClick={async () => {
-                          const t = await call("writing.start", {
-                            kind: "letter",
-                            programId: null,
-                            scholarshipId: null,
-                            basedOn: null,
-                            offerId: o.id,
-                          });
-                          void navigate({ to: "/t/$threadId", params: { threadId: t.id } });
-                        }}
-                      >
-                        Negotiate
-                      </Button>
+                      {o.status === "accepted" || o.status === "declined" ? null : (
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          onClick={async () => {
+                            const t = await call("writing.start", {
+                              kind: "letter",
+                              programId: null,
+                              scholarshipId: null,
+                              basedOn: null,
+                              offerId: o.id,
+                            });
+                            void navigate({ to: "/t/$threadId", params: { threadId: t.id } });
+                          }}
+                        >
+                          Negotiate
+                        </Button>
+                      )}
                       <Button
                         size="icon-micro"
                         variant="ghost-muted"

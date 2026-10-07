@@ -29,7 +29,8 @@ export default defineConfig({
     strictPort: true,
     allowedHosts: [".ts.net"],
     proxy: {
-      "/api": `http://${SERVER}`,
+      // Object form keeps the browser's Host, so the server can match it against Origin.
+      "/api": { target: `http://${SERVER}` },
       "/ws": { target: `ws://${SERVER}`, ws: true },
     },
   },

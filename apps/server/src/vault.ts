@@ -295,7 +295,11 @@ export function writingBrief(
   const title = [
     TITLE[input.kind],
     input.kind === "prep" || input.kind === "note" || input.kind === "visa"
-      ? input.about
+      ? // A title is for scanning: no email addresses, no long tails.
+        input.about
+          ?.replace(/\s*\([^)]*@[^)]*\)/g, "")
+          .split(":")[0]
+          ?.slice(0, 60)
       : input.kind === "letter"
         ? offer?.university
         : null,

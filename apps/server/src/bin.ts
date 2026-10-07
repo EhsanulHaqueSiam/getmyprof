@@ -70,6 +70,22 @@ function startLoop(id: string, body: unknown = null) {
   return getThread(db, threadId)!;
 }
 
+/**
+ * Whether a request may act on this app. A browser always sends Origin; it must be the app's own
+ * page (the host it was reached on, or the tailnet), so another site the user visits can't drive
+ * the socket or restore a backup. Tools without a browser send no Origin.
+ */
+function sameSite(req: NodeHttp.IncomingMessage) {
+  const origin = req.headers.origin;
+  if (!origin) return true;
+  try {
+    const o = new URL(origin);
+    return o.host === req.headers.host || o.hostname.endsWith(".ts.net");
+  } catch {
+    return false;
+  }
+}
+
 /** A request body up to `limit` bytes, parsed as JSON when it is JSON, else the raw text. */
 function readBody(req: NodeHttp.IncomingMessage, limit = 1_000_000) {
   return new Promise<unknown>((resolve) => {
@@ -124,6 +140,10 @@ const server = NodeHttp.createServer((req, res) => {
     return;
   }
   // A full backup: GET downloads everything, POST restores one (up to 300 MB).
+  if (req.url === "/api/backup" && !sameSite(req)) {
+    res.writeHead(403).end();
+    return;
+  }
   if (req.url === "/api/backup") {
     if (req.method === "GET") {
       res
@@ -178,38 +198,41 @@ const server = NodeHttp.createServer((req, res) => {
   res.writeHead(404).end();
 });
 
-new WebSocketServer({ server, path: "/ws", maxPayload: 32 * 1024 * 1024 }).on(
-  "connection",
-  (ws) => {
-    const send = (message: ServerMessage) => ws.send(JSON.stringify(message));
-    const remove = bus.add(send);
-    ws.on("close", remove);
-    ws.on("message", async (data) => {
-      let req: ClientRequest;
-      try {
-        req = ClientRequest.parse(JSON.parse(String(data)));
-      } catch {
-        return;
-      }
-      try {
-        send({
-          type: "reply",
-          id: req.id,
-          ok: true,
-          result: await dispatch(handlers, req.method, req.params),
-        });
-      } catch (error) {
-        send({
-          type: "reply",
-          id: req.id,
-          ok: false,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
-    });
-    send({ type: "hello" });
-  },
-);
+new WebSocketServer({
+  server,
+  path: "/ws",
+  maxPayload: 32 * 1024 * 1024,
+  // The socket can do anything the app can, so only the app's own pages may open it.
+  verifyClient: ({ req }: { req: NodeHttp.IncomingMessage }) => sameSite(req),
+}).on("connection", (ws) => {
+  const send = (message: ServerMessage) => ws.send(JSON.stringify(message));
+  const remove = bus.add(send);
+  ws.on("close", remove);
+  ws.on("message", async (data) => {
+    let req: ClientRequest;
+    try {
+      req = ClientRequest.parse(JSON.parse(String(data)));
+    } catch {
+      return;
+    }
+    try {
+      send({
+        type: "reply",
+        id: req.id,
+        ok: true,
+        result: await dispatch(handlers, req.method, req.params),
+      });
+    } catch (error) {
+      send({
+        type: "reply",
+        id: req.id,
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+  send({ type: "hello" });
+});
 
 server.listen(PORT, "127.0.0.1", () =>
   console.log(`gradcode server on http://127.0.0.1:${PORT}${fake ? " (fake agent)" : ""}`),

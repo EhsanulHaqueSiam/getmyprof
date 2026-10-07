@@ -84,6 +84,7 @@ function PipelinePage() {
             conversations={conversations}
             selected={selected?.record.key}
             onSelect={open}
+            connected={connected}
           />
           {selected ? <ConversationView c={selected} connected={connected} /> : <div />}
         </div>

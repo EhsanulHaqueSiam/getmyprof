@@ -172,7 +172,9 @@ export function searchThreads(db: Db, q: string, limit = 20) {
     const at = text.toLowerCase().indexOf(needle);
     const t = at >= 0 ? getThread(db, id) : null;
     if (!t) continue;
-    const snippet = text.slice(Math.max(0, at - 40), at + needle.length + 60).replace(/\s+/g, " ");
+    // Start at a word, close enough before the match that the match itself shows.
+    const from = Math.max(0, text.lastIndexOf(" ", Math.max(0, at - 24)) + 1);
+    const snippet = text.slice(from, at + needle.length + 60).replace(/\s+/g, " ");
     found.set(id, { threadId: id, title: t.title, snippet: snippet.trim() });
     if (found.size >= limit) break;
   }

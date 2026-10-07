@@ -12,6 +12,14 @@ browser (React) ⇄ /api, /ws ⇄ Vite (127.0.0.1:5174) ⇄ server (127.0.0.1:43
                                                       └ vault: documents, scholarships, programs, applications
 ```
 
+## Same site only
+
+The WebSocket and the backup restore act on everything, so the server checks `Origin`: a browser
+request must come from the host it was reached on or the tailnet (`*.ts.net`), and another site
+the user visits gets 401 or 403. Tools without a browser send no Origin and pass; the MCP endpoint
+and webhooks have their own tokens. The `/api` proxy in `apps/web/vite.config.ts` keeps the
+browser's Host so the two can be compared.
+
 ## Single origin
 
 The server binds loopback only. In dev, Vite proxies `/api` and `/ws` to it, so the browser talks

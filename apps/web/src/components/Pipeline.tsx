@@ -55,7 +55,10 @@ export function InboxList({
   conversations,
   selected,
   onSelect,
+  connected,
 }: {
+  /** Approving needs a mailbox; without one, drafts go out through the user's mail app. */
+  connected: boolean;
   conversations: Conversation[];
   selected: string | undefined;
   onSelect: (key: string) => void;
@@ -70,7 +73,7 @@ export function InboxList({
           <div key={turn} data-testid={`turn-${turn}`}>
             <div className="flex h-8 items-center gap-1.5 px-2 pt-2 text-muted-foreground text-xs">
               {TURN_LABEL[turn]} · {items.length}
-              {turn === "approve" && drafts.length > 1 ? (
+              {turn === "approve" && drafts.length > 1 && connected ? (
                 <Button
                   size="xs"
                   variant="ghost-muted"

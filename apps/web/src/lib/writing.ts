@@ -1,7 +1,15 @@
 // How the Writer reads a piece: which citations stand, which claims are blocked, the checks,
 // and the plain text that leaves the app. Blocking is computed from each fact's status now, so
 // adding proof in the Vault unblocks a claim without rewriting anything.
-import { type Applicant, factStatus, type ProfileFact, type Writing } from "@gradcode/contracts";
+import {
+  type Applicant,
+  factStatus,
+  type ProfileFact,
+  unbackedScore,
+  type Writing,
+} from "@gradcode/contracts";
+
+export { unbackedScore };
 
 /** What each kind of piece is called in the app. */
 export const WRITING_LABEL = {
@@ -67,11 +75,6 @@ export function layout(w: Writing, blocked: Set<string>) {
 }
 
 const words = (text: string) => text.split(/\s+/).filter(Boolean).length;
-const SCORE = /\b(IELTS|TOEFL|GRE|PTE|Duolingo)\b[^.\n]{0,24}?\b\d{1,3}(\.\d)?\b/i;
-
-/** A test score in the text with no taken test behind it: blocks export and sending alike. */
-export const unbackedScore = (text: string, applicant: Applicant | undefined) =>
-  SCORE.test(text) && !applicant?.tests.some((t) => t.status === "taken" && t.score.trim());
 
 /**
  * The right panel's checks. A score claim blocks export unless a taken test with a score backs

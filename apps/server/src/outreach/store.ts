@@ -8,9 +8,11 @@ import {
   type Professor,
   type ReplyClass,
   Touch,
+  unbackedScore,
 } from "@gradcode/contracts";
 import { type Db, newId, now } from "../db.ts";
 import { getRecord, listRecords, putRecord } from "../records.ts";
+import { getApplicant } from "../state.ts";
 import type { Incoming } from "./mail.ts";
 import { classifyMail, followUpDue, nextSlot, returnDate } from "./plan.ts";
 
@@ -156,13 +158,18 @@ function takenSlots(db: Db) {
     });
 }
 
-/** Approves drafts (or failed sends, to retry): each gets its send time. Returns how many. */
+/**
+ * Approves drafts (or failed sends, to retry): each gets its send time. A draft that claims a
+ * test score no taken test backs is skipped, however it was approved. Returns how many.
+ */
 export function approve(db: Db, ids: string[], at: Date, warmupStart: Date) {
   let n = 0;
+  const applicant = getApplicant(db);
   for (const id of ids) {
     const m = getMessage(db, id);
     const record = m && getRecord(db, m.recordKey);
     if (!m || !record || (m.status !== "draft" && m.status !== "failed")) continue;
+    if (unbackedScore(`${m.subject}\n${m.body}`, applicant)) continue;
     const scheduledAt = usesSlot(m)
       ? nextSlot({
           now: at,

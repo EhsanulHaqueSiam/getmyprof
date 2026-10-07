@@ -1,11 +1,12 @@
 // Outreach as a running service: the mailbox login, the send worker, reply sync, and the agent
 // turns that read replies and draft follow-ups. bin.ts ticks it; rpc.ts calls it.
-import type {
-  Application,
+import {
+  type Application,
   MailConnect,
   MailStatus,
   OutreachMessage,
   Program,
+  unbackedScore,
 } from "@gradcode/contracts";
 import { z } from "zod";
 import type { Runner } from "../agent/runner.ts";
@@ -13,6 +14,7 @@ import type { Bus } from "../bus.ts";
 import { type Db, getKv, now, setKv } from "../db.ts";
 import { getRecord, listRecords } from "../records.ts";
 import { sameSchool } from "../sources.ts";
+import { getApplicant } from "../state.ts";
 import { createThread, getThread } from "../threads.ts";
 import {
   Cursor,
@@ -256,6 +258,8 @@ export function createOutreach(deps: {
       const m = getMessage(db, id);
       if (!m || m.channel !== "email" || !["draft", "scheduled", "failed"].includes(m.status))
         throw new Error("Only a waiting email can be sent now.");
+      if (unbackedScore(`${m.subject}\n${m.body}`, getApplicant(db)))
+        throw new Error("It claims a test score no taken test backs. Edit it first.");
       putMessage(db, { ...m, status: "scheduled", scheduledAt: now() });
       await tick();
     },

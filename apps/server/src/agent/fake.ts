@@ -233,7 +233,7 @@ export const fakeProvider = (
         text: body,
       });
       say(
-        `Saved in the Writer.${unproven ? " One claim cites a fact without proof, so export waits until it has some." : ""}`,
+        `Saved in the Writer.${unproven && body.includes(unproven.id) ? " One claim cites a fact without proof, so export waits until it has some." : ""}`,
       );
     }
 

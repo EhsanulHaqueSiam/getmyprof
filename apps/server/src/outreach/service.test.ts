@@ -101,3 +101,24 @@ describe("outreach on a mailbox", () => {
     expect(asked[0]).toContain("follow-up-1");
   });
 });
+
+describe("the test-score rule", () => {
+  it("holds on the server: a draft claiming an unbacked score is never approved or sent", async () => {
+    const { db, outreach, record } = setup();
+    await outreach.connect(LOGIN);
+    const claim = saveDraft(db, {
+      recordKey: record.key,
+      channel: "email",
+      touch: "first",
+      to: record.email,
+      subject: "PhD 2027",
+      body: "I scored IELTS 7.5 last month.",
+      timeZone: "America/New_York",
+      threadId: null,
+    });
+    if ("problem" in claim) throw new Error(claim.problem);
+    await outreach.approve([claim.id]);
+    expect(listMessages(db, record.key).find((m) => m.id === claim.id)?.status).toBe("draft");
+    await expect(outreach.sendNow(claim.id)).rejects.toThrow(/test score/);
+  });
+});

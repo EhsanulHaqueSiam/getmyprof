@@ -111,6 +111,12 @@ export const Applicant = z.object({
 });
 export type Applicant = z.infer<typeof Applicant>;
 
+const SCORE = /\b(IELTS|TOEFL|GRE|PTE|Duolingo)\b[^.\n]{0,24}?\b\d{1,3}(\.\d)?\b/i;
+
+/** A test score in the text with no taken test behind it. Blocks export, sending and approving. */
+export const unbackedScore = (text: string, applicant: Pick<Applicant, "tests"> | undefined) =>
+  SCORE.test(text) && !applicant?.tests.some((t) => t.status === "taken" && t.score.trim());
+
 export const Stage = z.enum(["new", "drafted", "sent", "replied", "apply-only", "skip"]);
 export type Stage = z.infer<typeof Stage>;
 

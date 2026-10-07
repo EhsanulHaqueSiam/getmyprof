@@ -40,9 +40,12 @@ export const mustProve = (w: Writing) => w.kind !== "prep" && w.kind !== "visa";
 
 export type Cited = { n: string; fact: ProfileFact | undefined; ok: boolean };
 
-/** Every citation in order, with its fact and whether it can be claimed. */
+/** Every citation still in the text, in order, with its fact and whether it can be claimed. */
 export function citations(w: Writing, facts: ProfileFact[]): Cited[] {
+  // Only markers still in the text count: cutting a cited line drops its citation.
+  const present = new Set([...w.body.matchAll(/\[(\d+)\]/g)].map((m) => m[1]));
   return Object.entries(w.citations)
+    .filter(([n]) => present.has(n))
     .toSorted(([a], [b]) => Number(a) - Number(b))
     .map(([n, id]) => {
       const fact = facts.find((f) => f.id === id);

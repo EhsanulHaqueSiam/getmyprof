@@ -222,6 +222,14 @@ function Composer({
 export function ConversationView({ c, connected }: { c: Conversation; connected: boolean }) {
   const draft = openDraft(c);
   const r = c.record;
+  const app = useStore((s) => s.app);
+  const issues = draft
+    ? draftIssues(draft, {
+        facts: app?.facts ?? [],
+        applicant: app?.applicant,
+        emailCheck: r.emailCheck,
+      })
+    : [];
   const zone = zoneOf(c) ?? "";
   // Drafts and failed sends live in the composer, not the transcript.
   const shown = c.messages.filter(
@@ -325,7 +333,7 @@ export function ConversationView({ c, connected }: { c: Conversation; connected:
         </ol>
         <div className="mt-4 mb-1.5 text-muted-foreground">Next</div>
         <p className="text-secondary-label" data-testid="next-step">
-          {nextStep(c)}
+          {nextStep(c, issues)}
         </p>
       </aside>
     </div>

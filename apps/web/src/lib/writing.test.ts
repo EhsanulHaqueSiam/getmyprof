@@ -49,6 +49,13 @@ describe("the Writer's reading of a piece", () => {
     expect(strayMarkers(piece)).toEqual(["3"]);
   });
 
+  it("drops a citation once its line is cut, so cutting an unproven claim unblocks export", () => {
+    const cut = { ...piece, body: "I did a BSc [1]." };
+    expect(citations(cut, [fact("f_bsc"), fact("f_team", { source: "" })])).toEqual([
+      { n: "1", fact: fact("f_bsc"), ok: true },
+    ]);
+  });
+
   it("blocks a claim that cites nothing, unless the piece never leaves the app", () => {
     const claim = { ...piece, body: "I led a team of five. I want to study fairness." };
     expect(uncited(claim)).toEqual(["I led a team of five."]);

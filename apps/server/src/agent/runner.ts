@@ -26,7 +26,7 @@ import { type Sources, toolsFor } from "./tools.ts";
 
 const ROW_INSTRUCTIONS: Record<RowOp, string> = {
   email:
-    "Find and check the email address of each professor below. Use only addresses printed on an official page; if treg is available, verify deliverability with millionverifier. Record email and emailCheck for each with propose_professor.",
+    "Find and check the email address of each professor below. Look for it on an official page first. If treg is available: only when no official page lists one, find it with treg.people.email.find, then verify each address with treg.people.email.verify (usually free). Pass the professor's sheet key as `about` on every treg call. Record email and emailCheck for each with propose_professor.",
   lasts:
     "For each professor below, look up their active NSF and NIH awards and record money and how long it lasts after the intake (lasts) with propose_professor.",
   taking:
@@ -52,6 +52,9 @@ export function createRunner(deps: {
   const sessions = new Map<string, AgentSession>();
   const approvals = new Map<string, { threadId: string; resolve: (ok: boolean) => void }>();
   const turns = new Map<string, { at: number; spend: number; calls: number }>();
+
+  /** The treg feature tag of each thread's latest message: row-<op> for a row action. */
+  const features = new Map<string, string>();
 
   /** Queued messages held until the next tool call ends, editable and reorderable until then. */
   const held = new Map<string, { eventId: string; text: string; files: Attachment[] }[]>();
@@ -199,6 +202,19 @@ export function createRunner(deps: {
             text: question,
             status: "pending",
           }),
+        feature: () =>
+          features.get(threadId) ?? (getThread(db, threadId)?.loopId ? "loop" : "hunt"),
+        capHit(reason) {
+          // A thread keeps going on free sources; a loop run ends at its cap and says why.
+          if (!getThread(db, threadId)?.loopId) return;
+          emit(threadId, {
+            id: newId("cap"),
+            at: now(),
+            type: "system",
+            text: `Stopped: ${reason}`,
+          });
+          setTimeout(() => void sessions.get(threadId)?.interrupt());
+        },
       },
     });
     sessions.set(threadId, session);
@@ -212,6 +228,9 @@ export function createRunner(deps: {
     shown = text,
     files: Attachment[] = [],
   ) {
+    const op = /^\[row-action:(\w+)\]/.exec(text)?.[1];
+    if (op) features.set(threadId, `row-${op}`);
+    else features.delete(threadId);
     // The next message after a question is its answer.
     const asked = pendingQuestion(db, threadId);
     if (asked?.type === "question") emit(threadId, { ...asked, status: "answered" });

@@ -299,9 +299,7 @@ export function Sidebar() {
   const review = threads.reduce((n, t) => n + t.pendingReview, 0);
   const outreach = useStore((st) => st.conversations.filter(needsYou).length);
   const toFile = useStore((st) => st.vault?.toFile.length);
-  const today = threads
-    .filter((t) => now - Date.parse(t.updatedAt) < 864e5)
-    .reduce((n, t) => n + t.spendUsd, 0);
+  const today = threads.reduce((n, t) => n + t.spendDayUsd, 0);
   const activeId = "threadId" in params ? params.threadId : undefined;
 
   return (

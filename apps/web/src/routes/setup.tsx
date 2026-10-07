@@ -9,6 +9,7 @@ import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
 import { toBase64 } from "~/lib/files";
+import { TregSettings } from "~/components/TregSettings";
 import { useStore } from "~/state/store";
 
 export const Route = createFileRoute("/setup")({ component: Setup });
@@ -39,7 +40,6 @@ function Setup() {
   const [file, setFile] = useState<File | null>(null);
   const [reading, setReading] = useState(false);
   const [error, setError] = useState("");
-  const [treg, setTreg] = useState(false);
   const [profileSource, setProfileSource] = useState<"app" | "hq">("app");
   const [gradhunt, setGradhunt] = useState(false);
   const [detail, setDetail] = useState<DetailLevel>("std");
@@ -53,7 +53,6 @@ function Setup() {
 
   useEffect(() => {
     if (!app) return;
-    setTreg(app.settings.treg);
     setProfileSource(app.settings.profileSource);
     setGradhunt(app.settings.gradhunt);
     setDetail(app.settings.detail);
@@ -98,7 +97,6 @@ function Setup() {
     if (profileSource === "app") await call("facts.save", { facts });
     if (applicant) await call("applicant.save", applicant);
     await call("settings.update", {
-      treg,
       profileSource,
       gradhunt,
       detail,
@@ -189,13 +187,7 @@ function Setup() {
                 </div>
               </Row>
               <Row label="Paid lookups (treg)">
-                <Chip on={treg} onClick={() => app?.adapters.treg && setTreg(!treg)}>
-                  {app?.adapters.treg ? (treg ? "On" : "Off") : "treg CLI not found"}
-                </Chip>
-                <span className="mt-1 block text-muted-foreground text-xs">
-                  People search, email finding and checks. Without it, only emails printed on
-                  official pages.
-                </span>
+                <TregSettings />
               </Row>
               <Row label="Profile from">
                 <div className="flex flex-wrap gap-1.5">

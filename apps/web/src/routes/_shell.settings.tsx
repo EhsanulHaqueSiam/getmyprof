@@ -6,6 +6,7 @@ import { MailSettings } from "~/components/MailSettings";
 import { McpEndpoint, McpServers } from "~/components/McpSettings";
 import { NotifySettings } from "~/components/NotifySettings";
 import { PairSettings } from "~/components/PairSettings";
+import { TregSettings } from "~/components/TregSettings";
 import { cn } from "~/lib/utils";
 import { useStore } from "~/state/store";
 
@@ -94,6 +95,7 @@ function SettingsPage() {
                 defaultValue={s.budget[k]}
                 aria-label={label}
                 onBlur={(e) => void save({ budget: { ...s.budget, [k]: Number(e.target.value) } })}
+                onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
                 className="h-7 w-16 rounded-lg border border-input bg-transparent px-2 text-foreground outline-none"
               />
               {label}
@@ -101,9 +103,7 @@ function SettingsPage() {
           ))}
         </Row>
         <Row label="Paid lookups (treg)">
-          <Toggle on={s.treg} onClick={() => app.adapters.treg && void save({ treg: !s.treg })}>
-            {app.adapters.treg ? (s.treg ? "On" : "Off") : "treg CLI not found"}
-          </Toggle>
+          <TregSettings />
         </Row>
         <Row label="Profile from">
           <Toggle

@@ -54,6 +54,27 @@ export const McpServer = z.discriminatedUnion("transport", [
 ]);
 export type McpServer = z.infer<typeof McpServer>;
 
+/** A treg tag value: letters, digits and . _ - : only, so it can't be an email address. */
+export const TagValue = z
+  .string()
+  .regex(/^[A-Za-z0-9._:-]{1,128}$/, "letters, digits and . _ - : only");
+
+/** A treg token pinned to one customer, as scripts/treg-admin.ts prints it. */
+export const TregConnect = z.object({ customer: TagValue, token: z.string().min(8) });
+export type TregConnect = z.infer<typeof TregConnect>;
+
+/** Paid lookups on this install: who they bill and what they cost this month. */
+export const TregStatus = z.object({
+  connected: z.boolean(),
+  customer: z.string(),
+  month: z.object({
+    usd: z.number(),
+    calls: z.number(),
+    byFeature: z.array(z.object({ feature: z.string(), usd: z.number(), calls: z.number() })),
+  }),
+});
+export type TregStatus = z.infer<typeof TregStatus>;
+
 export const Settings = z.object({
   detail: DetailLevel,
   budget: Budget,

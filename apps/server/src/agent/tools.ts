@@ -17,10 +17,9 @@ import {
   nsfAwards,
   openAlexAuthor,
   type RawAward,
-  TREG_PRICES,
-  tregCall,
   ukriAwards,
 } from "../sources.ts";
+import { TREG_ENDPOINTS, tregCall, type TregOutcome, type TregRequest } from "../treg.ts";
 import { daySpend, getThread, recordSpend, threadSpend } from "../threads.ts";
 import { APPLICANT_TOOLS } from "./applicant-tools.ts";
 
@@ -34,7 +33,7 @@ export type Sources = {
   cordis: AwardFetch;
   arc: AwardFetch;
   openalex: (name: string, university?: string) => Promise<Author | null>;
-  treg: typeof tregCall;
+  treg: (req: TregRequest) => Promise<TregOutcome>;
 };
 
 export const realSources: Sources = {
@@ -44,7 +43,7 @@ export const realSources: Sources = {
   cordis: cordisAwards,
   arc: arcAwards,
   openalex: openAlexAuthor,
-  treg: tregCall,
+  treg: (req) => tregCall(req),
 };
 
 const SOURCE_KEY = {
@@ -72,6 +71,10 @@ export type ToolContext = {
   vaultChanged: () => void;
   /** Puts a question to the applicant; the thread waits in Input once the turn ends. */
   ask: (question: string) => void;
+  /** What the turn is for, as a treg tag: hunt, loop, or row-<op> during a row action. */
+  feature: () => string;
+  /** A paid call hit a cap or was refused for good: a loop run stops here and says why. */
+  capHit: (reason: string) => void;
 };
 
 export type ToolResult = { summary: string; text: string };
@@ -287,46 +290,85 @@ export const HUNT_TOOLS = [
   ...APPLICANT_TOOLS,
   define({
     name: "treg",
-    description: `Paid data lookups through treg, for when free sources fail. Allowed endpoints and USD per call: ${Object.entries(
-      TREG_PRICES,
+    description: `Paid data lookups through treg, for when free sources fail. Allowed endpoints, usual USD per call and the most one call may cost: ${Object.entries(
+      TREG_ENDPOINTS,
     )
-      .map(([e, p]) => `${e} $${p}`)
+      .map(([e, p]) => `${e} $${p.usd}${p.max > p.usd ? ` (up to $${p.max})` : ""}`)
       .join(", ")}. Calls over the applicant's limit wait for approval.`,
     shape: {
       endpoint: z.string(),
-      data: z.record(z.string(), z.unknown()).describe("The endpoint's JSON body"),
+      data: z
+        .record(z.string(), z.unknown())
+        .describe("The endpoint's JSON body, or its query parameters for a GET endpoint"),
       purpose: z.string().describe("One line shown to the applicant: what this lookup is for"),
+      about: z
+        .string()
+        .optional()
+        .describe("The sheet key of the professor this lookup is for, when it is for one"),
     },
     paid: true,
-    price: (args) => TREG_PRICES[args.endpoint] ?? Number.POSITIVE_INFINITY,
+    price: (args) => TREG_ENDPOINTS[args.endpoint]?.usd ?? Number.POSITIVE_INFINITY,
     run: async (args, ctx) => {
-      const price = TREG_PRICES[args.endpoint];
-      if (price === undefined)
+      const spec = TREG_ENDPOINTS[args.endpoint];
+      if (!spec)
         return { summary: "refused", text: `${args.endpoint} is not an allowed endpoint.` };
-      const cap = capProblem(ctx, price);
-      if (cap) return { summary: "over budget", text: cap };
-      const result = await ctx.sources.treg(args.endpoint, args.data);
-      recordSpend(ctx.db, ctx.threadId, args.endpoint, price);
+      const cap = capProblem(ctx, spec.usd);
+      if (cap) {
+        ctx.capHit(cap);
+        return { summary: "over budget", text: cap };
+      }
+      const feature = ctx.feature();
+      const out = await ctx.sources.treg({
+        endpoint: args.endpoint,
+        data: args.data,
+        maxUsd: Math.min(spec.max, budgetLeft(ctx)),
+        tags: { thread: ctx.threadId, feature, hunt: ctx.hunt?.id },
+      });
+      if (out.costUsd > 0 || out.callId)
+        recordSpend(ctx.db, {
+          threadId: ctx.threadId,
+          what: args.endpoint,
+          usd: out.costUsd,
+          callId: out.callId,
+          feature,
+          subject: args.about ?? null,
+        });
       ctx.changed();
-      return {
-        summary: `${price ? `$${price}` : "free"}`,
-        text: JSON.stringify(result).slice(0, 4000),
-      };
+      const cost = `${out.costUsd ? `$${Number(out.costUsd.toFixed(6))}` : "free"}`;
+      if (!out.ok) {
+        if (out.stop) ctx.capHit(out.reason);
+        return { summary: `${out.stop ? "stopped" : "failed"} · ${cost}`, text: out.reason };
+      }
+      return { summary: cost, text: JSON.stringify(out.result).slice(0, 4000) };
     },
   }),
 ];
 
-/** Why a paid call would break a cap, or null when it fits. */
-export function capProblem(ctx: Pick<ToolContext, "db" | "threadId" | "settings">, price: number) {
+/** The tightest cap on this thread right now: its own (or its loop run's) and today's. */
+function caps(ctx: Pick<ToolContext, "db" | "threadId" | "settings">) {
   const { budget } = ctx.settings;
   const thread = getThread(ctx.db, ctx.threadId);
   // A loop run is capped by its loop's own budget; a deleted loop falls back to the default.
   const loop = thread?.loopId ? listLoops(ctx.db).find((l) => l.id === thread.loopId) : null;
   const threadCap = thread?.loopId ? (loop?.budgetUsd ?? budget.perLoopRun) : budget.perThread;
-  if (threadSpend(ctx.db, ctx.threadId) + price > threadCap)
-    return `This would pass the $${threadCap} cap for this ${thread?.loopId ? "loop run" : "thread"}.`;
-  if (daySpend(ctx.db) + price > budget.perDay)
-    return `This would pass today's $${budget.perDay} cap.`;
+  return {
+    thread: { cap: threadCap, left: threadCap - threadSpend(ctx.db, ctx.threadId) },
+    day: { cap: budget.perDay, left: budget.perDay - daySpend(ctx.db) },
+    what: thread?.loopId ? "loop run" : "thread",
+  };
+}
+
+/** USD a paid call may still spend here; it goes to treg as the call's hard ceiling. */
+export const budgetLeft = (ctx: Pick<ToolContext, "db" | "threadId" | "settings">) => {
+  const c = caps(ctx);
+  return Math.max(0, Math.min(c.thread.left, c.day.left));
+};
+
+/** Why a paid call would break a cap, or null when it fits. */
+export function capProblem(ctx: Pick<ToolContext, "db" | "threadId" | "settings">, price: number) {
+  const c = caps(ctx);
+  if (price > c.thread.left) return `This would pass the $${c.thread.cap} cap for this ${c.what}.`;
+  if (price > c.day.left) return `This would pass today's $${c.day.cap} cap.`;
   return null;
 }
 

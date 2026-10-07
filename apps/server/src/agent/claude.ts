@@ -207,7 +207,10 @@ export const claudeProvider: AgentProvider = {
             return { behavior: "deny", message: `Invalid input: ${args.error.message}` };
           const price = t.price(args.data);
           const cap = capProblem(s.toolContext, price);
-          if (cap) return { behavior: "deny", message: cap };
+          if (cap) {
+            s.toolContext.capHit(cap);
+            return { behavior: "deny", message: cap };
+          }
           if (price <= s.askOver) return { behavior: "allow", updatedInput: raw };
           const ok = await hooks.requestApproval({
             title: "paid lookup",
@@ -271,7 +274,7 @@ export const claudeProvider: AgentProvider = {
                   d.name === "fetch" || d.name === "search"
                     ? block.is_error
                       ? "failed"
-                      : "read"
+                      : "free"
                     : firstLine(text),
                 costUsd: Number(
                   /\$(\d+(?:\.\d+)?)/.exec(d.name.startsWith("treg") ? firstLine(text) : "")?.[1] ??

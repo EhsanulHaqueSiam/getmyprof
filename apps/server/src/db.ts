@@ -25,7 +25,8 @@ CREATE TABLE IF NOT EXISTS proposals (
 CREATE TABLE IF NOT EXISTS exclusions (record_key TEXT PRIMARY KEY, reason TEXT NOT NULL, at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS loops (id TEXT PRIMARY KEY, body TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS spend (
-  id INTEGER PRIMARY KEY AUTOINCREMENT, thread_id TEXT, what TEXT NOT NULL, usd REAL NOT NULL, at TEXT NOT NULL
+  id INTEGER PRIMARY KEY AUTOINCREMENT, thread_id TEXT, what TEXT NOT NULL, usd REAL NOT NULL, at TEXT NOT NULL,
+  call_id TEXT, feature TEXT, subject TEXT
 );
 CREATE TABLE IF NOT EXISTS messages (
   id TEXT PRIMARY KEY, record_key TEXT NOT NULL, status TEXT NOT NULL, message_id TEXT,
@@ -51,6 +52,15 @@ export function openDb(file = NodePath.join(homeDir(), "gradcode.sqlite")) {
   const db = new DatabaseSync(file);
   db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
   db.exec(SCHEMA);
+  // Columns added after a store was first made. CREATE TABLE IF NOT EXISTS leaves old tables alone.
+  const spendColumns = new Set(
+    db
+      .prepare("PRAGMA table_info(spend)")
+      .all()
+      .map((c) => String(c.name)),
+  );
+  for (const c of ["call_id", "feature", "subject"])
+    if (!spendColumns.has(c)) db.exec(`ALTER TABLE spend ADD COLUMN ${c} TEXT`);
   return db;
 }
 

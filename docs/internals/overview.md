@@ -48,11 +48,30 @@ call) or `now` (steered). A session closes after a minute idle.
   plugins at 24k tokens of dead weight per turn.
 - **Money asks first.** Free tools are pre-allowed. `treg` goes through `canUseTool`, which checks
   the caps (per thread, per loop run, per day) and asks the user above `askOver`. Row actions over
-  the limit ask in the dock before they are sent.
+  the limit ask in the dock before they are sent. A loop run that hits a cap stops and says why;
+  a thread carries on with free sources.
 - **Findings are tool calls.** The agent reports through `propose_professor`; the store diffs it
   against the record and keeps only changed fields. Rejecting an add excludes the person for good.
 - **Settling.** A thread settles once it is idle with nothing pending in Review; idle threads
   nobody touched for 3 days settle on their own.
+
+## Paid lookups
+
+Every treg call goes through `treg.ts` over HTTP, with a token pinned to this install's customer
+(`GRADCODE_HOME/treg.json`, mode 0600, never on the wire or in a backup). The issuer pays treg and
+bills each customer from treg's ledger.
+
+- **Tags come from the server.** Each call carries `customer`, `hunt`, `thread` and `feature`
+  (hunt, loop, row-email...) from context, never from the model, which would drop them.
+- **treg holds the line.** The budget left goes out as `X-Treg-Route-Max-Cost`, so treg refuses
+  rather than overspend. Routed endpoints try providers in turn and can cost more than their usual
+  price; `TREG_ENDPOINTS` keeps each one's ceiling.
+- **The ledger records the real cost.** `spend` stores `X-Treg-Cost-Micro` under `X-Treg-Call-Id`,
+  with the feature and the sheet row (`about`), so Results cells and Settings show what was spent.
+- **Some refusals stay private.** Running out of balance names the issuer's balance and top-up
+  link; the applicant and the model only hear "unavailable right now".
+- **Issuing tokens.** `apps/server/scripts/treg-admin.ts` mints, caps, blocks and invoices. It mints
+  through the HTTP API with no team tools: the CLI, run without a terminal, grants every one.
 
 ## Your data
 

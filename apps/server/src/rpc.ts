@@ -38,6 +38,7 @@ import {
   updateSettings,
 } from "./state.ts";
 import { recordHandlers } from "./rpc-records.ts";
+import { askCvQuestions } from "./cv-questions.ts";
 import { threadHandlers } from "./rpc-threads.ts";
 import { checkTregToken, readTregLogin, removeTregLogin, saveTregLogin } from "./treg.ts";
 import {
@@ -132,6 +133,8 @@ export function createHandlers(svc: Services): Handlers {
       const saved = saveFacts(db, facts);
       // Every view of the facts (Lifeline, Facts, the Writer's checks) and the bundle follow.
       bus.push({ type: "changed", what: "state" });
+      // What the CV couldn't settle waits in Input as a question.
+      if (askCvQuestions(db)) pushThreads();
       return saved;
     },
     "facts.extract": async (input) =>

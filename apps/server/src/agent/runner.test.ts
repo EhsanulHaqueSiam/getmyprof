@@ -4,7 +4,16 @@ import { createBus } from "../bus.ts";
 import { openDb } from "../db.ts";
 import { resolveProposal, threadProposals } from "../records.ts";
 import { updateSettings } from "../state.ts";
-import { createThread, getThread, listEvents, settleIfDone, threadSpend } from "../threads.ts";
+import {
+  createThread,
+  forkThread,
+  getThread,
+  listEvents,
+  searchThreads,
+  settleIfDone,
+  sharesSession,
+  threadSpend,
+} from "../threads.ts";
 import { fakeProvider } from "./fake.ts";
 import { fixtureSources } from "./fixtures.ts";
 import { createRunner } from "./runner.ts";
@@ -95,5 +104,54 @@ describe("a question to the applicant", () => {
     expect(listEvents(db, thread).find((e) => e.type === "question")).toMatchObject({
       status: "answered",
     });
+  });
+});
+
+describe("thread search", () => {
+  it("finds a thread by words in its messages and tool calls, with a snippet", async () => {
+    const db = openDb(":memory:");
+    const runner = createRunner({
+      db,
+      bus: createBus(),
+      provider: fakeProvider(1),
+      sources: fixtureSources,
+    });
+    const thread = createThread(db, "health NLP").id;
+    runner.send(thread, "find health NLP professors", "send");
+    await until(() => getThread(db, thread)?.status === "idle");
+    expect(searchThreads(db, "zalake")).toEqual([
+      expect.objectContaining({ threadId: thread, title: "health NLP" }),
+    ]);
+    expect(searchThreads(db, "zalake")[0]?.snippet).toMatch(/Zalake/);
+    expect(searchThreads(db, "nothing like this")).toEqual([]);
+  });
+});
+
+describe("forking a thread", () => {
+  it("copies the transcript and rows, and the copy's first message branches the conversation", async () => {
+    const db = openDb(":memory:");
+    const runner = createRunner({
+      db,
+      bus: createBus(),
+      provider: fakeProvider(1),
+      sources: fixtureSources,
+    });
+    const source = createThread(db, "health NLP").id;
+    runner.send(source, "find health NLP professors", "send");
+    await until(
+      () => getThread(db, source)?.status === "idle" && (getThread(db, source)?.rows ?? 0) > 0,
+    );
+
+    const copy = forkThread(db, source);
+    expect(listEvents(db, copy.id)).toHaveLength(listEvents(db, source).length);
+    expect(copy.rows).toBe(getThread(db, source)?.rows);
+    expect(sharesSession(db, copy.id)).toBe(true);
+
+    runner.send(copy.id, "now only Chicago", "send");
+    await until(() => getThread(db, copy.id)?.status === "idle");
+    expect(sharesSession(db, copy.id)).toBe(false);
+    expect(
+      listEvents(db, source).some((e) => e.type === "user" && e.text === "now only Chicago"),
+    ).toBe(false);
   });
 });

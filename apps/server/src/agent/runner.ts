@@ -15,6 +15,7 @@ import {
   settleIfDone,
   getThread,
   pendingQuestion,
+  sharesSession,
   threadSpend,
 } from "../threads.ts";
 import { systemPrompt } from "./prompt.ts";
@@ -136,6 +137,7 @@ export function createRunner(deps: {
     const session = provider.start({
       threadId,
       resumeId: sessionId(db, threadId),
+      fork: sharesSession(db, threadId),
       firstText: text,
       systemPrompt: systemPrompt(
         hunt,

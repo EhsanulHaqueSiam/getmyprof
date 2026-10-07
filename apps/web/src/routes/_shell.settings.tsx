@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { modelLabel } from "~/components/Composer";
 import { MailSettings } from "~/components/MailSettings";
 import { McpEndpoint, McpServers } from "~/components/McpSettings";
+import { NotifySettings } from "~/components/NotifySettings";
 import { cn } from "~/lib/utils";
 import { useStore } from "~/state/store";
 
@@ -127,6 +128,9 @@ function SettingsPage() {
         ) : null}
         <Row label="Mailbox">
           <MailSettings />
+        </Row>
+        <Row label="Notifications">
+          <NotifySettings />
         </Row>
         <Row label="MCP servers">
           <McpServers />

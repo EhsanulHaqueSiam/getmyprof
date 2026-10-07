@@ -155,7 +155,7 @@ export const claudeProvider: AgentProvider = {
               ]),
           ),
         },
-        ...(s.resumeId ? { resume: s.resumeId } : {}),
+        ...(s.resumeId ? { resume: s.resumeId, ...(s.fork ? { forkSession: true } : {}) } : {}),
         canUseTool: async (toolName, raw) => {
           // A tool from one of the user's own MCP servers: trusted ones run, others ask once per call.
           const own = s.mcpServers.find((m) => toolName.startsWith(`mcp__${m.name}__`));

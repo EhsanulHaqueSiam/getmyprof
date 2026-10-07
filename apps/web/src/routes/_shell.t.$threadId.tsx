@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { PanelLeftIcon, PanelRightIcon } from "lucide-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { GitBranchIcon, PanelLeftIcon, PanelRightIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ApprovalCard, Transcript } from "~/components/Chat";
 import { Composer } from "~/components/Composer";
@@ -17,6 +17,7 @@ export const Route = createFileRoute("/_shell/t/$threadId")({ component: ThreadP
 
 function ThreadPage() {
   const { threadId } = Route.useParams();
+  const navigate = useNavigate();
   const view = useStore((s) => s.views[threadId]);
   const loadView = useStore((s) => s.loadView);
   const sidebarOpen = useStore((s) => s.sidebarOpen);
@@ -118,6 +119,24 @@ function ThreadPage() {
           {usd(view.thread.spendUsd) === "free" ? "$0" : usd(view.thread.spendUsd)} / $
           {perThread.toFixed(2)}
         </span>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                variant="ghost-muted"
+                size="icon-sm"
+                aria-label="Fork thread"
+                onClick={async () => {
+                  const copy = await call("threads.fork", { id: threadId });
+                  void navigate({ to: "/t/$threadId", params: { threadId: copy.id } });
+                }}
+              />
+            }
+          >
+            <GitBranchIcon />
+          </TooltipTrigger>
+          <TooltipPopup>Fork: branch from here, the original stays as it is</TooltipPopup>
+        </Tooltip>
         {mode === "chat" ? (
           <Tooltip>
             <TooltipTrigger

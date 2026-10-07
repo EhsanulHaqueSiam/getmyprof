@@ -152,3 +152,54 @@ export function expireApprovals(db: Db) {
     if (t.status !== "idle") setStatus(db, t.id, pendingQuestion(db, t.id) ? "input" : "idle");
   }
 }
+
+/** Threads whose messages or tool calls mention `q`, newest match first, with a snippet. */
+export function searchThreads(db: Db, q: string, limit = 20) {
+  const needle = q.trim().toLowerCase();
+  const like = `%${needle.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+  const rows = db
+    .prepare(
+      "SELECT thread_id, body FROM events WHERE lower(body) LIKE ? ESCAPE '\\' ORDER BY rowid DESC LIMIT 400",
+    )
+    .all(like);
+  const found = new Map<string, { threadId: string; title: string; snippet: string }>();
+  for (const r of rows) {
+    const id = String(r.thread_id);
+    if (found.has(id)) continue;
+    const e = ThreadEvent.parse(JSON.parse(String(r.body)));
+    const text = e.type === "tool" ? `${e.name} ${e.detail} ${e.meta}` : "text" in e ? e.text : "";
+    // The match may have been in the JSON around the text; only real text counts.
+    const at = text.toLowerCase().indexOf(needle);
+    const t = at >= 0 ? getThread(db, id) : null;
+    if (!t) continue;
+    const snippet = text.slice(Math.max(0, at - 40), at + needle.length + 60).replace(/\s+/g, " ");
+    found.set(id, { threadId: id, title: t.title, snippet: snippet.trim() });
+    if (found.size >= limit) break;
+  }
+  return [...found.values()];
+}
+
+/**
+ * A copy of a thread to branch from: same transcript, same rows, same agent conversation. The
+ * first message in the copy resumes that conversation as a fork, so the original never changes.
+ */
+export function forkThread(db: Db, id: string) {
+  const source = getThread(db, id);
+  if (!source) throw new Error(`No thread ${id}`);
+  const copy = createThread(db, `${source.title} (fork)`);
+  const session = sessionId(db, id);
+  if (session) setSession(db, copy.id, session);
+  for (const e of listEvents(db, id)) putEvent(db, copy.id, e);
+  db.prepare(
+    "INSERT OR IGNORE INTO thread_rows (thread_id, record_key) SELECT ?, record_key FROM thread_rows WHERE thread_id = ?",
+  ).run(copy.id, id);
+  return getThread(db, copy.id)!;
+}
+
+/** True while another thread still holds the same agent session: the next start must fork it. */
+export const sharesSession = (db: Db, id: string) => {
+  const session = sessionId(db, id);
+  if (!session) return false;
+  const n = db.prepare("SELECT COUNT(*) AS n FROM threads WHERE session_id = ?").get(session)?.n;
+  return Number(n ?? 0) > 1;
+};

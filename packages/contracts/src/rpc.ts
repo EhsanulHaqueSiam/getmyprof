@@ -68,6 +68,11 @@ export const Methods = {
     output: ThreadSummary,
   },
   "threads.view": { input: id, output: ThreadView },
+  /** Full text across every thread's messages and tool calls. */
+  "threads.search": {
+    input: z.object({ q: z.string().min(2) }),
+    output: z.array(z.object({ threadId: z.string(), title: z.string(), snippet: z.string() })),
+  },
   "threads.send": {
     input: z.object({
       id: z.string(),
@@ -77,6 +82,8 @@ export const Methods = {
     output: ok,
   },
   "threads.stop": { input: id, output: ok },
+  /** A copy to branch from: same transcript and rows; the agent continues as a fork. */
+  "threads.fork": { input: id, output: ThreadSummary },
   "threads.settle": { input: z.object({ id: z.string(), settled: z.boolean() }), output: ok },
   "threads.snooze": {
     input: z.object({ id: z.string(), until: z.string().nullable() }),

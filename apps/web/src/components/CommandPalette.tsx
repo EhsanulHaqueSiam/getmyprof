@@ -10,6 +10,7 @@ import {
   SendIcon,
   ArchiveIcon,
   SettingsIcon,
+  TextSearchIcon,
   UserIcon,
   UsersIcon,
 } from "lucide-react";
@@ -30,6 +31,7 @@ export function CommandPalette() {
   const [query, setQuery] = useState("");
   const [index, setIndex] = useState(0);
   const [people, setPeople] = useState<Professor[]>([]);
+  const [said, setSaid] = useState<{ threadId: string; title: string; snippet: string }[]>([]);
 
   useEffect(() => {
     if (!open) return;
@@ -37,6 +39,17 @@ export function CommandPalette() {
     setIndex(0);
     void call("records.list", {}).then(setPeople);
   }, [open]);
+
+  // Past three letters, also search what was said inside threads (debounced).
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 3) {
+      setSaid([]);
+      return;
+    }
+    const t = setTimeout(() => void call("threads.search", { q }).then(setSaid), 150);
+    return () => clearTimeout(t);
+  }, [query]);
 
   const go = (to: string, params?: Record<string, string>) => () => {
     setOpen(false);
@@ -74,7 +87,17 @@ export function CommandPalette() {
     })),
   ];
   const q = query.trim().toLowerCase();
-  const items = (q ? all.filter((i) => i.label.toLowerCase().includes(q)) : all).slice(0, 40);
+  const byName = q ? all.filter((i) => i.label.toLowerCase().includes(q)) : all;
+  const inThreads: Item[] = said
+    .filter((s) => !byName.some((i) => i.id === s.threadId))
+    .map((s) => ({
+      id: `said-${s.threadId}`,
+      icon: <TextSearchIcon />,
+      label: `${s.title} · "${s.snippet}"`,
+      hint: "said in thread",
+      run: go("/t/$threadId", { threadId: s.threadId }),
+    }));
+  const items = [...byName, ...inThreads].slice(0, 40);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -97,7 +120,7 @@ export function CommandPalette() {
             }
             if (e.key === "Enter") items[index]?.run();
           }}
-          placeholder="Go to a view, thread or professor"
+          placeholder="Go to a view, thread or professor, or search what was said"
           aria-label="Command"
           className="h-12 w-full border-b bg-transparent px-4 text-sm outline-none placeholder:text-placeholder"
         />

@@ -8,6 +8,7 @@ import type {
   ThreadView,
 } from "@gradcode/contracts";
 import { create } from "zustand";
+import { notifyWaiting } from "~/lib/notify";
 import { call, onClose, onPush } from "~/rpc/client";
 
 type Store = {
@@ -89,6 +90,7 @@ export function subscribe() {
       for (const id of Object.keys(getState().views)) void getState().loadView(id);
     }
     if (m.type === "threads") {
+      notifyWaiting(getState().threads, m.threads);
       setState((s) => ({
         threads: m.threads,
         views: Object.fromEntries(

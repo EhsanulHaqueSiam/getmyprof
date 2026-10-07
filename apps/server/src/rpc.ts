@@ -47,12 +47,14 @@ import {
 } from "./state.ts";
 import {
   createThread,
+  forkThread,
   getThread,
   listEvents,
   listThreads,
   markUnread,
   putEvent,
   rename,
+  searchThreads,
   settle,
   settleIfDone,
   snooze,
@@ -134,10 +136,16 @@ export function createHandlers(svc: Services): Handlers {
       rows: threadRows(db, id),
       proposals: threadProposals(db, id),
     }),
+    "threads.search": ({ q }) => searchThreads(db, q),
     "threads.send": ({ id, text, delivery }) => {
       thread(id);
       runner.send(id, text, delivery);
       return OK;
+    },
+    "threads.fork": ({ id }) => {
+      const copy = forkThread(db, id);
+      pushThreads();
+      return copy;
     },
     "threads.stop": async ({ id }) => {
       await runner.stop(id);

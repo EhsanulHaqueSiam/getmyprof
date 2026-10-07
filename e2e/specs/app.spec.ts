@@ -286,3 +286,18 @@ test("mcp: your own servers reach every session, and gradcode answers other agen
   await expect(page.getByTestId("mcp-url")).toHaveText(/\/api\/mcp$/);
   expect((await request.post("/api/mcp", { data: {} })).status()).toBe(401);
 });
+
+test("threads: fork one to branch from it, and find any thread by what was said", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /Settled/ }).click();
+  await page.getByRole("link", { name: "Find professors" }).click();
+  await page.getByRole("button", { name: "Fork thread" }).click();
+  await expect(page.getByRole("heading", { name: "Find professors (fork)" })).toBeVisible();
+  await expect(page.getByText(/Three came up/)).toBeVisible();
+
+  await page.keyboard.press("ControlOrMeta+k");
+  await page.getByLabel("Command").fill("wants applications");
+  await expect(page.getByText(/Find professors · ".*wants applications/).first()).toBeVisible();
+});

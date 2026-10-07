@@ -20,6 +20,8 @@ export type SessionHooks = {
 export type SessionStart = {
   threadId: string;
   resumeId: string | null;
+  /** Resume as a new branch of that conversation (a forked thread's first message). */
+  fork: boolean;
   firstText: string;
   systemPrompt: string;
   model: string;

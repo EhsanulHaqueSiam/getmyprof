@@ -2,6 +2,7 @@ import { createRootRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { CommandPalette } from "~/components/CommandPalette";
 import { TooltipProvider } from "~/components/ui/tooltip";
+import { OPEN_THREAD } from "~/lib/notify";
 import { useStore } from "~/state/store";
 
 function Root() {
@@ -29,6 +30,16 @@ function Root() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [navigate, setPalette, toggleSidebar]);
+
+  // A clicked desktop notification opens its thread.
+  useEffect(() => {
+    const open = (e: Event) => {
+      if (e instanceof CustomEvent && typeof e.detail === "string")
+        void navigate({ to: "/t/$threadId", params: { threadId: e.detail } });
+    };
+    window.addEventListener(OPEN_THREAD, open);
+    return () => window.removeEventListener(OPEN_THREAD, open);
+  }, [navigate]);
 
   return (
     <TooltipProvider>

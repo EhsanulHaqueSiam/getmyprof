@@ -82,7 +82,9 @@ function ProfessorPage() {
   // A field set by an accepted change shows that change's sources; one that came in another way
   // (Add PI, a CSV, gradhunt) shows the record's own.
   const own = p.sources.length ? { sources: p.sources, at: p.updatedAt } : undefined;
-  const sourceOf = (field: string) => data.fieldSources[field] ?? own;
+  const sourceOf = (
+    field: "money" | "taking" | "contact" | "emailCheck" | "niche" | "fitsBecause",
+  ) => data.fieldSources[field] ?? (p[field] ? own : undefined);
   const last = p.name.split(" ").at(-1) ?? p.name;
   // The record's grants first, then any the free APIs know that it doesn't.
   const grants = [

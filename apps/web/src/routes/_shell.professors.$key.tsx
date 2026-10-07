@@ -83,7 +83,7 @@ function ProfessorPage() {
   // (Add PI, a CSV, gradhunt) shows the record's own.
   const own = p.sources.length ? { sources: p.sources, at: p.updatedAt } : undefined;
   const sourceOf = (
-    field: "money" | "taking" | "contact" | "emailCheck" | "niche" | "fitsBecause",
+    field: "money" | "moneyTier" | "taking" | "contact" | "emailCheck" | "niche" | "fitsBecause",
   ) => data.fieldSources[field] ?? (p[field] ? own : undefined);
   const last = p.name.split(" ").at(-1) ?? p.name;
   // The record's grants first, then any the free APIs know that it doesn't.
@@ -120,8 +120,10 @@ function ProfessorPage() {
           <span>
             fit <b className="text-foreground">{p.fit || "?"}</b>
           </span>
-          <span>
+          <span className="flex items-baseline gap-1.5">
             tier <b className="text-foreground">{TIER_LABEL[p.moneyTier]}</b>
+            {/* The page that shows the money behind the tier. */}
+            {p.moneyTier ? <Source of={sourceOf("moneyTier")} /> : null}
           </span>
           <span>
             email <b className="text-foreground">{p.emailCheck || "unchecked"}</b>

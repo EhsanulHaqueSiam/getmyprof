@@ -105,3 +105,26 @@ describe("a thread's scope", () => {
     expect(scopeNote(db, [])).toBe("");
   });
 });
+
+describe("evidence", () => {
+  it("refuses a money tier of 1 or 2 without a page, and flags a value another page set", () => {
+    const { db, thread } = setup();
+    expect(
+      propose(db, thread, { ...lybarger, sources: [], fields: { moneyTier: 2, money: "NIH" } }),
+    ).toEqual({
+      skipped: "a money tier of 1 or 2 needs the page that shows the money as a source",
+    });
+
+    const first = propose(db, thread, { ...lybarger, fields: { email: "k@gmu.edu" } });
+    if ("proposal" in first) resolveProposal(db, first.proposal.id, "accept");
+    const other = propose(db, thread, {
+      ...lybarger,
+      sources: ["https://directory.gmu.edu/kl"],
+      fields: { email: "klybarger@gmu.edu" },
+    });
+    if (!("proposal" in other)) throw new Error("not proposed");
+    expect(other.proposal.changes.find((c) => c.field === "email")?.disagrees).toMatch(
+      /^example\.edu, /,
+    );
+  });
+});

@@ -293,7 +293,11 @@ export const HUNT_TOOLS = [
         };
       }
       ctx.changed();
-      return { summary: `${p.kind} · ${fieldCount}`, text: `Proposed (${p.kind}) for review.` };
+      const clash = p.changes.filter((c) => c.disagrees);
+      return {
+        summary: `${p.kind} · ${fieldCount}${clash.length ? ` · ${clash.length} disagree` : ""}`,
+        text: `Proposed (${p.kind}) for review.${clash.length ? ` ${clash.map((c) => `${c.field} disagrees with ${c.disagrees}`).join("; ")}: say in your reply which source is more current, so the applicant can choose.` : ""}`,
+      };
     },
   }),
   ...APPLICANT_TOOLS,

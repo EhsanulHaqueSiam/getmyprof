@@ -136,6 +136,14 @@ export function Review({
                       <div className="bg-success/8 px-2.5 text-success-foreground">
                         + {FIELD_LABEL[c.field] ?? c.field}: {c.to}
                       </div>
+                      {c.disagrees ? (
+                        <div
+                          className="bg-warning/8 px-2.5 text-warning-foreground"
+                          data-testid="disagrees"
+                        >
+                          ? {c.disagrees} said otherwise: accept if this source is more current
+                        </div>
+                      ) : null}
                     </div>
                   ))}
               </div>

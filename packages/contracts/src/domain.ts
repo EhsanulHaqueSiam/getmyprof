@@ -245,6 +245,9 @@ export const Change = z.object({
   field: z.enum(PROFESSOR_FIELDS),
   from: z.string().nullable(),
   to: z.string(),
+  /** The page that set the value this replaces, when the new sources don't include it: two
+   * sources disagree, and Review asks which is right. */
+  disagrees: z.string().optional(),
 });
 export type Change = z.infer<typeof Change>;
 

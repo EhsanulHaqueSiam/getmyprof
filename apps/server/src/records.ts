@@ -121,6 +121,20 @@ export function propose(
     if (to !== "" && to !== from) changes.push({ field, from, to });
   }
   if (current && changes.length === 0) return { skipped: "no change" };
+  // A money tier of 1 or 2 is a claim about money: it needs the page that shows it.
+  const tier = Number(input.fields.moneyTier ?? 0);
+  if ((tier === 1 || tier === 2) && !input.sources.some((s) => /^https?:\/\//.test(s)))
+    return { skipped: "a money tier of 1 or 2 needs the page that shows the money as a source" };
+  // A value set from one page and now changed from another: both sources go to Review.
+  const known = fieldSources(recordProposals(db, key));
+  const host = (u: string) => u.replace(/^https?:\/\/(www\.)?/, "").split("/")[0] ?? u;
+  const newHosts = new Set(input.sources.map(host));
+  for (const c of changes) {
+    const was = known[c.field];
+    const wasHost = was?.sources.find((s) => /^https?:\/\//.test(s));
+    if (c.from && wasHost && !newHosts.has(host(wasHost)))
+      c.disagrees = `${host(wasHost)}, ${was?.at.slice(0, 10)}`;
+  }
   const proposal: Proposal = {
     id: newId("prop"),
     threadId,
@@ -223,6 +237,24 @@ export function threadRows(db: Db, threadId: string): Professor[] {
       return [mine.reduce((acc, p) => applyChanges(acc, p.changes), base)];
     })
     .toSorted(byMoneyThenFit);
+}
+
+/** Every proposal ever made about one professor, in any thread. */
+export const recordProposals = (db: Db, key: string) =>
+  db
+    .prepare("SELECT body FROM proposals WHERE record_key = ?")
+    .all(key)
+    .map((r) => Proposal.parse(JSON.parse(String(r.body))));
+
+/** Each field's current value: the sources and date of the latest accepted change to it. */
+export function fieldSources(proposals: Proposal[]) {
+  const out: Record<string, { sources: string[]; at: string }> = {};
+  const accepted = proposals
+    .filter((p) => p.status === "accepted")
+    .toSorted((a, b) => a.createdAt.localeCompare(b.createdAt));
+  for (const p of accepted)
+    for (const c of p.changes) out[c.field] = { sources: p.sources, at: p.createdAt };
+  return out;
 }
 
 /** One professor as the agent reads it: what the sheet knows, on one line. */

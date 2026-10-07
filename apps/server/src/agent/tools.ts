@@ -12,6 +12,7 @@ import { TREG_ENDPOINTS } from "../treg.ts";
 import { daySpend, getThread, recordSpend, threadSpend } from "../threads.ts";
 import { APPLICANT_TOOLS } from "./applicant-tools.ts";
 import { DISCOVERY_TOOLS } from "./discovery-tools.ts";
+import { TREG_TOOL_NAMES, tregJobs } from "./treg-jobs.ts";
 
 export { realSources, type Sources, sourceKey } from "./sourcing.ts";
 import { type Sources, sourceKey } from "./sourcing.ts";
@@ -388,10 +389,16 @@ export function capProblem(ctx: Pick<ToolContext, "db" | "threadId" | "settings"
 }
 
 /** Tools available to this install: treg only when it's switched on. */
+const tregTool: HuntTool | undefined = HUNT_TOOLS.find((t) => t.name === "treg");
+const ALL_TOOLS: HuntTool[] = [...HUNT_TOOLS, ...(tregTool ? tregJobs(tregTool) : [])];
+
 export const toolsFor = (settings: Settings) =>
-  HUNT_TOOLS.filter((t) => {
+  ALL_TOOLS.filter((t) => {
     const needs = NEEDS[t.name];
-    return (t.name !== "treg" || settings.treg) && (!needs || settings.freeSources.includes(needs));
+    return (
+      (!TREG_TOOL_NAMES.has(t.name) || settings.treg) &&
+      (!needs || settings.freeSources.includes(needs))
+    );
   });
 
 /** The free source each tool reads; a tool not listed reads none of them. */

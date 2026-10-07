@@ -221,7 +221,7 @@ export const claudeProvider: AgentProvider = {
           if (price <= s.askOver()) return { behavior: "allow", updatedInput: raw };
           const ok = await hooks.requestApproval({
             title: "paid lookup",
-            body: `${String(raw.endpoint)} · $${price}`,
+            body: `${String(raw.endpoint ?? t.name)} · $${price}`,
             why: String(raw.purpose ?? ""),
             costUsd: price,
           });

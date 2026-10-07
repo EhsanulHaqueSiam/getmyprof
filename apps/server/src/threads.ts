@@ -27,8 +27,17 @@ function summarize(db: Db, r: Row): ThreadSummary {
     spendDayUsd: daySpend(db, id),
     loopId: str(r.loop_id),
     pendingReview: pendingCount(db, id),
+    // The rows Results shows (records.threadRows): in the sheet, or still proposed here. A
+    // rejected new professor is neither.
     rows: Number(
-      db.prepare("SELECT COUNT(*) AS n FROM thread_rows WHERE thread_id = ?").get(id)?.n ?? 0,
+      db
+        .prepare(
+          `SELECT COUNT(*) AS n FROM thread_rows t WHERE t.thread_id = ? AND (
+             EXISTS (SELECT 1 FROM records r WHERE r.key = t.record_key) OR
+             EXISTS (SELECT 1 FROM proposals p WHERE p.thread_id = t.thread_id
+                       AND p.record_key = t.record_key AND p.status = 'pending'))`,
+        )
+        .get(id)?.n ?? 0,
     ),
     scope: r.scope ? z.array(ScopeItem).parse(JSON.parse(String(r.scope))) : [],
     detail: r.detail ? DetailLevel.parse(r.detail) : null,

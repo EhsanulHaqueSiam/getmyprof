@@ -41,7 +41,8 @@ function Shell() {
           className="fixed inset-0 z-20 bg-background/60 md:hidden"
         />
       ) : null}
-      <main className="flex h-dvh min-w-0 max-md:flex-col">
+      {/* Pinned to the second column: on a phone the sidebar leaves the grid to float over it. */}
+      <main className="col-start-2 flex h-dvh min-w-0 max-md:flex-col">
         {/* On a phone a slim bar opens the sidebar from any page. */}
         <div className="flex h-10 shrink-0 items-center gap-2 border-b px-2 md:hidden">
           <Button variant="ghost-muted" size="icon-sm" aria-label="Menu" onClick={toggleSidebar}>

@@ -159,10 +159,13 @@ test("keyboard: Enter allows, j moves, r rejects, shift-A accepts all; ⌘K goes
 test("phone: the sidebar opens over the page and closes on the way somewhere", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/professors");
+  // The page itself gets the width: a 0px column would hide its heading.
+  await expect(page.getByRole("heading", { name: "Professors" })).toBeVisible();
   const sidebar = page.getByRole("link", { name: /^Funding/ });
   await expect(sidebar).toBeHidden();
   await page.getByRole("button", { name: "Menu" }).click();
   await sidebar.click();
   await expect(page).toHaveURL(/\/funding$/);
   await expect(sidebar).toBeHidden();
+  await expect(page.getByRole("heading", { name: "Funding" })).toBeVisible();
 });

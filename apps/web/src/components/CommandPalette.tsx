@@ -146,13 +146,17 @@ export function CommandPalette() {
     })),
     ...(here
       ? [
-          {
-            id: "settle",
-            icon: <CheckIcon />,
-            label: "Settle this thread",
-            hint: "e",
-            run: act(() => call("threads.settle", { id: here, settled: true })),
-          },
+          ...(threads.find((t) => t.id === here)?.settledAt
+            ? []
+            : [
+                {
+                  id: "settle",
+                  icon: <CheckIcon />,
+                  label: "Settle this thread",
+                  hint: "e",
+                  run: act(() => call("threads.settle", { id: here, settled: true })),
+                },
+              ]),
           ...(tomorrow
             ? [
                 {

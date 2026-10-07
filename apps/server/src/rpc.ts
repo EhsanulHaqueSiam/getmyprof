@@ -153,7 +153,15 @@ export function createHandlers(svc: Services): Handlers {
 
     "threads.list": () => listThreads(db),
     "threads.create": ({ text, title, attachments = [] }) => {
-      const t = createThread(db, title ?? text.replace(/\s+/g, " ").slice(0, 60));
+      // The title reads like the message: an Ask's "[ask]" tag stays out of it.
+      const t = createThread(
+        db,
+        title ??
+          text
+            .replace(/^\[ask\]\s*/, "")
+            .replace(/\s+/g, " ")
+            .slice(0, 60),
+      );
       runner.send(t.id, text, "send", text, readAttachments(db, attachments));
       return thread(t.id);
     },

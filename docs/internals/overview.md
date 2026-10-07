@@ -16,7 +16,8 @@ browser (React) ⇄ /api, /ws ⇄ Vite (127.0.0.1:5174) ⇄ server (127.0.0.1:43
 
 The server binds loopback only. In dev, Vite proxies `/api` and `/ws` to it, so the browser talks
 to one origin and nothing bakes a server URL into the bundle. Other devices reach the app through
-`scripts/dev-local.sh share` (`tailscale serve` in front of Vite); `allowedHosts: [".ts.net"]` in
+`scripts/dev-local.sh share` (`tailscale serve` in front of Vite on its own HTTPS port, 8443: the
+tailnet's 443 may already belong to another app on this machine, and serving it would replace that); `allowedHosts: [".ts.net"]` in
 `apps/web/vite.config.ts` lets those requests past Vite's host check. The host machine runs every
 agent turn and loop, so closing the laptop never stops a hunt.
 

@@ -86,8 +86,10 @@ cmd_restart() { running || die "not running"
   die "unknown window '$n' (server|web)"; }
 cmd_attach()  { running || die "not running, start with: scripts/dev-local.sh up"; tmux attach -t "$SESSION"; }
 cmd_down()    { tmux kill-session -t "$SESSION" 2>/dev/null && ok "stopped" || warn "no session '$SESSION'"; }
+# Its own HTTPS port, so it never replaces another app already served on the tailnet's 443.
+SHARE_PORT="${SHARE_PORT:-8443}"
 cmd_share()   { command -v tailscale >/dev/null 2>&1 || die "tailscale CLI not found"
-  tailscale serve --bg "$WEB_PORT" && ok "on the tailnet; undo with: tailscale serve --https=443 off"; }
+  tailscale serve --bg --https="$SHARE_PORT" "$WEB_PORT" && ok "on the tailnet at port $SHARE_PORT; undo with: tailscale serve --https=$SHARE_PORT off"; }
 
 case "${1:-up}" in
   up)      cmd_up ;;

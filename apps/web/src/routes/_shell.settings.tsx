@@ -4,6 +4,7 @@ import { modelLabel } from "~/components/Composer";
 import { MailSettings } from "~/components/MailSettings";
 import { McpEndpoint, McpServers } from "~/components/McpSettings";
 import { NotifySettings } from "~/components/NotifySettings";
+import { PairSettings } from "~/components/PairSettings";
 import { cn } from "~/lib/utils";
 import { useStore } from "~/state/store";
 
@@ -137,6 +138,9 @@ function SettingsPage() {
         </Row>
         <Row label="For other agents">
           <McpEndpoint />
+        </Row>
+        <Row label="Open on your phone">
+          <PairSettings />
         </Row>
         <Row label="Runs on">
           <span className="text-secondary-label">{app.host}</span>

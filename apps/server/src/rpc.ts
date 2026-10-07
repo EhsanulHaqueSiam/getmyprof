@@ -19,7 +19,7 @@ import type { Runner } from "./agent/runner.ts";
 import { type Sources, sourceKey } from "./agent/tools.ts";
 import type { Bus } from "./bus.ts";
 import { type Db, newId, now } from "./db.ts";
-import { health } from "./health.ts";
+import { health, tailnetLink } from "./health.ts";
 import { listLoops, saveLoop, STARTER_LOOPS } from "./loops.ts";
 import type { Outreach } from "./outreach/service.ts";
 import { conversations } from "./outreach/store.ts";
@@ -107,6 +107,7 @@ export function createHandlers(svc: Services): Handlers {
           treg: svc.fake || h.checks.treg,
         },
         mail: outreach.status(),
+        tailnet: svc.fake ? null : tailnetLink(),
       };
     },
     "settings.update": (patch) => {

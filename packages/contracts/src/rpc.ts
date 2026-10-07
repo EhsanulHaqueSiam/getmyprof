@@ -36,6 +36,8 @@ export const AppState = z.object({
   host: z.string(),
   adapters: z.object({ hq: z.boolean(), gradhunt: z.boolean(), treg: z.boolean() }),
   mail: MailStatus,
+  /** Where a phone on the tailnet opens gradcode, and whether it's being served there. */
+  tailnet: z.object({ url: z.string(), served: z.boolean() }).nullable(),
 });
 export type AppState = z.infer<typeof AppState>;
 

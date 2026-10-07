@@ -246,7 +246,11 @@ export function MailSettings() {
           className="flex flex-col gap-2"
           onSubmit={(e) => {
             e.preventDefault();
-            void run(() => call("mail.connect", login));
+            void run(async () => {
+              await call("mail.connect", login);
+              // The server keeps the password; the page doesn't hold on to it.
+              setForm({ ...form, password: "" });
+            });
           }}
         >
           <Input

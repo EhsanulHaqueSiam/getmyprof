@@ -31,6 +31,8 @@ export const ThreadEvent = z.discriminatedUnion("type", [
     text: z.string(),
     /** queued: waits for the next tool call; steered: sent mid-turn. */
     delivery: z.enum(["send", "queued", "steered"]),
+    /** Names of files attached from the vault. */
+    attachments: z.array(z.string()).default([]),
   }),
   z.object({ ...base, type: z.literal("assistant"), text: z.string() }),
   z.object({

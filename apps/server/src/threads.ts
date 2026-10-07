@@ -203,3 +203,6 @@ export const sharesSession = (db: Db, id: string) => {
   const n = db.prepare("SELECT COUNT(*) AS n FROM threads WHERE session_id = ?").get(session)?.n;
   return Number(n ?? 0) > 1;
 };
+
+export const deleteEvent = (db: Db, threadId: string, id: string) =>
+  db.prepare("DELETE FROM events WHERE thread_id = ? AND id = ?").run(threadId, id);

@@ -359,3 +359,19 @@ export function writingBrief(
     .join("\n");
   return { title, threadTitle, text, threadId: revise?.threadId ?? null };
 }
+
+/** Vault documents as attachments for a message, read from disk; unknown ids are skipped. */
+export function readAttachments(db: Db, ids: string[]) {
+  const docs = listDocuments(db);
+  return ids.flatMap((id) => {
+    const d = docs.find((x) => x.id === id);
+    if (!d || !NodeFS.existsSync(documentPath(d.id))) return [];
+    return [
+      {
+        name: d.name,
+        mime: d.mime,
+        base64: NodeFS.readFileSync(documentPath(d.id)).toString("base64"),
+      },
+    ];
+  });
+}

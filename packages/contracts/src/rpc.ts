@@ -64,7 +64,12 @@ export const Methods = {
 
   "threads.list": { input: z.object({}), output: z.array(ThreadSummary) },
   "threads.create": {
-    input: z.object({ text: z.string().min(1), title: z.string().optional() }),
+    input: z.object({
+      text: z.string().min(1),
+      title: z.string().optional(),
+      /** Vault document ids, read by the agent with the message. */
+      attachments: z.array(z.string()).optional(),
+    }),
     output: ThreadSummary,
   },
   "threads.view": { input: id, output: ThreadView },
@@ -78,10 +83,28 @@ export const Methods = {
       id: z.string(),
       text: z.string().min(1),
       delivery: z.enum(["send", "queued", "steered"]),
+      attachments: z.array(z.string()).optional(),
     }),
     output: ok,
   },
   "threads.stop": { input: id, output: ok },
+  /** Changes, or with text null removes, a queued message before it goes out. */
+  "threads.editQueued": {
+    input: z.object({
+      threadId: z.string(),
+      eventId: z.string(),
+      text: z.string().min(1).nullable(),
+    }),
+    output: ok,
+  },
+  "threads.moveQueued": {
+    input: z.object({
+      threadId: z.string(),
+      eventId: z.string(),
+      by: z.union([z.literal(-1), z.literal(1)]),
+    }),
+    output: ok,
+  },
   /** A copy to branch from: same transcript and rows; the agent continues as a fork. */
   "threads.fork": { input: id, output: ThreadSummary },
   "threads.settle": { input: z.object({ id: z.string(), settled: z.boolean() }), output: ok },
@@ -233,7 +256,7 @@ export const ServerMessage = z.discriminatedUnion("type", [
   z.object({ type: z.literal("event"), threadId: z.string(), event: ThreadEvent }),
   z.object({
     type: z.literal("changed"),
-    what: z.enum(["records", "proposals", "loops", "state", "outreach", "vault"]),
+    what: z.enum(["records", "proposals", "loops", "state", "outreach", "vault", "thread"]),
     threadId: z.string().optional(),
   }),
 ]);

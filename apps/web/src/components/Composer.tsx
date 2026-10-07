@@ -1,7 +1,17 @@
-import { ArrowUpIcon, FileTextIcon, SquareIcon, WalletIcon, ZapIcon } from "lucide-react";
+import {
+  ArrowUpIcon,
+  FileTextIcon,
+  PaperclipIcon,
+  SquareIcon,
+  WalletIcon,
+  XIcon,
+  ZapIcon,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Kbd } from "~/components/ui/kbd";
+import { guessKind, toBase64 } from "~/lib/files";
 import { cn } from "~/lib/utils";
+import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
 
 /** A model id like "claude-opus-5-5" as the label "Opus 5.5". */
@@ -18,7 +28,8 @@ type Props = {
   placeholder: string;
   working?: boolean;
   /** delivery: normal send, queued after the next tool call, or steered in now. */
-  onSend: (text: string, delivery: "send" | "queued" | "steered") => void;
+  /** attachments: vault document ids the composer uploaded for this message. */
+  onSend: (text: string, delivery: "send" | "queued" | "steered", attachments: string[]) => void;
   onStop?: () => void;
   autoFocus?: boolean;
   compact?: boolean;
@@ -37,6 +48,8 @@ export function Composer({
   compact,
 }: Props) {
   const [text, setText] = useState("");
+  const [files, setFiles] = useState<{ id: string; name: string }[]>([]);
+  const [uploading, setUploading] = useState(0);
   const ref = useRef<HTMLTextAreaElement>(null);
   const settings = useStore((s) => s.app?.settings);
   const saveSettings = useStore((s) => s.saveSettings);
@@ -51,12 +64,58 @@ export function Composer({
   const submit = (steer: boolean) => {
     const t = text.trim();
     if (!t) return;
-    onSend(t, working ? (steer ? "steered" : "queued") : "send");
+    onSend(
+      t,
+      working ? (steer ? "steered" : "queued") : "send",
+      files.map((f) => f.id),
+    );
     setText("");
+    setFiles([]);
+  };
+
+  /** Attached files go to the vault first (deduped there), then ride along by id. */
+  const attach = async (list: FileList) => {
+    for (const file of list) {
+      setUploading((n) => n + 1);
+      try {
+        const doc = await call("documents.upload", {
+          name: file.name,
+          kind: guessKind(file.name, "other"),
+          mime: file.type || "application/octet-stream",
+          base64: await toBase64(file),
+          expires: null,
+        });
+        setFiles((f) =>
+          f.some((x) => x.id === doc.id) ? f : [...f, { id: doc.id, name: doc.name }],
+        );
+      } finally {
+        setUploading((n) => n - 1);
+      }
+    }
   };
 
   return (
     <div className="rounded-[20px] border border-input bg-popover shadow-composer">
+      {files.length ? (
+        <div className="flex flex-wrap gap-1 px-3 pt-2.5" data-testid="attachments">
+          {files.map((f) => (
+            <span
+              key={f.id}
+              className="flex h-6 items-center gap-1 rounded-md border border-input pl-2 text-secondary-label text-xs"
+            >
+              {f.name}
+              <button
+                type="button"
+                aria-label={`Remove ${f.name}`}
+                onClick={() => setFiles((all) => all.filter((x) => x.id !== f.id))}
+                className="flex size-6 items-center justify-center text-muted-foreground hover:text-foreground"
+              >
+                <XIcon className="size-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      ) : null}
       <textarea
         ref={ref}
         value={text}
@@ -82,6 +141,23 @@ export function Composer({
         )}
       />
       <div className="flex items-center gap-0.5 px-2 pt-1 pb-2 text-muted-foreground text-xs">
+        <label
+          className="flex size-6.5 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-accent hover:text-foreground"
+          title="Attach files (they're kept in the Vault)"
+        >
+          <input
+            type="file"
+            multiple
+            aria-label="Attach files"
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files?.length) void attach(e.target.files);
+              e.target.value = "";
+            }}
+          />
+          <PaperclipIcon className="size-3.5" />
+        </label>
+        {uploading ? <span className="px-1">attaching</span> : null}
         {!compact && settings ? (
           <>
             <span className="flex h-6.5 items-center gap-1.5 rounded-lg px-2">

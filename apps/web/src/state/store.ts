@@ -112,7 +112,11 @@ export function subscribe() {
         }));
     }
     if (m.type === "changed") {
-      if (m.what === "proposals" && m.threadId && getState().views[m.threadId])
+      if (
+        (m.what === "proposals" || m.what === "thread") &&
+        m.threadId &&
+        getState().views[m.threadId]
+      )
         void getState().loadView(m.threadId);
       if (m.what === "records") setState((s) => ({ recordsVersion: s.recordsVersion + 1 }));
       if (m.what === "loops") setState((s) => ({ loopsVersion: s.loopsVersion + 1 }));

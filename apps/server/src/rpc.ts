@@ -31,6 +31,7 @@ import {
   saveDocument,
   saveEdit,
   startApplication,
+  readAttachments,
   vaultState,
   writingBrief,
 } from "./vault.ts";
@@ -125,9 +126,9 @@ export function createHandlers(svc: Services): Handlers {
       svc.fake ? fakeFacts() : extractFacts(input, getSettings(db).model),
 
     "threads.list": () => listThreads(db),
-    "threads.create": ({ text, title }) => {
+    "threads.create": ({ text, title, attachments = [] }) => {
       const t = createThread(db, title ?? text.replace(/\s+/g, " ").slice(0, 60));
-      runner.send(t.id, text, "send");
+      runner.send(t.id, text, "send", text, readAttachments(db, attachments));
       return thread(t.id);
     },
     "threads.view": ({ id }) => ({
@@ -137,15 +138,25 @@ export function createHandlers(svc: Services): Handlers {
       proposals: threadProposals(db, id),
     }),
     "threads.search": ({ q }) => searchThreads(db, q),
-    "threads.send": ({ id, text, delivery }) => {
+    "threads.send": ({ id, text, delivery, attachments = [] }) => {
       thread(id);
-      runner.send(id, text, delivery);
+      runner.send(id, text, delivery, text, readAttachments(db, attachments));
       return OK;
     },
     "threads.fork": ({ id }) => {
       const copy = forkThread(db, id);
       pushThreads();
       return copy;
+    },
+    "threads.editQueued": ({ threadId, eventId, text }) => {
+      if (!runner.editQueued(threadId, eventId, text))
+        throw new Error("That message already went out.");
+      return OK;
+    },
+    "threads.moveQueued": ({ threadId, eventId, by }) => {
+      if (!runner.moveQueued(threadId, eventId, by))
+        throw new Error("That message already went out.");
+      return OK;
     },
     "threads.stop": async ({ id }) => {
       await runner.stop(id);

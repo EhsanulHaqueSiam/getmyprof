@@ -9,7 +9,7 @@ import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
 import { z } from "zod";
 import { homeDir, now } from "../db.ts";
-import type { AgentProvider, SessionStart } from "./provider.ts";
+import type { AgentProvider, Attachment, SessionStart } from "./provider.ts";
 import { capProblem, type HuntTool } from "./tools.ts";
 
 const IDLE_CLOSE_MS = 60_000;
@@ -41,9 +41,38 @@ function inbox() {
   };
 }
 
-const userMessage = (text: string, priority?: "next" | "now"): SDKUserMessage => ({
+const IMAGE = ["image/png", "image/jpeg", "image/gif", "image/webp"] as const;
+const isImage = (mime: string): mime is (typeof IMAGE)[number] => IMAGE.some((m) => m === mime);
+
+/** One attached file as a content block: PDFs and images the model reads, text inline. */
+function fileBlock(f: Attachment) {
+  if (f.mime === "application/pdf")
+    return {
+      type: "document" as const,
+      source: { type: "base64" as const, media_type: "application/pdf" as const, data: f.base64 },
+      title: f.name,
+    };
+  if (isImage(f.mime))
+    return {
+      type: "image" as const,
+      source: { type: "base64" as const, media_type: f.mime, data: f.base64 },
+    };
+  const body = /^text\/|json|xml|csv/.test(f.mime)
+    ? Buffer.from(f.base64, "base64").toString("utf8").slice(0, 100_000)
+    : "(a file the model can't read directly)";
+  return { type: "text" as const, text: `Attached ${f.name}:\n${body}` };
+}
+
+const userMessage = (
+  text: string,
+  priority?: "next" | "now",
+  files: Attachment[] = [],
+): SDKUserMessage => ({
   type: "user",
-  message: { role: "user", content: text },
+  message: {
+    role: "user",
+    content: files.length ? [...files.map(fileBlock), { type: "text", text }] : text,
+  },
   parent_tool_use_id: null,
   ...(priority ? { priority } : {}),
 });
@@ -276,13 +305,13 @@ export const claudeProvider: AgentProvider = {
     })();
 
     beginTurn();
-    input.push(userMessage(s.firstText));
+    input.push(userMessage(s.firstText, undefined, s.firstFiles));
 
     return {
-      push(text, priority) {
+      push(text, priority, files) {
         const wasBusy = busy;
         beginTurn();
-        input.push(userMessage(text, wasBusy ? priority : undefined));
+        input.push(userMessage(text, wasBusy ? priority : undefined, files));
       },
       interrupt: async () => {
         await q.interrupt();

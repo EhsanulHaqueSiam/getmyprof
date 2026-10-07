@@ -1,6 +1,9 @@
 import type { McpServer, ThreadEvent } from "@gradcode/contracts";
 import type { HuntTool, ToolContext } from "./tools.ts";
 
+/** A file sent with a message: the model reads PDFs and images, text files inline. */
+export type Attachment = { name: string; mime: string; base64: string };
+
 /** What a provider reports back while a session runs. The runner turns these into thread state. */
 export type SessionHooks = {
   emit: (event: ThreadEvent) => void;
@@ -23,6 +26,7 @@ export type SessionStart = {
   /** Resume as a new branch of that conversation (a forked thread's first message). */
   fork: boolean;
   firstText: string;
+  firstFiles: Attachment[];
   systemPrompt: string;
   model: string;
   tools: HuntTool[];
@@ -35,7 +39,7 @@ export type SessionStart = {
 
 /** A running agent conversation. `push` delivers a message: normally, after the next tool call, or now. */
 export type AgentSession = {
-  push: (text: string, priority?: "next" | "now") => void;
+  push: (text: string, priority?: "next" | "now", files?: Attachment[]) => void;
   interrupt: () => Promise<void>;
   close: () => void;
 };

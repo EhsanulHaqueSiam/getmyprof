@@ -178,8 +178,8 @@ function ThreadPage() {
                     ? "Answer the question above."
                     : "Ask anything, or tell it what to find next."
                 }
-                onSend={(text, delivery) =>
-                  void call("threads.send", { id: threadId, text, delivery })
+                onSend={(text, delivery, attachments) =>
+                  void call("threads.send", { id: threadId, text, delivery, attachments })
                 }
                 onStop={() => void call("threads.stop", { id: threadId })}
               />

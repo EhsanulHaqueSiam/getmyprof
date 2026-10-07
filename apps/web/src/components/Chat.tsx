@@ -2,13 +2,16 @@ import type { ThreadEvent } from "@gradcode/contracts";
 import {
   BanIcon,
   CheckIcon,
+  ChevronDownIcon,
   ChevronRightIcon,
+  ChevronUpIcon,
   CircleAlertIcon,
   DollarSignIcon,
   GlobeIcon,
   LandmarkIcon,
   LoaderIcon,
   MessageCircleQuestionIcon,
+  PencilIcon,
   SearchIcon,
   UserIcon,
   UsersIcon,
@@ -128,6 +131,91 @@ function WorkLog({
   );
 }
 
+/** A message waiting for the next tool call: edit, remove or move it until it goes out. */
+function QueuedMessage({
+  event,
+  threadId,
+}: {
+  event: Extract<ThreadEvent, { type: "user" }>;
+  threadId: string;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(event.text);
+  const edit = (next: string | null) =>
+    void call("threads.editQueued", { threadId, eventId: event.id, text: next }).catch(() => {});
+  const move = (by: -1 | 1) =>
+    void call("threads.moveQueued", { threadId, eventId: event.id, by }).catch(() => {});
+  return (
+    <div className="flex animate-fade-up flex-col items-end gap-1" data-testid="queued">
+      {editing ? (
+        <div className="flex w-[86%] flex-col gap-1.5">
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            aria-label="Edit queued message"
+            rows={3}
+            className="resize-none rounded-2xl border bg-accent px-3.5 py-2.5 text-sm outline-none"
+          />
+          <div className="flex justify-end gap-1">
+            <Button size="xs" variant="ghost-muted" onClick={() => setEditing(false)}>
+              Cancel
+            </Button>
+            <Button
+              size="xs"
+              disabled={!text.trim()}
+              onClick={() => {
+                edit(text.trim());
+                setEditing(false);
+              }}
+            >
+              Save
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="max-w-[86%] whitespace-pre-wrap rounded-2xl border border-dashed bg-accent/60 px-3.5 py-2.5 text-sm leading-relaxed">
+          {event.text}
+        </div>
+      )}
+      <span className="flex items-center gap-1 pr-1 text-2xs text-muted-foreground">
+        queued · after the current tool call
+        <Button
+          size="icon-micro"
+          variant="ghost-muted"
+          aria-label="Move up"
+          onClick={() => move(-1)}
+        >
+          <ChevronUpIcon />
+        </Button>
+        <Button
+          size="icon-micro"
+          variant="ghost-muted"
+          aria-label="Move down"
+          onClick={() => move(1)}
+        >
+          <ChevronDownIcon />
+        </Button>
+        <Button
+          size="icon-micro"
+          variant="ghost-muted"
+          aria-label="Edit queued message"
+          onClick={() => setEditing(true)}
+        >
+          <PencilIcon />
+        </Button>
+        <Button
+          size="icon-micro"
+          variant="ghost-muted"
+          aria-label="Remove queued message"
+          onClick={() => edit(null)}
+        >
+          <XIcon />
+        </Button>
+      </span>
+    </div>
+  );
+}
+
 /** A paid call waiting for the user, or a one-line record of how it was answered. */
 export function ApprovalCard({ event, threadId }: { event: Approval; threadId: string }) {
   if (event.status !== "pending")
@@ -184,12 +272,19 @@ export function Transcript({
             <ApprovalCard key={b.event.id} event={b.event} threadId={threadId} />
           );
         const e = b.event;
+        if (e.type === "user" && e.delivery === "queued")
+          return <QueuedMessage key={e.id} event={e} threadId={threadId} />;
         if (e.type === "user")
           return (
             <div key={e.id} className="flex animate-fade-up flex-col items-end gap-1">
               <div className="max-w-[86%] whitespace-pre-wrap rounded-2xl bg-accent px-3.5 py-2.5 text-sm leading-relaxed">
                 {e.text}
               </div>
+              {e.attachments.length ? (
+                <span className="pr-2 text-2xs text-muted-foreground">
+                  attached {e.attachments.join(", ")}
+                </span>
+              ) : null}
               {e.delivery !== "send" ? (
                 <span className="pr-2 text-2xs text-muted-foreground">
                   {e.delivery === "queued" ? "queued · after the current tool call" : "steered"}

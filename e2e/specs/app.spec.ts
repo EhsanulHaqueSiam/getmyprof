@@ -301,3 +301,24 @@ test("threads: fork one to branch from it, and find any thread by what was said"
   await page.getByLabel("Command").fill("wants applications");
   await expect(page.getByText(/Find professors · ".*wants applications/).first()).toBeVisible();
 });
+
+test("composer: an attached file is kept in the vault and reaches the agent", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /Settled/ }).click();
+  await page.getByRole("link", { name: "Find professors", exact: true }).click();
+  // The new-thread page has a composer too; attach only once the thread's own is showing.
+  await expect(page.getByRole("heading", { name: "Find professors", exact: true })).toBeVisible();
+  await page.getByLabel("Attach files").setInputFiles({
+    name: "lab-flyer.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from("%PDF-1.4 flyer"),
+  });
+  await expect(page.getByTestId("attachments")).toContainText("lab-flyer.pdf");
+  await page.getByLabel("Message").fill("Does this lab fit me?");
+  await page.getByLabel("Message").press("Enter");
+  await expect(page.getByText("attached lab-flyer.pdf")).toBeVisible();
+  await expect(page.getByText("Read lab-flyer.pdf.")).toBeVisible();
+
+  await page.goto("/vault?section=documents");
+  await expect(page.getByTestId("documents")).toContainText("lab-flyer.pdf");
+});

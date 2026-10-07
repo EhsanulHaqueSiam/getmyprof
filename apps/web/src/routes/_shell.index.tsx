@@ -55,8 +55,12 @@ const STARTERS: { icon: ReactNode; title: string; detail: string; prompt: string
 function NewThread() {
   const navigate = useNavigate();
   const hunt = useStore((s) => s.app?.hunt);
-  const start = async (text: string, title?: string) => {
-    const t = await call("threads.create", { text, ...(title ? { title } : {}) });
+  const start = async (text: string, title?: string, attachments: string[] = []) => {
+    const t = await call("threads.create", {
+      text,
+      ...(title ? { title } : {}),
+      ...(attachments.length ? { attachments } : {}),
+    });
     void navigate({ to: "/t/$threadId", params: { threadId: t.id } });
   };
   return (
@@ -84,7 +88,7 @@ function NewThread() {
         <Composer
           autoFocus
           placeholder="Describe what to find."
-          onSend={(text) => void start(text)}
+          onSend={(text, _delivery, attachments) => void start(text, undefined, attachments)}
         />
       </div>
     </div>

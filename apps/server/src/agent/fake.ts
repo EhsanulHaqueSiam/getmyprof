@@ -327,10 +327,17 @@ export const fakeProvider = (
       if (next !== undefined) void run(next);
     }
 
+    /** The fake can't read files, but says which ones arrived, so tests see them get through. */
+    const received = (files: { name: string }[] | undefined) => {
+      if (files?.length) say(`Read ${files.map((f) => f.name).join(", ")}.`);
+    };
+
     hooks.sessionId(`fake-session-${s.threadId}`);
+    received(s.firstFiles);
     void run(s.firstText);
     return {
-      push(text) {
+      push(text, _priority, files) {
+        received(files);
         if (busy) queue.push(text);
         else void run(text);
       },

@@ -155,3 +155,32 @@ describe("forking a thread", () => {
     ).toBe(false);
   });
 });
+
+describe("a queued message", () => {
+  it("waits for the next tool call, can be edited until then, and the agent gets the edit", async () => {
+    const db = openDb(":memory:");
+    const runner = createRunner({
+      db,
+      bus: createBus(),
+      provider: fakeProvider(40),
+      sources: fixtureSources,
+    });
+    const thread = createThread(db, "t").id;
+    runner.send(thread, "find health NLP professors", "send");
+    await until(() => getThread(db, thread)?.status === "working");
+    runner.send(thread, "only Chicago", "queued");
+    const queued = listEvents(db, thread).findLast((e) => e.type === "user");
+    expect(runner.editQueued(thread, queued!.id, "only UIC")).toBe(true);
+
+    await until(
+      () =>
+        getThread(db, thread)?.status === "idle" &&
+        listEvents(db, thread).some((e) => e.type === "assistant" && e.text.includes("only UIC")),
+    );
+    expect(listEvents(db, thread).find((e) => e.id === queued!.id)).toMatchObject({
+      text: "only UIC",
+      delivery: "send",
+    });
+    expect(runner.editQueued(thread, queued!.id, "too late")).toBe(false);
+  });
+});

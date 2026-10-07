@@ -14,12 +14,14 @@ import {
   settle,
   settleIfDone,
   getThread,
+  deleteEvent,
+  listEvents,
   pendingQuestion,
   sharesSession,
   threadSpend,
 } from "../threads.ts";
 import { systemPrompt } from "./prompt.ts";
-import type { AgentProvider, AgentSession, SessionHooks } from "./provider.ts";
+import type { AgentProvider, AgentSession, Attachment, SessionHooks } from "./provider.ts";
 import { type Sources, toolsFor } from "./tools.ts";
 
 const ROW_INSTRUCTIONS: Record<RowOp, string> = {
@@ -51,13 +53,33 @@ export function createRunner(deps: {
   const approvals = new Map<string, { threadId: string; resolve: (ok: boolean) => void }>();
   const turns = new Map<string, { at: number; spend: number; calls: number }>();
 
+  /** Queued messages held until the next tool call ends, editable and reorderable until then. */
+  const held = new Map<string, { eventId: string; text: string; files: Attachment[] }[]>();
+
   const pushThreads = () => bus.push({ type: "threads", threads: listThreads(db) });
+  const reloadThread = (threadId: string) =>
+    bus.push({ type: "changed", what: "thread", threadId });
 
   function emit(threadId: string, event: ThreadEvent) {
     putEvent(db, threadId, event);
     bus.push({ type: "event", threadId, event });
     const turn = turns.get(threadId);
     if (turn && event.type === "tool" && event.status !== "running") turn.calls++;
+    if (event.type === "tool" && event.status !== "running") flush(threadId, "next");
+  }
+
+  /** Hands held messages to the session: after a tool call ("next"), or as the next turn. */
+  function flush(threadId: string, priority: "next" | undefined) {
+    const queue = held.get(threadId);
+    const live = sessions.get(threadId);
+    if (!queue?.length || !live) return;
+    held.delete(threadId);
+    const events = listEvents(db, threadId);
+    for (const m of queue) {
+      live.push(m.text, priority, m.files);
+      const e = events.find((x) => x.id === m.eventId);
+      if (e?.type === "user") emit(threadId, { ...e, delivery: "send" });
+    }
   }
 
   function hooksFor(threadId: string): SessionHooks {
@@ -93,6 +115,8 @@ export function createRunner(deps: {
         // Changes from this turn already reviewed while it ran: nothing waits, so settle now.
         const started = new Date(turn.at).toISOString();
         const mine = threadProposals(db, threadId).filter((p) => p.createdAt >= started);
+        // Messages still held when a turn ends become the next turn; a stopped turn dropped them.
+        flush(threadId, undefined);
         if (mine.length > 0 && settleIfDone(db, threadId))
           emit(threadId, {
             id: newId("sys"),
@@ -131,7 +155,7 @@ export function createRunner(deps: {
     };
   }
 
-  function start(threadId: string, text: string) {
+  function start(threadId: string, text: string, files: Attachment[]) {
     const settings = getSettings(db);
     const hunt = getHunt(db);
     const session = provider.start({
@@ -139,6 +163,7 @@ export function createRunner(deps: {
       resumeId: sessionId(db, threadId),
       fork: sharesSession(db, threadId),
       firstText: text,
+      firstFiles: files,
       systemPrompt: systemPrompt(
         hunt,
         profileFacts(db),
@@ -185,21 +210,74 @@ export function createRunner(deps: {
     text: string,
     delivery: "send" | "queued" | "steered",
     shown = text,
+    files: Attachment[] = [],
   ) {
     // The next message after a question is its answer.
     const asked = pendingQuestion(db, threadId);
     if (asked?.type === "question") emit(threadId, { ...asked, status: "answered" });
-    emit(threadId, { id: newId("msg"), at: now(), type: "user", text: shown, delivery });
+    const eventId = newId("msg");
+    emit(threadId, {
+      id: eventId,
+      at: now(),
+      type: "user",
+      text: shown,
+      delivery,
+      attachments: files.map((f) => f.name),
+    });
+    const status = getThread(db, threadId)?.status;
     if (getThread(db, threadId)?.settledAt) settle(db, threadId, false);
     const live = sessions.get(threadId);
-    if (live)
-      live.push(text, delivery === "steered" ? "now" : delivery === "queued" ? "next" : undefined);
-    else start(threadId, text);
+    const busy = status === "working" || status === "approval";
+    if (live && delivery === "queued" && busy)
+      held.set(threadId, [...(held.get(threadId) ?? []), { eventId, text, files }]);
+    else if (live) live.push(text, delivery === "steered" ? "now" : undefined, files);
+    else start(threadId, text, files);
     pushThreads();
+  }
+
+  /** Changes or removes (text null) a message still held in the queue. False once it went out. */
+  function editQueued(threadId: string, eventId: string, text: string | null) {
+    const queue = held.get(threadId) ?? [];
+    const i = queue.findIndex((m) => m.eventId === eventId);
+    const e = listEvents(db, threadId).find((x) => x.id === eventId);
+    if (i < 0 || e?.type !== "user") return false;
+    if (text === null) {
+      queue.splice(i, 1);
+      deleteEvent(db, threadId, eventId);
+      reloadThread(threadId);
+    } else {
+      queue[i] = { eventId, text, files: queue[i]?.files ?? [] };
+      emit(threadId, { ...e, text });
+    }
+    return true;
+  }
+
+  /** Moves a held message one place earlier (-1) or later (+1); the transcript follows. */
+  function moveQueued(threadId: string, eventId: string, by: -1 | 1) {
+    const queue = held.get(threadId) ?? [];
+    const i = queue.findIndex((m) => m.eventId === eventId);
+    const j = i + by;
+    const a = queue[i];
+    const b = queue[j];
+    if (!a || !b) return false;
+    queue[i] = b;
+    queue[j] = a;
+    // Re-append the held messages in their new order, so the transcript reads the same way.
+    const events = listEvents(db, threadId);
+    for (const m of queue) {
+      const e = events.find((x) => x.id === m.eventId);
+      if (!e) continue;
+      deleteEvent(db, threadId, e.id);
+      putEvent(db, threadId, e);
+    }
+    reloadThread(threadId);
+    return true;
   }
 
   return {
     send,
+    editQueued,
+    moveQueued,
     rowAction(threadId: string, op: RowOp, keys: string[]) {
       const rows = keys.flatMap((k) => {
         const r = getRecord(db, k);
@@ -219,6 +297,9 @@ export function createRunner(deps: {
     },
     async stop(threadId: string) {
       for (const a of approvals.values()) if (a.threadId === threadId) a.resolve(false);
+      // Stop means stop: messages still waiting in the queue go away instead of starting a turn.
+      for (const m of held.get(threadId) ?? []) deleteEvent(db, threadId, m.eventId);
+      if (held.delete(threadId)) reloadThread(threadId);
       await sessions.get(threadId)?.interrupt();
     },
     resolveApproval(approvalId: string, ok: boolean) {

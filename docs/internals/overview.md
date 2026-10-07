@@ -45,6 +45,13 @@ call) or `now` (steered). A session closes after a minute idle.
 - **Settling.** A thread settles once it is idle with nothing pending in Review; idle threads
   nobody touched for 3 days settle on their own.
 
+## Loops
+
+A loop runs every N hours, at a time on chosen weekdays (server local time), or when its webhook
+is called: `POST /api/hooks/<token>` with JSON, whose fields fill `{{body.path}}` placeholders in
+the instructions. The token is made once per loop and compared in constant time; the URL is the
+secret. Runs go to a fresh thread each time, or every run back to the loop's one thread.
+
 ## Input
 
 `ask_applicant` puts a question in the thread and returns at once; the turn ends and the thread

@@ -136,6 +136,7 @@ export const Methods = {
       schedule: Schedule,
       budgetUsd: z.number(),
       enabled: z.boolean(),
+      reportTo: z.enum(["fresh", "same"]).optional(),
     }),
     output: Loop,
   },

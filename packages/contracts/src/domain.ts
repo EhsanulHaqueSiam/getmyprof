@@ -172,10 +172,20 @@ export const Proposal = z.object({
 });
 export type Proposal = z.infer<typeof Proposal>;
 
+/**
+ * When a loop runs: every N hours, at a time on chosen weekdays (0 Sunday; none means every
+ * day), or when its webhook is called. daily and weekly are older forms, still read.
+ */
 export const Schedule = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("every"), hours: z.number().positive() }),
+  z.object({
+    kind: z.literal("at"),
+    at: z.string(),
+    weekdays: z.array(z.number().int().min(0).max(6)),
+  }),
+  z.object({ kind: z.literal("webhook") }),
   z.object({ kind: z.literal("daily"), at: z.string() }),
   z.object({ kind: z.literal("weekly"), day: z.number().int().min(0).max(6), at: z.string() }),
-  z.object({ kind: z.literal("every"), hours: z.number().positive() }),
 ]);
 export type Schedule = z.infer<typeof Schedule>;
 
@@ -189,6 +199,12 @@ export const Loop = z.object({
   lastRunAt: z.string().nullable(),
   nextRunAt: z.string().nullable(),
   lastSummary: z.string(),
+  /** Each run in a fresh thread, or every run back in one thread. */
+  reportTo: z.enum(["fresh", "same"]).default("fresh"),
+  /** The one thread runs go to when reportTo is "same". */
+  threadId: z.string().nullable().default(null),
+  /** The secret in a webhook loop's URL, /api/hooks/<token>. */
+  hookToken: z.string().nullable().default(null),
 });
 export type Loop = z.infer<typeof Loop>;
 

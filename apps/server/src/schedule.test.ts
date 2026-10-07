@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
-import { nextRun } from "./loops.ts";
+import { openDb } from "./db.ts";
+import { fillPlaceholders, hookLoop, nextRun, saveLoop } from "./loops.ts";
 import { intakeStart, monthsAfter } from "./sources.ts";
 
 describe("nextRun", () => {
@@ -21,6 +22,38 @@ describe("nextRun", () => {
 
   it("runs every N hours from the last run", () => {
     expect(nextRun({ kind: "every", hours: 6 }, from)).toEqual(new Date(2026, 9, 7, 15, 30));
+  });
+
+  it("runs at a time on chosen weekdays, or every day when none are chosen", () => {
+    // Tuesday and Thursday at 08:00, from Wednesday 09:30: Thursday.
+    expect(nextRun({ kind: "at", at: "08:00", weekdays: [2, 4] }, from)).toEqual(
+      new Date(2026, 9, 8, 8, 0),
+    );
+    expect(nextRun({ kind: "at", at: "23:00", weekdays: [] }, from)).toEqual(
+      new Date(2026, 9, 7, 23, 0),
+    );
+    expect(nextRun({ kind: "webhook" }, from)).toBeNull();
+  });
+});
+
+describe("a webhook loop", () => {
+  it("keeps its secret across saves, answers only to it, and fills placeholders from the body", () => {
+    const db = openDb(":memory:");
+    const base = {
+      name: "New award posted",
+      instructions: "Vet {{body.pi}} at {{body.org.name}}, award {{body.id}}.{{body.missing}}",
+      schedule: { kind: "webhook" as const },
+      budgetUsd: 0.5,
+      enabled: true,
+    };
+    const loop = saveLoop(db, base);
+    expect(loop.hookToken).toMatch(/^[\w-]{24}$/);
+    expect(saveLoop(db, { ...base, id: loop.id }).hookToken).toBe(loop.hookToken);
+    expect(hookLoop(db, loop.hookToken ?? "")?.id).toBe(loop.id);
+    expect(hookLoop(db, "not-the-token")).toBeNull();
+    expect(
+      fillPlaceholders(base.instructions, { pi: "Ge Gao", org: { name: "UMD" }, id: 2443387 }),
+    ).toBe("Vet Ge Gao at UMD, award 2443387.");
   });
 });
 

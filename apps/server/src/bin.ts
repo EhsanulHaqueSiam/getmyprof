@@ -11,7 +11,7 @@ import { realSources } from "./agent/tools.ts";
 import { createBus } from "./bus.ts";
 import { openDb } from "./db.ts";
 import { health } from "./health.ts";
-import { dueLoops, listLoops, markRan } from "./loops.ts";
+import { dueLoops, fillPlaceholders, hookLoop, listLoops, markRan } from "./loops.ts";
 import { fakeMailer, imapMailer } from "./outreach/mail.ts";
 import { createOutreach } from "./outreach/service.ts";
 import { createHandlers, dispatch } from "./rpc.ts";
@@ -45,20 +45,27 @@ const outreach = createOutreach({
   mailerFor: fake ? () => sandboxMail : imapMailer,
 });
 
-/** Starts one loop run as its own thread; the loop's instructions are the first message. */
-function startLoop(id: string) {
+/**
+ * Starts one loop run: in a fresh thread, or back in the loop's one thread. A webhook's request
+ * body fills the {{body.path}} placeholders in the instructions.
+ */
+function startLoop(id: string, body: unknown = null) {
   const loop = listLoops(db).find((l) => l.id === id);
   if (!loop) throw new Error(`No loop ${id}`);
   const ranAt = new Date();
-  const t = createThread(
-    db,
-    `${loop.name} · ${ranAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
-    loop.id,
-  );
-  markRan(db, loop, ranAt);
-  runner.send(t.id, loop.instructions, "send");
+  const day = ranAt.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const same = loop.reportTo === "same" && loop.threadId ? getThread(db, loop.threadId) : null;
+  const threadId =
+    same?.id ??
+    createThread(db, loop.reportTo === "same" ? loop.name : `${loop.name} · ${day}`, loop.id).id;
+  markRan(db, loop, ranAt, threadId);
+  const text = fillPlaceholders(loop.instructions, body);
+  // A repeat of the same instructions in one thread shows as a short label; a webhook's filled
+  // text differs every call, so it shows in full.
+  const repeat = same && loop.schedule.kind !== "webhook";
+  runner.send(threadId, text, "send", repeat ? `${loop.name} · run ${day}` : text);
   bus.push({ type: "changed", what: "loops" });
-  return getThread(db, t.id)!;
+  return getThread(db, threadId)!;
 }
 
 const handlers = createHandlers({ db, bus, runner, sources, fake, startLoop, outreach });
@@ -77,6 +84,34 @@ setInterval(() => settleStale(db), 3_600_000);
 const server = NodeHttp.createServer((req, res) => {
   if (req.method === "GET" && req.url === "/api/health") {
     res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify(health()));
+    return;
+  }
+  // A webhook loop's trigger: POST JSON to /api/hooks/<token>; the body fills its placeholders.
+  const hook = /^\/api\/hooks\/([\w-]+)$/.exec(req.url ?? "");
+  if (hook && req.method === "POST") {
+    const loop = hookLoop(db, hook[1] ?? "");
+    if (!loop) {
+      res.writeHead(404).end();
+      return;
+    }
+    let raw = "";
+    req.setEncoding("utf8");
+    req.on("data", (chunk: string) => {
+      raw += chunk;
+      if (raw.length > 1_000_000) req.destroy();
+    });
+    req.on("end", () => {
+      let body: unknown = raw;
+      try {
+        body = raw ? JSON.parse(raw) : {};
+      } catch {
+        // Not JSON: the raw text is still there as {{body}}.
+      }
+      const t = startLoop(loop.id, body);
+      res
+        .writeHead(202, { "content-type": "application/json" })
+        .end(JSON.stringify({ threadId: t.id }));
+    });
     return;
   }
   // A vault document, opened in a tab. Sandboxed, so an uploaded HTML file can't run on our origin.

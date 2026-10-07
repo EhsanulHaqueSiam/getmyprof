@@ -2,6 +2,7 @@ import type { Loop, Schedule } from "@gradcode/contracts";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PlayIcon, PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { cadence, normalize, ScheduleEditor } from "~/components/ScheduleEditor";
 import { Button } from "~/components/ui/button";
 import { ago } from "~/lib/format";
 import { cn } from "~/lib/utils";
@@ -10,19 +11,21 @@ import { useStore } from "~/state/store";
 
 export const Route = createFileRoute("/_shell/loops")({ component: Loops });
 
-const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const when = (s: Schedule) =>
-  s.kind === "daily"
-    ? `daily ${s.at}`
-    : s.kind === "weekly"
-      ? `${DAYS[s.day]} ${s.at}`
-      : `every ${s.hours}h`;
-const BLANK = {
+const when = cadence;
+const BLANK: {
+  name: string;
+  instructions: string;
+  schedule: Schedule;
+  budgetUsd: number;
+  enabled: boolean;
+  reportTo: "fresh" | "same";
+} = {
   name: "",
   instructions: "",
-  schedule: { kind: "daily", at: "23:00" } as Schedule,
+  schedule: { kind: "at", at: "23:00", weekdays: [] },
   budgetUsd: 0.5,
   enabled: true,
+  reportTo: "fresh",
 };
 
 /** Recurring hunts. Each run is a thread that settles itself once its changes are reviewed. */
@@ -47,9 +50,10 @@ function Loops() {
         id: l.id,
         name: l.name,
         instructions: l.instructions,
-        schedule: l.schedule,
+        schedule: normalize(l.schedule),
         budgetUsd: l.budgetUsd,
         enabled: l.enabled,
+        reportTo: l.reportTo,
       });
   }, [pickedId, loops]);
 
@@ -119,7 +123,9 @@ function Loops() {
                           minute: "2-digit",
                           hourCycle: "h23",
                         })
-                      : "off"}
+                      : l.enabled && l.schedule.kind === "webhook"
+                        ? "when called"
+                        : "off"}
                   </td>
                   <td
                     className={cn(
@@ -151,71 +157,23 @@ function Loops() {
           aria-label="Instructions"
           className="resize-none rounded-xl border border-input bg-popover px-3 py-2.5 text-[12.5px] leading-relaxed outline-none placeholder:text-placeholder"
         />
+        <ScheduleEditor
+          value={draft.schedule}
+          hookToken={loops.find((l) => l.id === draft.id)?.hookToken ?? null}
+          onChange={(schedule) => setDraft({ ...draft, schedule })}
+        />
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <select
-            value={draft.schedule.kind}
-            aria-label="Schedule"
-            onChange={(e) => {
-              const k = e.target.value;
-              setDraft({
-                ...draft,
-                schedule:
-                  k === "every"
-                    ? { kind: "every", hours: 6 }
-                    : k === "weekly"
-                      ? { kind: "weekly", day: 1, at: "08:00" }
-                      : { kind: "daily", at: "23:00" },
-              });
-            }}
+            value={draft.reportTo}
+            aria-label="Report to"
+            onChange={(e) =>
+              setDraft({ ...draft, reportTo: e.target.value === "same" ? "same" : "fresh" })
+            }
             className="h-7 rounded-lg border border-input bg-background px-2"
           >
-            <option value="daily">daily</option>
-            <option value="weekly">weekly</option>
-            <option value="every">every N hours</option>
+            <option value="fresh">a fresh thread each run</option>
+            <option value="same">one thread for every run</option>
           </select>
-          {draft.schedule.kind === "weekly" ? (
-            <select
-              value={draft.schedule.day}
-              aria-label="Day"
-              onChange={(e) =>
-                draft.schedule.kind === "weekly" &&
-                setDraft({ ...draft, schedule: { ...draft.schedule, day: Number(e.target.value) } })
-              }
-              className="h-7 rounded-lg border border-input bg-background px-2"
-            >
-              {DAYS.map((d, i) => (
-                <option key={d} value={i}>
-                  {d}
-                </option>
-              ))}
-            </select>
-          ) : null}
-          {draft.schedule.kind === "every" ? (
-            <input
-              type="number"
-              min="1"
-              value={draft.schedule.hours}
-              aria-label="Hours"
-              onChange={(e) =>
-                setDraft({
-                  ...draft,
-                  schedule: { kind: "every", hours: Number(e.target.value) || 1 },
-                })
-              }
-              className="h-7 w-14 rounded-lg border border-input bg-transparent px-2"
-            />
-          ) : (
-            <input
-              type="time"
-              value={draft.schedule.at}
-              aria-label="Time"
-              onChange={(e) =>
-                draft.schedule.kind !== "every" &&
-                setDraft({ ...draft, schedule: { ...draft.schedule, at: e.target.value } })
-              }
-              className="h-7 rounded-lg border border-input bg-transparent px-2"
-            />
-          )}
           <label className="flex items-center gap-1.5 text-muted-foreground">
             budget $
             <input

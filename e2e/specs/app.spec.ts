@@ -244,3 +244,29 @@ test("after applying: an interview gets a prep pack and a thank-you, and offers 
   await expect(page.getByTestId("offers")).toContainText("$16,000");
   await expect(page.getByTestId("offers")).toContainText("$13,200");
 });
+
+test("loops: a webhook run fills its placeholders, and every run goes back to one thread", async ({
+  page,
+  request,
+}) => {
+  await page.goto("/loops");
+  await page.getByRole("button", { name: "New loop" }).click();
+  await page.getByLabel("Loop name").fill("Award watch");
+  await page.getByLabel("Instructions").fill("Vet {{body.pi}} at {{body.org}}.");
+  await page.getByLabel("Schedule").selectOption("webhook");
+  await page.getByLabel("Report to").selectOption("same");
+  await page.getByRole("button", { name: "Save" }).click();
+  const url = await page.getByTestId("hook-url").textContent();
+  const path = new URL(url ?? "").pathname;
+
+  const first = await request.post(path, { data: { pi: "Ge Gao", org: "UMD" } });
+  expect(first.status()).toBe(202);
+  const { threadId } = await first.json();
+  const second = await request.post(path, { data: { pi: "Rui Zhang", org: "Penn State" } });
+  expect((await second.json()).threadId).toBe(threadId);
+  expect((await request.post("/api/hooks/not-a-token", { data: {} })).status()).toBe(404);
+
+  await page.goto(`/t/${threadId}`);
+  await expect(page.getByText("Vet Ge Gao at UMD.")).toBeVisible();
+  await expect(page.getByText("Vet Rui Zhang at Penn State.")).toBeVisible();
+});

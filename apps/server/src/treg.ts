@@ -1,10 +1,11 @@
-// The one place gradcode talks to treg. Every paid lookup goes through tregCall: it tags the call
-// with this install's customer (from the saved login, never from the model), caps it at the
-// budget left, and returns what it really cost under treg's call id for the spend ledger.
-// The login is a token pinned to customer=<id>, minted by scripts/treg-admin.ts.
+// The one place gradcode makes paid lookups. Every one goes through tregCall: it tags the call
+// with its hunt, thread and feature (from context, never from the model), caps it at the budget
+// left, and returns what it really cost under treg's call id for the spend ledger. The login is
+// the user's own team key, or a key a team issued to them, pinned by treg to their customer id
+// (treg-org.ts mints them). Account and team management lives in treg-org.ts.
 import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
-import { TagValue, TregConnect } from "@gradcode/contracts";
+import { TagValue } from "@gradcode/contracts";
 import { z } from "zod";
 import { homeDir } from "./db.ts";
 import { asRecord } from "./sources.ts";
@@ -133,13 +134,24 @@ export const TREG_ENDPOINTS: Record<
   },
 };
 
-export type TregLogin = TregConnect;
+/**
+ * The saved login: the key, and who treg said it is when it connected. `customer` is only in
+ * logins saved before treg's pin carried it, and still goes out as a tag.
+ */
+export const TregLogin = z.object({
+  token: z.string(),
+  customer: TagValue.optional(),
+  org: z.string().default(""),
+  role: z.string().default("member"),
+  issued: z.boolean().default(true),
+});
+export type TregLogin = z.input<typeof TregLogin>;
 
 const loginPath = () => NodePath.join(homeDir(), "treg.json");
 
-export function readTregLogin(): TregLogin | null {
+export function readTregLogin() {
   try {
-    return TregConnect.parse(JSON.parse(NodeFS.readFileSync(loginPath(), "utf8")));
+    return TregLogin.parse(JSON.parse(NodeFS.readFileSync(loginPath(), "utf8")));
   } catch {
     return null;
   }
@@ -154,19 +166,12 @@ export function saveTregLogin(login: TregLogin) {
 
 export const removeTregLogin = () => NodeFS.rmSync(loginPath(), { force: true });
 
-/** Whether treg accepts this token: a free, authenticated read that reaches no provider. */
-export async function checkTregToken(token: string, fetchFn: typeof fetch = fetch) {
-  const r = await fetchFn(`${TREG_BASE}/tools`, { headers: { "X-Treg-Token": token } });
-  if (r.status === 401 || r.status === 403) throw new Error("treg refused this token");
-  if (!r.ok) throw new Error(`treg answered ${r.status}; try again`);
-}
-
 export type TregRequest = {
   endpoint: string;
   data: Record<string, unknown>;
   /** The most this call may cost, in USD: the endpoint's max or the budget left, whichever is lower. */
   maxUsd: number;
-  /** What the call is for. The customer is added from the login. */
+  /** What the call is for. treg adds the customer an issued key is pinned to. */
   tags: { thread: string; feature: string; hunt?: string | undefined };
 };
 

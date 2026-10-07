@@ -12,12 +12,12 @@ const featureLabel = (f: string) =>
   f.startsWith("row-") && f.slice(4) in ROW_OPS ? ROW_OPS[f.slice(4) as RowOp].label : `${f}s`;
 
 /**
- * The Paid lookups row, in Settings and setup: connect the treg token issued for this install
- * (pinned to its customer id), switch paid lookups on or off, and see this month's spend.
+ * The Paid lookups row, in Settings and setup: connect a treg key (the user's own, or one issued
+ * to them), switch paid lookups on or off, and see this month's spend.
  */
 export function TregSettings() {
   const app = useStore((s) => s.app);
-  const [form, setForm] = useState({ customer: "", token: "" });
+  const [form, setForm] = useState({ token: "" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   if (!app) return null;
@@ -49,7 +49,7 @@ export function TregSettings() {
           >
             {settings.treg ? "On" : "Off"}
           </Chip>
-          <span className="text-foreground">{treg.customer}</span>
+          <span className="text-foreground">{treg.issued ? `paid by ${treg.org}` : treg.org}</span>
           <span className="text-muted-foreground text-xs">
             {treg.month.calls
               ? `${usd(treg.month.usd)} this month · ${treg.month.calls} call${treg.month.calls === 1 ? "" : "s"}`
@@ -86,26 +86,19 @@ export function TregSettings() {
     >
       <Input
         size="compact"
-        aria-label="Customer id"
-        placeholder="Customer id, e.g. cust_8123"
-        value={form.customer}
-        onChange={(e) => setForm({ ...form, customer: e.target.value.trim() })}
-      />
-      <Input
-        size="compact"
         type="password"
         aria-label="treg token"
-        placeholder="treg token issued for this install"
+        placeholder="treg key"
         value={form.token}
         onChange={(e) => setForm({ ...form, token: e.target.value.trim() })}
       />
       <span className="text-muted-foreground text-xs">
-        People search, email finding and checks, billed to this customer. Without it, only free
-        sources and emails printed on official pages.
+        People search, email finding and checks. Your own key from treg.to, or one issued to you.
+        Without it, only free sources and emails printed on official pages.
       </span>
       {error ? <span className="text-destructive-foreground text-xs">{error}</span> : null}
       <div>
-        <Button size="xs" type="submit" disabled={busy || !form.customer || !form.token}>
+        <Button size="xs" type="submit" disabled={busy || !form.token}>
           {busy ? "Checking" : "Connect"}
         </Button>
       </div>

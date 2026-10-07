@@ -42,15 +42,15 @@ import {
 import { recordHandlers } from "./rpc-records.ts";
 import { askCvQuestions } from "./cv-questions.ts";
 import { threadHandlers } from "./rpc-threads.ts";
-import { checkTregToken, readTregLogin, removeTregLogin, saveTregLogin } from "./treg.ts";
+import { tregHandlers, tregStatus } from "./rpc-treg.ts";
+import { readTregLogin } from "./treg.ts";
 import {
   createThread,
-  usageSince,
+  daySpendOutsideThreads,
   getThread,
   listThreads,
   putEvent,
   settleIfDone,
-  daySpendOutsideThreads,
 } from "./threads.ts";
 
 type Input<M extends Method> = z.output<(typeof Methods)[M]["input"]>;
@@ -79,17 +79,6 @@ export function createHandlers(svc: Services): Handlers {
     return t;
   };
 
-  /** This install's treg login (never the token) and what paid lookups cost this calendar month. */
-  const tregStatus = () => {
-    const login = readTregLogin();
-    const d = new Date();
-    return {
-      connected: login !== null,
-      customer: login?.customer ?? "",
-      month: usageSince(db, new Date(d.getFullYear(), d.getMonth(), 1).toISOString()),
-    };
-  };
-
   return {
     "state.get": () => {
       const settings = getSettings(db);
@@ -106,7 +95,7 @@ export function createHandlers(svc: Services): Handlers {
           treg: svc.fake || readTregLogin() !== null,
         },
         mail: outreach.status(),
-        treg: tregStatus(),
+        treg: tregStatus(db),
         tailnet: svc.fake ? null : tailnetLink(),
         claude: svc.fake ? { signedIn: true, who: "the scripted agent" } : claudeLogin(),
         counts: {
@@ -198,20 +187,7 @@ export function createHandlers(svc: Services): Handlers {
     "mail.disconnect": () => outreach.disconnect(),
     "mail.sync": () => outreach.sync(),
 
-    "treg.connect": async (login) => {
-      // The scripted stack never reaches treg; a real install proves the token first.
-      if (!svc.fake) await checkTregToken(login.token);
-      saveTregLogin(login);
-      updateSettings(db, { treg: true });
-      bus.push({ type: "changed", what: "state" });
-      return tregStatus();
-    },
-    "treg.disconnect": () => {
-      removeTregLogin();
-      updateSettings(db, { treg: false });
-      bus.push({ type: "changed", what: "state" });
-      return tregStatus();
-    },
+    ...tregHandlers(svc),
 
     "outreach.list": () => conversations(db),
     "outreach.approve": async ({ ids }) => {

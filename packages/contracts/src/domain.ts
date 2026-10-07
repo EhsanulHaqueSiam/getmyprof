@@ -140,6 +140,30 @@ const SCORE = /\b(IELTS|TOEFL|GRE|PTE|Duolingo)\b[^.\n]{0,24}?\b\d{1,3}(\.\d)?\b
 export const unbackedScore = (text: string, applicant: Pick<Applicant, "tests"> | undefined) =>
   SCORE.test(text) && !applicant?.tests.some((t) => t.status === "taken" && t.score.trim());
 
+// First-person sentences that claim something the applicant did, earned or holds.
+const CLAIM =
+  /\b(?:I|I've|we|we've)\b[^.!?\n]*?\b(?:led|built|published|wrote|won|received|completed|graduated|worked|developed|designed|authored|co-authored|presented|earned|scored|achieved|managed|taught|interned|researched|implemented|trained|deployed|founded|ranked|joined|created|contributed|collaborated|conducted|analy[sz]ed|served|mentored|supervised|organi[sz]ed|launched|studied|hold|placed|finished)\b/i;
+const MY_CLAIM =
+  /\bmy (?:GPA|CGPA|grades?|score|IELTS|TOEFL|GRE|GMAT|rank|award|scholarship|paper|publication|thesis|degree|internship)\b/i;
+
+/**
+ * Sentences that claim something about the applicant ("I led a team of five", "my CGPA is 3.7")
+ * and cite no fact with an [n] marker. Such a claim blocks export, approving and sending.
+ */
+export const uncitedClaims = (text: string) =>
+  text
+    .split(/\n{2,}|(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s && !/\[\d+\]/.test(s) && (CLAIM.test(s) || MY_CLAIM.test(s)));
+
+/** The text as it leaves the app: [n] citation markers gone. */
+export const stripCitations = (text: string) => text.replace(/[ \t]*\[\d+\]/g, "");
+
+/** Whether an address passed a check: printed on an official page, or verified deliverable. */
+export const addressChecked = (emailCheck: string) =>
+  /^(ok|valid|deliverable|verified)\b|official page/i.test(emailCheck.trim()) &&
+  !/invalid|undeliverable|bounce|risky/i.test(emailCheck);
+
 export const Stage = z.enum(["new", "drafted", "sent", "replied", "apply-only", "skip"]);
 export type Stage = z.infer<typeof Stage>;
 

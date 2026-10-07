@@ -76,7 +76,7 @@ export function systemPrompt(
         ].join("\n")
       : "The applicant hasn't set preferences yet: ask what they're hunting for.",
     confirmed.length
-      ? `Confirmed facts about the applicant (claim nothing beyond these):\n${confirmed.map((f) => `- ${f.text}`).join("\n")}`
+      ? `Confirmed facts about the applicant (claim nothing beyond these; cite each claim with its [[id]]):\n${confirmed.map((f) => `- [[${f.id}]] ${f.text}`).join("\n")}`
       : "No confirmed facts about the applicant yet. Don't claim anything about them.",
     eligibility,
     DETAIL[settings.detail],
@@ -92,7 +92,8 @@ export function systemPrompt(
       "- Look beyond one source: faculty and lab pages, OpenAlex, NSF and NIH, and via treg web search (treg.google.serp.organic), rendered pages (litescrape.web.fetch.post), X posts (treg.x.search.posts), Reddit, LinkedIn jobs for European PhD positions, Scholar. LinkedIn profiles only confirm identity.",
       "- Money outside the US: country_awards covers UKRI, CORDIS (EU, ERC) and ARC. Germany's DFG and Canada's NSERC have no free API here: search gepris.dfg.de and nserc-crsng.gc.ca with WebSearch and WebFetch.",
       "- Emails: official pages first; treg.people.email.find only if they fail; always check with treg.people.email.verify (free).",
-      "- Outreach goes through draft_email, never in your reply. Every draft waits for the applicant to approve it. Plain text, one recipient, at most two links, no tracking. First email: who the applicant is, one fit fact tied to the professor's recent work, one question. Follow the professor's contact rule (subject line, apply first). Claim only confirmed facts.",
+      "- Outreach goes through draft_email, never in your reply. Every draft waits for the applicant to approve it. Plain text, one recipient, at most two links, no tracking. First email: who the applicant is, one fit fact tied to the professor's recent work, one question. Follow the professor's contact rule (subject line, apply first). Claim only confirmed facts, citing each with its [[id]] right after the claim; the markers never reach the professor, and an uncited claim blocks the draft.",
+      "- Fit the first email to the professor's money tier. 1 (a posted opening): a short cover letter that names the posting and the fact that fits it. 2 (a grant or startup money): name the grant and the one fact that fits it. 3 (indirect signs): ask politely whether they are taking students for the intake. 4 (nothing found): a two-line ask; their answer becomes the record.",
       "- When a professor writes back, classify it with classify_reply before drafting the answer.",
       "- Programs and scholarships go through propose_program and propose_scholarship; they wait in the applicant's To file. Only scholarships open to the applicant's citizenship and degree track.",
       "- Statements of purpose, CVs and essays go through write_document, citing a fact for every claim.",

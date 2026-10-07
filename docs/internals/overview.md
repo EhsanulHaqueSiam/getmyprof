@@ -121,6 +121,11 @@ crosses the wire.
   warm-up caps (5, 10, then 15 a day; 2 per university). Replies go at once.
 - **One send path.** Every send runs through `outreach.tick`, one message at a time, so a message
   can't go out twice. "Send now" just makes a message due and ticks.
+- **One rule for every claim.** Drafts cite facts as `[[fact-id]]`, numbered `[n]` like the
+  Writer's, and the markers are stripped from anything that leaves (mail, mailto, LinkedIn copy).
+  `draftIssues` in contracts is the rule: an unproven or uncited claim, an unbacked test score,
+  a third link, or cold mail to an unchecked address. The server's approve and send, the
+  composer and "Approve all" all apply it, and the agent hears why a draft can't go yet.
 - **Only reviewed addresses.** A draft must go to the address already accepted in the record;
   apply-only professors get none. On Siam's install gradhunt's rows belong to its cloud outreach
   routine, so gradcode never drafts to them and the two can't double-send.
@@ -148,8 +153,9 @@ Vault shows its facts read-only.
 - **The Writer cites, the app judges.** The agent writes through `write_document`, citing facts
   as `[[fact-id]]`; the store numbers them `[1]`, `[2]`. Whether a claim is blocked is computed
   from the cited fact's status on every read, so adding proof unblocks it without a rewrite. A
-  blocked claim, a stray marker or a test score no fact backs disables export (text and the
-  `/print/<id>` view, printed to PDF). Writing again for the same target makes the next draft.
+  blocked claim, a sentence that claims something and cites nothing (`uncitedClaims`), a stray
+  marker or a test score no fact backs disables export (text, PDF and Word). Writing again for
+  the same target makes the next draft.
 - **After the admit.** Interviews live on an application: a private prep pack (kind `prep`, never
   blocked, never sent), an `.ics` file, and a thank-you the agent drafts into the Pipeline (a
   thank-you is not cold mail, so apply-only and gradhunt rows may get one). Offers compare by a

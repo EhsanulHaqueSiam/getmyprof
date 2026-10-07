@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it } from "vite-plus/test";
 import { createBus } from "../bus.ts";
 import { openDb } from "../db.ts";
 import { blankProfessor, getRecord, putRecord } from "../records.ts";
+import { saveFacts } from "../state.ts";
 import { fakeMailer } from "./mail.ts";
 import { createOutreach } from "./service.ts";
 import { conversations, listMessages, saveDraft } from "./store.ts";
@@ -26,6 +27,7 @@ function setup(email = "lybarger@example.edu") {
   const record = {
     ...blankProfessor("Kevin Lybarger", "George Mason University"),
     email,
+    emailCheck: "ok, on the lab page",
   };
   putRecord(db, record);
   const mailer = fakeMailer();
@@ -99,6 +101,37 @@ describe("outreach on a mailbox", () => {
     await outreach.tick(later);
     expect(asked.filter((t) => t.startsWith("[follow-up]"))).toHaveLength(1);
     expect(asked[0]).toContain("follow-up-1");
+  });
+});
+
+describe("a draft that cites facts", () => {
+  it("goes out without its citation markers", async () => {
+    const { db, outreach, record, mailer } = setup();
+    saveFacts(db, [
+      {
+        id: "f_team",
+        text: "Led a team of five",
+        source: "cv.pdf",
+        kind: "other",
+        confirmed: true,
+        question: false,
+      },
+    ]);
+    await outreach.connect(LOGIN);
+    const cited = saveDraft(db, {
+      recordKey: record.key,
+      channel: "email",
+      touch: "first",
+      to: record.email,
+      subject: "PhD 2027",
+      body: "I led a team of five [[f_team]]. Are you taking students?",
+      timeZone: "America/New_York",
+      threadId: null,
+    });
+    if ("problem" in cited) throw new Error(cited.problem);
+    expect(cited.body).toBe("I led a team of five [1]. Are you taking students?");
+    await outreach.sendNow(cited.id);
+    expect(mailer.sent.at(-1)?.text).toBe("I led a team of five. Are you taking students?");
   });
 });
 

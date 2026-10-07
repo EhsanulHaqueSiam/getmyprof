@@ -6,6 +6,7 @@ import {
   factStatus,
   type ProfileFact,
   unbackedScore,
+  uncitedClaims,
   type Writing,
 } from "@gradcode/contracts";
 import { strToU8, zipSync } from "fflate";
@@ -39,15 +40,21 @@ export const mustProve = (w: Writing) => w.kind !== "prep" && w.kind !== "visa";
 
 export type Cited = { n: string; fact: ProfileFact | undefined; ok: boolean };
 
-/** Every citation in order, with its fact and whether it can be claimed. */
+/** Every citation still in the text, in order, with its fact and whether it can be claimed. */
 export function citations(w: Writing, facts: ProfileFact[]): Cited[] {
+  // Only markers still in the text count: cutting a cited line drops its citation.
+  const present = new Set([...w.body.matchAll(/\[(\d+)\]/g)].map((m) => m[1]));
   return Object.entries(w.citations)
+    .filter(([n]) => present.has(n))
     .toSorted(([a], [b]) => Number(a) - Number(b))
     .map(([n, id]) => {
       const fact = facts.find((f) => f.id === id);
       return { n, fact, ok: !!fact && factStatus(fact) === "confirmed" };
     });
 }
+
+/** Sentences claiming something about the applicant with no citation; they block export too. */
+export const uncited = (w: Writing) => (mustProve(w) ? uncitedClaims(w.body) : []);
 
 /** "[3]" markers in the body that point at no citation at all, e.g. typed by hand. */
 export const strayMarkers = (w: Writing) =>
@@ -64,8 +71,12 @@ export const paragraphs = (text: string) =>
     .filter((p) => p.trim())
     .map((p, i) => ({ key: `p${i}`, text: p }));
 
-/** Paragraphs of sentences, each split into text and citation parts, blocked when it cites an unproven fact. */
+/**
+ * Paragraphs of sentences, each split into text and citation parts. A sentence is blocked when it
+ * cites an unproven fact, or, in a piece that must be proven, claims something and cites nothing.
+ */
 export function layout(w: Writing, blocked: Set<string>) {
+  const claims = new Set(uncited(w));
   return paragraphs(w.body).map((p) => ({
     key: p.key,
     sentences: p.text.split(/(?<=[.!?])\s+/).map((sentence, j) => {
@@ -80,7 +91,8 @@ export function layout(w: Writing, blocked: Set<string>) {
       return {
         key: `${p.key}s${j}`,
         parts,
-        blocked: parts.some((x) => "cite" in x && blocked.has(x.cite)),
+        blocked:
+          parts.some((x) => "cite" in x && blocked.has(x.cite)) || claims.has(sentence.trim()),
       };
     }),
   }));

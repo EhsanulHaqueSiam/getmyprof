@@ -2,7 +2,7 @@
 // finds into the vault, and writing statements. tools.ts lists them with the research tools.
 import { Channel, Degree, ReplyClass, Touch, WritingKind } from "@gradcode/contracts";
 import { z } from "zod";
-import { classify, getMessage, saveDraft } from "../outreach/store.ts";
+import { classify, getMessage, issuesFor, saveDraft } from "../outreach/store.ts";
 import { recordKey } from "../records.ts";
 import { proposeFinding, saveWriting } from "../vault.ts";
 import type { HuntTool } from "./tools.ts";
@@ -13,7 +13,7 @@ export const APPLICANT_TOOLS = [
   define({
     name: "draft_email",
     description:
-      "Draft an email (or a LinkedIn note) to a professor in the sheet. It waits for the applicant to approve; nothing is sent by you. Email goes only to the address already in the sheet; apply-only professors get none. Plain text, one recipient, at most two links.",
+      "Draft an email (or a LinkedIn note) to a professor in the sheet. It waits for the applicant to approve; nothing is sent by you. Email goes only to the address already in the sheet; apply-only professors get none. Plain text, one recipient, at most two links. Cite each claim about the applicant with [[fact-id]] right after it, as in the Writer; an uncited or unproven claim keeps the draft from being approved.",
     shape: {
       name: z.string(),
       university: z.string(),
@@ -25,7 +25,11 @@ export const APPLICANT_TOOLS = [
       subject: z
         .string()
         .describe("Follow their contact rule, e.g. 'PhD 2027'. Empty for a reply keeps theirs"),
-      body: z.string().describe("Only claims backed by a confirmed fact about the applicant"),
+      body: z
+        .string()
+        .describe(
+          "Only claims backed by a confirmed fact about the applicant, each cited [[fact-id]]",
+        ),
       timeZone: z
         .string()
         .describe("The professor's IANA time zone, e.g. America/Chicago; sends go at 08:00 there"),
@@ -46,10 +50,16 @@ export const APPLICANT_TOOLS = [
       if ("problem" in draft)
         return { summary: "not drafted", text: `Not drafted: ${draft.problem}.` };
       ctx.outreachChanged();
-      return {
-        summary: `${args.touch} drafted`,
-        text: "Drafted. It waits in Pipeline for the applicant to approve.",
-      };
+      const issues = issuesFor(ctx.db, draft);
+      return issues.length
+        ? {
+            summary: `${args.touch} drafted · blocked`,
+            text: `Drafted, but it can't be approved yet: ${issues.join("; ")}. Fix it and call draft_email again for the same touch.`,
+          }
+        : {
+            summary: `${args.touch} drafted`,
+            text: "Drafted. It waits in Pipeline for the applicant to approve.",
+          };
     },
   }),
   define({

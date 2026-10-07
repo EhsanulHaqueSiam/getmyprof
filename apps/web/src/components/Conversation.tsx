@@ -1,11 +1,15 @@
-import type { Conversation, OutreachMessage } from "@gradcode/contracts";
+import {
+  type Conversation,
+  draftIssues,
+  type OutreachMessage,
+  stripCitations,
+} from "@gradcode/contracts";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { act, ChannelBadge, TOUCH_LABEL } from "~/components/Pipeline";
 import { Button } from "~/components/ui/button";
 import { Kbd } from "~/components/ui/kbd";
 import { nextStep, openDraft, sequence, theirTime, zoneOf } from "~/lib/outreach";
-import { unbackedScore } from "~/lib/writing";
 import { useStore } from "~/state/store";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
@@ -33,7 +37,7 @@ function Bubble({ m, name, zone }: { m: OutreachMessage; name: string; zone: str
       {m.subject && m.touch !== "reply" && mine ? (
         <div className="font-medium text-xs">{m.subject}</div>
       ) : null}
-      <div className="whitespace-pre-wrap text-secondary-label">{m.body}</div>
+      <div className="whitespace-pre-wrap text-secondary-label">{stripCitations(m.body)}</div>
       {m.status === "scheduled" ? (
         <div className="mt-2 flex justify-end gap-1.5">
           <Button
@@ -65,23 +69,29 @@ function Divider({ children }: { children: string }) {
   );
 }
 
-/** The open draft: edit it, then schedule or send it. LinkedIn notes are sent by hand. */
+/**
+ * The open draft: edit it, then schedule or send it. LinkedIn notes are sent by hand. Nothing
+ * leaves while the draft has an issue: the same rules the server and the Writer hold.
+ */
 function Composer({
   draft,
   connected,
-  checked,
+  emailCheck,
 }: {
   draft: OutreachMessage;
   connected: boolean;
-  /** Whether the address passed its deliverability check. */
-  checked: boolean;
+  /** The professor's address check, e.g. "ok, on the lab page". */
+  emailCheck: string;
 }) {
   const [subject, setSubject] = useState(draft.subject);
   const [body, setBody] = useState(draft.body);
   const dirty = subject !== draft.subject || body !== draft.body;
-  const applicant = useStore((s) => s.app?.applicant);
-  // The same rule the Writer holds: no test score goes out unless a taken test backs it.
-  const blocked = draft.channel === "email" && unbackedScore(`${subject}\n${body}`, applicant);
+  const app = useStore((s) => s.app);
+  const issues = draftIssues(
+    { ...draft, subject, body },
+    { facts: app?.facts ?? [], applicant: app?.applicant, emailCheck },
+  );
+  const blocked = issues.length > 0;
   const dashes = (body.match(/—/g) ?? []).length;
   const save = () => (dirty ? call("outreach.edit", { id: draft.id, subject, body }) : null);
   const then = (next: () => Promise<unknown>) => act(Promise.resolve(save()).then(next));
@@ -120,11 +130,18 @@ function Composer({
         rows={8}
         className="block w-full resize-none bg-transparent px-3.5 py-2.5 text-sm leading-relaxed outline-none"
       />
+      {blocked ? (
+        <ul
+          className="flex flex-col gap-0.5 px-3.5 pb-2 text-warning-foreground text-xs"
+          data-testid="draft-issues"
+        >
+          {issues.map((issue) => (
+            <li key={issue}>{issue}</li>
+          ))}
+        </ul>
+      ) : null}
       <div className="flex items-center gap-1.5 px-2.5 pb-2.5 text-muted-foreground text-xs">
         <ChannelBadge channel={draft.channel} />
-        {draft.channel === "email" && !checked ? (
-          <span className="shrink-0 text-warning-foreground">address not checked ·</span>
-        ) : null}
         {dashes ? (
           <span className="shrink-0 text-warning-foreground">{dashes} em dashes ·</span>
         ) : null}
@@ -145,9 +162,10 @@ function Composer({
             <Button
               size="xs"
               variant="outline"
+              disabled={blocked}
               onClick={() =>
                 then(async () => {
-                  await navigator.clipboard.writeText(body);
+                  await navigator.clipboard.writeText(stripCitations(body));
                   window.open(draft.to, "_blank", "noopener");
                 })
               }
@@ -158,9 +176,7 @@ function Composer({
               Mark sent
             </Button>
           </>
-        ) : blocked ? (
-          <span className="text-warning-foreground">claims a test score no fact backs</span>
-        ) : connected ? (
+        ) : blocked ? null : connected ? (
           <>
             {slot ? (
               <Button
@@ -183,7 +199,7 @@ function Composer({
               variant="outline"
               render={
                 <a
-                  href={`mailto:${draft.to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`}
+                  href={`mailto:${draft.to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(stripCitations(body))}`}
                 />
               }
             >
@@ -206,6 +222,14 @@ function Composer({
 export function ConversationView({ c, connected }: { c: Conversation; connected: boolean }) {
   const draft = openDraft(c);
   const r = c.record;
+  const app = useStore((s) => s.app);
+  const issues = draft
+    ? draftIssues(draft, {
+        facts: app?.facts ?? [],
+        applicant: app?.applicant,
+        emailCheck: r.emailCheck,
+      })
+    : [];
   const zone = zoneOf(c) ?? "";
   // Drafts and failed sends live in the composer, not the transcript.
   const shown = c.messages.filter(
@@ -260,7 +284,7 @@ export function ConversationView({ c, connected }: { c: Conversation; connected:
             key={`${draft.id}:${draft.subject}:${draft.body}`}
             draft={draft}
             connected={connected}
-            checked={/^ok\b/i.test(r.emailCheck)}
+            emailCheck={r.emailCheck}
           />
         ) : null}
       </div>
@@ -309,7 +333,7 @@ export function ConversationView({ c, connected }: { c: Conversation; connected:
         </ol>
         <div className="mt-4 mb-1.5 text-muted-foreground">Next</div>
         <p className="text-secondary-label" data-testid="next-step">
-          {nextStep(c)}
+          {nextStep(c, issues)}
         </p>
       </aside>
     </div>

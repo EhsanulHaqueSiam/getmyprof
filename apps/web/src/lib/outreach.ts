@@ -106,7 +106,7 @@ export function cardLine(c: Conversation) {
 }
 
 /** What happens next, in one sentence. */
-export function nextStep(c: Conversation) {
+export function nextStep(c: Conversation, draftIssues: string[] = []) {
   const zone = zoneOf(c);
   const draft = openDraft(c);
   const queued = out(c).find((m) => m.status === "scheduled");
@@ -118,6 +118,7 @@ export function nextStep(c: Conversation) {
     return draft
       ? "Approve the follow-up; it goes out in the next slot."
       : "A follow-up is due; the agent drafts it.";
+  if (draft && draftIssues.length) return `Fix the draft first: ${draftIssues[0]}.`;
   if (c.turn === "approve") return "Approve the draft to give it a send slot, or send it now.";
   if (queued) return `Goes out ${theirTime(queued)}.`;
   if (c.followUpAt) return `Follow-up on ${day(c.followUpAt, zone)} if they don't answer.`;

@@ -8,6 +8,7 @@ import {
   paragraphs,
   plainText,
   strayMarkers,
+  uncited,
 } from "~/lib/writing";
 import { useStore } from "~/state/store";
 
@@ -27,6 +28,7 @@ function PrintView() {
     (!mustProve(w) ||
       (citations(w, app.facts).every((c) => c.ok) &&
         strayMarkers(w).length === 0 &&
+        uncited(w).length === 0 &&
         !checks(w, { named: [], applicant: app.applicant }).scoreClaimed));
 
   useEffect(() => {

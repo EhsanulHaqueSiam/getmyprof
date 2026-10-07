@@ -125,6 +125,17 @@ test("outreach: drafts wait for approval, a sent email's reply comes back as you
   await expect(approve).toContainText("To approve · 2");
   await approve.getByText("Kevin Lybarger").click();
   await expect(page.getByTestId("next-step")).toContainText("Approve the draft");
+
+  // A claim with no fact behind it holds the draft back until it's cited or cut.
+  const message = page.getByLabel("Message");
+  const original = await message.inputValue();
+  await message.fill(`${original}\n\nI led a team of five.`);
+  await expect(page.getByTestId("draft-issues")).toContainText(
+    '"I led a team of five." cites no fact',
+  );
+  await expect(page.getByRole("button", { name: /Send now/ })).toHaveCount(0);
+  await message.fill(original);
+  await expect(page.getByTestId("draft-issues")).toHaveCount(0);
   await page.getByRole("button", { name: /Send now/ }).click();
   await expect(page.getByTestId("message")).toHaveCount(1);
 

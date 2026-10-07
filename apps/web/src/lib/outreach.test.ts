@@ -47,6 +47,7 @@ const msg = (m: Partial<OutreachMessage>): OutreachMessage => ({
   inReplyTo: null,
   threadId: null,
   note: "",
+  citations: {},
   createdAt: "2026-10-12T00:00:00.000Z",
   ...m,
 });

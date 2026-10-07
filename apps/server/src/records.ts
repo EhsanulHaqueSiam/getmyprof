@@ -64,8 +64,15 @@ export function listRecords(db: Db) {
     .prepare("SELECT body FROM records")
     .all()
     .map((r) => Professor.parse(JSON.parse(String(r.body))))
-    .toSorted((a, b) => b.fit - a.fit || a.name.localeCompare(b.name));
+    .toSorted(byMoneyThenFit);
 }
+
+// Unchecked money (tier 0) sorts after tier 4.
+const tierRank = (t: number) => (t === 0 ? 5 : t);
+
+/** Clear money first (tier 1 above 4), then fit, then name: the order every list shows. */
+export const byMoneyThenFit = (a: Professor, b: Professor) =>
+  tierRank(a.moneyTier) - tierRank(b.moneyTier) || b.fit - a.fit || a.name.localeCompare(b.name);
 
 export function putRecord(db: Db, p: Professor) {
   db.prepare(
@@ -203,12 +210,14 @@ export function threadRows(db: Db, threadId: string): Professor[] {
     .all(threadId)
     .map((r) => String(r.record_key));
   const pending = threadProposals(db, threadId).filter((p) => p.status === "pending");
-  return keys.flatMap((key) => {
-    const mine = pending.filter((p) => p.recordKey === key);
-    const first = mine[0];
-    const base =
-      getRecord(db, key) ?? (first ? blankProfessor(first.recordName, first.university) : null);
-    if (!base) return [];
-    return [mine.reduce((acc, p) => applyChanges(acc, p.changes), base)];
-  });
+  return keys
+    .flatMap((key) => {
+      const mine = pending.filter((p) => p.recordKey === key);
+      const first = mine[0];
+      const base =
+        getRecord(db, key) ?? (first ? blankProfessor(first.recordName, first.university) : null);
+      if (!base) return [];
+      return [mine.reduce((acc, p) => applyChanges(acc, p.changes), base)];
+    })
+    .toSorted(byMoneyThenFit);
 }

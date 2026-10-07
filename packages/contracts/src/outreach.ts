@@ -1,7 +1,15 @@
 // Outreach: every message to or from a professor, by email or LinkedIn. The server stores
 // messages; whose turn it is and the pipeline stage are derived from them, never stored.
 import { z } from "zod";
-import { Professor } from "./domain.ts";
+import {
+  addressChecked,
+  type Applicant,
+  factStatus,
+  type ProfileFact,
+  Professor,
+  uncitedClaims,
+  unbackedScore,
+} from "./domain.ts";
 
 export const Channel = z.enum(["email", "linkedin"]);
 export type Channel = z.infer<typeof Channel>;
@@ -54,6 +62,8 @@ export const OutreachMessage = z.object({
   threadId: z.string().nullable(),
   /** One line: why sending failed, or what a reply asks for. */
   note: z.string(),
+  /** The facts a draft cites, by [n] marker: {"1": "fact-id"}. Markers never leave the app. */
+  citations: z.record(z.string(), z.string()).default({}),
   createdAt: z.string(),
 });
 export type OutreachMessage = z.infer<typeof OutreachMessage>;
@@ -105,3 +115,29 @@ export const MailConnect = z.object({
   smtpPort: z.number().int().positive(),
 });
 export type MailConnect = z.infer<typeof MailConnect>;
+
+/**
+ * Why an outgoing message can't be approved or sent yet, in words; empty when it may go. The same
+ * rules as the Writer: every claim cites a proven fact, no test score without a taken test, at
+ * most two links, and cold mail only to a checked address.
+ */
+export function draftIssues(
+  m: Pick<OutreachMessage, "channel" | "touch" | "subject" | "body" | "citations">,
+  ctx: { facts: ProfileFact[]; applicant: Applicant | undefined; emailCheck: string },
+) {
+  const issues: string[] = [];
+  if (unbackedScore(`${m.subject}\n${m.body}`, ctx.applicant))
+    issues.push("claims a test score no taken test backs");
+  for (const n of new Set([...m.body.matchAll(/\[(\d+)\]/g)].map((x) => x[1] ?? ""))) {
+    const fact = ctx.facts.find((f) => f.id === m.citations[n]);
+    if (!fact) issues.push(`[${n}] points at no fact`);
+    else if (factStatus(fact) !== "confirmed") issues.push(`[${n}] cites a fact without proof`);
+  }
+  for (const claim of uncitedClaims(m.body))
+    issues.push(`"${claim.length > 60 ? `${claim.slice(0, 57)}...` : claim}" cites no fact`);
+  if ((m.body.match(/https?:\/\/\S+/g) ?? []).length > 2) issues.push("more than two links");
+  const cold = m.touch !== "reply" && m.touch !== "thank-you";
+  if (m.channel === "email" && cold && !addressChecked(ctx.emailCheck))
+    issues.push("the address isn't checked yet: run Find and check emails");
+  return issues;
+}

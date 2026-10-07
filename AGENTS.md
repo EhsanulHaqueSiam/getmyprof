@@ -6,7 +6,12 @@ the web and optional paid treg lookups to find professors who can fund a student
 behind them. A React client shows threads, Results, Review, Funding, Pipeline, Vault and Loops.
 Everything lives in one local SQLite file. Siam's install also reads hq (profile facts) and
 `~/Personal/gradhunt` (records, written back through `scout.py`). What's built and what isn't yet
-is in [README.md](README.md); the approved design is [docs/mocks/phase1.html](docs/mocks/phase1.html).
+is in [README.md](README.md). The approved design is three pages in `docs/mocks/`, each also
+published on postplan.dev: [phase1.html](docs/mocks/phase1.html) is the main spec (y3j2cbv19xjl),
+[journey.html](docs/mocks/journey.html) the applicant's whole journey (b9y2xzrirkk3), and
+[outreach-vault.html](docs/mocks/outreach-vault.html) the Pipeline, Vault and Writer (81t2rbxgjuh0).
+All three are required. To update a page, edit it here and run
+`npx postplan upload docs/mocks/<file> --draft <id>`.
 
 Channel "measure twice, cut once" and "yagni". Simple systems, no machinery for its own sake.
 
@@ -100,9 +105,10 @@ Most changes need no doc change; agents can read the code. `docs/internals/` hol
 cross-component constraints and traps that are hard to see from the source. When a decision
 changes, rewrite the text; don't append. Never commit plans or scratch notes.
 
-| Need                                        | Read                                                                        |
-| ------------------------------------------- | --------------------------------------------------------------------------- |
-| Architecture, wire, agent sessions, tailnet | [docs/internals/overview.md](docs/internals/overview.md)                    |
-| Tokens, status hues, motion, copy           | [docs/internals/design.md](docs/internals/design.md)                        |
-| gradhunt data, scout.py writes, hq facts    | [docs/internals/gradhunt.md](docs/internals/gradhunt.md)                    |
-| What is built, what is not yet              | [README.md](README.md) and [docs/mocks/phase1.html](docs/mocks/phase1.html) |
+| Need                                        | Read                                                     |
+| ------------------------------------------- | -------------------------------------------------------- |
+| Architecture, wire, agent sessions, tailnet | [docs/internals/overview.md](docs/internals/overview.md) |
+| Tokens, status hues, motion, copy           | [docs/internals/design.md](docs/internals/design.md)     |
+| gradhunt data, scout.py writes, hq facts    | [docs/internals/gradhunt.md](docs/internals/gradhunt.md) |
+| What is built, what is not yet              | [README.md](README.md)                                   |
+| What it must do                             | the three pages in [docs/mocks/](docs/mocks/)            |

@@ -7,7 +7,10 @@ professors who can fund you and the money behind them, then carries you through 
 applications and offers. Siam's install also reads hq and `~/Personal/gradhunt`, so Scout and the
 cloud outreach routine keep working.
 
-Design and the full spec: [docs/mocks/phase1.html](docs/mocks/phase1.html) (round 2).
+Design and the full spec, three required pages: the main spec
+[docs/mocks/phase1.html](docs/mocks/phase1.html), the applicant's
+[journey](docs/mocks/journey.html), and the
+[Pipeline, Vault and Writer](docs/mocks/outreach-vault.html).
 
 ## Screenshots
 

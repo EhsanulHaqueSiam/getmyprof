@@ -84,6 +84,31 @@ describe("a fake agent turn", () => {
   });
 });
 
+describe("an Ask turn", () => {
+  it("reads only: the scripted hunt's proposals and paid lookup are refused", async () => {
+    const db = openDb(":memory:");
+    updateSettings(db, { treg: true });
+    const runner = createRunner({
+      db,
+      bus: createBus(),
+      provider: fakeProvider(1),
+      sources: fixtureSources,
+    });
+    const thread = createThread(db, "ask").id;
+    runner.send(thread, "[ask] who works on clinical NLP?", "send");
+    await until(() => getThread(db, thread)?.status === "idle");
+    const events = listEvents(db, thread);
+    expect(events.find((e) => e.type === "user")).toMatchObject({
+      text: "Ask · who works on clinical NLP?",
+    });
+    expect(threadProposals(db, thread)).toHaveLength(0);
+    expect(threadSpend(db, thread)).toBe(0);
+    expect(
+      events.some((e) => e.type === "tool" && e.status === "denied" && e.meta === "ask mode"),
+    ).toBe(true);
+  });
+});
+
 describe("a loop run at its cap", () => {
   it("stops and says why, without paying", async () => {
     const db = openDb(":memory:");

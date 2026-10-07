@@ -49,6 +49,8 @@ export function Composer({
 }: Props) {
   const [text, setText] = useState("");
   const [files, setFiles] = useState<{ id: string; name: string }[]>([]);
+  // Ask: a free, read-only question; the server reads the "[ask]" tag and gates every tool.
+  const [ask, setAsk] = useState(false);
   const [uploading, setUploading] = useState(0);
   const ref = useRef<HTMLTextAreaElement>(null);
   const settings = useStore((s) => s.app?.settings);
@@ -65,7 +67,7 @@ export function Composer({
     const t = text.trim();
     if (!t) return;
     onSend(
-      t,
+      ask ? `[ask] ${t}` : t,
       working ? (steer ? "steered" : "queued") : "send",
       files.map((f) => f.id),
     );
@@ -163,9 +165,15 @@ export function Composer({
             <span className="flex h-6.5 items-center gap-1.5 rounded-lg px-2">
               {modelLabel(settings.model)}
             </span>
-            <span className="flex h-6.5 items-center gap-1.5 rounded-lg px-2 [&_svg]:size-3.5">
-              <ZapIcon /> Hunt
-            </span>
+            <button
+              type="button"
+              aria-pressed={ask}
+              title="Ask answers from what it can read: it changes nothing and spends nothing"
+              onClick={() => setAsk(!ask)}
+              className="flex h-6.5 items-center gap-1.5 rounded-lg px-2 transition-colors hover:bg-accent hover:text-foreground [&_svg]:size-3.5"
+            >
+              <ZapIcon /> {ask ? "Ask" : "Hunt"}
+            </button>
             <button
               type="button"
               onClick={() => void saveSettings({ detail: NEXT_DETAIL[settings.detail] })}

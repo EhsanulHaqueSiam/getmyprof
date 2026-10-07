@@ -10,7 +10,7 @@ import * as NodePath from "node:path";
 import { z } from "zod";
 import { homeDir, now } from "../db.ts";
 import type { AgentProvider, Attachment, SessionStart } from "./provider.ts";
-import { capProblem, type HuntTool } from "./tools.ts";
+import { askBlocked, capProblem, type HuntTool } from "./tools.ts";
 
 const IDLE_CLOSE_MS = 60_000;
 const BUILTIN = ["WebSearch", "WebFetch"];
@@ -145,6 +145,9 @@ export const claudeProvider: AgentProvider = {
       version: "1.0.0",
       tools: tools.map((t) =>
         tool(t.name, t.description, t.shape, async (args) => {
+          const blocked = askBlocked(s.toolContext, t.name);
+          if (blocked)
+            return { content: [{ type: "text" as const, text: blocked }], isError: true };
           try {
             const r = await t.run(args, s.toolContext);
             return { content: [{ type: "text" as const, text: `${r.summary}\n\n${r.text}` }] };
@@ -202,6 +205,8 @@ export const claudeProvider: AgentProvider = {
           }
           const t = tools.find((x) => mcpName(x) === toolName);
           if (!t) return { behavior: "deny", message: `${toolName} isn't available in gradcode.` };
+          const blocked = askBlocked(s.toolContext, t.name);
+          if (blocked) return { behavior: "deny", message: blocked };
           const args = z.object(t.shape).safeParse(raw);
           if (!args.success)
             return { behavior: "deny", message: `Invalid input: ${args.error.message}` };

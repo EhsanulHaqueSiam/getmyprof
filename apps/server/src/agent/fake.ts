@@ -6,7 +6,7 @@ import { now } from "../db.ts";
 import { listDocuments } from "../vault.ts";
 import { FIXTURE_PROFESSORS, FIXTURE_PROGRAMS, FIXTURE_SCHOLARSHIPS } from "./fixtures.ts";
 import type { AgentProvider, SessionStart } from "./provider.ts";
-import { capProblem, type HuntTool } from "./tools.ts";
+import { askBlocked, capProblem, type HuntTool } from "./tools.ts";
 
 const FIELD_FOR: Record<RowOp, string> = {
   email: "emailCheck",
@@ -56,6 +56,9 @@ export const fakeProvider = (
       hooks.emit({ ...base, at: now(), status: "running", meta: "" });
       await pause();
       if (!t) return hooks.emit({ ...base, at: now(), status: "error", meta: "not available" });
+      // An Ask turn reads only, like the real provider's gate.
+      if (askBlocked(s.toolContext, name))
+        return hooks.emit({ ...base, at: now(), status: "denied", meta: "ask mode" });
       const r = await t.run(args, s.toolContext);
       result = r.summary;
       hooks.emit({
@@ -85,7 +88,8 @@ export const fakeProvider = (
         await call("propose_professor", `${p.name} · ${p.university}`, p);
       }
       const treg = tool("treg");
-      if (treg && !stopped) {
+      // An Ask never buys anything, so it never asks to.
+      if (treg && !stopped && !askBlocked(s.toolContext, "treg")) {
         const args = {
           endpoint: "prospeo.people.email.find",
           data: { full_name: "Mohan Zalake" },

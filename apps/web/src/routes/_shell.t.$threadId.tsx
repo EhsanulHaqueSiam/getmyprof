@@ -71,7 +71,8 @@ function ThreadPage() {
   }, [threadId, view]);
 
   if (!view) return <div className="flex-1" />;
-  const working = status !== "idle";
+  // Waiting on the applicant (Input) or nothing at all counts as not working.
+  const working = status === "working" || status === "approval";
   const pendingApproval = view.events.find((e) => e.type === "approval" && e.status === "pending");
   const reviewCount = view.proposals.filter((p) => p.status === "pending").length;
 
@@ -153,7 +154,11 @@ function ThreadPage() {
               <Composer
                 autoFocus
                 working={working}
-                placeholder="Ask anything, or tell it what to find next."
+                placeholder={
+                  view.thread.status === "input"
+                    ? "Answer the question above."
+                    : "Ask anything, or tell it what to find next."
+                }
                 onSend={(text, delivery) =>
                   void call("threads.send", { id: threadId, text, delivery })
                 }

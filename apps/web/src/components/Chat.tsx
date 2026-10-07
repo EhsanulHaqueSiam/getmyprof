@@ -8,6 +8,7 @@ import {
   GlobeIcon,
   LandmarkIcon,
   LoaderIcon,
+  MessageCircleQuestionIcon,
   SearchIcon,
   UserIcon,
   UsersIcon,
@@ -46,7 +47,8 @@ export function toBlocks(events: ThreadEvent[]): Block[] {
       work = null;
     } else if (e.type === "approval") out.push({ kind: "approval", event: e });
     else {
-      if (e.type !== "assistant") work = null;
+      // The agent's words and questions belong to the turn; anything else starts a new block.
+      if (e.type !== "assistant" && e.type !== "question") work = null;
       out.push({ kind: "event", event: e });
     }
   }
@@ -193,6 +195,20 @@ export function Transcript({
                   {e.delivery === "queued" ? "queued · after the current tool call" : "steered"}
                 </span>
               ) : null}
+            </div>
+          );
+        if (e.type === "question")
+          return (
+            <div
+              key={e.id}
+              data-testid="question"
+              className="animate-fade-up rounded-2xl border border-status-input/30 px-3.5 py-3"
+            >
+              <div className="mb-1 flex items-center gap-1.5 font-medium text-status-input text-xs">
+                <MessageCircleQuestionIcon className="size-3.5" />
+                {e.status === "pending" ? "Input · waiting for your answer" : "Answered"}
+              </div>
+              <div className="text-sm">{e.text}</div>
             </div>
           );
         if (e.type === "assistant")

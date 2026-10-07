@@ -4,6 +4,7 @@ import { z } from "zod";
 import {
   Applicant,
   Award,
+  AwardSource,
   Hunt,
   HuntPrefs,
   Loop,
@@ -117,7 +118,12 @@ export const Methods = {
   "records.export": { input: z.object({}), output: z.object({ csv: z.string() }) },
 
   "funding.search": {
-    input: z.object({ terms: z.array(z.string()).min(1), universities: z.array(z.string()) }),
+    input: z.object({
+      terms: z.array(z.string()).min(1),
+      universities: z.array(z.string()),
+      /** Which databases; by default the ones that cover the hunt's places. */
+      sources: z.array(AwardSource).optional(),
+    }),
     output: z.array(Award),
   },
 

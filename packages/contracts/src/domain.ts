@@ -192,13 +192,22 @@ export const Loop = z.object({
 });
 export type Loop = z.infer<typeof Loop>;
 
+/** Free grant databases: NSF and NIH (US), UKRI (UK), CORDIS (EU, ERC), ARC (Australia). */
+export const AwardSource = z.enum(["NSF", "NIH", "UKRI", "CORDIS", "ARC"]);
+export type AwardSource = z.infer<typeof AwardSource>;
+
 export const Award = z.object({
-  source: z.enum(["NSF", "NIH"]),
+  source: AwardSource,
   id: z.string(),
   title: z.string(),
+  /** Empty when the database doesn't name one (CORDIS lists the host, not the PI). */
   pi: z.string(),
   university: z.string(),
-  usd: z.number().nullable(),
+  amount: z.number().nullable(),
+  /** ISO 4217: USD, GBP, EUR, AUD. */
+  currency: z.string(),
+  /** The award's own page. */
+  url: z.string(),
   starts: z.string().nullable(),
   ends: z.string().nullable(),
   /** Whole months the award still runs after the intake starts. Negative: ends before. */

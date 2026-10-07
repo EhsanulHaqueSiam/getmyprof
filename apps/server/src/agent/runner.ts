@@ -14,6 +14,7 @@ import {
   settle,
   settleIfDone,
   getThread,
+  pendingQuestion,
   threadSpend,
 } from "../threads.ts";
 import { systemPrompt } from "./prompt.ts";
@@ -85,7 +86,8 @@ export function createRunner(deps: {
             type: "system",
             text: error === "interrupted" ? "Stopped" : `Ended: ${error}`,
           });
-        setStatus(db, threadId, "idle");
+        // A question still open keeps the thread in Input instead of idle.
+        setStatus(db, threadId, pendingQuestion(db, threadId) ? "input" : "idle");
         markUnread(db, threadId, true);
         // Changes from this turn already reviewed while it ran: nothing waits, so settle now.
         const started = new Date(turn.at).toISOString();
@@ -161,6 +163,14 @@ export function createRunner(deps: {
           bus.push({ type: "changed", what: "records" });
         },
         vaultChanged: () => bus.push({ type: "changed", what: "vault" }),
+        ask: (question) =>
+          emit(threadId, {
+            id: newId("ask"),
+            at: now(),
+            type: "question",
+            text: question,
+            status: "pending",
+          }),
       },
     });
     sessions.set(threadId, session);
@@ -173,6 +183,9 @@ export function createRunner(deps: {
     delivery: "send" | "queued" | "steered",
     shown = text,
   ) {
+    // The next message after a question is its answer.
+    const asked = pendingQuestion(db, threadId);
+    if (asked?.type === "question") emit(threadId, { ...asked, status: "answered" });
     emit(threadId, { id: newId("msg"), at: now(), type: "user", text: shown, delivery });
     if (getThread(db, threadId)?.settledAt) settle(db, threadId, false);
     const live = sessions.get(threadId);

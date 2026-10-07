@@ -59,6 +59,13 @@ export const ThreadEvent = z.discriminatedUnion("type", [
     costUsd: z.number(),
   }),
   z.object({ ...base, type: z.literal("system"), text: z.string() }),
+  /** The agent asked the applicant something only they know; the thread waits for the answer. */
+  z.object({
+    ...base,
+    type: z.literal("question"),
+    text: z.string(),
+    status: z.enum(["pending", "answered"]),
+  }),
 ]);
 export type ThreadEvent = z.infer<typeof ThreadEvent>;
 

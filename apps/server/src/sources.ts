@@ -43,8 +43,185 @@ const nsfDate = (d: unknown) => {
 
 const toNsfDate = (iso: string) => `${iso.slice(5, 7)}/${iso.slice(8, 10)}/${iso.slice(0, 4)}`;
 
-type AwardQuery = { terms: string[]; university?: string; pi?: string; activeAfter?: string };
-type RawAward = Omit<Award, "monthsAfterIntake" | "inSheet">;
+export type AwardQuery = {
+  terms: string[];
+  university?: string;
+  pi?: string;
+  activeAfter?: string;
+};
+export type RawAward = Omit<Award, "monthsAfterIntake" | "inSheet">;
+
+const schoolWords = (s: string) =>
+  s
+    .toLowerCase()
+    .split(/[^a-z]+/)
+    .filter(
+      (w) =>
+        w.length > 3 &&
+        !["university", "college", "state", "institute", "school", "campus", "the"].includes(w),
+    );
+
+/** "UNIVERSITY OF READING" and "University of Reading" are the same school. */
+export const sameSchool = (a: string, b: string) => {
+  const wa = schoolWords(a);
+  return schoolWords(b).some((w) => wa.includes(w));
+};
+
+/** Keeps awards that match the query's school, PI and end date, for APIs that can't filter. */
+const narrow = (q: AwardQuery, awards: RawAward[]) =>
+  awards.filter(
+    (a) =>
+      (!q.university || sameSchool(a.university, q.university)) &&
+      (!q.pi || a.pi.toLowerCase().includes(q.pi.toLowerCase().split(/\s+/).at(-1) ?? "")) &&
+      (!q.activeAfter || !a.ends || a.ends >= q.activeAfter),
+  );
+
+const isoDay = (ms: unknown) =>
+  typeof ms === "number" ? new Date(ms).toISOString().slice(0, 10) : null;
+
+/** UKRI Gateway to Research: UK research council grants, with the PI. Amounts in GBP. */
+export async function ukriAwards(q: AwardQuery): Promise<RawAward[]> {
+  const out = new Map<string, RawAward>();
+  const quote = (t: string) => `"${t.replaceAll('"', " ")}"`;
+  // One quoted phrase per term (an unquoted term matches almost anything), latest end date first
+  // so the grants that outlast an intake come back first.
+  for (const term of q.terms.length ? q.terms : [""]) {
+    const phrase = [term, q.university ?? "", q.pi ?? ""].filter(Boolean).map(quote).join(" ");
+    const body = asRecord(
+      await getJson(
+        `https://gtr.ukri.org/api/search/project?${new URLSearchParams({ term: phrase, page: "1", fetchSize: "50", selectedSortableField: "pro.ed", selectedSortOrder: "DESC" })}`,
+        { headers: { accept: "application/json" } },
+      ),
+    );
+    for (const r of asArray(asRecord(body.facetedSearchResultBean).results).map(asRecord)) {
+      const c = asRecord(r.projectComposition);
+      const p = asRecord(c.project);
+      const fund = asRecord(p.fund);
+      if (text(p.grantCategory) === "Studentship") continue;
+      const pi = asArray(c.personRoles)
+        .map(asRecord)
+        .find((x) =>
+          asArray(x.roles)
+            .map(asRecord)
+            .some((y) => text(y.name) === "PRINCIPAL_INVESTIGATOR"),
+        );
+      const ref = text(p.grantReference);
+      out.set(ref, {
+        source: "UKRI",
+        id: ref,
+        title: text(p.title),
+        pi: pi ? `${text(pi.firstName)} ${text(pi.surname)}`.trim() : "",
+        university: text(asRecord(c.leadResearchOrganisation).name),
+        amount: fund.valuePounds == null ? null : Number(fund.valuePounds),
+        currency: "GBP",
+        url: `https://gtr.ukri.org/projects?ref=${encodeURIComponent(ref)}`,
+        starts: isoDay(fund.start),
+        ends: isoDay(fund.end),
+        abstract: text(p.abstractText).slice(0, 600),
+      });
+    }
+  }
+  return narrow(q, [...out.values()]);
+}
+
+/** CORDIS: EU Horizon and ERC projects. It names the host organisation, not the PI. Amounts in EUR. */
+export async function cordisAwards(q: AwardQuery): Promise<RawAward[]> {
+  const phrases = [...q.terms, q.university ?? ""]
+    .filter(Boolean)
+    .map((t) => `'${t.replaceAll("'", " ")}'`);
+  const query = ["contenttype='project'", ...phrases].join(" AND ");
+  const body = asRecord(
+    await getJson(
+      `https://cordis.europa.eu/search/en?${new URLSearchParams({ q: query, format: "json", p: "1", num: "50" })}`,
+    ),
+  );
+  const hits = asRecord(body.hits).hit;
+  return narrow(
+    q,
+    (Array.isArray(hits) ? hits : hits ? [hits] : []).map(asRecord).map((h) => {
+      const p = asRecord(h.project);
+      const orgs = asRecord(asRecord(p.relations).associations).organization;
+      const host = (Array.isArray(orgs) ? orgs : [orgs])
+        .map(asRecord)
+        .find((o) => text(asRecord(o["@attributes"]).type) === "coordinator");
+      const id = text(p.id);
+      return {
+        source: "CORDIS" as const,
+        id,
+        title: text(p.title),
+        pi: "",
+        university: text(host?.legalName),
+        amount: p.ecMaxContribution == null ? null : Number(p.ecMaxContribution),
+        currency: "EUR",
+        url: `https://cordis.europa.eu/project/id/${id}`,
+        starts: text(p.startDate) || null,
+        ends: text(p.endDate) || null,
+        abstract: text(p.teaser).slice(0, 600),
+      };
+    }),
+  );
+}
+
+/** ARC: Australian Research Council grants, with the lead investigator. Amounts in AUD. */
+export async function arcAwards(q: AwardQuery): Promise<RawAward[]> {
+  const filter = [...q.terms, q.pi ?? ""]
+    .filter(Boolean)
+    .map((t) => `"${t}"`)
+    .join(" ");
+  const body = asRecord(
+    await getJson(
+      // ARC can't sort or filter by status; a topic rarely passes 100 grants, so read them all.
+      `https://dataportal.arc.gov.au/NCGP/API/grants?${new URLSearchParams({ filter, "page[size]": "100" })}`,
+    ),
+  );
+  return narrow(
+    q,
+    asArray(body.data)
+      .map(asRecord)
+      .map((g) => {
+        const a = asRecord(g.attributes);
+        const id = text(a.code);
+        const summary = text(a["grant-summary"]);
+        return {
+          source: "ARC" as const,
+          id,
+          title: summary.split(". ")[0] ?? summary,
+          pi: text(a["lead-investigator"]).replace(
+            /^(Prof|Dr|A\/Prof|Associate Professor)\s+/i,
+            "",
+          ),
+          university: text(a["current-admin-organisation"]),
+          amount: a["current-funding-amount"] == null ? null : Number(a["current-funding-amount"]),
+          currency: "AUD",
+          url: `https://dataportal.arc.gov.au/NCGP/Web/Grant/Grant/${id}`,
+          starts: a["funding-commencement-year"]
+            ? `${text(a["funding-commencement-year"])}-01-01`
+            : null,
+          ends: text(a["anticipated-end-date"]) || null,
+          abstract: summary.slice(0, 600),
+        };
+      }),
+  );
+}
+
+/** The databases that cover a hunt's places. Places that name none default to the US pair. */
+export function sourcesFor(places: string[]): Award["source"][] {
+  const where = places.join(" ").toLowerCase();
+  const picked = new Set<Award["source"]>();
+  if (!where.trim() || /\b(usa|us|united states|america)\b/.test(where)) {
+    picked.add("NSF");
+    picked.add("NIH");
+  }
+  if (/\b(uk|united kingdom|england|scotland|wales|britain)\b/.test(where)) picked.add("UKRI");
+  if (
+    /\b(eu|europe|germany|france|netherlands|sweden|denmark|finland|switzerland|spain|italy|ireland|austria|belgium|norway|portugal|poland)\b/.test(
+      where,
+    )
+  )
+    picked.add("CORDIS");
+  if (/\baustralia\b/.test(where)) picked.add("ARC");
+  return picked.size ? [...picked] : ["NSF", "NIH"];
+}
 
 export async function nsfAwards(q: AwardQuery): Promise<RawAward[]> {
   const out = new Map<string, RawAward>();
@@ -67,7 +244,9 @@ export async function nsfAwards(q: AwardQuery): Promise<RawAward[]> {
         title: text(a.title),
         pi: `${text(a.piFirstName)} ${text(a.piLastName)}`.trim(),
         university: text(a.awardeeName),
-        usd: a.estimatedTotalAmt == null ? null : Number(a.estimatedTotalAmt),
+        amount: a.estimatedTotalAmt == null ? null : Number(a.estimatedTotalAmt),
+        currency: "USD",
+        url: `https://www.nsf.gov/awardsearch/showAward?AWD_ID=${id}`,
         starts: nsfDate(a.startDate),
         ends: nsfDate(a.expDate),
         abstract: text(a.abstractText).slice(0, 600),
@@ -123,7 +302,9 @@ export async function nihAwards(q: AwardQuery): Promise<RawAward[]> {
           title: text(r.project_title),
           pi: text(r.contact_pi_name),
           university: text(asRecord(r.organization).org_name),
-          usd: r.award_amount == null ? null : Number(r.award_amount),
+          amount: r.award_amount == null ? null : Number(r.award_amount),
+          currency: "USD",
+          url: `https://reporter.nih.gov/project-details/${id}`,
           starts: text(r.project_start_date).slice(0, 10) || null,
           ends: text(r.project_end_date).slice(0, 10) || null,
           abstract: text(r.abstract_text).slice(0, 600),

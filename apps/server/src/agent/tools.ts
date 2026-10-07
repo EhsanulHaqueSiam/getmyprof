@@ -1,26 +1,37 @@
 // The hunt tools the agent calls. Both providers run these same handlers: Claude through an
 // in-process MCP server, the fake provider directly. A handler returns a one-line summary
 // (shown in the work log) and the full text the model reads.
-import { type Hunt, type Settings, Stage } from "@gradcode/contracts";
+import { type AwardSource, type Hunt, type Settings, Stage } from "@gradcode/contracts";
 import { z } from "zod";
 import type { Db } from "../db.ts";
 import { propose, listRecords } from "../records.ts";
 import {
+  arcAwards,
   type Author,
-  TREG_PRICES,
+  type AwardQuery,
+  cordisAwards,
   intakeStart,
   monthsAfter,
   nihAwards,
   nsfAwards,
   openAlexAuthor,
+  type RawAward,
+  TREG_PRICES,
   tregCall,
+  ukriAwards,
 } from "../sources.ts";
 import { daySpend, getThread, recordSpend, threadSpend } from "../threads.ts";
 import { APPLICANT_TOOLS } from "./applicant-tools.ts";
 
+type AwardFetch = (q: AwardQuery) => Promise<RawAward[]>;
+
+/** Every grant database by key, plus OpenAlex and treg. The fake provider swaps in fixtures. */
 export type Sources = {
-  nsf: typeof nsfAwards;
-  nih: typeof nihAwards;
+  nsf: AwardFetch;
+  nih: AwardFetch;
+  ukri: AwardFetch;
+  cordis: AwardFetch;
+  arc: AwardFetch;
   openalex: (name: string, university?: string) => Promise<Author | null>;
   treg: typeof tregCall;
 };
@@ -28,9 +39,23 @@ export type Sources = {
 export const realSources: Sources = {
   nsf: nsfAwards,
   nih: nihAwards,
+  ukri: ukriAwards,
+  cordis: cordisAwards,
+  arc: arcAwards,
   openalex: openAlexAuthor,
   treg: tregCall,
 };
+
+const SOURCE_KEY = {
+  NSF: "nsf",
+  NIH: "nih",
+  UKRI: "ukri",
+  CORDIS: "cordis",
+  ARC: "arc",
+} as const satisfies Record<AwardSource, keyof Sources>;
+
+/** An award source's key in Sources. */
+export const sourceKey = (s: AwardSource) => SOURCE_KEY[s];
 
 export type ToolContext = {
   db: Db;
@@ -44,6 +69,8 @@ export type ToolContext = {
   outreachChanged: () => void;
   /** Tells clients the vault changed (a find landed in To file). */
   vaultChanged: () => void;
+  /** Puts a question to the applicant; the thread waits in Input once the turn ends. */
+  ask: (question: string) => void;
 };
 
 export type ToolResult = { summary: string; text: string };
@@ -60,12 +87,15 @@ export type HuntTool<S extends z.ZodRawShape = z.ZodRawShape> = {
 };
 
 const define = <S extends z.ZodRawShape>(t: HuntTool<S>) => t;
-const money = (usd: number | null) =>
-  usd == null ? "?" : `$${Math.round(usd).toLocaleString("en-US")}`;
+const SYMBOL: Record<string, string> = { USD: "$", GBP: "£", EUR: "€", AUD: "A$" };
+const money = (amount: number | null, currency = "USD") =>
+  amount == null
+    ? "?"
+    : `${SYMBOL[currency] ?? `${currency} `}${Math.round(amount).toLocaleString("en-US")}`;
 
 const awardLines = async (
   ctx: ToolContext,
-  which: "nsf" | "nih",
+  which: "nsf" | "nih" | "ukri" | "cordis" | "arc",
   args: { terms: string[]; university?: string | undefined; pi?: string | undefined },
 ) => {
   const start = intakeStart(ctx.hunt?.prefs.intake ?? "");
@@ -79,7 +109,7 @@ const awardLines = async (
   const awards = await ctx.sources[which](q);
   const lines = awards.map(
     (a) =>
-      `${a.source} ${a.id} | PI ${a.pi} | ${a.university} | ${money(a.usd)} | ends ${a.ends ?? "?"} | ${monthsAfter(a.ends, start) ?? "?"} months after intake | ${a.title}`,
+      `${a.source} ${a.id} | PI ${a.pi || "not listed"} | ${a.university} | ${money(a.amount, a.currency)} | ends ${a.ends ?? "?"} | ${monthsAfter(a.ends, start) ?? "?"} months after intake | ${a.title}`,
   );
   return {
     summary: `${awards.length} award${awards.length === 1 ? "" : "s"} · free`,
@@ -166,6 +196,20 @@ export const HUNT_TOOLS = [
     run: (args, ctx) => awardLines(ctx, "nih", args),
   }),
   define({
+    name: "country_awards",
+    description:
+      "Search active grants outside the US by topic terms, optionally at one university or for one PI: UKRI (UK), CORDIS (EU Horizon and ERC; names the host, not the PI), ARC (Australia). Free.",
+    shape: {
+      source: z.enum(["UKRI", "CORDIS", "ARC"]),
+      terms: z.array(z.string()),
+      university: z.string().optional(),
+      pi: z.string().optional(),
+    },
+    paid: false,
+    price: () => 0,
+    run: ({ source, ...args }, ctx) => awardLines(ctx, sourceKey(source), args),
+  }),
+  define({
     name: "openalex_author",
     description:
       "Look up a researcher on OpenAlex: institution, topics, citation counts and recent papers with links. Free.",
@@ -180,6 +224,18 @@ export const HUNT_TOOLS = [
         summary: `${a.works} works · ${a.citations} citations`,
         text: `${a.name}, ${a.institution}\nTopics: ${a.topics.join(", ")}\nRecent:\n${recent}`,
       };
+    },
+  }),
+  define({
+    name: "ask_applicant",
+    description:
+      "Ask the applicant something only they know (a fact, a plan, a preference) instead of guessing. After asking, end your turn; their answer arrives as the next message.",
+    shape: { question: z.string().describe("One short question") },
+    paid: false,
+    price: () => 0,
+    run: async ({ question }, ctx) => {
+      ctx.ask(question);
+      return { summary: "asked", text: "Asked. End your turn now and wait for the answer." };
     },
   }),
   define({

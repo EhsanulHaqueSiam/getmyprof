@@ -45,6 +45,12 @@ call) or `now` (steered). A session closes after a minute idle.
 - **Settling.** A thread settles once it is idle with nothing pending in Review; idle threads
   nobody touched for 3 days settle on their own.
 
+## Input
+
+`ask_applicant` puts a question in the thread and returns at once; the turn ends and the thread
+waits in Input (indigo) until the applicant's next message, which answers it. Nothing blocks a
+tool call on a human: an MCP call held open for hours would time out.
+
 ## Providers
 
 `claude` runs the Agent SDK's bundled Claude Code with the user's login. `fake` runs the same hunt

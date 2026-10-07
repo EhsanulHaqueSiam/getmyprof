@@ -16,7 +16,7 @@ import {
 } from "./adapters.ts";
 import { extractFacts, fakeFacts } from "./agent/extract.ts";
 import type { Runner } from "./agent/runner.ts";
-import type { Sources } from "./agent/tools.ts";
+import { type Sources, sourceKey } from "./agent/tools.ts";
 import type { Bus } from "./bus.ts";
 import { type Db, newId, now } from "./db.ts";
 import { health } from "./health.ts";
@@ -35,7 +35,7 @@ import {
   writingBrief,
 } from "./vault.ts";
 import { getRecord, listRecords, resolveProposal, threadProposals, threadRows } from "./records.ts";
-import { intakeStart, monthsAfter } from "./sources.ts";
+import { intakeStart, monthsAfter, sameSchool, sourcesFor } from "./sources.ts";
 import {
   getApplicant,
   getHunt,
@@ -62,15 +62,6 @@ type Input<M extends Method> = z.output<(typeof Methods)[M]["input"]>;
 type Handlers = { [M in Method]: (input: Input<M>) => MethodOutput<M> | Promise<MethodOutput<M>> };
 
 const OK = { ok: true } as const;
-const words = (s: string) =>
-  s
-    .toLowerCase()
-    .split(/[^a-z]+/)
-    .filter(
-      (w) =>
-        w.length > 3 &&
-        !["university", "college", "state", "institute", "school", "campus"].includes(w),
-    );
 /** "LYBARGER, KEVIN" and "Kevin Lybarger" are the same person. */
 const personKey = (name: string) => {
   const parts = name.includes(",") ? name.split(",").toReversed().join(" ") : name;
@@ -232,17 +223,25 @@ export function createHandlers(svc: Services): Handlers {
     },
     "records.export": () => ({ csv: exportCsv(db) }),
 
-    "funding.search": async ({ terms, universities }) => {
+    "funding.search": async ({ terms, universities, sources: picked }) => {
       const records = listRecords(db);
-      const schools = universities.length
-        ? universities
-        : [...new Set(records.map((r) => r.university))].slice(0, 8);
-      const start = intakeStart(getHunt(db)?.prefs.intake ?? "");
+      const hunt = getHunt(db);
+      const which = picked?.length ? picked : sourcesFor(hunt?.prefs.places ?? []);
+      const start = intakeStart(hunt?.prefs.intake ?? "");
       const activeAfter = start?.toISOString().slice(0, 10);
       const base = { terms, ...(activeAfter ? { activeAfter } : {}) };
-      const runs = (schools.length ? schools : [undefined]).flatMap((u) => {
-        const q = { ...base, ...(u ? { university: u } : {}) };
-        return [sources.nsf(q), sources.nih(q)];
+      // Named schools filter every source. By default the sheet's schools filter the US pair,
+      // and the other databases search the topic everywhere: the sheet's schools are mostly US.
+      const sheetSchools = [...new Set(records.map((r) => r.university))].slice(0, 8);
+      const runs = which.flatMap((s) => {
+        const schools = universities.length
+          ? universities
+          : s === "NSF" || s === "NIH"
+            ? sheetSchools
+            : [];
+        return (schools.length ? schools : [undefined]).map((u) =>
+          sources[sourceKey(s)]({ ...base, ...(u ? { university: u } : {}) }),
+        );
       });
       const found = (await Promise.allSettled(runs)).flatMap((r) =>
         r.status === "fulfilled" ? r.value : [],
@@ -252,11 +251,12 @@ export function createHandlers(svc: Services): Handlers {
         .map((a): Award => ({
           ...a,
           monthsAfterIntake: monthsAfter(a.ends, start),
-          inSheet: records.some(
-            (r) =>
-              personKey(r.name) === personKey(a.pi) &&
-              words(r.university).some((w) => words(a.university).includes(w)),
-          ),
+          inSheet:
+            !!a.pi &&
+            records.some(
+              (r) =>
+                personKey(r.name) === personKey(a.pi) && sameSchool(r.university, a.university),
+            ),
         }))
         .toSorted((a, b) => (b.monthsAfterIntake ?? -999) - (a.monthsAfterIntake ?? -999));
     },

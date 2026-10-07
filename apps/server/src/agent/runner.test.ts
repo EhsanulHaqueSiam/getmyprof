@@ -5,7 +5,8 @@ import { openDb } from "../db.ts";
 import { resolveProposal, threadProposals } from "../records.ts";
 import { updateSettings } from "../state.ts";
 import { createThread, getThread, listEvents, settleIfDone, threadSpend } from "../threads.ts";
-import { fakeProvider, fixtureSources } from "./fake.ts";
+import { fakeProvider } from "./fake.ts";
+import { fixtureSources } from "./fixtures.ts";
 import { createRunner } from "./runner.ts";
 
 const until = async (check: () => boolean, ms = 5000) => {
@@ -70,5 +71,29 @@ describe("a fake agent turn", () => {
     expect(listEvents(db, thread).some((e) => e.type === "tool" && e.status === "denied")).toBe(
       true,
     );
+  });
+});
+
+describe("a question to the applicant", () => {
+  it("leaves the thread in Input until the next message answers it", async () => {
+    const db = openDb(":memory:");
+    const runner = createRunner({
+      db,
+      bus: createBus(),
+      provider: fakeProvider(1),
+      sources: fixtureSources,
+    });
+    const thread = createThread(db, "t").id;
+    runner.send(thread, "ask me what you need", "send");
+    await until(() => getThread(db, thread)?.status === "input");
+    const asked = listEvents(db, thread).find((e) => e.type === "question");
+    expect(asked).toMatchObject({ status: "pending" });
+    expect(settleIfDone(db, thread)).toBe(false);
+
+    runner.send(thread, "IELTS in November", "send");
+    await until(() => getThread(db, thread)?.status === "idle");
+    expect(listEvents(db, thread).find((e) => e.type === "question")).toMatchObject({
+      status: "answered",
+    });
   });
 });

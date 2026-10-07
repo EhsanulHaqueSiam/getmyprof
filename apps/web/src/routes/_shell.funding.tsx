@@ -1,4 +1,4 @@
-import type { Award } from "@gradcode/contracts";
+import { type Award, AwardSource } from "@gradcode/contracts";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ExternalLinkIcon, MessageSquareIcon, SearchIcon } from "lucide-react";
 import { useState } from "react";
@@ -9,13 +9,23 @@ import { useStore } from "~/state/store";
 
 export const Route = createFileRoute("/_shell/funding")({ component: Funding });
 
-const money = (usd: number | null) => (usd == null ? "?" : `$${usd.toLocaleString("en-US")}`);
-const link = (a: Award) =>
-  a.source === "NSF"
-    ? `https://www.nsf.gov/awardsearch/showAward?AWD_ID=${a.id}`
-    : `https://reporter.nih.gov/project-details/${encodeURIComponent(a.id)}`;
+const SYMBOL: Record<string, string> = { USD: "$", GBP: "£", EUR: "€", AUD: "A$" };
+const money = (a: Pick<Award, "amount" | "currency">) =>
+  a.amount == null
+    ? "?"
+    : `${SYMBOL[a.currency] ?? `${a.currency} `}${Math.round(a.amount).toLocaleString("en-US")}`;
+const SOURCE_NOTE: Record<AwardSource, string> = {
+  NSF: "US",
+  NIH: "US",
+  UKRI: "UK",
+  CORDIS: "EU, ERC",
+  ARC: "Australia",
+};
 
-/** Follow the money: active NSF and NIH awards in your fields, ranked by how long they last after your intake. */
+/**
+ * Follow the money: active awards in your fields from free databases (NSF, NIH, UKRI, CORDIS,
+ * ARC), ranked by how long they last after your intake. Sources default to your hunt's places.
+ */
 function Funding() {
   const hunt = useStore((s) => s.app?.hunt);
   const navigate = useNavigate();
@@ -26,6 +36,8 @@ function Funding() {
   const [awards, setAwards] = useState<Award[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [picked, setPicked] = useState<Award | null>(null);
+  // null means "the hunt's places decide"; the server picks the same default.
+  const [chosen, setChosen] = useState<AwardSource[] | null>(null);
 
   const search = async () => {
     setBusy(true);
@@ -38,6 +50,7 @@ function Funding() {
       const found = await call("funding.search", {
         terms: split(terms).slice(0, 3),
         universities: split(schools).slice(0, 8),
+        ...(chosen?.length ? { sources: chosen } : {}),
       });
       setAwards(found);
       setPicked(found[0] ?? null);
@@ -47,8 +60,10 @@ function Funding() {
   };
   const vet = async (a: Award) => {
     const t = await call("threads.create", {
-      text: `Vet ${a.pi} at ${a.university}. They hold ${a.source} award ${a.id} ("${a.title}", ends ${a.ends ?? "unknown"}). Are they taking students for my intake, and do they fit me? Propose them if they do.`,
-      title: `Vet ${a.pi}`,
+      text: a.pi
+        ? `Vet ${a.pi} at ${a.university}. They hold ${a.source} award ${a.id} ("${a.title}", ends ${a.ends ?? "unknown"}). Are they taking students for my intake, and do they fit me? Propose them if they do.`
+        : `${a.source} project ${a.id} ("${a.title}") at ${a.university} doesn't name its PI. Find who leads it (${a.url}), whether they take students for my intake, and propose them if they fit me.`,
+      title: a.pi ? `Vet ${a.pi}` : `Find the PI of ${a.id}`,
     });
     void navigate({ to: "/t/$threadId", params: { threadId: t.id } });
   };
@@ -58,7 +73,36 @@ function Funding() {
       <section className="flex min-w-0 flex-col">
         <header className="flex h-12 shrink-0 items-center gap-2.5 px-4">
           <h1 className="font-semibold text-sm">Funding</h1>
-          <span className="text-muted-foreground text-xs">NSF and NIH, free</span>
+          <span className="flex gap-1">
+            {AwardSource.options.map((s) => {
+              const on = chosen ? chosen.includes(s) : false;
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  aria-pressed={on}
+                  title={SOURCE_NOTE[s]}
+                  onClick={() =>
+                    setChosen((c) => {
+                      const now = c ?? [];
+                      return now.includes(s) ? now.filter((x) => x !== s) : [...now, s];
+                    })
+                  }
+                  className={cn(
+                    "h-6 rounded-md px-1.5 text-2xs transition-colors",
+                    on
+                      ? "bg-accent text-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {s}
+                </button>
+              );
+            })}
+          </span>
+          <span className="text-muted-foreground text-xs">
+            {chosen?.length ? "free" : "free · by your places"}
+          </span>
         </header>
         <form
           onSubmit={(e) => {
@@ -119,11 +163,13 @@ function Funding() {
                     <td className="h-9 max-w-[260px] truncate border-b px-3 text-secondary-label">
                       {a.title}
                     </td>
-                    <td className="border-b px-3 font-medium whitespace-nowrap">{a.pi}</td>
+                    <td className="border-b px-3 font-medium whitespace-nowrap">
+                      {a.pi || <span className="text-muted-foreground">not listed</span>}
+                    </td>
                     <td className="max-w-[160px] truncate border-b px-3 text-secondary-label">
                       {a.university}
                     </td>
-                    <td className="border-b px-3 tabular-nums">{money(a.usd)}</td>
+                    <td className="border-b px-3 tabular-nums">{money(a)}</td>
                     <td className="border-b px-3 whitespace-nowrap tabular-nums">
                       {a.ends?.slice(0, 7) ?? "?"}
                     </td>
@@ -182,10 +228,10 @@ function Funding() {
             <h2 className="font-semibold text-sm leading-snug">{picked.title}</h2>
             <div className="flex flex-wrap gap-3 text-muted-foreground text-xs">
               <span>
-                PI <b className="text-foreground">{picked.pi}</b>
+                PI <b className="text-foreground">{picked.pi || "not listed"}</b>
               </span>
               <span>{picked.university}</span>
-              <b className="text-foreground">{money(picked.usd)}</b>
+              <b className="text-foreground">{money(picked)}</b>
             </div>
             {picked.abstract ? (
               <p className="text-secondary-label text-xs leading-relaxed">{picked.abstract}</p>
@@ -197,9 +243,9 @@ function Funding() {
               <Button
                 variant="ghost-muted"
                 size="xs"
-                render={<a href={link(picked)} target="_blank" rel="noreferrer" />}
+                render={<a href={picked.url} target="_blank" rel="noreferrer" />}
               >
-                <ExternalLinkIcon /> {picked.source === "NSF" ? "nsf.gov" : "reporter.nih.gov"}
+                <ExternalLinkIcon /> {new URL(picked.url).host}
               </Button>
             </div>
           </>

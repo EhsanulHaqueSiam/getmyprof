@@ -107,6 +107,10 @@ export function putEvent(db: Db, threadId: string, event: ThreadEvent) {
   db.prepare("UPDATE threads SET updated_at = ? WHERE id = ?").run(now(), threadId);
 }
 
+/** The question a thread is waiting on, if any. */
+export const pendingQuestion = (db: Db, threadId: string) =>
+  listEvents(db, threadId).findLast((e) => e.type === "question" && e.status === "pending") ?? null;
+
 export const listEvents = (db: Db, threadId: string) =>
   db
     .prepare("SELECT body FROM events WHERE thread_id = ? ORDER BY seq")
@@ -141,9 +145,10 @@ export function expireApprovals(db: Db) {
     for (const e of listEvents(db, t.id)) {
       if (e.type === "approval" && e.status === "pending")
         putEvent(db, t.id, { ...e, status: "denied" });
+      // A question survives a restart: the thread still waits for the answer.
       if (e.type === "tool" && e.status === "running")
         putEvent(db, t.id, { ...e, status: "error", meta: "server restarted" });
     }
-    if (t.status !== "idle") setStatus(db, t.id, "idle");
+    if (t.status !== "idle") setStatus(db, t.id, pendingQuestion(db, t.id) ? "input" : "idle");
   }
 }

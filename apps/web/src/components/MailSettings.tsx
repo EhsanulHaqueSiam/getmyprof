@@ -201,7 +201,7 @@ export function MailSettings() {
         </div>
       ) : null}
       {signingIn ? (
-        <SignInForm provider={provider} />
+        <SignInForm key={provider} provider={provider} />
       ) : (
         <form
           className="flex flex-col gap-2"

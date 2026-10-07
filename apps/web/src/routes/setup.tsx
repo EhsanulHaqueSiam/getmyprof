@@ -76,7 +76,8 @@ function Setup() {
     try {
       const extracted = await call("facts.extract", {
         text: cvText,
-        links: [],
+        // Links pasted with the CV (site, Scholar, GitHub, ORCID, LinkedIn) are fetched and cross-checked.
+        links: [...new Set(cvText.match(/https?:\/\/[^\s)>\]]+/g) ?? [])].slice(0, 8),
         ...(file ? { pdfBase64: await toBase64(file) } : {}),
       });
       setFacts((f) => [...f.filter((x) => x.confirmed), ...extracted]);

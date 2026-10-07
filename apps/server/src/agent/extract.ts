@@ -23,7 +23,7 @@ const Extracted = z.object({
 });
 
 const INSTRUCTIONS =
-  "Read the applicant's CV and links and list the facts a funded-PhD application would rest on: degrees and dates, grades, papers (title, venue, year, author position), projects, work, tests and certificates, citizenship. One fact each. Never infer or improve a fact; copy what the document says. Mark a claim as a question when the document gives no proof for it.";
+  "Read the applicant's CV and links and list the facts a funded-PhD application would rest on: degrees and dates, grades, papers (title, venue, year, author position), projects, work, tests and certificates, citizenship. One fact each. Fetch every link given (personal site, Scholar, GitHub, ORCID, LinkedIn) with WebFetch and cross-check it against the CV: a fact one source states and another contradicts becomes a question. Cite the link a fact came from as its source. Never infer or improve a fact; copy what the source says. Mark a claim as a question when nothing gives proof for it.";
 
 /** Drafts profile facts from a CV (PDF and/or pasted text) and links. Every fact starts unconfirmed. */
 export async function extractFacts(
@@ -66,8 +66,10 @@ export async function extractFacts(
       model,
       systemPrompt: INSTRUCTIONS,
       settingSources: [],
-      tools: [],
-      maxTurns: 2,
+      // WebFetch reads the links; nothing else, and nothing that writes.
+      tools: input.links.length ? ["WebFetch"] : [],
+      allowedTools: input.links.length ? ["WebFetch"] : [],
+      maxTurns: input.links.length ? 4 + input.links.length * 2 : 2,
       outputFormat: { type: "json_schema", schema: z.toJSONSchema(Extracted) },
     },
   });

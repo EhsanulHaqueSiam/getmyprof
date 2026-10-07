@@ -61,6 +61,12 @@ export const Program = z.object({
   english: z.string(),
   /** How admits are funded, e.g. "5 years guaranteed, RA/TA". */
   funding: z.string(),
+  /** What the statement must cover, in the program's words, one item per line. */
+  asks: z.string().default(""),
+  /** The statement's length limit, e.g. "2 pages" or "1000 words". */
+  limit: z.string().default(""),
+  /** "ok", or "no: <why>" when this applicant can't be admitted or funded here. */
+  eligibility: z.string().default(""),
   url: z.string(),
   sources,
   note: z.string(),

@@ -58,6 +58,7 @@ export function readHqFacts(dir = hqDir()): ProfileFact[] {
         date: (field("date") || field("end") || field("start") || field("issued")).slice(0, 10),
         confirmed: true,
         question: false,
+        planned: false,
       },
     ];
   });

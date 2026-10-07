@@ -18,6 +18,9 @@ const Extracted = z.object({
         .describe(
           'When it happened, only as precise as the source says: "2025", "2025-05" or "2025-05-14"; for a span, its end (or start if ongoing). Empty if the source gives none',
         ),
+      planned: z
+        .boolean()
+        .describe("True for something booked or planned but not done yet, e.g. a test date"),
       question: z
         .boolean()
         .describe(
@@ -28,7 +31,7 @@ const Extracted = z.object({
 });
 
 const INSTRUCTIONS =
-  "Read the applicant's CV and links and list the facts a funded-PhD application would rest on: degrees and dates, grades, papers (title, venue, year, author position), projects, work, tests and certificates, citizenship. One fact each. Fetch every link given (personal site, Scholar, GitHub, ORCID, LinkedIn) with WebFetch and cross-check it against the CV: a fact one source states and another contradicts becomes a question. Cite the link a fact came from as its source. Never infer or improve a fact; copy what the source says. Mark a claim as a question when nothing gives proof for it.";
+  "Read the applicant's CV and links and list the facts a funded-PhD application would rest on: degrees and dates, grades, papers (title, venue, year, author position), projects, work, tests and certificates, citizenship. One fact each. Fetch every link given, and every link printed in the CV itself (personal site, Scholar, GitHub, ORCID, LinkedIn), with WebFetch and cross-check it against the CV: a fact one source states and another contradicts becomes a question. Cite the link a fact came from as its source. Never infer or improve a fact; copy what the source says. Mark a claim as a question when nothing gives proof for it.";
 
 /** Drafts profile facts from a CV (PDF and/or pasted text) and links. Every fact starts unconfirmed. */
 export async function extractFacts(
@@ -63,6 +66,7 @@ export async function extractFacts(
       ],
     },
   };
+  const fetches = input.links.length > 0 || !!input.pdfBase64;
   const q = query({
     prompt: (async function* () {
       yield message;
@@ -71,10 +75,10 @@ export async function extractFacts(
       model,
       systemPrompt: INSTRUCTIONS,
       settingSources: [],
-      // WebFetch reads the links; nothing else, and nothing that writes.
-      tools: input.links.length ? ["WebFetch"] : [],
-      allowedTools: input.links.length ? ["WebFetch"] : [],
-      maxTurns: input.links.length ? 4 + input.links.length * 2 : 2,
+      // WebFetch reads the links, given or printed in the CV; nothing else, and nothing that writes.
+      tools: fetches ? ["WebFetch"] : [],
+      allowedTools: fetches ? ["WebFetch"] : [],
+      maxTurns: fetches ? 6 + input.links.length * 2 : 2,
       outputFormat: { type: "json_schema", schema: z.toJSONSchema(Extracted) },
     },
   });
@@ -89,6 +93,7 @@ export async function extractFacts(
       kind: f.kind,
       date: f.date,
       question: f.question,
+      planned: f.planned,
       confirmed: false,
     }));
   }
@@ -105,6 +110,7 @@ export const fakeFacts = (): ProfileFact[] => [
     date: "2025",
     confirmed: false,
     question: false,
+    planned: false,
   },
   {
     id: newId("fact"),
@@ -114,6 +120,7 @@ export const fakeFacts = (): ProfileFact[] => [
     date: "2025",
     confirmed: false,
     question: false,
+    planned: false,
   },
   {
     id: newId("fact"),
@@ -123,5 +130,6 @@ export const fakeFacts = (): ProfileFact[] => [
     date: "",
     confirmed: false,
     question: true,
+    planned: false,
   },
 ];

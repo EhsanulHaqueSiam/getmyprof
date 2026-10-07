@@ -40,7 +40,7 @@ export function systemPrompt(
   const a = applicant;
   const eligibility = a
     ? [
-        `Applicant: citizen of ${a.citizenship.join(", ") || "unknown"}, living in ${a.residence || "unknown"}, ${a.degreeYears}-year bachelor's${a.gpa ? `, GPA ${a.gpa}` : ""}.`,
+        `Applicant: citizen of ${a.citizenship.join(", ") || "unknown"}, living in ${a.residence || "unknown"}, ${a.degreeYears}-year bachelor's${a.gpa ? `, GPA ${a.gpa}${a.gpaScale ? ` on a ${a.gpaScale} scale (never convert it unless asked, and then say how)` : ""}` : ""}.`,
         a.tests.length
           ? `Tests: ${a.tests.map((t) => `${t.name} ${t.status}${t.date ? ` ${t.date}` : ""}${t.score ? ` (${t.score})` : ""}`).join("; ")}. Never claim a score that isn't listed.`
           : "No English test taken yet. Never claim a score.",

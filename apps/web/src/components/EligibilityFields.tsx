@@ -50,9 +50,17 @@ export function EligibilityFields({
         <input
           value={applicant.gpa}
           onChange={(e) => patch({ gpa: e.target.value })}
-          placeholder="3.8 / 4.0"
+          placeholder="3.8"
           aria-label="GPA"
-          className={cn(input, "w-32")}
+          className={cn(input, "w-24")}
+        />
+        <span className="mx-1.5 text-muted-foreground text-xs">on a scale of</span>
+        <input
+          value={applicant.gpaScale}
+          onChange={(e) => patch({ gpaScale: e.target.value })}
+          placeholder="4.00"
+          aria-label="GPA scale"
+          className={cn(input, "w-20")}
         />
       </Row>
       <Row label="Tests">

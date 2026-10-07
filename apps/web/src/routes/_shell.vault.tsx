@@ -78,8 +78,9 @@ const what = (f: FileItem) =>
 /** The agent's finds waiting for a click, and what's coming up. */
 function Side() {
   const v = useStore((s) => s.vault);
+  const applicant = useStore((s) => s.app?.applicant);
   if (!v) return <aside className="border-l" />;
-  const upcoming = comingUp(v);
+  const upcoming = comingUp(v, new Date(), applicant);
   return (
     <aside className="min-h-0 overflow-y-auto border-l px-4 py-3 text-xs">
       <div className="mb-1 text-muted-foreground">To file · {v.toFile.length}</div>

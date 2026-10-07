@@ -37,8 +37,22 @@ export type Upcoming = { id: string; text: string; urgent: boolean; days: number
  * The right panel's "Coming up": documents running out within a year, and deadlines within 45
  * days for applications with work left and scholarships the applicant is applying to.
  */
-export function comingUp(v: VaultState, now = new Date()): Upcoming[] {
+export function comingUp(
+  v: VaultState,
+  now = new Date(),
+  applicant?: Pick<Applicant, "tests" | "moi">,
+): Upcoming[] {
   const out: Upcoming[] = [];
+  // Programs that name an English test, while no score is on file and no MOI certificate.
+  const asking = v.programs.filter((p) => /IELTS|TOEFL|PTE|Duolingo/i.test(p.english));
+  const scored = applicant?.tests.some((t) => t.status === "taken" && t.score.trim());
+  if (applicant && asking.length && !scored && !applicant.moi)
+    out.push({
+      id: "english-score",
+      days: 0,
+      urgent: true,
+      text: `${asking.length} program${asking.length === 1 ? " asks" : "s ask"} for an English test score and none is on file`,
+    });
   for (const d of v.documents) {
     if (!d.expires) continue;
     const days = daysLeft(d.expires, now);

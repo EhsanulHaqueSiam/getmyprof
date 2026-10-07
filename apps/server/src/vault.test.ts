@@ -49,6 +49,9 @@ const program = {
     waiver: "on request",
     english: "IELTS 6.5",
     funding: "GRA/GTA",
+    asks: "Your research interests\nWhy this program",
+    limit: "2 pages",
+    eligibility: "ok",
     url: "https://example.edu/phd-it",
     sources: ["https://example.edu/phd-it"],
   },
@@ -192,6 +195,7 @@ describe("the Writer", () => {
         date: "2025",
         confirmed: true,
         question: false,
+        planned: false,
       },
       {
         id: "f_t",
@@ -201,6 +205,7 @@ describe("the Writer", () => {
         date: "",
         confirmed: true,
         question: false,
+        planned: false,
       },
     ];
     const { text } = writingBrief(db, facts, {

@@ -22,7 +22,7 @@ import { Route as PrintIdRouteImport } from './routes/print.$id'
 import { Route as ShellProfessorsIndexRouteImport } from './routes/_shell.professors.index'
 import { Route as ShellProfessorsKeyRouteImport } from './routes/_shell.professors.$key'
 import { Route as ShellTThreadIdRouteImport } from './routes/_shell.t.$threadId'
-import { Route as ShellWriterIdRouteImport } from './routes/_shell.writer.$id'
+import { Route as ShellVaultWritingIdRouteImport } from './routes/_shell.vault_.writing.$id'
 
 const ShellRoute = ShellRouteImport.update({
   id: '/_shell',
@@ -88,9 +88,9 @@ const ShellTThreadIdRoute = ShellTThreadIdRouteImport.update({
   path: '/t/$threadId',
   getParentRoute: () => ShellRoute,
 } as any)
-const ShellWriterIdRoute = ShellWriterIdRouteImport.update({
-  id: '/writer/$id',
-  path: '/writer/$id',
+const ShellVaultWritingIdRoute = ShellVaultWritingIdRouteImport.update({
+  id: '/vault_/writing/$id',
+  path: '/vault/writing/$id',
   getParentRoute: () => ShellRoute,
 } as any)
 
@@ -106,8 +106,8 @@ export interface FileRoutesByFullPath {
   '/print/$id': typeof PrintIdRoute
   '/professors/$key': typeof ShellProfessorsKeyRoute
   '/t/$threadId': typeof ShellTThreadIdRoute
-  '/writer/$id': typeof ShellWriterIdRoute
   '/professors/': typeof ShellProfessorsIndexRoute
+  '/vault/writing/$id': typeof ShellVaultWritingIdRoute
 }
 export interface FileRoutesByTo {
   '/setup': typeof SetupRoute
@@ -121,8 +121,8 @@ export interface FileRoutesByTo {
   '/': typeof ShellIndexRoute
   '/professors/$key': typeof ShellProfessorsKeyRoute
   '/t/$threadId': typeof ShellTThreadIdRoute
-  '/writer/$id': typeof ShellWriterIdRoute
   '/professors': typeof ShellProfessorsIndexRoute
+  '/vault/writing/$id': typeof ShellVaultWritingIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -138,8 +138,8 @@ export interface FileRoutesById {
   '/_shell/': typeof ShellIndexRoute
   '/_shell/professors/$key': typeof ShellProfessorsKeyRoute
   '/_shell/t/$threadId': typeof ShellTThreadIdRoute
-  '/_shell/writer/$id': typeof ShellWriterIdRoute
   '/_shell/professors/': typeof ShellProfessorsIndexRoute
+  '/_shell/vault_/writing/$id': typeof ShellVaultWritingIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -155,8 +155,8 @@ export interface FileRouteTypes {
     | '/print/$id'
     | '/professors/$key'
     | '/t/$threadId'
-    | '/writer/$id'
     | '/professors/'
+    | '/vault/writing/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/setup'
@@ -170,8 +170,8 @@ export interface FileRouteTypes {
     | '/'
     | '/professors/$key'
     | '/t/$threadId'
-    | '/writer/$id'
     | '/professors'
+    | '/vault/writing/$id'
   id:
     | '__root__'
     | '/_shell'
@@ -186,8 +186,8 @@ export interface FileRouteTypes {
     | '/_shell/'
     | '/_shell/professors/$key'
     | '/_shell/t/$threadId'
-    | '/_shell/writer/$id'
     | '/_shell/professors/'
+    | '/_shell/vault_/writing/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -289,11 +289,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellTThreadIdRouteImport
       parentRoute: typeof ShellRoute
     }
-    '/_shell/writer/$id': {
-      id: '/_shell/writer/$id'
-      path: '/writer/$id'
-      fullPath: '/writer/$id'
-      preLoaderRoute: typeof ShellWriterIdRouteImport
+    '/_shell/vault_/writing/$id': {
+      id: '/_shell/vault_/writing/$id'
+      path: '/vault/writing/$id'
+      fullPath: '/vault/writing/$id'
+      preLoaderRoute: typeof ShellVaultWritingIdRouteImport
       parentRoute: typeof ShellRoute
     }
   }
@@ -309,8 +309,8 @@ interface ShellRouteChildren {
   ShellIndexRoute: typeof ShellIndexRoute
   ShellProfessorsKeyRoute: typeof ShellProfessorsKeyRoute
   ShellTThreadIdRoute: typeof ShellTThreadIdRoute
-  ShellWriterIdRoute: typeof ShellWriterIdRoute
   ShellProfessorsIndexRoute: typeof ShellProfessorsIndexRoute
+  ShellVaultWritingIdRoute: typeof ShellVaultWritingIdRoute
 }
 
 const ShellRouteChildren: ShellRouteChildren = {
@@ -323,8 +323,8 @@ const ShellRouteChildren: ShellRouteChildren = {
   ShellIndexRoute: ShellIndexRoute,
   ShellProfessorsKeyRoute: ShellProfessorsKeyRoute,
   ShellTThreadIdRoute: ShellTThreadIdRoute,
-  ShellWriterIdRoute: ShellWriterIdRoute,
   ShellProfessorsIndexRoute: ShellProfessorsIndexRoute,
+  ShellVaultWritingIdRoute: ShellVaultWritingIdRoute,
 }
 
 const ShellRouteWithChildren = ShellRoute._addFileChildren(ShellRouteChildren)

@@ -307,15 +307,18 @@ export const fakeProvider = (
       const unproven = facts.find((f) => f.status === "unconfirmed" || f.status === "needs proof");
       const cite = (f: { id: string; fact: string } | undefined, lead: string) =>
         f ? `${lead} ${f.fact} [[${f.id}]].` : "";
-      const body = [
-        `I want to build language technology that holds up for the people who rely on it. ${cite(proven[0], "My preparation:")}`,
-        [cite(proven[1], "Alongside it:"), cite(unproven, "I would also bring this:")]
-          .filter(Boolean)
-          .join(" "),
-        "I would like to continue this work with your faculty, on problems where careful evaluation matters.",
-      ]
-        .filter(Boolean)
-        .join("\n\n");
+      const body =
+        kind === "cv"
+          ? [cite(proven[0], "Education:"), cite(unproven, "Grades:")].filter(Boolean).join("\n\n")
+          : [
+              `I want to build language technology that holds up for the people who rely on it. ${cite(proven[0], "My preparation:")}`,
+              [cite(proven[1], "Alongside it:"), cite(unproven, "I would also bring this:")]
+                .filter(Boolean)
+                .join(" "),
+              "I would like to continue this work with your faculty, on problems where careful evaluation matters.",
+            ]
+              .filter(Boolean)
+              .join("\n\n");
       await call("write_document", "draft", {
         pieceId: orNull(revise),
         kind,

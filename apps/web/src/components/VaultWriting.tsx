@@ -53,7 +53,11 @@ function NewPiece() {
             </option>
           ))}
         </select>
-      ) : null}
+      ) : kind === "cv" ? null : (
+        <span className="text-muted-foreground text-xs">
+          File a {kind === "sop" ? "program" : "scholarship"} first
+        </span>
+      )}
       <Button
         size="xs"
         variant="outline"
@@ -92,7 +96,7 @@ export function VaultWriting() {
       </header>
       <Table
         head={["Piece", "For", "Draft", "Export"]}
-        widths={["auto", "220px", "60px", "120px"]}
+        widths={["auto", "220px", "60px", "160px"]}
         empty={
           pieces.length
             ? null
@@ -105,7 +109,7 @@ export function VaultWriting() {
           return (
             <tr key={w.id} className="transition-colors hover:bg-secondary">
               <Td strong className="max-w-none">
-                <Link to="/writer/$id" params={{ id: w.id }} className="hover:underline">
+                <Link to="/vault/writing/$id" params={{ id: w.id }} className="hover:underline">
                   {w.title || KIND_LABEL[w.kind]}
                 </Link>
               </Td>

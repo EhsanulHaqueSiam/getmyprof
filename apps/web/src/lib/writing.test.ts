@@ -23,6 +23,7 @@ const piece: Writing = {
   citations: { "1": "f_bsc", "2": "f_team" },
   threadId: null,
   updatedAt: "",
+  history: [],
 };
 
 const applicant: Applicant = {

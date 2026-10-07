@@ -7,9 +7,19 @@ import { checks, citations, layout, plainText, strayMarkers } from "~/lib/writin
 import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
 
-export const Route = createFileRoute("/_shell/writer/$id")({ component: WriterPage });
+// /vault/writing/<id>, outside the Vault's own layout, so the sidebar's Vault stays lit.
+export const Route = createFileRoute("/_shell/vault_/writing/$id")({ component: WriterPage });
 
 const KIND_LABEL = { sop: "Statement of purpose", cv: "CV", essay: "Scholarship essay" } as const;
+
+/** "2026-12-01" as "Dec 1, 2026", read as a calendar date. */
+const longDate = (ymd: string) =>
+  new Date(`${ymd}T12:00:00Z`).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 
 function Label({ children }: { children: string }) {
   return <div className="mt-4 mb-1 text-muted-foreground first:mt-0">{children}</div>;
@@ -114,10 +124,10 @@ function WriterPage() {
     (k) => names[k] ?? k,
   );
   const cited = citations(w, app.facts);
-  const blocked = new Set(cited.filter((c) => !c.ok).map((c) => c.n));
   const stray = strayMarkers(w);
+  const blocked = new Set([...cited.filter((c) => !c.ok).map((c) => c.n), ...stray]);
   const c = checks(w, { named, applicant: app.applicant });
-  const exportable = blocked.size === 0 && stray.length === 0 && !c.scoreClaimed;
+  const exportable = blocked.size === 0 && !c.scoreClaimed;
   const others = vault.programs.filter((p) => p.id !== w.programId);
 
   const start = async (programId: string | null, basedOn: string) => {
@@ -133,6 +143,13 @@ function WriterPage() {
   return (
     <div className="grid min-w-0 flex-1 grid-cols-[240px_minmax(0,1fr)_300px]">
       <aside className="min-h-0 overflow-y-auto border-r px-4 py-4 text-xs">
+        <Link
+          to="/vault"
+          search={{ section: "writing" }}
+          className="mb-3 block text-muted-foreground hover:text-foreground"
+        >
+          Writing
+        </Link>
         <Label>For</Label>
         <div className="font-medium text-foreground text-sm">
           {program
@@ -141,8 +158,8 @@ function WriterPage() {
         </div>
         <div className="text-muted-foreground">
           {KIND_LABEL[w.kind]}
-          {program?.deadline ? ` · due ${program.deadline}` : ""}
-          {scholarship?.deadline ? ` · due ${scholarship.deadline}` : ""}
+          {program?.deadline ? ` · due ${longDate(program.deadline)}` : ""}
+          {scholarship?.deadline ? ` · due ${longDate(scholarship.deadline)}` : ""}
         </div>
         {named.length ? (
           <>
@@ -183,18 +200,19 @@ function WriterPage() {
           ) : null}
           <Button
             size="xs"
-            variant="ghost-muted"
+            variant="outline"
             disabled={!exportable}
             onClick={async () => {
               await navigator.clipboard.writeText(plainText(w));
               setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
             }}
           >
             {copied ? "Copied" : "Copy text"}
           </Button>
           <Button
             size="xs"
-            variant="ghost-muted"
+            variant="outline"
             disabled={!exportable}
             onClick={() => window.open(`/print/${w.id}`, "_blank", "noopener")}
           >
@@ -206,12 +224,52 @@ function WriterPage() {
             </span>
           )}
         </div>
+        {w.history.length ? (
+          <>
+            <Label>Earlier drafts</Label>
+            <ul className="flex flex-col gap-1" data-testid="history">
+              {w.history.toReversed().map((h) => (
+                <li key={h.draft} className="flex items-center gap-2 text-secondary-label">
+                  Draft {h.draft}
+                  <span className="text-muted-foreground">{h.at.slice(0, 10)}</span>
+                  <Button
+                    size="xs"
+                    variant="ghost-muted"
+                    className="ml-auto"
+                    onClick={() =>
+                      void call("vault.save", {
+                        kind: "writing",
+                        value: {
+                          ...w,
+                          draft: w.draft + 1,
+                          body: h.body,
+                          citations: h.citations,
+                          history: [
+                            ...w.history,
+                            {
+                              draft: w.draft,
+                              body: w.body,
+                              citations: w.citations,
+                              at: w.updatedAt,
+                            },
+                          ].slice(-10),
+                        },
+                      })
+                    }
+                  >
+                    Restore
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
       </aside>
       <div className="min-h-0 overflow-y-auto px-10 py-6">
         <div className="mx-auto max-w-[44rem]">
           <div className="mb-4 flex items-baseline gap-3">
             <h1 className="font-semibold text-lg tracking-tight">
-              {w.title || KIND_LABEL[w.kind]}, draft {w.draft}
+              {KIND_LABEL[w.kind]}, draft {w.draft}
             </h1>
             {editing ? null : (
               <Button size="xs" variant="ghost-muted" onClick={() => setEditing(true)}>
@@ -266,7 +324,9 @@ function WriterPage() {
         <Label>Checks</Label>
         <p className="text-secondary-label" data-testid="checks">
           {c.pages} page{c.pages === 1 ? "" : "s"} · {c.words} words
-          {c.namedTotal ? ` · names ${c.namedFound} of ${c.namedTotal} professors` : ""}
+          {c.namedTotal
+            ? ` · names ${c.namedFound} of ${c.namedTotal} professor${c.namedTotal === 1 ? "" : "s"}`
+            : ""}
           {" · "}
           <span className={c.scoreClaimed ? "text-warning-foreground" : undefined}>
             {c.scoreClaimed ? "claims a test score no fact backs" : "no test score claimed"}
@@ -276,13 +336,15 @@ function WriterPage() {
             {c.emDashes ? `${c.emDashes} em dashes` : "no em dashes"}
           </span>
         </p>
-        <Link
-          to="/vault"
-          search={{ section: "facts" }}
-          className="mt-4 block text-info-foreground hover:underline"
-        >
-          Add proof in Facts
-        </Link>
+        {blocked.size ? (
+          <Link
+            to="/vault"
+            search={{ section: "facts" }}
+            className="mt-4 block text-info-foreground hover:underline"
+          >
+            Add proof in Facts
+          </Link>
+        ) : null}
       </aside>
     </div>
   );

@@ -121,6 +121,17 @@ export const Writing = z.object({
   citations: z.record(z.string(), z.string()),
   threadId: z.string().nullable(),
   updatedAt: z.string(),
+  /** Earlier drafts, newest last, so a revision never loses the text it replaced. */
+  history: z
+    .array(
+      z.object({
+        draft: z.number().int(),
+        body: z.string(),
+        citations: z.record(z.string(), z.string()),
+        at: z.string(),
+      }),
+    )
+    .default([]),
 });
 export type Writing = z.infer<typeof Writing>;
 

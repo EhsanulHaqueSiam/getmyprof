@@ -166,6 +166,9 @@ describe("the Writer", () => {
     const first = saveWriting(db, { ...base, pieceId: null, text: "One [[f_b]]." });
     const second = saveWriting(db, { ...base, pieceId: first.id, text: "Two [[f_p]]." });
     expect(second).toMatchObject({ id: first.id, draft: 2, citations: { "1": "f_p" } });
+    expect(second.history).toEqual([
+      { draft: 1, body: "One [1].", citations: { "1": "f_b" }, at: first.updatedAt },
+    ]);
     expect(vaultState(db).writing).toHaveLength(1);
   });
 

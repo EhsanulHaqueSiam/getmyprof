@@ -26,7 +26,8 @@ function PrintView() {
     if (ready) window.print();
   }, [ready]);
 
-  if (!w || !app) return null;
+  if (!app) return null;
+  if (!w) return <div className="p-10 text-sm">No such piece.</div>;
   if (!ready)
     return (
       <div className="p-10 text-sm">

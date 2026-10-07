@@ -185,7 +185,7 @@ test("writer: a statement cites its facts, and an unproven one blocks export unt
   await page.goto("/vault?section=writing");
   await expect(page.getByTestId("writing")).toContainText("1 claim needs proof");
   await page.getByTestId("writing").getByRole("link").first().click();
-  await expect(page).toHaveURL(/\/writer\/wri_/);
+  await expect(page).toHaveURL(/\/vault\/writing\/wri_/);
   const writer = page.url();
   await expect(page.getByTestId("facts-used")).toContainText("BSc in Computer Science, 2025");
   await expect(page.getByTestId("blocked")).toContainText("GPA 3.8 / 4.0");

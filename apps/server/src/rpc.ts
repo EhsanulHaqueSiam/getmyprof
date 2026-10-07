@@ -330,10 +330,13 @@ export function createHandlers(svc: Services): Handlers {
       return OK;
     },
     "writing.start": (input) => {
-      const { title, text } = writingBrief(db, profileFacts(db), input);
-      const t = createThread(db, title);
-      runner.send(t.id, text, "send", `Write: ${title}`);
-      return thread(t.id);
+      const brief = writingBrief(db, profileFacts(db), input);
+      // A revision goes back to the thread that wrote the piece, so the agent keeps its context.
+      const id =
+        (brief.threadId && getThread(db, brief.threadId)?.id) ??
+        createThread(db, brief.threadTitle).id;
+      runner.send(id, brief.text, "send", brief.threadTitle);
+      return thread(id);
     },
     "applications.start": ({ programId }) => {
       const app = startApplication(db, programId);

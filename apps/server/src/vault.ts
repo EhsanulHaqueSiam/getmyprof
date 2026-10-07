@@ -240,6 +240,12 @@ export function saveWriting(
     ...numberCitations(input.text),
     threadId: input.threadId,
     updatedAt: now(),
+    history: prior
+      ? [
+          ...prior.history,
+          { draft: prior.draft, body: prior.body, citations: prior.citations, at: prior.updatedAt },
+        ].slice(-10)
+      : [],
   };
   putItem(db, "writing", piece);
   return piece;
@@ -290,10 +296,10 @@ export function writingBrief(
     : scholarship
       ? `${scholarship.name} (${scholarship.sponsor})`
       : "";
-  const title =
-    input.kind === "cv"
-      ? "Academic CV"
-      : `${input.kind === "sop" ? "Statement of purpose" : "Scholarship essay"}${target ? ` · ${target}` : ""}`;
+  const title = { sop: "Statement of purpose", cv: "Academic CV", essay: "Scholarship essay" }[
+    input.kind
+  ];
+  const threadTitle = `${revise ? "Revise" : "Write"}: ${title}${target ? ` · ${program?.university ?? scholarship?.name}` : ""}`;
   const text = [
     `[write] kind=${input.kind} program=${program?.id ?? "-"} scholarship=${scholarship?.id ?? "-"} revise=${revise?.id ?? "-"}`,
     `Write ${KIND_LABEL[input.kind]}${target ? ` for ${target}` : ""} for the applicant, then save it with write_document (kind ${input.kind}, title "${title}", programId ${program?.id ?? "null"}, scholarshipId ${scholarship?.id ?? "null"}, pieceId ${revise?.id ?? "null"}).`,
@@ -313,5 +319,5 @@ export function writingBrief(
   ]
     .filter(Boolean)
     .join("\n");
-  return { title, text };
+  return { title, threadTitle, text, threadId: revise?.threadId ?? null };
 }

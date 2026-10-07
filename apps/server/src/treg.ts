@@ -12,34 +12,119 @@ import { asRecord } from "./sources.ts";
 export const TREG_BASE = "https://treg.to";
 
 /**
- * treg endpoints gradcode may call: method, usual price and the most one call may cost (USD).
+ * The vendor list: treg endpoints gradcode may call, with method, usual price, the most one call
+ * may cost (USD) and the arguments the agent sends (from treg's catalog, checked 2026-10-07).
  * Routed endpoints try providers in turn, so a call can cost more than the usual price; `max`
  * goes out as X-Treg-Route-Max-Cost, and treg refuses rather than charge more.
  */
-export const TREG_ENDPOINTS: Record<string, { method: "GET" | "POST"; usd: number; max: number }> =
-  {
-    "treg.people.email.verify": { method: "POST", usd: 0, max: 0.014 },
-    "treg.people.search": { method: "POST", usd: 0, max: 0.05 },
-    "apollo.people.search": { method: "POST", usd: 0, max: 0 },
-    "getleadsio.people.enrich.from_linkedin": { method: "POST", usd: 0, max: 0.01 },
-    "tinyfish.web.search": { method: "GET", usd: 0, max: 0 },
-    "litescrape.web.fetch.post": { method: "POST", usd: 0.00015, max: 0.00015 },
-    "anyapi.linkedin.search.jobs": { method: "POST", usd: 0.0005, max: 0.0005 },
-    "treg.x.search.posts": { method: "POST", usd: 0.00075, max: 0.015 },
-    "anyapi.x.search.posts": { method: "POST", usd: 0.00075, max: 0.00075 },
-    "treg.google.serp.organic": { method: "POST", usd: 0.0009, max: 0.015 },
-    "serper.google.serp.scholar": { method: "POST", usd: 0.001, max: 0.001 },
-    "anyapi.google.scholar": { method: "POST", usd: 0.001, max: 0.001 },
-    "tikhub.x.reddit-app-fetch-dynamic-search": { method: "GET", usd: 0.001, max: 0.001 },
-    "millionverifier.people.email.verify": { method: "GET", usd: 0.0018, max: 0.0018 },
-    "bounceban.people.email.verify": { method: "GET", usd: 0.004, max: 0.004 },
-    "treg.people.email.find": { method: "POST", usd: 0.0048, max: 0.05 },
-    "exa.web.answer": { method: "POST", usd: 0.005, max: 0.005 },
-    "exa.web.search.publications": { method: "POST", usd: 0.007, max: 0.007 },
-    "exa.people.search": { method: "POST", usd: 0.007, max: 0.007 },
-    "treg.web.extract.structured": { method: "POST", usd: 0.01, max: 0.011 },
-    "prospeo.people.email.find": { method: "POST", usd: 0.0245, max: 0.0245 },
-  };
+export const TREG_ENDPOINTS: Record<
+  string,
+  { method: "GET" | "POST"; usd: number; max: number; args: string }
+> = {
+  "treg.people.email.verify": { method: "POST", usd: 0, max: 0.014, args: "email" },
+  "treg.people.search": {
+    method: "POST",
+    usd: 0,
+    max: 0.05,
+    args: "full_name or title, company_domain, keywords[], country, limit",
+  },
+  "apollo.people.search": {
+    method: "POST",
+    usd: 0,
+    max: 0,
+    args: "person_titles[], q_organization_domains_list[], person_locations[], per_page",
+  },
+  "getleadsio.people.enrich.from_linkedin": {
+    method: "POST",
+    usd: 0,
+    max: 0.01,
+    args: "items: [{linkedin_url}]",
+  },
+  "tinyfish.web.search": {
+    method: "GET",
+    usd: 0,
+    max: 0,
+    args: 'query, domain_type: "web", location',
+  },
+  "tinyfish.web.fetch": {
+    method: "POST",
+    usd: 0,
+    max: 0,
+    args: 'urls[] (up to 10), format: "markdown", links',
+  },
+  "litescrape.web.fetch.post": {
+    method: "POST",
+    usd: 0.00015,
+    max: 0.00015,
+    args: 'url, respond_with: "markdown" (renders JavaScript)',
+  },
+  "crawl4ai.web.scrape": {
+    method: "POST",
+    usd: 0.00015,
+    max: 0.001,
+    args: 'url, format: "md" (PDFs too)',
+  },
+  "anyapi.linkedin.search.jobs": {
+    method: "POST",
+    usd: 0.0005,
+    max: 0.0005,
+    args: "query, location, limit",
+  },
+  "treg.x.search.posts": { method: "POST", usd: 0.00075, max: 0.015, args: "q" },
+  "anyapi.x.search.posts": { method: "POST", usd: 0.00075, max: 0.00075, args: "query, limit" },
+  "treg.google.serp.organic": {
+    method: "POST",
+    usd: 0.0009,
+    max: 0.015,
+    args: "q, country, limit",
+  },
+  "serper.google.serp.scholar": { method: "POST", usd: 0.001, max: 0.001, args: "q" },
+  "anyapi.google.scholar": { method: "POST", usd: 0.001, max: 0.001, args: "query" },
+  "tikhub.x.reddit-app-fetch-dynamic-search": {
+    method: "GET",
+    usd: 0.001,
+    max: 0.001,
+    args: 'query, search_type: "post"',
+  },
+  "millionverifier.people.email.verify": {
+    method: "GET",
+    usd: 0.0018,
+    max: 0.0018,
+    args: "email",
+  },
+  "bounceban.people.email.verify": { method: "GET", usd: 0.004, max: 0.004, args: "email" },
+  "treg.people.email.find": {
+    method: "POST",
+    usd: 0.0048,
+    max: 0.05,
+    args: "full_name and domain, or linkedin_url",
+  },
+  "exa.web.answer": { method: "POST", usd: 0.005, max: 0.005, args: "query" },
+  "exa.web.search.publications": {
+    method: "POST",
+    usd: 0.007,
+    max: 0.007,
+    args: 'query, category: "publication", numResults',
+  },
+  "exa.people.search": {
+    method: "POST",
+    usd: 0.007,
+    max: 0.007,
+    args: 'query, category: "people", numResults',
+  },
+  "treg.web.extract.structured": {
+    method: "POST",
+    usd: 0.01,
+    max: 0.011,
+    args: "url, instruction, schema (JSON Schema)",
+  },
+  "prospeo.people.email.find": {
+    method: "POST",
+    usd: 0.0245,
+    max: 0.0245,
+    args: "only_verified_email: true, enrich_mobile: false, only_verified_mobile: false, data: {full_name, company_website}",
+  },
+};
 
 export type TregLogin = TregConnect;
 
@@ -193,7 +278,9 @@ export async function tregCall(
       };
     }
     const callId = r.headers.get("x-treg-call-id");
-    const costUsd = Number(r.headers.get("x-treg-cost-micro") ?? 0) / 1e6;
+    // A replay of an attempt whose answer was lost reports 0 and carries the first charge apart.
+    const micro = r.headers.get("x-treg-original-cost-micro") ?? r.headers.get("x-treg-cost-micro");
+    const costUsd = Number(micro ?? 0) / 1e6;
     const raw = await r.text();
     let body: unknown = raw;
     try {

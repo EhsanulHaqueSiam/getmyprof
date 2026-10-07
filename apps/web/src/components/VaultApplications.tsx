@@ -1,5 +1,6 @@
 import { type Application, AppStatus, type Professor, type Program } from "@gradcode/contracts";
 import { PlusIcon, Trash2Icon } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useEffect, useState } from "react";
 import { Chip } from "~/components/FormParts";
 import { Interviews } from "~/components/Interviews";
@@ -20,7 +21,25 @@ const school = (s: string) =>
 
 const save = (value: Application) => void call("vault.save", { kind: "application", value });
 
-function Recommenders({ app }: { app: Application }) {
+/** The agent drafts a short note in a new thread; it lands in Vault > Writing. */
+const writeNote = async (about: string) => {
+  const t = await call("writing.start", {
+    kind: "note",
+    programId: null,
+    scholarshipId: null,
+    basedOn: null,
+    about,
+  });
+  return t.id;
+};
+
+function Recommenders({ app, program }: { app: Application; program: Program | undefined }) {
+  const navigate = useNavigate();
+  const open = (about: string) =>
+    void writeNote(about).then((threadId) =>
+      navigate({ to: "/t/$threadId", params: { threadId } }),
+    );
+  const target = program ? `${program.university} ${program.name}` : "this program";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   return (
@@ -28,7 +47,8 @@ function Recommenders({ app }: { app: Application }) {
       {app.recommenders.map((r, i) => (
         <div
           key={`${r.email}-${r.name}`}
-          className="grid grid-cols-[9rem_11rem_auto_auto] items-center gap-2"
+          data-testid="recommender"
+          className="grid grid-cols-[9rem_11rem_auto_auto_auto_auto] items-center gap-2"
         >
           <span className="truncate text-foreground">{r.name}</span>
           <span className="truncate text-muted-foreground">{r.email}</span>
@@ -43,6 +63,28 @@ function Recommenders({ app }: { app: Application }) {
               })
             }
           />
+          <Button
+            size="xs"
+            variant="ghost-muted"
+            onClick={() =>
+              open(
+                `Reminder to ${r.name} (${r.email || "no email"}): their recommendation letter for ${target} is due ${program?.deadline ?? "soon"}`,
+              )
+            }
+          >
+            Reminder
+          </Button>
+          <Button
+            size="xs"
+            variant="ghost-muted"
+            onClick={() =>
+              open(
+                `Thank-you to ${r.name} (${r.email || "no email"}) for their letter for ${target}`,
+              )
+            }
+          >
+            Thank-you
+          </Button>
           <Button
             size="icon-micro"
             variant="ghost-muted"
@@ -189,7 +231,7 @@ function ApplicationView({
         </div>
       </Row>
       <Row label="Recommenders">
-        <Recommenders app={app} />
+        <Recommenders app={app} program={program} />
       </Row>
       <Row label="Portal">
         <div className="flex items-center gap-2">

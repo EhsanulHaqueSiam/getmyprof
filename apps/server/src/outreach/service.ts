@@ -278,8 +278,8 @@ export function createOutreach(deps: {
 
     markSent(id: string) {
       const m = getMessage(db, id);
-      if (!m || m.channel !== "linkedin" || m.status === "sent" || m.status === "cancelled")
-        throw new Error("Only a waiting LinkedIn note is marked sent by hand.");
+      if (!m || m.direction !== "out" || m.status === "sent" || m.status === "cancelled")
+        throw new Error("Only a waiting message is marked sent by hand.");
       markSent(db, id, { messageId: null, from: "linkedin" });
       changed();
     },

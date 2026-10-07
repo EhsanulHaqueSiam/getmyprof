@@ -205,21 +205,25 @@ export const fakeProvider = (
             ]
               .filter(Boolean)
               .join("\n\n")
-          : kind === "letter"
-            ? "Thank you for the offer. I am very keen to join. Would the program consider summer funding or a later answer date, so I can decide with care?"
-            : kind === "cv"
-              ? [cite(proven[0], "Education:"), cite(unproven, "Grades:")]
-                  .filter(Boolean)
-                  .join("\n\n")
-              : [
-                  `I want to build language technology that holds up for the people who rely on it. ${cite(proven[0], "My preparation:")}`,
-                  [cite(proven[1], "Alongside it:"), cite(unproven, "I would also bring this:")]
-                    .filter(Boolean)
-                    .join(" "),
-                  "I would like to continue this work with your faculty, on problems where careful evaluation matters.",
-                ]
-                  .filter(Boolean)
-                  .join("\n\n");
+          : kind === "visa"
+            ? "1. Get the admission letter and funding letter. 2. Apply for the student visa with them. 3. Book the interview early: waits run weeks."
+            : kind === "note"
+              ? "Thank you so much for writing my letter. It means a great deal, and I'll let you know how it goes."
+              : kind === "letter"
+                ? "Thank you for the offer. I am very keen to join. Would the program consider summer funding or a later answer date, so I can decide with care?"
+                : kind === "cv"
+                  ? [cite(proven[0], "Education:"), cite(unproven, "Grades:")]
+                      .filter(Boolean)
+                      .join("\n\n")
+                  : [
+                      `I want to build language technology that holds up for the people who rely on it. ${cite(proven[0], "My preparation:")}`,
+                      [cite(proven[1], "Alongside it:"), cite(unproven, "I would also bring this:")]
+                        .filter(Boolean)
+                        .join(" "),
+                      "I would like to continue this work with your faculty, on problems where careful evaluation matters.",
+                    ]
+                      .filter(Boolean)
+                      .join("\n\n");
       await call("write_document", "draft", {
         pieceId: orNull(revise),
         kind,

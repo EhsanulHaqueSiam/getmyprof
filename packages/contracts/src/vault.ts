@@ -127,8 +127,11 @@ export const Offer = z.object({
 });
 export type Offer = z.infer<typeof Offer>;
 
-/** sop, cv and essay leave the app; prep (an interview pack) stays private; letter is a negotiation. */
-export const WritingKind = z.enum(["sop", "cv", "essay", "prep", "letter"]);
+/**
+ * sop, cv, essay, letter (a negotiation) and note (to a recommender) leave the app; prep (an
+ * interview pack) and visa (the steps after accepting) stay private.
+ */
+export const WritingKind = z.enum(["sop", "cv", "essay", "prep", "letter", "note", "visa"]);
 export type WritingKind = z.infer<typeof WritingKind>;
 
 /**

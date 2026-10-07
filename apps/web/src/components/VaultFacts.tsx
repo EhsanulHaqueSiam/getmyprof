@@ -30,7 +30,16 @@ export function VaultFacts() {
     const kinds = writing
       .filter((w) => Object.values(w.citations).includes(id))
       .map(
-        (w) => ({ sop: "SOP", cv: "CV", essay: "essay", prep: "prep", letter: "letter" })[w.kind],
+        (w) =>
+          ({
+            sop: "SOP",
+            cv: "CV",
+            essay: "essay",
+            prep: "prep",
+            letter: "letter",
+            note: "note",
+            visa: "visa",
+          })[w.kind],
       );
     return [...new Set(kinds)]
       .map((k) => {

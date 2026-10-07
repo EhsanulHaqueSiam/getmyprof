@@ -260,6 +260,8 @@ const KIND_LABEL: Record<WritingKind, string> = {
   essay: "a scholarship essay",
   prep: "a private interview prep pack",
   letter: "a short, warm negotiation letter",
+  note: "a short, warm email",
+  visa: "a private plan of the visa steps",
 };
 
 const TITLE: Record<WritingKind, string> = {
@@ -268,6 +270,8 @@ const TITLE: Record<WritingKind, string> = {
   essay: "Scholarship essay",
   prep: "Interview prep",
   letter: "Negotiation",
+  note: "Note",
+  visa: "Visa steps",
 };
 
 /**
@@ -290,7 +294,11 @@ export function writingBrief(
   const offer = v.offers.find((o) => o.id === input.offerId);
   const title = [
     TITLE[input.kind],
-    input.kind === "prep" ? input.about : input.kind === "letter" ? offer?.university : null,
+    input.kind === "prep" || input.kind === "note" || input.kind === "visa"
+      ? input.about
+      : input.kind === "letter"
+        ? offer?.university
+        : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -305,7 +313,7 @@ export function writingBrief(
         w.programId === input.programId &&
         w.scholarshipId === input.scholarshipId &&
         // Several prep packs or letters can share a program; they differ by who or what they're for.
-        (input.kind === "prep" || input.kind === "letter" ? w.title === title : true),
+        (["prep", "letter", "note", "visa"].includes(input.kind) ? w.title === title : true),
     );
   // Revising the same target keeps one piece with a new draft; another target gets its own piece.
   const revise =
@@ -335,6 +343,12 @@ export function writingBrief(
       : "",
     input.kind === "prep"
       ? `The interview is with ${input.about ?? "the program"}. Look up their recent papers with openalex_author and list two or three with one line on each, then the questions they are likely to ask, then talking points from the applicant's facts. It stays private: it is never sent.`
+      : "",
+    input.kind === "note"
+      ? `It is this: ${input.about ?? ""}. Three to five sentences, plain text, ready to paste into an email.`
+      : "",
+    input.kind === "visa"
+      ? `The applicant accepted ${input.about ?? "an offer"}. For their citizenship, write the steps from acceptance to arrival: which visa, the documents, proof of funds, fees, appointment waits and a timeline, each with an official source. It stays private.`
       : "",
     input.kind === "letter" && offer
       ? [

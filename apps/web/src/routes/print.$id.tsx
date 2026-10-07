@@ -11,6 +11,8 @@ const KIND_LABEL = {
   essay: "Essay",
   prep: "Interview Preparation",
   letter: "Letter",
+  note: "Note",
+  visa: "Visa Steps",
 } as const;
 
 /**

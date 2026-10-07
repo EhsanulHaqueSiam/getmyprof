@@ -131,7 +131,23 @@ export function VaultOffers() {
       {accepted ? (
         <p className="px-4 pb-2 text-success-foreground text-xs">
           You accepted {accepted.university}. The hunt settles here: decline the others and thank
-          the people who helped.
+          the people who helped.{" "}
+          <Button
+            size="xs"
+            variant="outline"
+            onClick={async () => {
+              const t = await call("writing.start", {
+                kind: "visa",
+                programId: null,
+                scholarshipId: null,
+                basedOn: null,
+                about: [accepted.university, accepted.program].filter(Boolean).join(" · "),
+              });
+              void navigate({ to: "/t/$threadId", params: { threadId: t.id } });
+            }}
+          >
+            Write visa steps
+          </Button>
         </p>
       ) : null}
       {offers.length === 0 ? (

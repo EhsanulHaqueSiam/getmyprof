@@ -5,6 +5,8 @@ import { act, ChannelBadge, TOUCH_LABEL } from "~/components/Pipeline";
 import { Button } from "~/components/ui/button";
 import { Kbd } from "~/components/ui/kbd";
 import { nextStep, openDraft, sequence, theirTime, zoneOf } from "~/lib/outreach";
+import { unbackedScore } from "~/lib/writing";
+import { useStore } from "~/state/store";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
 
@@ -77,6 +79,10 @@ function Composer({
   const [subject, setSubject] = useState(draft.subject);
   const [body, setBody] = useState(draft.body);
   const dirty = subject !== draft.subject || body !== draft.body;
+  const applicant = useStore((s) => s.app?.applicant);
+  // The same rule the Writer holds: no test score goes out unless a taken test backs it.
+  const blocked = draft.channel === "email" && unbackedScore(`${subject}\n${body}`, applicant);
+  const dashes = (body.match(/—/g) ?? []).length;
   const save = () => (dirty ? call("outreach.edit", { id: draft.id, subject, body }) : null);
   const then = (next: () => Promise<unknown>) => act(Promise.resolve(save()).then(next));
   const slot = draft.channel === "email" && draft.touch !== "reply";
@@ -119,6 +125,9 @@ function Composer({
         {draft.channel === "email" && !checked ? (
           <span className="shrink-0 text-warning-foreground">address not checked ·</span>
         ) : null}
+        {dashes ? (
+          <span className="shrink-0 text-warning-foreground">{dashes} em dashes ·</span>
+        ) : null}
         <span className="truncate" title={draft.to}>
           {draft.touch ? TOUCH_LABEL[draft.touch] : ""} · to {draft.to}
           {draft.status === "failed" ? ` · not sent: ${draft.note}` : ""}
@@ -149,6 +158,8 @@ function Composer({
               Mark sent
             </Button>
           </>
+        ) : blocked ? (
+          <span className="text-warning-foreground">claims a test score no fact backs</span>
         ) : connected ? (
           <>
             {slot ? (
@@ -165,9 +176,26 @@ function Composer({
             </Button>
           </>
         ) : (
-          <Link to="/settings" className="text-info-foreground underline">
-            Connect a mailbox to send
-          </Link>
+          <>
+            {/* No mailbox: the user's own mail app sends it, and they mark it sent here. */}
+            <Button
+              size="xs"
+              variant="outline"
+              render={
+                <a
+                  href={`mailto:${draft.to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`}
+                />
+              }
+            >
+              Open in my mail app
+            </Button>
+            <Button
+              size="xs"
+              onClick={() => then(() => call("outreach.markSent", { id: draft.id }))}
+            >
+              Mark sent
+            </Button>
+          </>
         )}
       </div>
     </div>

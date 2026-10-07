@@ -10,10 +10,12 @@ export const WRITING_LABEL = {
   essay: "Scholarship essay",
   prep: "Interview prep",
   letter: "Negotiation letter",
+  note: "Note",
+  visa: "Visa steps",
 } as const satisfies Record<Writing["kind"], string>;
 
-/** Only what leaves the app has to stand on proven facts; a prep pack stays private. */
-export const mustProve = (w: Writing) => w.kind !== "prep";
+/** Only what leaves the app has to stand on proven facts; prep packs and visa plans stay private. */
+export const mustProve = (w: Writing) => w.kind !== "prep" && w.kind !== "visa";
 
 export type Cited = { n: string; fact: ProfileFact | undefined; ok: boolean };
 
@@ -67,20 +69,24 @@ export function layout(w: Writing, blocked: Set<string>) {
 const words = (text: string) => text.split(/\s+/).filter(Boolean).length;
 const SCORE = /\b(IELTS|TOEFL|GRE|PTE|Duolingo)\b[^.\n]{0,24}?\b\d{1,3}(\.\d)?\b/i;
 
+/** A test score in the text with no taken test behind it: blocks export and sending alike. */
+export const unbackedScore = (text: string, applicant: Applicant | undefined) =>
+  SCORE.test(text) && !applicant?.tests.some((t) => t.status === "taken" && t.score.trim());
+
 /**
  * The right panel's checks. A score claim blocks export unless a taken test with a score backs
  * it; em dashes only warn.
  */
 export function checks(w: Writing, ctx: { named: string[]; applicant: Applicant | undefined }) {
   const body = plainText(w);
-  const hasScore = !!ctx.applicant?.tests.some((t) => t.status === "taken" && t.score.trim());
+
   const last = (name: string) => name.trim().split(/\s+/).at(-1) ?? name;
   return {
     pages: Math.max(0.5, Math.ceil(words(body) / 250) / 2),
     words: words(body),
     namedFound: ctx.named.filter((n) => body.includes(last(n))).length,
     namedTotal: ctx.named.length,
-    scoreClaimed: SCORE.test(body) && !hasScore,
+    scoreClaimed: unbackedScore(body, ctx.applicant),
     emDashes: (body.match(/—/g) ?? []).length,
   };
 }

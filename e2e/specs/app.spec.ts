@@ -322,3 +322,28 @@ test("composer: an attached file is kept in the vault and reaches the agent", as
   await page.goto("/vault?section=documents");
   await expect(page.getByTestId("documents")).toContainText("lab-flyer.pdf");
 });
+
+test("the end of the journey: a thank-you to a recommender, and visa steps once you accept", async ({
+  page,
+}) => {
+  await page.goto("/vault?section=applications");
+  const app = page.getByTestId("application");
+  await app.getByLabel("Recommender name").fill("Dr. Rahman");
+  await app.getByLabel("Recommender email").fill("rahman@example.edu");
+  await app.getByRole("button", { name: "Add recommender" }).click();
+  await app
+    .getByTestId("recommender")
+    .filter({ hasText: "Dr. Rahman" })
+    .getByRole("button", { name: "Thank-you" })
+    .click();
+  await expect(page.getByText(/Saved in the Writer/)).toBeVisible();
+
+  await page.goto("/vault?section=offers");
+  await page.getByLabel("Status, offer 1").selectOption("accepted");
+  await page.getByRole("button", { name: "Write visa steps" }).click();
+  await expect(page.getByText(/Saved in the Writer/)).toBeVisible();
+
+  await page.goto("/vault?section=writing");
+  await expect(page.getByTestId("writing")).toContainText("Note · Thank-you to Dr. Rahman");
+  await expect(page.getByTestId("writing")).toContainText("Visa steps · George Mason University");
+});

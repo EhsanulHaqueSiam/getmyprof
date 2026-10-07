@@ -13,6 +13,7 @@ import {
   Schedule,
   Settings,
 } from "./domain.ts";
+import { Conversation, MailConnect, MailStatus } from "./outreach.ts";
 import { RowOp, ThreadEvent, ThreadSummary } from "./threads.ts";
 
 const id = z.object({ id: z.string() });
@@ -25,6 +26,7 @@ export const AppState = z.object({
   facts: z.array(ProfileFact),
   host: z.string(),
   adapters: z.object({ hq: z.boolean(), gradhunt: z.boolean(), treg: z.boolean() }),
+  mail: MailStatus,
 });
 export type AppState = z.infer<typeof AppState>;
 
@@ -124,6 +126,23 @@ export const Methods = {
     output: Loop,
   },
   "loops.run": { input: id, output: ThreadSummary },
+
+  /** Verifies the login against both servers before saving it. */
+  "mail.connect": { input: MailConnect, output: MailStatus },
+  "mail.disconnect": { input: z.object({}), output: MailStatus },
+  "mail.sync": { input: z.object({}), output: MailStatus },
+
+  "outreach.list": { input: z.object({}), output: z.array(Conversation) },
+  /** Schedules drafts into send slots; replies and LinkedIn notes are ready at once. */
+  "outreach.approve": { input: z.object({ ids: z.array(z.string()).min(1) }), output: ok },
+  "outreach.sendNow": { input: id, output: ok },
+  "outreach.edit": {
+    input: z.object({ id: z.string(), subject: z.string(), body: z.string().min(1) }),
+    output: ok,
+  },
+  "outreach.cancel": { input: id, output: ok },
+  /** LinkedIn is assisted: the user sends it there, then marks it sent here. */
+  "outreach.markSent": { input: id, output: ok },
 } as const;
 
 export type Method = keyof typeof Methods;
@@ -147,7 +166,7 @@ export const ServerMessage = z.discriminatedUnion("type", [
   z.object({ type: z.literal("event"), threadId: z.string(), event: ThreadEvent }),
   z.object({
     type: z.literal("changed"),
-    what: z.enum(["records", "proposals", "loops", "state"]),
+    what: z.enum(["records", "proposals", "loops", "state", "outreach"]),
     threadId: z.string().optional(),
   }),
 ]);

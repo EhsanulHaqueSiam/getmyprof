@@ -1,5 +1,6 @@
 // When outreach goes out and comes back: send slots, warm-up caps, follow-up timing, and what
 // an incoming message is. Pure functions; the mail sync and send queue call them.
+import type { MailKind } from "@gradcode/contracts";
 
 /** Milliseconds a zone is ahead of UTC at `ts`. */
 function zoneOffset(ts: number, timeZone: string) {
@@ -107,8 +108,6 @@ export function followUpDue(firstSentAt: Date, followUpsSent: number) {
   return days === undefined ? null : addBusinessDays(firstSentAt, days);
 }
 
-export type MailKind = "reply" | "bounce" | "auto-reply" | "linkedin";
-
 /** What an incoming message is, from headers and the first lines. The agent reads real replies. */
 export function classifyMail(m: { from: string; subject: string; body: string }): MailKind {
   const from = m.from.toLowerCase();
@@ -130,4 +129,28 @@ export function classifyMail(m: { from: string; subject: string; body: string })
   )
     return "auto-reply";
   return "reply";
+}
+
+const MONTH = "(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\.?";
+const RETURN = new RegExp(
+  `\\b(?:until|returning(?: on)?|back(?: on)?|return on)\\s+(?:[a-z]+day,?\\s+)?(${MONTH}\\s+\\d{1,2}(?:st|nd|rd|th)?(?:,?\\s+\\d{4})?|\\d{1,2}(?:st|nd|rd|th)?\\s+${MONTH}(?:,?\\s+\\d{4})?)`,
+  "i",
+);
+
+/** The day an out-of-office note says they are back, e.g. "until October 20, 2026". */
+export function returnDate(text: string, now: Date): Date | null {
+  const found = RETURN.exec(text)?.[1];
+  if (!found) return null;
+  const clean = found.replace(/(\d)(st|nd|rd|th)/i, "$1").replace(".", "");
+  if (/\d{4}/.test(clean)) {
+    const d = new Date(clean);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  // No year: the next time that date comes round.
+  for (const year of [now.getFullYear(), now.getFullYear() + 1]) {
+    const d = new Date(`${clean} ${year}`);
+    if (Number.isNaN(d.getTime())) return null;
+    if (d.getTime() >= now.getTime() - 864e5) return d;
+  }
+  return null;
 }

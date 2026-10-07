@@ -20,6 +20,8 @@ import type { Bus } from "./bus.ts";
 import { type Db, newId, now } from "./db.ts";
 import { health } from "./health.ts";
 import { listLoops, saveLoop, STARTER_LOOPS } from "./loops.ts";
+import type { Outreach } from "./outreach/service.ts";
+import { conversations } from "./outreach/store.ts";
 import { getRecord, listRecords, resolveProposal, threadProposals, threadRows } from "./records.ts";
 import { intakeStart, monthsAfter } from "./sources.ts";
 import {
@@ -72,10 +74,11 @@ export type Services = {
   sources: Sources;
   fake: boolean;
   startLoop: (id: string) => ThreadSummary;
+  outreach: Outreach;
 };
 
 export function createHandlers(svc: Services): Handlers {
-  const { db, bus, runner, sources } = svc;
+  const { db, bus, runner, sources, outreach } = svc;
   const pushThreads = () => bus.push({ type: "threads", threads: listThreads(db) });
   const thread = (id: string) => {
     const t = getThread(db, id);
@@ -98,6 +101,7 @@ export function createHandlers(svc: Services): Handlers {
           gradhunt: h.checks.scout,
           treg: svc.fake || h.checks.treg,
         },
+        mail: outreach.status(),
       };
     },
     "settings.update": (patch) => {
@@ -253,6 +257,32 @@ export function createHandlers(svc: Services): Handlers {
       return loop;
     },
     "loops.run": ({ id }) => svc.startLoop(id),
+
+    "mail.connect": (input) => outreach.connect(input),
+    "mail.disconnect": () => outreach.disconnect(),
+    "mail.sync": () => outreach.sync(),
+
+    "outreach.list": () => conversations(db),
+    "outreach.approve": async ({ ids }) => {
+      await outreach.approve(ids);
+      return OK;
+    },
+    "outreach.sendNow": async ({ id }) => {
+      await outreach.sendNow(id);
+      return OK;
+    },
+    "outreach.edit": ({ id, subject, body }) => {
+      outreach.edit(id, subject, body);
+      return OK;
+    },
+    "outreach.cancel": ({ id }) => {
+      outreach.cancel(id);
+      return OK;
+    },
+    "outreach.markSent": ({ id }) => {
+      outreach.markSent(id);
+      return OK;
+    },
   };
 }
 

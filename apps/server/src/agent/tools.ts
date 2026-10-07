@@ -1,10 +1,11 @@
 // The hunt tools the agent calls. Both providers run these same handlers: Claude through an
 // in-process MCP server, the fake provider directly. A handler returns a one-line summary
 // (shown in the work log) and the full text the model reads.
-import { type Hunt, type Settings, Stage } from "@gradcode/contracts";
+import { Channel, type Hunt, ReplyClass, type Settings, Stage, Touch } from "@gradcode/contracts";
 import { z } from "zod";
 import type { Db } from "../db.ts";
-import { propose, listRecords } from "../records.ts";
+import { classify, getMessage, saveDraft } from "../outreach/store.ts";
+import { propose, listRecords, recordKey } from "../records.ts";
 import {
   type Author,
   TREG_PRICES,
@@ -39,6 +40,8 @@ export type ToolContext = {
   sources: Sources;
   /** Tells clients a thread's rows or review changed. */
   changed: () => void;
+  /** Tells clients a draft or a reply changed. */
+  outreachChanged: () => void;
 };
 
 export type ToolResult = { summary: string; text: string };
@@ -220,6 +223,69 @@ export const HUNT_TOOLS = [
         summary: `${p.kind} · ${p.changes.length} field${p.changes.length === 1 ? "" : "s"}`,
         text: `Proposed (${p.kind}) for review.`,
       };
+    },
+  }),
+  define({
+    name: "draft_email",
+    description:
+      "Draft an email (or a LinkedIn note) to a professor in the sheet. It waits for the applicant to approve; nothing is sent by you. Email goes only to the address already in the sheet; apply-only professors get none. Plain text, one recipient, at most two links.",
+    shape: {
+      name: z.string(),
+      university: z.string(),
+      channel: Channel.default("email"),
+      touch: Touch.describe(
+        "first: who they are, one fit fact, one question. follow-up-1: a short bump with a new angle. follow-up-2: a last note offering a CV or a call. reply: an answer to their message. after-applying: 'I applied and named you'",
+      ),
+      to: z.string().describe("Their address from the sheet, or their LinkedIn profile URL"),
+      subject: z
+        .string()
+        .describe("Follow their contact rule, e.g. 'PhD 2027'. Empty for a reply keeps theirs"),
+      body: z.string().describe("Only claims backed by a confirmed fact about the applicant"),
+      timeZone: z
+        .string()
+        .describe("The professor's IANA time zone, e.g. America/Chicago; sends go at 08:00 there"),
+    },
+    paid: false,
+    price: () => 0,
+    run: async (args, ctx) => {
+      const draft = saveDraft(ctx.db, {
+        recordKey: recordKey(args.name, args.university),
+        channel: args.channel,
+        touch: args.touch,
+        to: args.to,
+        subject: args.subject,
+        body: args.body,
+        timeZone: args.timeZone,
+        threadId: ctx.threadId,
+      });
+      if ("problem" in draft)
+        return { summary: "not drafted", text: `Not drafted: ${draft.problem}.` };
+      ctx.outreachChanged();
+      return {
+        summary: `${args.touch} drafted`,
+        text: "Drafted. It waits in Pipeline for the applicant to approve.",
+      };
+    },
+  }),
+  define({
+    name: "classify_reply",
+    description:
+      "Record what a professor's reply means, so the pipeline moves: interested, call (they propose a call), apply-first, not-taking (stops follow-ups), needs-info.",
+    shape: {
+      messageId: z.string().describe("The id given with the reply"),
+      replyClass: ReplyClass,
+      note: z
+        .string()
+        .describe("What they ask for, in a few words, e.g. 'asks for CV and a research note'"),
+    },
+    paid: false,
+    price: () => 0,
+    run: async (args, ctx) => {
+      if (!getMessage(ctx.db, args.messageId))
+        return { summary: "unknown message", text: `No message ${args.messageId}.` };
+      classify(ctx.db, args.messageId, args.replyClass, args.note);
+      ctx.outreachChanged();
+      return { summary: args.replyClass, text: "Recorded." };
     },
   }),
   define({

@@ -32,11 +32,14 @@ Channel "measure twice, cut once" and "yagni". Simple systems, no machinery for 
 2. **Spending money or quota in tests.** treg calls cost money and email lookups hit real people;
    real agent turns spend the user's subscription. The fake provider covers every flow for free.
    Only a task that changes the Claude provider itself earns one short live turn.
-3. **Claiming facts about Siam.** Facts live once, in hq (`~/Personal/hq/CLAUDE.md`). Read them;
+3. **Sending real email.** A connected mailbox sends to real professors. Tests and e2e use the
+   fake mailer (`GRADCODE_AGENT=fake`); to exercise IMAP and SMTP, run a local GreenMail
+   container, never a real inbox.
+4. **Claiming facts about Siam.** Facts live once, in hq (`~/Personal/hq/CLAUDE.md`). Read them;
    never copy them into this repo or invent one. A missing fact becomes a question.
-4. **Killing by pattern.** This Mac runs T3 Code, Scout and other agents. Never `pkill -f` or kill a
+5. **Killing by pattern.** This Mac runs T3 Code, Scout and other agents. Never `pkill -f` or kill a
    PID found by name. Stop what you started: `scripts/dev-local.sh down`.
-5. **Baking in origins.** Dev is single-origin: Vite proxies `/api` and `/ws`. Never put a server
+6. **Baking in origins.** Dev is single-origin: Vite proxies `/api` and `/ws`. Never put a server
    URL in the web bundle; it breaks every non-localhost client.
 
 ## Where code lives
@@ -44,7 +47,8 @@ Channel "measure twice, cut once" and "yagni". Simple systems, no machinery for 
 ```
 apps/server               Node WebSocket + HTTP server. rpc.ts maps contract methods to services:
                           db/state/threads/records/loops (SQLite), sources (NSF, NIH, OpenAlex, treg),
-                          adapters (gradhunt, hq, CSV), agent/ (runner, claude, fake, tools, prompt)
+                          adapters (gradhunt, hq, CSV), agent/ (runner, claude, fake, tools, prompt),
+                          outreach/ (mail, store, service, plan: drafts, send queue, reply sync)
 apps/web                  React 19 + Vite+. src/routes (TanStack file routes), src/state (Zustand),
                           src/components/ui (T3 Code's Base UI kit, vendored), src/lib
 packages/contracts        zod schemas for everything on the wire. Decode untrusted input with .parse.

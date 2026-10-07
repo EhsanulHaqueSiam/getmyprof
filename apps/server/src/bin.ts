@@ -10,6 +10,8 @@ import { createBus } from "./bus.ts";
 import { openDb } from "./db.ts";
 import { health } from "./health.ts";
 import { dueLoops, listLoops, markRan } from "./loops.ts";
+import { fakeMailer, imapMailer } from "./outreach/mail.ts";
+import { createOutreach } from "./outreach/service.ts";
 import { createHandlers, dispatch } from "./rpc.ts";
 import { getSettings } from "./state.ts";
 import { createThread, expireApprovals, getThread, settleStale } from "./threads.ts";
@@ -25,6 +27,14 @@ if (getSettings(db).gradhunt) importGradhunt(db);
 const bus = createBus();
 const sources = fake ? fixtureSources : realSources;
 const runner = createRunner({ db, bus, provider: fake ? fakeProvider() : claudeProvider, sources });
+// The fake agent pairs with a fake mailbox: nothing leaves this machine in tests or e2e.
+const sandboxMail = fakeMailer();
+const outreach = createOutreach({
+  db,
+  bus,
+  runner,
+  mailerFor: fake ? () => sandboxMail : imapMailer,
+});
 
 /** Starts one loop run as its own thread; the loop's instructions are the first message. */
 function startLoop(id: string) {
@@ -42,12 +52,15 @@ function startLoop(id: string) {
   return getThread(db, t.id)!;
 }
 
-const handlers = createHandlers({ db, bus, runner, sources, fake, startLoop });
+const handlers = createHandlers({ db, bus, runner, sources, fake, startLoop, outreach });
 
-// Loops fire on the minute; stale threads settle hourly. Both are cheap reads.
+// Loops and the send queue run on the minute, mail syncs every 3 minutes, stale threads settle
+// hourly. Each is a cheap read when there's nothing to do.
 setInterval(() => {
   for (const loop of dueLoops(db)) startLoop(loop.id);
+  void outreach.tick();
 }, 60_000);
+setInterval(() => void outreach.sync(), 180_000);
 setInterval(() => settleStale(db), 3_600_000);
 
 // Loopback only. Vite proxies /api and /ws here, and `scripts/dev-local.sh share` puts Vite on

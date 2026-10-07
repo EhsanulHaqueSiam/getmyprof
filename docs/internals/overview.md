@@ -7,7 +7,8 @@ browser (React) ⇄ /api, /ws ⇄ Vite (127.0.0.1:5174) ⇄ server (127.0.0.1:43
                                                       ├ agent runner ── provider: claude | fake
                                                       │    └ hunt tools: nsf_awards, nih_awards, openalex_author,
                                                       │      sheet_search, propose_professor, treg (paid)
-                                                      └ adapters: hq facts, gradhunt (scout.py), CSV
+                                                      ├ adapters: hq facts, gradhunt (scout.py), CSV
+                                                      └ outreach: mailbox (IMAP + SMTP), send queue, reply sync
 ```
 
 ## Single origin
@@ -48,3 +49,26 @@ call) or `now` (steered). A session closes after a minute idle.
 `claude` runs the Agent SDK's bundled Claude Code with the user's login. `fake` runs the same hunt
 tools on fixture sources with scripted turns (approval, proposals, row actions), so e2e covers the
 real store, approval and settle paths without spending anything. Pick with `GRADCODE_AGENT=fake`.
+
+## Outreach
+
+Messages to and from professors live in the `messages` table; stage and whose turn it is are
+derived from them on every read (`outreach/store.ts`), never stored. The user connects their own
+mailbox with an app password; the login sits in `GRADCODE_HOME/mail.json`, mode 0600, and never
+crosses the wire.
+
+- **Nothing sends without approval.** The agent only drafts (`draft_email`). Approving gives each
+  first email or follow-up a slot: 08:00 in the professor's zone, Tuesday to Thursday, within
+  warm-up caps (5, 10, then 15 a day; 2 per university). Replies go at once.
+- **One send path.** Every send runs through `outreach.tick`, one message at a time, so a message
+  can't go out twice. "Send now" just makes a message due and ticks.
+- **Only reviewed addresses.** A draft must go to the address already accepted in the record;
+  apply-only professors get none. On Siam's install gradhunt's rows belong to its cloud outreach
+  routine, so gradcode never drafts to them and the two can't double-send.
+- **Replies come back to the agent.** Sync files mail from contacted professors only (by
+  In-Reply-To, then sender); a real reply goes to the thread that drafted the first email for
+  `classify_reply` and an answer draft. Follow-ups that come due get one drafting thread per day.
+- **LinkedIn is assisted.** The user sends the note there and marks it sent; replies arrive as
+  LinkedIn's notification emails. No account automation.
+- `GRADCODE_AGENT=fake` also swaps in `fakeMailer`: sends stay in memory and fixture professors
+  answer on the next sync.

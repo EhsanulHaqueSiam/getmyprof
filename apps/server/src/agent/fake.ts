@@ -16,6 +16,7 @@ const FIXTURE_PROFESSORS = [
     taking: 'yes, "PhD 2027" in the subject',
     money: "NIH team grant $4.65M",
     lasts: "not posted",
+    email: "lybarger@example.edu",
     contact: 'email, subject "PhD 2027"',
     sources: ["https://www.kevinlybarger.me/news.html"],
   },
@@ -28,6 +29,7 @@ const FIXTURE_PROFESSORS = [
     taking: "yes, join-us page",
     money: "NIA-funded pilot",
     lasts: "not posted",
+    email: "zalake@example.edu",
     contact: "follow the join-us page",
     sources: ["https://vare.ahs.uic.edu/"],
   },
@@ -86,8 +88,15 @@ const VALUE_FOR: Record<RowOp, string> = {
   draft: "drafted",
 };
 
-/** Row actions reach the agent as a tagged prompt; see runner.rowActionPrompt. */
+/** Row actions, replies and follow-ups reach the agent as tagged prompts (runner, outreach/service). */
 const ROW_TAG = /^\[row-action:(email|lasts|taking|draft)\] keys=(\S+)/;
+const REPLY = /^\[reply:(\S+)\] (.+?) \((.+?)\) wrote back/;
+const FOLLOW_UP_LINE =
+  /^- (.+?) \| (.+?) \| key \S+ \| (follow-up-[12]) \| to (\S+) \| zone (\S+)/gm;
+const ZONE: Record<string, string> = {
+  "George Mason University": "America/New_York",
+  "University of Illinois Chicago": "America/Chicago",
+};
 
 export const fakeProvider = (
   delayMs = Number(process.env.GRADCODE_FAKE_DELAY ?? 120),
@@ -171,6 +180,56 @@ export const fakeProvider = (
       );
     }
 
+    const firstEmail = (p: (typeof FIXTURE_PROFESSORS)[number]) => ({
+      name: p.name,
+      university: p.university,
+      channel: "email",
+      touch: "first",
+      to: p.email ?? "",
+      subject: p.contact.includes("PhD 2027") ? "PhD 2027" : "Prospective PhD student, Fall 2027",
+      body: `Dear Dr. ${p.name.split(" ").at(-1)},\n\nI'm applying for a funded PhD starting Fall 2027 and your work on ${p.niche} is close to what I want to do. Are you taking students for that intake?\n\nBest regards`,
+      timeZone: ZONE[p.university] ?? "America/New_York",
+    });
+
+    async function answerReply(id: string, name: string, university: string) {
+      await call("classify_reply", "interested", {
+        messageId: id,
+        replyClass: "interested",
+        note: "asks for CV and a research note",
+      });
+      const p = FIXTURE_PROFESSORS.find((x) => x.name === name);
+      await call("draft_email", `reply · ${name}`, {
+        name,
+        university,
+        channel: "email",
+        touch: "reply",
+        to: p?.email ?? "",
+        subject: "",
+        body: `Dear Dr. ${name.split(" ").at(-1)},\n\nThank you. I'll send my CV and a short note on what I'd like to work on.\n\nBest regards`,
+        timeZone: ZONE[university] ?? "America/New_York",
+      });
+      say(`${name} is interested and asks for a CV. An answer is drafted in Pipeline.`);
+    }
+
+    async function followUps(text: string) {
+      let drafted = 0;
+      for (const m of text.matchAll(FOLLOW_UP_LINE)) {
+        const [, name = "", university = "", touch = "", to = "", timeZone = ""] = m;
+        await call("draft_email", `${touch} · ${name}`, {
+          name,
+          university,
+          channel: "email",
+          touch,
+          to,
+          subject: "",
+          body: `Dear Dr. ${name.split(" ").at(-1)},\n\nA short follow-up on my note about a funded PhD for Fall 2027. Your recent paper made me even more keen.\n\nBest regards`,
+          timeZone,
+        });
+        drafted++;
+      }
+      say(`Drafted ${drafted} follow-up${drafted === 1 ? "" : "s"}.`);
+    }
+
     async function rowAction(op: RowOp, keys: string[]) {
       const rows = keys
         .map((k) =>
@@ -181,6 +240,10 @@ export const fakeProvider = (
       for (const p of rows) {
         if (op === "draft" && p.contact.startsWith("apply-only")) {
           skipped++;
+          continue;
+        }
+        if (op === "draft") {
+          await call("draft_email", `first · ${p.name}`, firstEmail(p));
           continue;
         }
         await call("propose_professor", `${p.name} · ${p.university}`, {
@@ -201,7 +264,10 @@ export const fakeProvider = (
       const started = Date.now();
       hooks.turnStarted();
       const row = ROW_TAG.exec(text);
+      const reply = REPLY.exec(text);
       if (row?.[1] && row[2]) await rowAction(row[1] as RowOp, row[2].split(","));
+      else if (reply?.[1] && reply[2] && reply[3]) await answerReply(reply[1], reply[2], reply[3]);
+      else if (text.startsWith("[follow-up]")) await followUps(text);
       else if (n === 0) await hunt();
       else {
         await pause();

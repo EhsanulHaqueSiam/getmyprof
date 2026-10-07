@@ -27,7 +27,7 @@ const ROW_INSTRUCTIONS: Record<RowOp, string> = {
   taking:
     "For each professor below, read their homepage or lab page and record whether they're taking students for the intake (taking) and how they want to be reached (contact) with propose_professor.",
   draft:
-    "Draft a short first email for each professor below who accepts email; skip apply-only professors and say so. Put each draft in your reply and record stage drafted with propose_professor.",
+    "Draft a short first email for each professor below with draft_email (touch first). Skip apply-only professors and anyone without a reviewed address, and say so. The applicant approves each draft in Pipeline before anything is sent.",
 };
 
 /**
@@ -146,6 +146,10 @@ export function createRunner(deps: {
         changed() {
           bus.push({ type: "changed", what: "proposals", threadId });
           pushThreads();
+        },
+        outreachChanged() {
+          bus.push({ type: "changed", what: "outreach" });
+          bus.push({ type: "changed", what: "records" });
         },
       },
     });

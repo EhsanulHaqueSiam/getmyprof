@@ -137,19 +137,24 @@ const RETURN = new RegExp(
   "i",
 );
 
+/** A calendar date at noon UTC, so it reads as the same day in every time zone. */
+function calendarDay(text: string) {
+  const d = new Date(text);
+  return Number.isNaN(d.getTime())
+    ? null
+    : new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 12));
+}
+
 /** The day an out-of-office note says they are back, e.g. "until October 20, 2026". */
 export function returnDate(text: string, now: Date): Date | null {
   const found = RETURN.exec(text)?.[1];
   if (!found) return null;
   const clean = found.replace(/(\d)(st|nd|rd|th)/i, "$1").replace(".", "");
-  if (/\d{4}/.test(clean)) {
-    const d = new Date(clean);
-    return Number.isNaN(d.getTime()) ? null : d;
-  }
+  if (/\d{4}/.test(clean)) return calendarDay(clean);
   // No year: the next time that date comes round.
-  for (const year of [now.getFullYear(), now.getFullYear() + 1]) {
-    const d = new Date(`${clean} ${year}`);
-    if (Number.isNaN(d.getTime())) return null;
+  for (const year of [now.getUTCFullYear(), now.getUTCFullYear() + 1]) {
+    const d = calendarDay(`${clean} ${year}`);
+    if (!d) return null;
     if (d.getTime() >= now.getTime() - 864e5) return d;
   }
   return null;

@@ -5,6 +5,7 @@ import {
   dailyCap,
   followUpDue,
   nextSlot,
+  returnDate,
   zonedInstant,
 } from "./plan.ts";
 
@@ -91,5 +92,16 @@ describe("classifyMail", () => {
         body: "Thanks, please send your CV.",
       }),
     ).toBe("reply");
+  });
+});
+
+describe("out-of-office notes", () => {
+  const now = new Date("2026-10-07T03:00:00Z");
+  it("reads the return day the way the note writes it", () => {
+    const day = (t: string) => returnDate(t, now)?.toISOString().slice(0, 10);
+    expect(day("I am out of the office until October 17, 2026.")).toBe("2026-10-17");
+    expect(day("Away until 17 October, back to email then")).toBe("2026-10-17");
+    expect(day("Returning on Monday, January 4th.")).toBe("2027-01-04");
+    expect(day("I'm traveling with limited access to email.")).toBeUndefined();
   });
 });

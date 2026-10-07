@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Chip } from "~/components/FormParts";
-import { ago } from "~/lib/format";
+import { since } from "~/lib/format";
 import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
 
@@ -49,7 +49,7 @@ export function MailSettings() {
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-foreground">{mail.address}</span>
         <span className="text-muted-foreground text-xs">
-          {mail.lastSyncAt ? `synced ${ago(mail.lastSyncAt)}` : "not synced yet"}
+          {mail.lastSyncAt ? `synced ${since(mail.lastSyncAt)}` : "not synced yet"}
         </span>
         {mail.error ? (
           <span className="text-destructive-foreground text-xs">{mail.error}</span>

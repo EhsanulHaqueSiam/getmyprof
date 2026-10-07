@@ -14,6 +14,7 @@ import { Route as SetupRouteImport } from './routes/setup'
 import { Route as ShellIndexRouteImport } from './routes/_shell.index'
 import { Route as ShellFundingRouteImport } from './routes/_shell.funding'
 import { Route as ShellLoopsRouteImport } from './routes/_shell.loops'
+import { Route as ShellPipelineRouteImport } from './routes/_shell.pipeline'
 import { Route as ShellReviewRouteImport } from './routes/_shell.review'
 import { Route as ShellSettingsRouteImport } from './routes/_shell.settings'
 import { Route as ShellProfessorsIndexRouteImport } from './routes/_shell.professors.index'
@@ -42,6 +43,11 @@ const ShellFundingRoute = ShellFundingRouteImport.update({
 const ShellLoopsRoute = ShellLoopsRouteImport.update({
   id: '/loops',
   path: '/loops',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellPipelineRoute = ShellPipelineRouteImport.update({
+  id: '/pipeline',
+  path: '/pipeline',
   getParentRoute: () => ShellRoute,
 } as any)
 const ShellReviewRoute = ShellReviewRouteImport.update({
@@ -75,6 +81,7 @@ export interface FileRoutesByFullPath {
   '/setup': typeof SetupRoute
   '/funding': typeof ShellFundingRoute
   '/loops': typeof ShellLoopsRoute
+  '/pipeline': typeof ShellPipelineRoute
   '/review': typeof ShellReviewRoute
   '/settings': typeof ShellSettingsRoute
   '/professors/$key': typeof ShellProfessorsKeyRoute
@@ -85,6 +92,7 @@ export interface FileRoutesByTo {
   '/setup': typeof SetupRoute
   '/funding': typeof ShellFundingRoute
   '/loops': typeof ShellLoopsRoute
+  '/pipeline': typeof ShellPipelineRoute
   '/review': typeof ShellReviewRoute
   '/settings': typeof ShellSettingsRoute
   '/': typeof ShellIndexRoute
@@ -98,6 +106,7 @@ export interface FileRoutesById {
   '/setup': typeof SetupRoute
   '/_shell/funding': typeof ShellFundingRoute
   '/_shell/loops': typeof ShellLoopsRoute
+  '/_shell/pipeline': typeof ShellPipelineRoute
   '/_shell/review': typeof ShellReviewRoute
   '/_shell/settings': typeof ShellSettingsRoute
   '/_shell/': typeof ShellIndexRoute
@@ -112,6 +121,7 @@ export interface FileRouteTypes {
     | '/setup'
     | '/funding'
     | '/loops'
+    | '/pipeline'
     | '/review'
     | '/settings'
     | '/professors/$key'
@@ -122,6 +132,7 @@ export interface FileRouteTypes {
     | '/setup'
     | '/funding'
     | '/loops'
+    | '/pipeline'
     | '/review'
     | '/settings'
     | '/'
@@ -134,6 +145,7 @@ export interface FileRouteTypes {
     | '/setup'
     | '/_shell/funding'
     | '/_shell/loops'
+    | '/_shell/pipeline'
     | '/_shell/review'
     | '/_shell/settings'
     | '/_shell/'
@@ -184,6 +196,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellLoopsRouteImport
       parentRoute: typeof ShellRoute
     }
+    '/_shell/pipeline': {
+      id: '/_shell/pipeline'
+      path: '/pipeline'
+      fullPath: '/pipeline'
+      preLoaderRoute: typeof ShellPipelineRouteImport
+      parentRoute: typeof ShellRoute
+    }
     '/_shell/review': {
       id: '/_shell/review'
       path: '/review'
@@ -225,6 +244,7 @@ declare module '@tanstack/react-router' {
 interface ShellRouteChildren {
   ShellFundingRoute: typeof ShellFundingRoute
   ShellLoopsRoute: typeof ShellLoopsRoute
+  ShellPipelineRoute: typeof ShellPipelineRoute
   ShellReviewRoute: typeof ShellReviewRoute
   ShellSettingsRoute: typeof ShellSettingsRoute
   ShellIndexRoute: typeof ShellIndexRoute
@@ -236,6 +256,7 @@ interface ShellRouteChildren {
 const ShellRouteChildren: ShellRouteChildren = {
   ShellFundingRoute: ShellFundingRoute,
   ShellLoopsRoute: ShellLoopsRoute,
+  ShellPipelineRoute: ShellPipelineRoute,
   ShellReviewRoute: ShellReviewRoute,
   ShellSettingsRoute: ShellSettingsRoute,
   ShellIndexRoute: ShellIndexRoute,

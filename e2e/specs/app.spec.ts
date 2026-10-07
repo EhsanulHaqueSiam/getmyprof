@@ -81,3 +81,46 @@ test("professors, funding and loops show the hunt's data", async ({ page }) => {
   await expect(page).toHaveURL(/\/t\/thr_/);
   await expect(page.getByRole("heading", { name: /New awards ·/ })).toBeVisible();
 });
+
+test("outreach: drafts wait for approval, a sent email's reply comes back as your turn", async ({
+  page,
+}) => {
+  // The fake stack's mailbox never touches the network; Lybarger answers on the next sync.
+  await page.goto("/settings");
+  await page.getByLabel("Your name").fill("Test Applicant");
+  await page.getByLabel("Address").fill("me@example.com");
+  await page.getByLabel("App password").fill("app-password");
+  await page.getByRole("button", { name: "Connect" }).click();
+  await expect(page.getByText("me@example.com")).toBeVisible();
+
+  await page.goto("/");
+  await page.getByRole("button", { name: /Settled/ }).click();
+  await page.getByRole("link", { name: "Find professors" }).click();
+  await page.getByRole("tab", { name: /Results/ }).click();
+  for (const name of ["Kevin Lybarger", "Mohan Zalake", "Natalie Parde"])
+    await page.getByLabel(`Select ${name}`).check();
+  await page.getByRole("button", { name: /Draft first emails/ }).click();
+  await page.getByRole("tab", { name: "Chat" }).click();
+  await expect(page.getByText("Skipped 1 apply-only")).toBeVisible();
+
+  await page.goto("/pipeline");
+  const approve = page.getByTestId("turn-approve");
+  await expect(approve).toContainText("To approve · 2");
+  await approve.getByText("Kevin Lybarger").click();
+  await expect(page.getByTestId("next-step")).toContainText("Approve the draft");
+  await page.getByRole("button", { name: /Send now/ }).click();
+  await expect(page.getByTestId("message")).toHaveCount(1);
+
+  await page.getByTitle("Sync now").click();
+  const yours = page.getByTestId("turn-yours");
+  await expect(yours).toContainText("Kevin Lybarger");
+  await yours.getByText("Kevin Lybarger").click();
+  await expect(page.getByText(/reply read as interested/)).toBeVisible();
+  await expect(page.getByTestId("sequence")).toContainText("paused: they replied");
+  await expect(page.getByLabel("Message")).toHaveValue(/Thank you/);
+
+  await page.getByRole("button", { name: "Board" }).click();
+  await expect(page.getByTestId("card").filter({ hasText: "Kevin Lybarger" })).toContainText(
+    "your turn",
+  );
+});

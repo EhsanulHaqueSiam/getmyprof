@@ -1,5 +1,6 @@
 import type {
   AppState,
+  Conversation,
   Settings,
   ThreadEvent,
   ThreadSummary,
@@ -13,15 +14,21 @@ type Store = {
   app: AppState | null;
   threads: ThreadSummary[];
   views: Record<string, ThreadView>;
+  /** Everyone in the pipeline. Reloaded whenever outreach changes. */
+  conversations: Conversation[];
   /** Bumped when records or loops change, so views that list them refetch. */
   recordsVersion: number;
   loopsVersion: number;
   sidebarOpen: boolean;
   paletteOpen: boolean;
+  /** A refused action's reason, shown until dismissed. */
+  notice: string | null;
   loadApp: () => Promise<void>;
   loadView: (threadId: string) => Promise<void>;
+  loadOutreach: () => Promise<void>;
   saveSettings: (patch: Partial<Settings>) => Promise<void>;
   setPalette: (open: boolean) => void;
+  setNotice: (notice: string | null) => void;
   toggleSidebar: () => void;
 };
 
@@ -30,10 +37,12 @@ export const useStore = create<Store>()((set, get) => ({
   app: null,
   threads: [],
   views: {},
+  conversations: [],
   recordsVersion: 0,
   loopsVersion: 0,
   sidebarOpen: true,
   paletteOpen: false,
+  notice: null,
   loadApp: async () => {
     const [app, threads] = await Promise.all([call("state.get", {}), call("threads.list", {})]);
     set({ app, threads });
@@ -42,12 +51,14 @@ export const useStore = create<Store>()((set, get) => ({
     const view = await call("threads.view", { id: threadId });
     set((s) => ({ views: { ...s.views, [threadId]: view } }));
   },
+  loadOutreach: async () => set({ conversations: await call("outreach.list", {}) }),
   saveSettings: async (patch) => {
     const settings = await call("settings.update", patch);
     const app = get().app;
     if (app) set({ app: { ...app, settings } });
   },
   setPalette: (paletteOpen) => set({ paletteOpen }),
+  setNotice: (notice) => set({ notice }),
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
 }));
 
@@ -67,6 +78,7 @@ export function subscribe() {
     if (m.type === "hello") {
       setState({ live: true });
       void getState().loadApp();
+      void getState().loadOutreach();
       for (const id of Object.keys(getState().views)) void getState().loadView(id);
     }
     if (m.type === "threads") {
@@ -96,6 +108,7 @@ export function subscribe() {
       if (m.what === "records") setState((s) => ({ recordsVersion: s.recordsVersion + 1 }));
       if (m.what === "loops") setState((s) => ({ loopsVersion: s.loopsVersion + 1 }));
       if (m.what === "state") void getState().loadApp();
+      if (m.what === "outreach") void getState().loadOutreach();
     }
   });
 }

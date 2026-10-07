@@ -81,7 +81,7 @@ describe("where a professor stands", () => {
     });
     const s = standing(prof, [first, away], new Date("2026-10-23T00:00:00Z"));
     expect(s.stage).toBe("contacted");
-    expect(new Date(s.followUpAt ?? "").toDateString()).toBe("Mon Nov 09 2026");
+    expect(s.followUpAt?.slice(0, 10)).toBe("2026-11-09");
   });
 
   it("puts a bounce back in your hands", () => {

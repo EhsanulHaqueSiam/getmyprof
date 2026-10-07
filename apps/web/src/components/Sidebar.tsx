@@ -14,6 +14,7 @@ import {
   RepeatIcon,
   RotateCcwIcon,
   SearchIcon,
+  SendIcon,
   SettingsIcon,
   SquarePenIcon,
   UsersIcon,
@@ -24,20 +25,12 @@ import { Kbd } from "~/components/ui/kbd";
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from "~/components/ui/menu";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "~/components/ui/tooltip";
 import { ago, duration, usd } from "~/lib/format";
+import { needsYou } from "~/lib/outreach";
+import { useMinuteClock } from "~/lib/useMinuteClock";
 import { shelves, snoozePresets } from "~/lib/shelves";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
-
-/** Re-renders every 30s so "Working 2m" and "12m" labels stay true without a repainting animation. */
-function useMinuteClock() {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(id);
-  }, []);
-  return now;
-}
 
 function StatusLabel({ t, now }: { t: ThreadSummary; now: number }) {
   if (t.status === "approval")
@@ -303,6 +296,7 @@ export function Sidebar() {
   }, [order, params, navigate]);
 
   const review = threads.reduce((n, t) => n + t.pendingReview, 0);
+  const outreach = useStore((st) => st.conversations.filter(needsYou).length);
   const today = threads
     .filter((t) => now - Date.parse(t.updatedAt) < 864e5)
     .reduce((n, t) => n + t.spendUsd, 0);
@@ -351,6 +345,7 @@ export function Sidebar() {
         <NavLink to="/" icon={<PlusIcon />} label="New thread" kbd="⌘N" />
         <NavLink to="/professors" icon={<UsersIcon />} label="Professors" count={professors} />
         <NavLink to="/funding" icon={<LandmarkIcon />} label="Funding" />
+        <NavLink to="/pipeline" icon={<SendIcon />} label="Pipeline" count={outreach} accent />
         <NavLink to="/loops" icon={<RepeatIcon />} label="Loops" />
         <NavLink to="/review" icon={<InboxIcon />} label="Review" count={review} accent />
       </nav>

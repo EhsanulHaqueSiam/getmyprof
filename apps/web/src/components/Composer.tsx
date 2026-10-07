@@ -113,6 +113,12 @@ export function Composer({
   const settings = useStore((s) => s.app?.settings);
   const saveSettings = useStore((s) => s.saveSettings);
 
+  // A message that starts with @ mentions ("Ask about Lybarger") is typed after them.
+  useEffect(() => {
+    const el = ref.current;
+    if (el && initialMentions.length) el.setSelectionRange(el.value.length, el.value.length);
+  }, [initialMentions]);
+
   useEffect(() => {
     const el = ref.current;
     if (!el) return;

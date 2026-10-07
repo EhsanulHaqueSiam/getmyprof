@@ -110,6 +110,32 @@ describe("an Ask turn", () => {
       events.some((e) => e.type === "tool" && e.status === "denied" && e.meta === "ask mode"),
     ).toBe(true);
   });
+
+  it("shows only what was typed, not the record that rides along for the agent", async () => {
+    const db = openDb(":memory:");
+    const runner = createRunner({
+      db,
+      bus: createBus(),
+      provider: fakeProvider(1),
+      sources: fixtureSources,
+    });
+    const thread = createThread(db, "ask").id;
+    const typed = "[ask] what money do they have?";
+    runner.send(
+      thread,
+      `${typed}\n\nScope: Kevin Lybarger. ...\n- Kevin Lybarger | key k`,
+      "send",
+      typed,
+    );
+    await until(() => getThread(db, thread)?.status === "idle");
+    const events = listEvents(db, thread);
+    expect(events.find((e) => e.type === "user")).toMatchObject({
+      text: "Ask · what money do they have?",
+    });
+    expect(events.some((e) => e.type === "assistant" && e.text.includes("From the sheet"))).toBe(
+      true,
+    );
+  });
 });
 
 describe("a loop run at its cap", () => {

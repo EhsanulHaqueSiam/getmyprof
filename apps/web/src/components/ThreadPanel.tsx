@@ -25,9 +25,38 @@ function useRecord(key: string | null) {
 }
 
 /** The professor this thread is looking at: what the sheet knows, and Ask about them. */
-function ProfessorTab({ recordKey }: { recordKey: string | null }) {
+function ProfessorTab({
+  recordKey,
+  proposals,
+}: {
+  recordKey: string | null;
+  proposals: Proposal[];
+}) {
   const navigate = useNavigate();
   const p = useRecord(recordKey);
+  // Someone not in the sheet yet: what the agent proposes, until Review accepts them.
+  const added = proposals.find(
+    (x) => x.recordKey === recordKey && x.kind === "add" && x.status === "pending",
+  );
+  if (!p && added)
+    return (
+      <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-3" data-testid="professor-tab">
+        <div className="font-semibold text-sm">{added.recordName}</div>
+        <div className="text-muted-foreground text-xs">
+          {added.university} · new, waiting in Review
+        </div>
+        <dl className="mt-3 grid grid-cols-[84px_minmax(0,1fr)] text-xs">
+          {added.changes
+            .filter((c) => c.field !== "name" && c.field !== "university")
+            .map((c) => (
+              <div key={c.field} className="contents">
+                <dt className="border-b py-1.5 text-muted-foreground">{c.field}</dt>
+                <dd className="border-b py-1.5 text-secondary-label">{c.to}</dd>
+              </div>
+            ))}
+        </dl>
+      </div>
+    );
   if (!p)
     return (
       <div className="px-6 py-12 text-center text-muted-foreground text-xs">
@@ -176,7 +205,7 @@ export function ThreadPanel({
           }}
         />
       ) : tab === "professor" ? (
-        <ProfessorTab recordKey={focus} />
+        <ProfessorTab recordKey={focus} proposals={proposals} />
       ) : (
         <SourceTab recordKey={focus} proposals={proposals} />
       )}

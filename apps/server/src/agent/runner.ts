@@ -240,7 +240,8 @@ export function createRunner(deps: {
     const ask = /^\[ask\]\s*/.exec(text);
     if (ask) {
       asks.add(threadId);
-      shown = `Ask · ${text.slice(ask[0].length)}`;
+      // What was typed, not what rides along for the agent (a scope note, say).
+      shown = `Ask · ${shown.replace(/^\[ask\]\s*/, "")}`;
       text = `${text}\n\n(Ask mode: answer from what you can read. Change nothing, propose nothing, spend nothing.)`;
     } else asks.delete(threadId);
     const op = /^\[row-action:(\w+)\]/.exec(text)?.[1];

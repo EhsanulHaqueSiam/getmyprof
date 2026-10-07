@@ -89,3 +89,37 @@ test("loops: scope, auto-accept rules, and Always under $x here; the table shows
     "true",
   );
 });
+
+test("funding and professor pages: Add PI, tabs, every fact with its source, finder row actions", async ({
+  page,
+}) => {
+  await page.goto("/funding");
+  await page.getByLabel("Topics").fill("language technologies");
+  await page.getByRole("main").getByRole("button", { name: "Search", exact: true }).click();
+  const award = page.getByRole("row", { name: /Anastasopoulos/ });
+  await award.getByRole("button", { name: "Add PI" }).click();
+  await expect(award).toContainText("yes");
+  await page.getByRole("tab", { name: "programs" }).click();
+  await expect(page.getByTestId("program-row").first()).toBeVisible();
+
+  // The added PI has the award as a grant, linked to its page.
+  await page.goto("/professors");
+  await page.getByRole("main").getByRole("link", { name: "Antonios Anastasopoulos" }).click();
+  await expect(page.getByRole("link", { name: "NSF 2439202" }).first()).toBeVisible();
+
+  // A professor the hunt found shows where each fact came from, and what happened.
+  await page.goto("/professors");
+  await page.getByRole("main").getByRole("link", { name: "Kevin Lybarger" }).click();
+  await expect(page.getByRole("link", { name: /kevinlybarger\.me · / }).first()).toBeVisible();
+  await expect(page.getByTestId("professor-side")).toContainText("Added to the sheet");
+  await expect(page.getByRole("link", { name: "Scholar" })).toBeVisible();
+
+  // The finder filters by tier and runs a row action in a thread of its own.
+  await page.goto("/professors");
+  await page.getByLabel("Money tier").selectOption("2");
+  await page.getByLabel("Select Kevin Lybarger").check();
+  await page.getByRole("button", { name: "Check money" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Check money (NSF, NIH) · 1 professor" }),
+  ).toBeVisible();
+});

@@ -1,4 +1,5 @@
 import {
+  type Award,
   type Change,
   PROFESSOR_FIELDS,
   Professor,
@@ -265,4 +266,37 @@ export function scopeNote(db: Db, items: ScopeItem[]) {
       ? [...lines.slice(0, 80), `(${lines.length - 80} more lines: use sheet_search)`]
       : lines;
   return `Scope: ${items.map((x) => x.name).join(", ")}. What the sheet already has, with its sources; use it instead of fetching again, and fetch only what's missing or asked:\n${shown.join("\n")}`;
+}
+
+/** "LYBARGER, KEVIN" and "Kevin Lybarger" are the same person. */
+export const personKey = (name: string) => {
+  const parts = name.includes(",") ? name.split(",").toReversed().join(" ") : name;
+  const w = parts.toLowerCase().split(/\s+/).filter(Boolean);
+  return `${w[0]?.[0] ?? ""} ${w.at(-1) ?? ""}`;
+};
+
+/**
+ * The sheet row for an award's PI, from one click in Funding: the award becomes their grant and
+ * its page their source. A PI already in the sheet just gains the grant.
+ */
+export function professorFromAward(existing: Professor | null, a: Award): Professor {
+  const grant = {
+    source: a.source,
+    id: a.id,
+    title: a.title,
+    usd: a.currency === "USD" ? a.amount : null,
+    ends: a.ends,
+  };
+  const base = existing ?? {
+    ...blankProfessor(a.pi, a.university),
+    moneyTier: (a.monthsAfterIntake ?? 0) > 0 ? 2 : 3,
+    money: `${a.source} ${a.id}: ${a.title}`,
+    lasts: a.ends ?? "",
+  };
+  return {
+    ...base,
+    grants: base.grants.some((g) => g.id === a.id) ? base.grants : [...base.grants, grant],
+    sources: base.sources.includes(a.url) ? base.sources : [...base.sources, a.url],
+    updatedAt: now(),
+  };
 }

@@ -48,7 +48,7 @@ export type AwardQuery = {
   pi?: string;
   activeAfter?: string;
 };
-export type RawAward = Omit<Award, "monthsAfterIntake" | "inSheet">;
+export type RawAward = Omit<Award, "monthsAfterIntake" | "inSheet" | "fit">;
 
 const schoolWords = (s: string) =>
   s

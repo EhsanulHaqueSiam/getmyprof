@@ -1,14 +1,6 @@
-import {
-  type Award,
-  type Method,
-  type MethodOutput,
-  Methods,
-  type ThreadSummary,
-} from "@gradcode/contracts";
+import { type Method, type MethodOutput, Methods, type ThreadSummary } from "@gradcode/contracts";
 import type { z } from "zod";
 import {
-  exportCsv,
-  importCsv,
   importGradhunt,
   profileFacts,
   readHqFacts,
@@ -17,9 +9,9 @@ import {
 } from "./adapters.ts";
 import { extractFacts, fakeFacts } from "./agent/extract.ts";
 import type { Runner } from "./agent/runner.ts";
-import { type Sources, sourceKey } from "./agent/tools.ts";
+import { type Sources } from "./agent/tools.ts";
 import type { Bus } from "./bus.ts";
-import { type Db, newId, now } from "./db.ts";
+import { type Db, getKv, newId, now } from "./db.ts";
 import { health, tailnetLink } from "./health.ts";
 import { listLoops, loopStats, saveLoop, STARTER_LOOPS } from "./loops.ts";
 import type { Outreach } from "./outreach/service.ts";
@@ -35,8 +27,7 @@ import {
   vaultState,
   writingBrief,
 } from "./vault.ts";
-import { getRecord, listRecords, resolveProposal, threadProposals } from "./records.ts";
-import { intakeStart, monthsAfter, sameSchool, sourcesFor } from "./sources.ts";
+import { resolveProposal } from "./records.ts";
 import {
   getApplicant,
   getHunt,
@@ -46,6 +37,7 @@ import {
   saveHunt,
   updateSettings,
 } from "./state.ts";
+import { recordHandlers } from "./rpc-records.ts";
 import { threadHandlers } from "./rpc-threads.ts";
 import { checkTregToken, readTregLogin, removeTregLogin, saveTregLogin } from "./treg.ts";
 import {
@@ -63,12 +55,6 @@ export type Handlers = {
 };
 
 const OK = { ok: true } as const;
-/** "LYBARGER, KEVIN" and "Kevin Lybarger" are the same person. */
-const personKey = (name: string) => {
-  const parts = name.includes(",") ? name.split(",").toReversed().join(" ") : name;
-  const w = parts.toLowerCase().split(/\s+/).filter(Boolean);
-  return `${w[0]?.[0] ?? ""} ${w.at(-1) ?? ""}`;
-};
 
 export type Services = {
   db: Db;
@@ -81,7 +67,7 @@ export type Services = {
 };
 
 export function createHandlers(svc: Services): Handlers {
-  const { db, bus, runner, sources, outreach } = svc;
+  const { db, bus, runner, outreach } = svc;
   const pushThreads = () => bus.push({ type: "threads", threads: listThreads(db) });
   const thread = (id: string) => {
     const t = getThread(db, id);
@@ -118,6 +104,10 @@ export function createHandlers(svc: Services): Handlers {
         mail: outreach.status(),
         treg: tregStatus(),
         tailnet: svc.fake ? null : tailnetLink(),
+        counts: {
+          funding: getKv(db, "funding.waiting", Number, 0),
+          loops: listLoops(db).filter((l) => l.enabled).length,
+        },
       };
     },
     "settings.update": (patch) => {
@@ -179,66 +169,7 @@ export function createHandlers(svc: Services): Handlers {
       return OK;
     },
 
-    "records.list": () => listRecords(db),
-    "records.get": ({ key }) => {
-      const record = getRecord(db, key);
-      if (!record) throw new Error(`No professor ${key}`);
-      const threadIds = db
-        .prepare("SELECT thread_id FROM thread_rows WHERE record_key = ?")
-        .all(key)
-        .map((r) => String(r.thread_id));
-      return {
-        record,
-        threads: threadIds.flatMap((id) => getThread(db, id) ?? []),
-        proposals: threadIds
-          .flatMap((id) => threadProposals(db, id))
-          .filter((p) => p.recordKey === key),
-      };
-    },
-    "records.import": ({ csv }) => {
-      const added = importCsv(db, csv);
-      bus.push({ type: "changed", what: "records" });
-      return { added };
-    },
-    "records.export": () => ({ csv: exportCsv(db) }),
-
-    "funding.search": async ({ terms, universities, sources: picked }) => {
-      const records = listRecords(db);
-      const hunt = getHunt(db);
-      const which = picked?.length ? picked : sourcesFor(hunt?.prefs.places ?? []);
-      const start = intakeStart(hunt?.prefs.intake ?? "");
-      const activeAfter = start?.toISOString().slice(0, 10);
-      const base = { terms, ...(activeAfter ? { activeAfter } : {}) };
-      // Named schools filter every source. By default the sheet's schools filter the US pair,
-      // and the other databases search the topic everywhere: the sheet's schools are mostly US.
-      const sheetSchools = [...new Set(records.map((r) => r.university))].slice(0, 8);
-      const runs = which.flatMap((s) => {
-        const schools = universities.length
-          ? universities
-          : s === "NSF" || s === "NIH"
-            ? sheetSchools
-            : [];
-        return (schools.length ? schools : [undefined]).map((u) =>
-          sources[sourceKey(s)]({ ...base, ...(u ? { university: u } : {}) }),
-        );
-      });
-      const found = (await Promise.allSettled(runs)).flatMap((r) =>
-        r.status === "fulfilled" ? r.value : [],
-      );
-      const unique = [...new Map(found.map((a) => [`${a.source}:${a.id}`, a])).values()];
-      return unique
-        .map((a): Award => ({
-          ...a,
-          monthsAfterIntake: monthsAfter(a.ends, start),
-          inSheet:
-            !!a.pi &&
-            records.some(
-              (r) =>
-                personKey(r.name) === personKey(a.pi) && sameSchool(r.university, a.university),
-            ),
-        }))
-        .toSorted((a, b) => (b.monthsAfterIntake ?? -999) - (a.monthsAfterIntake ?? -999));
-    },
+    ...recordHandlers(svc),
 
     "loops.list": () => listLoops(db).map((l) => ({ ...l, ...loopStats(db, l.id) })),
     // Only where gradhunt sync is on: Siam's install. Read-only.

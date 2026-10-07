@@ -357,5 +357,7 @@ export const Award = z.object({
   monthsAfterIntake: z.number().nullable(),
   inSheet: z.boolean(),
   abstract: z.string(),
+  /** How many of the hunt's fields its title and abstract name; 0 is off topic. */
+  fit: z.number().default(0),
 });
 export type Award = z.infer<typeof Award>;

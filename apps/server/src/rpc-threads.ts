@@ -1,6 +1,6 @@
 // The thread methods: start, send (queue, steer), scope, detail, fork, settle and the rest.
 // rpc.ts spreads these into its handlers.
-import type { ScopeItem } from "@gradcode/contracts";
+import { ROW_OPS, type ScopeItem } from "@gradcode/contracts";
 import { scopeNote, threadProposals, threadRows } from "./records.ts";
 import type { Handlers, Services } from "./rpc.ts";
 import {
@@ -130,6 +130,14 @@ export function threadHandlers(svc: Services): Pick<Handlers, ThreadMethods> {
       rename(db, id, title.trim());
       pushThreads();
       return OK;
+    },
+    "threads.startRowAction": ({ op, keys }) => {
+      const t = createThread(
+        db,
+        `${ROW_OPS[op].label} · ${keys.length} professor${keys.length === 1 ? "" : "s"}`,
+      );
+      runner.rowAction(t.id, op, keys);
+      return thread(t.id);
     },
     "threads.rowAction": ({ id, op, keys }) => {
       thread(id);

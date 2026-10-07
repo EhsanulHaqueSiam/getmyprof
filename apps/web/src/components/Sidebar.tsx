@@ -297,6 +297,8 @@ export function Sidebar() {
   }, [order, params, navigate]);
 
   const review = threads.reduce((n, t) => n + t.pendingReview, 0);
+  // Awards from the last search worth a look, and loops on.
+  const counts = useStore((st) => st.app?.counts);
   const outreach = useStore((st) => st.conversations.filter(needsYou).length);
   const toFile = useStore((st) => st.vault?.toFile.length);
   const today = threads.reduce((n, t) => n + t.spendDayUsd, 0);
@@ -344,10 +346,10 @@ export function Sidebar() {
       <nav className="flex flex-col gap-px">
         <NavLink to="/" icon={<PlusIcon />} label="New thread" kbd="⌘N" />
         <NavLink to="/professors" icon={<UsersIcon />} label="Professors" count={professors} />
-        <NavLink to="/funding" icon={<LandmarkIcon />} label="Funding" />
+        <NavLink to="/funding" icon={<LandmarkIcon />} label="Funding" count={counts?.funding} />
         <NavLink to="/pipeline" icon={<SendIcon />} label="Pipeline" count={outreach} accent />
         <NavLink to="/vault" icon={<ArchiveIcon />} label="Vault" count={toFile} accent />
-        <NavLink to="/loops" icon={<RepeatIcon />} label="Loops" />
+        <NavLink to="/loops" icon={<RepeatIcon />} label="Loops" count={counts?.loops} />
         <NavLink to="/review" icon={<InboxIcon />} label="Review" count={review} accent />
       </nav>
       <div className="mt-3 flex h-7 items-center gap-1.5 px-2 font-medium text-muted-foreground text-xs">

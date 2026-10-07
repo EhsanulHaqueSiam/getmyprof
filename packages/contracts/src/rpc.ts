@@ -46,6 +46,9 @@ export const AppState = z.object({
   treg: TregStatus,
   /** Where a phone on the tailnet opens gradcode, and whether it's being served there. */
   tailnet: z.object({ url: z.string(), served: z.boolean() }).nullable(),
+  /** The sidebar's counts: awards from the last search worth a look (running past the intake,
+   * on topic, PI not in the sheet), and loops on. */
+  counts: z.object({ funding: z.number(), loops: z.number() }),
 });
 export type AppState = z.infer<typeof AppState>;
 
@@ -140,6 +143,11 @@ export const Methods = {
   },
   "threads.visit": { input: id, output: ok },
   "threads.rename": { input: z.object({ id: z.string(), title: z.string().min(1) }), output: ok },
+  /** A row action on professors picked in the finder, in a new thread of its own. */
+  "threads.startRowAction": {
+    input: z.object({ op: RowOp, keys: z.array(z.string()).min(1) }),
+    output: ThreadSummary,
+  },
   "threads.rowAction": {
     input: z.object({ id: z.string(), op: RowOp, keys: z.array(z.string()).min(1) }),
     output: ok,
@@ -166,7 +174,42 @@ export const Methods = {
       record: Professor,
       threads: z.array(ThreadSummary),
       proposals: z.array(Proposal),
+      /** Each field's sources and date: the latest accepted change to it. */
+      fieldSources: z.record(
+        z.string(),
+        z.object({ sources: z.array(z.string()), at: z.string() }),
+      ),
+      /** Newest first: decisions, and mail that went out or came back. */
+      timeline: z.array(z.object({ at: z.string(), text: z.string() })),
+      /** The latest email to them, whatever its state. */
+      draft: z
+        .object({
+          id: z.string(),
+          status: z.string(),
+          touch: z.string(),
+          subject: z.string(),
+          at: z.string(),
+        })
+        .nullable(),
+      /** Programs at their school, from the Vault. */
+      programs: z.array(
+        z.object({ name: z.string(), deadline: z.string().nullable(), funding: z.string() }),
+      ),
     }),
+  },
+  /** Their grants (NSF, NIH), recent work and interests (OpenAlex), live from free APIs. */
+  "records.scholarly": {
+    input: z.object({ key: z.string() }),
+    output: z.object({
+      grants: z.array(Award),
+      works: z.array(z.object({ title: z.string(), year: z.number(), link: z.string() })),
+      interests: z.array(z.string()),
+    }),
+  },
+  /** One click from Funding: the award's PI goes into the sheet, the award as their grant. */
+  "records.addFromAward": {
+    input: z.object({ award: Award }),
+    output: z.object({ key: z.string() }),
   },
   "records.import": {
     input: z.object({ csv: z.string() }),

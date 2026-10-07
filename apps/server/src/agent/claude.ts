@@ -164,6 +164,8 @@ export const claudeProvider: AgentProvider = {
     const cwd = NodePath.join(homeDir(), "work");
     NodeFS.mkdirSync(cwd, { recursive: true });
 
+    // The agent's own web search and page reading, unless setup switched "web" off.
+    const web = s.toolContext.settings.freeSources.includes("web") ? BUILTIN : [];
     const q = query({
       prompt: input,
       options: {
@@ -171,8 +173,8 @@ export const claudeProvider: AgentProvider = {
         cwd,
         systemPrompt: s.systemPrompt,
         settingSources: [],
-        tools: BUILTIN,
-        allowedTools: [...BUILTIN, ...tools.filter((t) => !t.paid).map(mcpName)],
+        tools: web,
+        allowedTools: [...web, ...tools.filter((t) => !t.paid).map(mcpName)],
         mcpServers: {
           hunt: server,
           ...Object.fromEntries(

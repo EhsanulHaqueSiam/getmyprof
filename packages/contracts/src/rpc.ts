@@ -229,6 +229,11 @@ export const Methods = {
     output: z.array(Award),
   },
 
+  /** Topics next to the given fields, from OpenAlex; empty when it can't be reached. */
+  "hunt.adjacent": {
+    input: z.object({ fields: z.array(z.string()) }),
+    output: z.array(z.string()),
+  },
   "loops.list": { input: z.object({}), output: z.array(LoopRow) },
   /** Scout's nightly loop, read from gradhunt; null on any install without it. */
   "loops.scout": { input: z.object({}), output: ScoutLoop.nullable() },

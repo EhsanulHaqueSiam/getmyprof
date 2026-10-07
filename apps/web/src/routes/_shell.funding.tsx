@@ -21,6 +21,8 @@ const SOURCE_NOTE: Record<AwardSource, string> = {
   UKRI: "UK",
   CORDIS: "EU, ERC",
   ARC: "Australia",
+  DFG: "Germany",
+  NSERC: "Canada",
 };
 
 /**

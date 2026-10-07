@@ -77,6 +77,11 @@ export const TregStatus = z.object({
 });
 export type TregStatus = z.infer<typeof TregStatus>;
 
+/** The free sources setup lists. "web" is the agent's own web search and page reading. */
+export const FREE_SOURCES = ["NSF", "NIH", "OpenAlex", "CSRankings", "web"] as const;
+export const FreeSource = z.enum(FREE_SOURCES);
+export type FreeSource = z.infer<typeof FreeSource>;
+
 export const Settings = z.object({
   detail: DetailLevel,
   budget: Budget,
@@ -92,6 +97,8 @@ export const Settings = z.object({
   mcpServers: z.array(McpServer),
   /** Bearer token other agents use to reach gradcode's own MCP endpoint, /api/mcp. */
   mcpToken: z.string(),
+  /** Free sources the agent may use; switching one off removes its tools. */
+  freeSources: z.array(FreeSource).default([...FREE_SOURCES]),
 });
 export type Settings = z.infer<typeof Settings>;
 
@@ -335,8 +342,8 @@ export const ScoutLoop = z.object({
 });
 export type ScoutLoop = z.infer<typeof ScoutLoop>;
 
-/** Free grant databases: NSF and NIH (US), UKRI (UK), CORDIS (EU, ERC), ARC (Australia). */
-export const AwardSource = z.enum(["NSF", "NIH", "UKRI", "CORDIS", "ARC"]);
+/** Free grant databases: NSF and NIH (US), UKRI (UK), CORDIS (EU, ERC), ARC (Australia), DFG (Germany), NSERC (Canada). */
+export const AwardSource = z.enum(["NSF", "NIH", "UKRI", "CORDIS", "ARC", "DFG", "NSERC"]);
 export type AwardSource = z.infer<typeof AwardSource>;
 
 export const Award = z.object({

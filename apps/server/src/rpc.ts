@@ -172,6 +172,8 @@ export function createHandlers(svc: Services): Handlers {
 
     ...recordHandlers(svc),
 
+    "hunt.adjacent": async ({ fields }) =>
+      fields.length ? await svc.sources.adjacent(fields).catch(() => []) : [],
     "loops.list": () => listLoops(db).map((l) => ({ ...l, ...loopStats(db, l.id) })),
     // Only where gradhunt sync is on: Siam's install. Read-only.
     "loops.scout": () => (getSettings(db).gradhunt ? scoutLoop() : null),

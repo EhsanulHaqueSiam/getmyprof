@@ -1,4 +1,11 @@
-import type { Applicant, DetailLevel, HuntPrefs, ProfileFact } from "@gradcode/contracts";
+import {
+  type Applicant,
+  type DetailLevel,
+  FREE_SOURCES,
+  type FreeSource,
+  type HuntPrefs,
+  type ProfileFact,
+} from "@gradcode/contracts";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CheckIcon, FileTextIcon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -15,6 +22,13 @@ import { useStore } from "~/state/store";
 export const Route = createFileRoute("/setup")({ component: Setup });
 
 const STEPS = ["Connect", "You", "Your hunt", "Detail and budget"] as const;
+const FREE_LABEL: Record<FreeSource, string> = {
+  NSF: "NSF awards",
+  NIH: "NIH RePORTER",
+  OpenAlex: "OpenAlex",
+  CSRankings: "CSRankings",
+  web: "web search and faculty pages",
+};
 const DEFAULT_PREFS: HuntPrefs = {
   degrees: ["phd", "ms_phd"],
   intake: "Fall 2027",
@@ -31,6 +45,7 @@ const DEFAULT_PREFS: HuntPrefs = {
 
 function Setup() {
   const app = useStore((s) => s.app);
+  const saveSettings = useStore((s) => s.saveSettings);
   const loadApp = useStore((s) => s.loadApp);
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
@@ -187,17 +202,24 @@ function Setup() {
               </Row>
               <Row label="Free sources">
                 <div className="flex flex-wrap gap-1.5">
-                  {[
-                    "NSF awards",
-                    "NIH RePORTER",
-                    "OpenAlex",
-                    "web search",
-                    "faculty and lab pages",
-                  ].map((s) => (
-                    <Chip key={s} on onClick={() => undefined}>
-                      {s}
-                    </Chip>
-                  ))}
+                  {FREE_SOURCES.map((s) => {
+                    const on = app?.settings.freeSources.includes(s) ?? true;
+                    return (
+                      <Chip
+                        key={s}
+                        on={on}
+                        onClick={() =>
+                          void saveSettings({
+                            freeSources: on
+                              ? (app?.settings.freeSources ?? []).filter((x) => x !== s)
+                              : [...(app?.settings.freeSources ?? []), s],
+                          })
+                        }
+                      >
+                        {FREE_LABEL[s]}
+                      </Chip>
+                    );
+                  })}
                 </div>
               </Row>
               <Row label="Paid lookups (treg)">

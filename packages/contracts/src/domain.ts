@@ -272,6 +272,30 @@ export const Schedule = z.discriminatedUnion("kind", [
 ]);
 export type Schedule = z.infer<typeof Schedule>;
 
+/**
+ * What a thread is about: a professor in the sheet or a school. Naming one with @, or starting
+ * from a row, puts what the sheet knows into the agent's context so it needn't fetch it again.
+ */
+export const ScopeItem = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("professor"), key: z.string(), name: z.string() }),
+  z.object({ kind: z.literal("school"), name: z.string() }),
+]);
+export type ScopeItem = z.infer<typeof ScopeItem>;
+
+/**
+ * What a loop may accept without review. A change goes straight to the sheet when every rule
+ * that's on holds for the record as it would be; with none on, everything waits in Review.
+ */
+export const AutoRules = z.object({
+  /** The address is checked (ok, valid, from an official page). */
+  verifiedEmail: z.boolean(),
+  /** A source is the university's own page. */
+  officialSource: z.boolean(),
+  /** Fit 4 or more. */
+  fit4: z.boolean(),
+});
+export type AutoRules = z.infer<typeof AutoRules>;
+
 export const Loop = z.object({
   id: z.string(),
   name: z.string(),
@@ -288,8 +312,28 @@ export const Loop = z.object({
   threadId: z.string().nullable().default(null),
   /** The secret in a webhook loop's URL, /api/hooks/<token>. */
   hookToken: z.string().nullable().default(null),
+  /** The schools and professors each run works on; their sheet rows ride along. */
+  scope: z.array(ScopeItem).default([]),
+  /** Propose only (everything waits in Review), or accept what passes `rules`. */
+  autonomy: z.enum(["propose", "auto"]).default("propose"),
+  rules: AutoRules.default({ verifiedEmail: true, officialSource: true, fit4: false }),
+  /** Paid calls up to this many USD go without asking in its runs ("Always under $x here"). */
+  allowUnder: z.number().default(0),
 });
 export type Loop = z.infer<typeof Loop>;
+
+/** A loop as its table shows it: with what its runs found and spent in the last 7 days. */
+export const LoopRow = Loop.extend({ found7d: z.number(), spend7d: z.number() });
+export type LoopRow = z.infer<typeof LoopRow>;
+
+/** Scout, gradhunt's own nightly loop on Siam's install, shown read-only. */
+export const ScoutLoop = z.object({
+  when: z.string(),
+  lastRun: z.string(),
+  summary: z.string(),
+  found7d: z.number(),
+});
+export type ScoutLoop = z.infer<typeof ScoutLoop>;
 
 /** Free grant databases: NSF and NIH (US), UKRI (UK), CORDIS (EU, ERC), ARC (Australia). */
 export const AwardSource = z.enum(["NSF", "NIH", "UKRI", "CORDIS", "ARC"]);

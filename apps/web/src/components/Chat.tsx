@@ -238,8 +238,10 @@ export function ApprovalCard({ event, threadId }: { event: Approval; threadId: s
         {event.status === "allowed" ? "Allowed" : "Denied"} · {event.body}
       </div>
     );
-  const resolve = (decision: "once" | "deny") =>
+  const resolve = (decision: "once" | "always" | "deny") =>
     void call("approvals.resolve", { threadId, approvalId: event.id, decision });
+  // "Always" allows paid calls up to the next cent above this one, in this thread (and its loop).
+  const under = Math.max(0.01, Math.ceil(event.costUsd * 100) / 100);
   return (
     <div
       data-testid="approval"
@@ -254,6 +256,9 @@ export function ApprovalCard({ event, threadId }: { event: Approval; threadId: s
       <div className="mt-2.5 flex justify-end gap-1.5">
         <Button variant="ghost-muted" size="xs" onClick={() => resolve("deny")}>
           Deny
+        </Button>
+        <Button variant="outline" size="xs" onClick={() => resolve("always")}>
+          Always under ${under.toFixed(2)} here
         </Button>
         <Button size="xs" onClick={() => resolve("once")}>
           Allow once <Kbd className="bg-transparent text-primary-foreground/60">↵</Kbd>

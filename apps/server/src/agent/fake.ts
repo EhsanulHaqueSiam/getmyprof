@@ -100,7 +100,7 @@ export const fakeProvider = (
         if (cap) s.toolContext.capHit(cap);
         const ok =
           !cap &&
-          (price <= s.askOver ||
+          (price <= s.askOver() ||
             (await hooks.requestApproval({
               title: "paid lookup",
               body: `${args.endpoint} · $${price}`,

@@ -460,3 +460,37 @@ test("scoped threads: Ask about a professor answers from the record, @ adds a sc
   await page.keyboard.press("2");
   await expect(page.getByRole("heading", { name: "Follow the money" })).toBeVisible();
 });
+
+test("loops: scope, auto-accept rules, and Always under $x here; the table shows the run", async ({
+  page,
+}) => {
+  await page.goto("/loops");
+  await page.getByRole("button", { name: "New loop" }).click();
+  await page.getByLabel("Loop name").fill("Auto sweep");
+  await page
+    .getByLabel("Instructions")
+    .fill("Sweep George Mason for professors who fund students.");
+  await page.getByLabel("Add a school").fill("George Mason University");
+  await page.getByLabel("Add a school").press("Enter");
+  await page.getByRole("radio", { name: "Auto-accept rules" }).click();
+  await expect(page.getByRole("checkbox", { name: "verified email" })).toBeChecked();
+  await page.getByRole("button", { name: "Save" }).click();
+  await page.getByRole("button", { name: "Run now" }).click();
+
+  // The run carries its scope, and a paid call can be allowed for good under a cent ceiling.
+  await expect(page).toHaveURL(/\/t\/thr_/);
+  await expect(page.getByTestId("scope-chip")).toContainText("George Mason University");
+  await page.getByRole("button", { name: "Always under $0.03 here" }).click();
+  await expect(page.getByText(/Allowed · /)).toBeVisible();
+
+  await page.goto("/loops");
+  const row = page.getByRole("row", { name: /Auto sweep/ });
+  await expect(row).toContainText("$0.0245");
+  await expect(row).not.toContainText("never");
+  // An earlier test accepted an offer, so the hunt is over; the loop still keeps its settings.
+  await row.click();
+  await expect(page.getByRole("radio", { name: "Auto-accept rules" })).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+});

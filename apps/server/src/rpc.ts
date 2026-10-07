@@ -12,6 +12,7 @@ import {
   importGradhunt,
   profileFacts,
   readHqFacts,
+  scoutLoop,
   writeBackToGradhunt,
 } from "./adapters.ts";
 import { extractFacts, fakeFacts } from "./agent/extract.ts";
@@ -20,7 +21,7 @@ import { type Sources, sourceKey } from "./agent/tools.ts";
 import type { Bus } from "./bus.ts";
 import { type Db, newId, now } from "./db.ts";
 import { health, tailnetLink } from "./health.ts";
-import { listLoops, saveLoop, STARTER_LOOPS } from "./loops.ts";
+import { listLoops, loopStats, saveLoop, STARTER_LOOPS } from "./loops.ts";
 import type { Outreach } from "./outreach/service.ts";
 import { conversations } from "./outreach/pipeline.ts";
 import {
@@ -148,7 +149,7 @@ export function createHandlers(svc: Services): Handlers {
     ...threadHandlers(svc),
 
     "approvals.resolve": ({ approvalId, decision }) => {
-      runner.resolveApproval(approvalId, decision === "once");
+      runner.resolveApproval(approvalId, decision);
       return OK;
     },
     "proposals.resolve": ({ ids, decision }) => {
@@ -239,7 +240,9 @@ export function createHandlers(svc: Services): Handlers {
         .toSorted((a, b) => (b.monthsAfterIntake ?? -999) - (a.monthsAfterIntake ?? -999));
     },
 
-    "loops.list": () => listLoops(db),
+    "loops.list": () => listLoops(db).map((l) => ({ ...l, ...loopStats(db, l.id) })),
+    // Only where gradhunt sync is on: Siam's install. Read-only.
+    "loops.scout": () => (getSettings(db).gradhunt ? scoutLoop() : null),
     "loops.save": (input) => {
       const loop = saveLoop(db, input);
       bus.push({ type: "changed", what: "loops" });

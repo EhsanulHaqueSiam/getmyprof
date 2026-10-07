@@ -1,10 +1,11 @@
-import type { Loop, Schedule } from "@gradcode/contracts";
+import type { AutoRules, LoopRow, Schedule, ScopeItem, ScoutLoop } from "@gradcode/contracts";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PlayIcon, PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cadence, normalize, ScheduleEditor } from "~/components/ScheduleEditor";
+import { ScopeEditor } from "~/components/ScopeEditor";
 import { Button } from "~/components/ui/button";
-import { ago } from "~/lib/format";
+import { ago, usd } from "~/lib/format";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
@@ -19,6 +20,9 @@ const BLANK: {
   budgetUsd: number;
   enabled: boolean;
   reportTo: "fresh" | "same";
+  scope: ScopeItem[];
+  autonomy: "propose" | "auto";
+  rules: AutoRules;
 } = {
   name: "",
   instructions: "",
@@ -26,14 +30,24 @@ const BLANK: {
   budgetUsd: 0.5,
   enabled: true,
   reportTo: "fresh",
+  scope: [],
+  autonomy: "propose",
+  rules: { verifiedEmail: true, officialSource: true, fit4: false },
 };
+
+const RULES: [keyof AutoRules, string][] = [
+  ["verifiedEmail", "verified email"],
+  ["officialSource", "official source"],
+  ["fit4", "fit 4+"],
+];
 
 /** Recurring hunts. Each run is a thread that settles itself once its changes are reviewed. */
 function Loops() {
   const loopsVersion = useStore((s) => s.loopsVersion);
   const threads = useStore((s) => s.threads);
   const navigate = useNavigate();
-  const [loops, setLoops] = useState<Loop[]>([]);
+  const [loops, setLoops] = useState<LoopRow[]>([]);
+  const [scout, setScout] = useState<ScoutLoop | null>(null);
   const [pickedId, setPickedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<typeof BLANK & { id?: string }>(BLANK);
 
@@ -42,6 +56,7 @@ function Loops() {
       setLoops(l);
       setPickedId((id) => id ?? l[0]?.id ?? null);
     });
+    void call("loops.scout", {}).then(setScout);
   }, [loopsVersion]);
   useEffect(() => {
     const l = loops.find((x) => x.id === pickedId);
@@ -54,6 +69,9 @@ function Loops() {
         budgetUsd: l.budgetUsd,
         enabled: l.enabled,
         reportTo: l.reportTo,
+        scope: l.scope,
+        autonomy: l.autonomy,
+        rules: l.rules,
       });
   }, [pickedId, loops]);
 
@@ -94,7 +112,7 @@ function Loops() {
           <table className="w-full border-collapse text-[12.5px]">
             <thead>
               <tr>
-                {["Loop", "Does", "When", "Last run", "Next", "State"].map((h) => (
+                {["Loop", "Does", "When", "Last run", "Found 7d", "Spend 7d", "State"].map((h) => (
                   <th
                     key={h}
                     className="sticky top-0 border-b border-input bg-background px-3 py-1.5 text-left font-medium text-muted-foreground text-xs"
@@ -119,33 +137,53 @@ function Loops() {
                     {l.instructions}
                   </td>
                   <td className="border-b px-3 whitespace-nowrap">{when(l.schedule)}</td>
-                  <td className="border-b px-3 text-muted-foreground">
-                    {l.lastRunAt ? ago(l.lastRunAt) : "never"}
+                  <td className="max-w-[260px] truncate border-b px-3 text-secondary-label">
+                    {l.lastRunAt ? (
+                      <>
+                        {l.lastSummary || "ran"}{" "}
+                        <span className="text-muted-foreground">{ago(l.lastRunAt)}</span>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">never</span>
+                    )}
                   </td>
-                  <td className="border-b px-3 text-muted-foreground whitespace-nowrap">
-                    {accepted && l.schedule.kind !== "webhook"
-                      ? "hunt over"
-                      : l.nextRunAt
-                        ? new Date(l.nextRunAt).toLocaleString("en-US", {
-                            weekday: "short",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            hourCycle: "h23",
-                          })
-                        : l.enabled && l.schedule.kind === "webhook"
-                          ? "when called"
-                          : "off"}
+                  <td className="border-b px-3 font-mono tabular-nums">{l.found7d}</td>
+                  <td className="border-b px-3 font-mono text-muted-foreground tabular-nums">
+                    {l.spend7d ? usd(l.spend7d) : "free"}
                   </td>
                   <td
                     className={cn(
-                      "border-b px-3",
+                      "border-b px-3 whitespace-nowrap",
                       running(l) ? "text-success-foreground" : "text-muted-foreground",
                     )}
                   >
-                    {running(l) ? "on" : "paused"}
+                    {accepted && l.schedule.kind !== "webhook"
+                      ? "hunt over"
+                      : running(l)
+                        ? l.autonomy === "auto"
+                          ? "on · auto"
+                          : "on"
+                        : "paused"}
                   </td>
                 </tr>
               ))}
+              {scout ? (
+                <tr data-testid="scout-loop" title="Scout runs in gradhunt; gradcode only reads it">
+                  <td className="h-9 border-b px-3 font-medium whitespace-nowrap">
+                    Scout (gradhunt)
+                  </td>
+                  <td className="border-b px-3 text-muted-foreground">
+                    your existing loop, shown read-only
+                  </td>
+                  <td className="border-b px-3 whitespace-nowrap">{scout.when}</td>
+                  <td className="max-w-[260px] truncate border-b px-3 text-secondary-label">
+                    {scout.lastRun}: {scout.summary}
+                  </td>
+                  <td className="border-b px-3 font-mono tabular-nums">{scout.found7d}</td>
+                  <td className="border-b px-3 text-muted-foreground">n/a</td>
+                  <td className="border-b px-3 text-muted-foreground">external</td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>
@@ -196,8 +234,56 @@ function Loops() {
             />
           </label>
         </div>
-        <div className="text-muted-foreground text-xs">
-          Propose only: every change waits for you in Review.
+        <ScopeEditor value={draft.scope} onChange={(scope) => setDraft({ ...draft, scope })} />
+        <div className="flex flex-col gap-1.5 text-xs">
+          <div
+            className="inline-flex w-fit rounded-lg border p-0.5"
+            role="radiogroup"
+            aria-label="Autonomy"
+          >
+            {(["propose", "auto"] as const).map((a) => (
+              <button
+                key={a}
+                type="button"
+                role="radio"
+                aria-checked={draft.autonomy === a}
+                onClick={() => setDraft({ ...draft, autonomy: a })}
+                className={cn(
+                  "h-6 rounded-md px-2.5 transition-colors",
+                  draft.autonomy === a
+                    ? "bg-accent text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {a === "propose" ? "Propose only" : "Auto-accept rules"}
+              </button>
+            ))}
+          </div>
+          {draft.autonomy === "auto" ? (
+            <>
+              <div className="flex flex-wrap gap-3">
+                {RULES.map(([k, label]) => (
+                  <label key={k} className="flex items-center gap-1.5 text-secondary-label">
+                    <input
+                      type="checkbox"
+                      checked={draft.rules[k]}
+                      onChange={(e) =>
+                        setDraft({ ...draft, rules: { ...draft.rules, [k]: e.target.checked } })
+                      }
+                      className="size-3.5 accent-foreground"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+              <span className="text-muted-foreground">
+                A change that passes every rule ticked goes straight to the sheet; the rest wait in
+                Review.
+              </span>
+            </>
+          ) : (
+            <span className="text-muted-foreground">Every change waits for you in Review.</span>
+          )}
         </div>
         <div className="flex gap-1.5">
           <Button

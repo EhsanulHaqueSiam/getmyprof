@@ -4,9 +4,9 @@
 import { type AwardSource, type Hunt, type Settings, Stage } from "@gradcode/contracts";
 import { z } from "zod";
 import type { Db } from "../db.ts";
-import { listLoops } from "../loops.ts";
+import { acceptByRules, listLoops } from "../loops.ts";
 import { searchVault } from "../okf.ts";
-import { propose, listRecords } from "../records.ts";
+import { listRecords, propose } from "../records.ts";
 import {
   arcAwards,
   type Author,
@@ -321,12 +321,19 @@ export const HUNT_TOOLS = [
       const result = propose(ctx.db, ctx.threadId, { name, university, sources, fields });
       if ("skipped" in result)
         return { summary: result.skipped, text: `Not proposed: ${result.skipped}.` };
-      ctx.changed();
       const p = result.proposal;
-      return {
-        summary: `${p.kind} · ${p.changes.length} field${p.changes.length === 1 ? "" : "s"}`,
-        text: `Proposed (${p.kind}) for review.`,
-      };
+      const fieldCount = `${p.changes.length} field${p.changes.length === 1 ? "" : "s"}`;
+      if (acceptByRules(ctx.db, ctx.threadId, p, ctx.settings.gradhunt)) {
+        ctx.changed();
+        // The sheet changed, not just Review (this also refreshes the Pipeline, harmlessly).
+        ctx.outreachChanged();
+        return {
+          summary: `${p.kind} · ${fieldCount} · auto-accepted`,
+          text: `Accepted by this loop's rules (${p.kind}); it is in the sheet.`,
+        };
+      }
+      ctx.changed();
+      return { summary: `${p.kind} · ${fieldCount}`, text: `Proposed (${p.kind}) for review.` };
     },
   }),
   ...APPLICANT_TOOLS,

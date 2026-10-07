@@ -11,6 +11,7 @@ import * as NodeChild from "node:child_process";
 import * as NodeFS from "node:fs";
 import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
+import { z } from "zod";
 import { type Db, now } from "./db.ts";
 import { getRecord, listRecords, putRecord, recordKey } from "./records.ts";
 import { getFacts, getSettings } from "./state.ts";
@@ -71,6 +72,36 @@ export const profileFacts = (db: Db) =>
 export const gradhuntDir = (env = process.env) =>
   env.GRADHUNT_DIR ?? NodePath.join(NodeOS.homedir(), "Personal/gradhunt");
 const sheetPath = (dir: string) => NodePath.join(dir, "loopany/prof-scout/data/professors.json");
+
+/**
+ * Scout, gradhunt's nightly loop, as the Loops table shows it: its latest Timeline entry in its
+ * README and the professors it added in the last 7 days. Null where there is no gradhunt.
+ */
+export function scoutLoop(dir = gradhuntDir(), nowAt = new Date()) {
+  let readme: string;
+  let sheet: unknown;
+  try {
+    readme = NodeFS.readFileSync(NodePath.join(dir, "loopany/prof-scout/README.md"), "utf8");
+    sheet = JSON.parse(NodeFS.readFileSync(sheetPath(dir), "utf8"));
+  } catch {
+    return null;
+  }
+  // Entries read "- **2026-10-02 (run 23)** — what happened", one per run, newest last.
+  const timeline = readme.slice(readme.indexOf("## Timeline"));
+  const last = [...timeline.matchAll(/^- \*\*(.+?)\*\*\s*[—-]\s*(.+)$/gm)].at(-1);
+  const since = new Date(nowAt.getTime() - 7 * 864e5).toISOString().slice(0, 10);
+  const rows = Array.isArray(sheet) ? sheet : [];
+  return {
+    // Its own schedule (Asia/Dhaka), set outside gradcode.
+    when: "nightly 23:00, Asia/Dhaka",
+    lastRun: last?.[1] ?? "",
+    summary: (last?.[2] ?? "").slice(0, 160),
+    found7d: rows.filter((r) => {
+      const added = z.object({ date_added: z.string() }).safeParse(r);
+      return added.success && added.data.date_added.slice(0, 10) >= since;
+    }).length,
+  };
+}
 
 const STAGE: Record<string, Professor["stage"]> = {
   new: "new",

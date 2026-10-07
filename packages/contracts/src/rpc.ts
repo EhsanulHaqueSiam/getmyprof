@@ -4,21 +4,25 @@ import { z } from "zod";
 import {
   Applicant,
   Award,
+  AutoRules,
   AwardSource,
   DetailLevel,
   Hunt,
   HuntPrefs,
   Loop,
+  LoopRow,
   Professor,
   ProfileFact,
   Proposal,
   Schedule,
+  ScopeItem,
+  ScoutLoop,
   Settings,
   TregConnect,
   TregStatus,
 } from "./domain.ts";
 import { Conversation, MailConnect, MailSignIn, MailStatus } from "./outreach.ts";
-import { RowOp, ScopeItem, ThreadEvent, ThreadSummary } from "./threads.ts";
+import { RowOp, ThreadEvent, ThreadSummary } from "./threads.ts";
 import {
   Application,
   DocKind,
@@ -145,7 +149,8 @@ export const Methods = {
     input: z.object({
       threadId: z.string(),
       approvalId: z.string(),
-      decision: z.enum(["once", "deny"]),
+      /** always: allow it, and every paid call up to the next cent above it, here from now on. */
+      decision: z.enum(["once", "always", "deny"]),
     }),
     output: ok,
   },
@@ -179,7 +184,9 @@ export const Methods = {
     output: z.array(Award),
   },
 
-  "loops.list": { input: z.object({}), output: z.array(Loop) },
+  "loops.list": { input: z.object({}), output: z.array(LoopRow) },
+  /** Scout's nightly loop, read from gradhunt; null on any install without it. */
+  "loops.scout": { input: z.object({}), output: ScoutLoop.nullable() },
   "loops.save": {
     input: z.object({
       id: z.string().optional(),
@@ -189,6 +196,9 @@ export const Methods = {
       budgetUsd: z.number(),
       enabled: z.boolean(),
       reportTo: z.enum(["fresh", "same"]).optional(),
+      scope: z.array(ScopeItem).optional(),
+      autonomy: z.enum(["propose", "auto"]).optional(),
+      rules: AutoRules.optional(),
     }),
     output: Loop,
   },

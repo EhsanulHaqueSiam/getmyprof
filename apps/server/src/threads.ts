@@ -53,6 +53,15 @@ export function addScope(db: Db, id: string, items: ScopeItem[]) {
   return fresh;
 }
 
+/** "Always under $x here": paid calls up to this many USD go without asking in this thread. */
+export const allowUnder = (db: Db, id: string) =>
+  Number(db.prepare("SELECT allow_under FROM threads WHERE id = ?").get(id)?.allow_under ?? 0);
+
+export const setAllowUnder = (db: Db, id: string, usd: number) =>
+  db
+    .prepare("UPDATE threads SET allow_under = ? WHERE id = ?")
+    .run(String(Math.max(allowUnder(db, id), usd)), id);
+
 /** A thread's own detail level; null follows the install's. */
 export const setDetail = (db: Db, id: string, detail: DetailLevel | null) =>
   db.prepare("UPDATE threads SET detail = ? WHERE id = ?").run(detail, id);

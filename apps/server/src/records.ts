@@ -259,5 +259,10 @@ export function scopeNote(db: Db, items: ScopeItem[]) {
       ? [`${x.name}, ${at.length} in the sheet:`, ...at.slice(0, 30).map(recordLine)]
       : [`- ${x.name}: nobody in the sheet yet`];
   });
-  return `Scope: ${items.map((x) => x.name).join(", ")}. What the sheet already has, with its sources; use it instead of fetching again, and fetch only what's missing or asked:\n${lines.join("\n")}`;
+  // ponytail: a fixed cap keeps a 24-school loop's note readable; search the sheet for the rest.
+  const shown =
+    lines.length > 80
+      ? [...lines.slice(0, 80), `(${lines.length - 80} more lines: use sheet_search)`]
+      : lines;
+  return `Scope: ${items.map((x) => x.name).join(", ")}. What the sheet already has, with its sources; use it instead of fetching again, and fetch only what's missing or asked:\n${shown.join("\n")}`;
 }

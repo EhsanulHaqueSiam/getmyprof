@@ -2,20 +2,10 @@
 // them by id, so a later event with the same id replaces the earlier one (a tool call that
 // finishes, an approval that resolves).
 import { z } from "zod";
-import { DetailLevel } from "./domain.ts";
+import { DetailLevel, ScopeItem } from "./domain.ts";
 
 export const ThreadStatus = z.enum(["idle", "working", "approval", "input", "failed"]);
 export type ThreadStatus = z.infer<typeof ThreadStatus>;
-
-/**
- * What a thread is about: a professor in the sheet or a school. Naming one with @, or starting
- * from a row, puts what the sheet knows into the agent's context so it needn't fetch it again.
- */
-export const ScopeItem = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("professor"), key: z.string(), name: z.string() }),
-  z.object({ kind: z.literal("school"), name: z.string() }),
-]);
-export type ScopeItem = z.infer<typeof ScopeItem>;
 
 export const ThreadSummary = z.object({
   id: z.string(),

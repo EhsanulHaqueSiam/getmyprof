@@ -216,7 +216,7 @@ export const claudeProvider: AgentProvider = {
             s.toolContext.capHit(cap);
             return { behavior: "deny", message: cap };
           }
-          if (price <= s.askOver) return { behavior: "allow", updatedInput: raw };
+          if (price <= s.askOver()) return { behavior: "allow", updatedInput: raw };
           const ok = await hooks.requestApproval({
             title: "paid lookup",
             body: `${String(raw.endpoint)} · $${price}`,

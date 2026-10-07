@@ -14,6 +14,7 @@ import { health } from "./health.ts";
 import { dueLoops, fillPlaceholders, hookLoop, listLoops, markRan } from "./loops.ts";
 import { fakeMailer, imapMailer } from "./outreach/mail.ts";
 import { createOutreach } from "./outreach/service.ts";
+import { exportAll, importAll } from "./backup.ts";
 import { serveMcp } from "./mcp.ts";
 import { createHandlers, dispatch } from "./rpc.ts";
 import { getSettings } from "./state.ts";
@@ -69,14 +70,14 @@ function startLoop(id: string, body: unknown = null) {
   return getThread(db, threadId)!;
 }
 
-/** A request body up to 1 MB, parsed as JSON when it is JSON, else the raw text. */
-function readBody(req: NodeHttp.IncomingMessage) {
+/** A request body up to `limit` bytes, parsed as JSON when it is JSON, else the raw text. */
+function readBody(req: NodeHttp.IncomingMessage, limit = 1_000_000) {
   return new Promise<unknown>((resolve) => {
     let raw = "";
     req.setEncoding("utf8");
     req.on("data", (chunk: string) => {
       raw += chunk;
-      if (raw.length > 1_000_000) req.destroy();
+      if (raw.length > limit) req.destroy();
     });
     req.on("end", () => {
       try {
@@ -121,6 +122,32 @@ const server = NodeHttp.createServer((req, res) => {
         .end(JSON.stringify({ threadId: t.id }));
     });
     return;
+  }
+  // A full backup: GET downloads everything, POST restores one (up to 300 MB).
+  if (req.url === "/api/backup") {
+    if (req.method === "GET") {
+      res
+        .writeHead(200, {
+          "content-type": "application/json",
+          "content-disposition": `attachment; filename="gradcode-backup-${new Date().toISOString().slice(0, 10)}.json"`,
+        })
+        .end(JSON.stringify(exportAll(db)));
+      return;
+    }
+    if (req.method === "POST") {
+      void readBody(req, 300_000_000).then((body) => {
+        try {
+          const counts = importAll(db, body);
+          bus.push({ type: "changed", what: "state" });
+          res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify(counts));
+        } catch (error) {
+          res
+            .writeHead(400)
+            .end(error instanceof Error ? error.message.slice(0, 300) : "bad backup");
+        }
+      });
+      return;
+    }
   }
   // gradcode's own MCP endpoint for other agents (stateless streamable HTTP: POST only).
   if (req.url === "/api/mcp") {

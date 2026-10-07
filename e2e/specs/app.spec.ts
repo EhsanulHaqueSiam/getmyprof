@@ -347,3 +347,17 @@ test("the end of the journey: a thank-you to a recommender, and visa steps once 
   await expect(page.getByTestId("writing")).toContainText("Note · Thank-you to Dr. Rahman");
   await expect(page.getByTestId("writing")).toContainText("Visa steps · George Mason University");
 });
+
+test("your data: a backup holds everything and restores", async ({ request }) => {
+  const download = await request.get("/api/backup");
+  expect(download.ok()).toBe(true);
+  const backup = await download.json();
+  expect(backup.app).toBe("gradcode");
+  expect(backup.tables.records.length).toBeGreaterThan(0);
+  expect(Object.keys(backup.files).length).toBeGreaterThan(0);
+
+  const restore = await request.post("/api/backup", { data: backup });
+  expect(restore.ok()).toBe(true);
+  expect((await restore.json()).records).toBe(backup.tables.records.length);
+  expect((await request.post("/api/backup", { data: { tables: {} } })).status()).toBe(400);
+});

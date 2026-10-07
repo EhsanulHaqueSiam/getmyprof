@@ -46,6 +46,13 @@ call) or `now` (steered). A session closes after a minute idle.
 - **Settling.** A thread settles once it is idle with nothing pending in Review; idle threads
   nobody touched for 3 days settle on their own.
 
+## Your data
+
+One SQLite file holds everything. `GET /api/backup` downloads every table plus the Vault's files
+as one JSON file; `POST /api/backup` restores it over the store by primary key, writing only known
+tables and columns. The mailbox login lives in `mail.json`, not the store, so it is never in a
+backup: a restored install reconnects its mailbox. The professor CSV export stays for spreadsheets.
+
 ## Loops
 
 A loop runs every N hours, at a time on chosen weekdays (server local time), or when its webhook

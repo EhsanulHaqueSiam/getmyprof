@@ -16,6 +16,21 @@ describe("systemPrompt", () => {
     expect(prompt).toContain("NSF GRFP need US citizens");
     expect(prompt).toContain("medium-of-instruction");
   });
+
+  it("gives the agent only facts with proof", () => {
+    const fact = { kind: "other" as const, confirmed: true, question: false };
+    const prompt = systemPrompt(
+      null,
+      [
+        { ...fact, id: "a", text: "Led a lab of five.", source: "cv.pdf" },
+        { ...fact, id: "b", text: "Won a national award.", source: "" },
+      ],
+      DEFAULT_SETTINGS,
+      DEFAULT_APPLICANT,
+    );
+    expect(prompt).toContain("Led a lab of five.");
+    expect(prompt).not.toContain("Won a national award.");
+  });
 });
 
 describe("money tier", () => {

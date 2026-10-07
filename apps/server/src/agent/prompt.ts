@@ -3,6 +3,7 @@ import {
   type DetailLevel,
   factStatus,
   type Hunt,
+  type HuntPrefs,
   type ProfileFact,
   type Settings,
 } from "@gradcode/contracts";
@@ -28,6 +29,15 @@ const DETAIL: Record<DetailLevel, string> = {
 };
 
 /** The system prompt for one thread, built from the applicant's preferences and confirmed facts. */
+/** How each track changes the hunt (journey: who the student is changes the search). */
+const TRACK = {
+  phd: "Direct PhD: advisor money matters most. Where professors hire (most of Europe, the UK, Australia), their funded opening is the application. Where a committee admits (most US and Canadian programs), the move is to apply and name the professor; their email answer still tells you if they take students.",
+  ms_phd:
+    "MS+PhD: check whether the program funds from year one or only after qualifying exams, and whether the master's converts to a funded PhD; European master's that lead into funded PhDs count.",
+  funded_ms:
+    "Funded master's: scholarships and program funding matter more than advisors. Look for government and program scholarships the applicant's citizenship qualifies for (propose_scholarship) and programs that fund the whole master's (propose_program) before professors.",
+} as const satisfies Record<HuntPrefs["degrees"][number], string>;
+
 export function systemPrompt(
   hunt: Hunt | null,
   facts: ProfileFact[],
@@ -73,6 +83,8 @@ export function systemPrompt(
             ? "Prefer programs that accept a medium-of-instruction certificate or waive English tests."
             : "",
           `Weigh fit by, in order: ${p.priorities.map((x) => PRIORITY[x]).join(", ")}.`,
+          ...p.degrees.map((d) => TRACK[d]),
+          `Each sweep, propose about ${p.sweep.reach} reach, ${p.sweep.match} match and ${p.sweep.safety} safety schools for this applicant, and say which is which in fitsBecause.`,
         ].join("\n")
       : "The applicant hasn't set preferences yet: ask what they're hunting for.",
     confirmed.length
@@ -91,6 +103,7 @@ export function systemPrompt(
       "- Check sheet_search before researching a school, so you update rows instead of duplicating them.",
       "- Score money separately from fit with moneyTier: 1 posted funded opening, 2 active grant past the intake or a new-hire startup or a program that funds every admit, 3 indirect signs, 4 nothing found. A tier-4 professor still gets proposed: an email asking whether they take funded students is the cheapest evidence.",
       "- Look beyond one source: faculty and lab pages, OpenAlex, NSF and NIH, and via treg web search (treg.google.serp.organic), rendered pages (litescrape.web.fetch.post), X posts (treg.x.search.posts), Reddit, LinkedIn jobs for European PhD positions, Scholar. LinkedIn profiles only confirm identity.",
+      "- Open positions: EURAXESS (euraxess.ec.europa.eu/jobs), jobs.ac.uk, AcademicPositions (academicpositions.com) and FindAPhD list funded PhD and research posts; read them with WebFetch. A posted, funded opening is money tier 1.",
       "- Money outside the US: country_awards covers UKRI, CORDIS (EU, ERC) and ARC. Germany's DFG and Canada's NSERC have no free API here: search gepris.dfg.de and nserc-crsng.gc.ca with WebSearch and WebFetch.",
       "- Emails: official pages first; treg.people.email.find only if they fail; always check with treg.people.email.verify (free).",
       "- Outreach goes through draft_email, never in your reply. Every draft waits for the applicant to approve it. Plain text, one recipient, at most two links, no tracking. First email: who the applicant is, one fit fact tied to the professor's recent work, one question. Follow the professor's contact rule (subject line, apply first). Claim only confirmed facts, citing each with its [[id]] right after the claim; the markers never reach the professor, and an uncited claim blocks the draft.",

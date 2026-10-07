@@ -64,6 +64,18 @@ export function comingUp(
         text: `${d.name} ${days < 0 ? "expired" : "expires"} ${due(d.expires, now)}`,
       });
   }
+  // A test booked for after a deadline can't count for that program.
+  for (const t of applicant?.tests ?? []) {
+    if (t.status === "taken" || !t.date) continue;
+    for (const p of v.programs)
+      if (p.deadline && t.date > p.deadline && daysLeft(p.deadline, now) >= 0)
+        out.push({
+          id: `late-${t.name}-${p.id}`,
+          days: daysLeft(p.deadline, now),
+          urgent: true,
+          text: `${t.name} on ${t.date} lands after ${p.university}'s deadline, ${p.deadline}`,
+        });
+  }
   for (const a of v.applications) {
     const p = v.programs.find((x) => x.id === a.programId);
     if (!p?.deadline || !["planning", "in-progress"].includes(a.status)) continue;

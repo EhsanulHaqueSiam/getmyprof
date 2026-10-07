@@ -168,6 +168,24 @@ export function HuntStep({
           ))}
         </div>
       </Row>
+      <Row label="Each sweep">
+        <div className="flex items-center gap-2 text-muted-foreground text-xs">
+          {(["reach", "match", "safety"] as const).map((k) => (
+            <label key={k} className="flex items-center gap-1.5">
+              <input
+                type="number"
+                min="0"
+                value={prefs.sweep[k]}
+                onChange={(e) => set("sweep", { ...prefs.sweep, [k]: Number(e.target.value) })}
+                aria-label={`${k} schools per sweep`}
+                className="h-7 w-14 rounded-lg border border-input bg-transparent px-2 text-foreground text-sm outline-none"
+              />
+              {k}
+            </label>
+          ))}
+          <span>schools per sweep</span>
+        </div>
+      </Row>
     </>
   );
 }

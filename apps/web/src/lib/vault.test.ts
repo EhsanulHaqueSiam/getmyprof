@@ -102,6 +102,14 @@ describe("the Vault", () => {
       "Fulbright closes in 25 days",
       "passport.pdf expires in 145 days",
     ]);
+    // A test booked for after a deadline can't count for that program.
+    const booked = {
+      tests: [{ name: "IELTS", status: "booked" as const, date: "2026-11-02", score: "" }],
+      moi: false,
+    };
+    expect(comingUp(v, now, booked).map((u) => u.text)).toContain(
+      "IELTS on 2026-11-02 lands after GMU's deadline, 2026-10-20",
+    );
   });
 });
 

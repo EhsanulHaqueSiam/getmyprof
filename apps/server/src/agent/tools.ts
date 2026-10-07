@@ -78,7 +78,25 @@ export type ToolContext = {
   capHit: (reason: string) => void;
   /** Money was spent: Settings' month total and the footer refresh. */
   spent: () => void;
+  /** The current turn is an Ask: read-only and free. */
+  askOnly: () => boolean;
 };
+
+/** Tools an Ask turn may use: they read and cost nothing. Everything else waits for a Hunt. */
+export const READ_ONLY = new Set([
+  "nsf_awards",
+  "nih_awards",
+  "country_awards",
+  "openalex_author",
+  "sheet_search",
+  "vault_search",
+]);
+
+/** Why a tool can't run in this turn, or null: an Ask changes nothing and spends nothing. */
+export const askBlocked = (ctx: Pick<ToolContext, "askOnly">, tool: string) =>
+  ctx.askOnly() && !READ_ONLY.has(tool)
+    ? "Ask mode is read-only and free: nothing was changed or bought. Answer from what you can read, and say what a Hunt would do."
+    : null;
 
 export type ToolResult = { summary: string; text: string };
 

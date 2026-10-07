@@ -50,6 +50,9 @@ call) or `now` (steered). A session closes after a minute idle.
   the caps (per thread, per loop run, per day) and asks the user above `askOver`. Row actions over
   the limit ask in the dock before they are sent. A loop run that hits a cap stops and says why;
   a thread carries on with free sources.
+- **Ask changes nothing.** The composer's Ask sends "[ask] ..."; the runner marks that turn, and
+  `askBlocked` refuses every tool outside `READ_ONLY` (awards, OpenAlex, the sheet, the vault) and
+  every paid call, in both providers. An Ask is free and proposes, drafts and files nothing.
 - **Findings are tool calls.** The agent reports through `propose_professor`; the store diffs it
   against the record and keeps only changed fields. Rejecting an add excludes the person for good.
 - **Settling.** A thread settles once it is idle with nothing pending in Review; idle threads

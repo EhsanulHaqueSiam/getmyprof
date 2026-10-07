@@ -55,6 +55,8 @@ export function createRunner(deps: {
 
   /** The treg feature tag of each thread's latest message: row-<op> for a row action. */
   const features = new Map<string, string>();
+  /** Threads whose latest message is an Ask: read-only and free. */
+  const asks = new Set<string>();
 
   /** Queued messages held until the next tool call ends, editable and reorderable until then. */
   const held = new Map<string, { eventId: string; text: string; files: Attachment[] }[]>();
@@ -205,6 +207,7 @@ export function createRunner(deps: {
         feature: () =>
           features.get(threadId) ?? (getThread(db, threadId)?.loopId ? "loop" : "hunt"),
         spent: () => bus.push({ type: "changed", what: "state" }),
+        askOnly: () => asks.has(threadId),
         capHit(reason) {
           // A thread keeps going on free sources; a loop run ends at its cap and says why.
           if (!getThread(db, threadId)?.loopId) return;
@@ -229,6 +232,13 @@ export function createRunner(deps: {
     shown = text,
     files: Attachment[] = [],
   ) {
+    // "[ask] ..." from the composer: answer only, change nothing, spend nothing.
+    const ask = /^\[ask\]\s*/.exec(text);
+    if (ask) {
+      asks.add(threadId);
+      shown = `Ask · ${text.slice(ask[0].length)}`;
+      text = `${text}\n\n(Ask mode: answer from what you can read. Change nothing, propose nothing, spend nothing.)`;
+    } else asks.delete(threadId);
     const op = /^\[row-action:(\w+)\]/.exec(text)?.[1];
     if (op) features.set(threadId, `row-${op}`);
     else features.delete(threadId);

@@ -1,4 +1,4 @@
-import type { Applicant, ProfileFact, Writing } from "@gradcode/contracts";
+import type { Applicant, ProfileFact, Writing } from "@getmyprof/contracts";
 import { strFromU8, unzipSync } from "fflate";
 import { describe, expect, it } from "vite-plus/test";
 import {

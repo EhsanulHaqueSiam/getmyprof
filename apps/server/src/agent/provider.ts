@@ -1,4 +1,4 @@
-import type { McpServer, ThreadEvent } from "@gradcode/contracts";
+import type { McpServer, ThreadEvent } from "@getmyprof/contracts";
 import type { HuntTool, ToolContext } from "./tools.ts";
 
 /** A file sent with a message: the model reads PDFs and images, text files inline. */

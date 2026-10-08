@@ -3,7 +3,7 @@
 ```
 browser (React) ⇄ /api, /ws ⇄ Vite (127.0.0.1:5174) ⇄ server (127.0.0.1:4311)
                                                       ├ rpc.ts: contract methods → services
-                                                      ├ SQLite: ~/.gradcode/gradcode.sqlite
+                                                      ├ SQLite: ~/.getmyprof/getmyprof.sqlite
                                                       ├ agent runner ── provider: claude | fake
                                                       │    └ hunt tools: nsf_awards, nih_awards, openalex_author,
                                                       │      sheet_search, propose_professor, treg (paid)
@@ -23,8 +23,8 @@ browser's Host so the two can be compared.
 ## Single origin
 
 The server binds loopback only. In dev, Vite proxies `/api` and `/ws` to it, so the browser talks
-to one origin and nothing bakes a server URL into the bundle. The desktop app and the `gradcode`
-command have no Vite: the server serves the built web app itself (`GRADCODE_WEB_DIR`,
+to one origin and nothing bakes a server URL into the bundle. The desktop app and the `getmyprof`
+command have no Vite: the server serves the built web app itself (`GETMYPROF_WEB_DIR`,
 `static.ts`), still one origin ([release.md](release.md)). Other devices reach the app through
 `scripts/dev-local.sh share` (`tailscale serve` in front of Vite on its own HTTPS port, 8443: the
 tailnet's 443 may already belong to another app on this machine, and serving it would replace that); `allowedHosts: [".ts.net"]` in
@@ -62,7 +62,7 @@ call) or `now` (steered). A session closes after a minute idle.
 
 ## Paid lookups
 
-Every treg call goes through `treg.ts` over HTTP with one key (`GRADCODE_HOME/treg.json`, mode
+Every treg call goes through `treg.ts` over HTTP with one key (`GETMYPROF_HOME/treg.json`, mode
 0600, never on the wire or in a backup). It is the user's own team key, which they connect by
 signing in at treg.to (`treg login`'s handshake, `treg-org.ts`) or by pasting it, or a key a
 team issued to them. treg pins an issued key to its customer, so its team is billed and invoices
@@ -88,9 +88,9 @@ that customer from treg's ledger.
   empty balance) and invoice. Adding an id that already has a key is refused: minting under the
   same name replaces the key. The scripted stack talks to a team in memory instead
   (`treg-fake.ts`): signing in makes you its owner. Siam's customers live in the treg team
-  `gradcode`. treg's tool list can't name catalog endpoints, so a customer key gets every tool;
+  `getmyprof`. treg's tool list can't name catalog endpoints, so a customer key gets every tool;
   the team must hold no tools of its own (an X or Google connection would be every customer's),
-  and minting refuses in one that does. `TREG_ENDPOINTS` is the vendor list gradcode lets the
+  and minting refuses in one that does. `TREG_ENDPOINTS` is the vendor list getmyprof lets the
   agent call.
 
 ## Your data
@@ -109,7 +109,7 @@ secret. Runs go to a fresh thread each time, or every run back to the loop's one
 
 ## MCP
 
-Both ways. gradcode serves its own tools at `/api/mcp` (stateless streamable HTTP, POST only):
+Both ways. getmyprof serves its own tools at `/api/mcp` (stateless streamable HTTP, POST only):
 search the sheet, start a hunt, read threads, list and resolve Review. Each wraps an RPC handler.
 It answers only to the bearer token in Settings, made once and compared in constant time; the
 token is what keeps another process on this machine or the tailnet from starting paid hunts.
@@ -127,7 +127,7 @@ tool call on a human: an MCP call held open for hours would time out.
 
 `claude` runs the Agent SDK's bundled Claude Code with the user's login. `fake` runs the same hunt
 tools on fixture sources with scripted turns (approval, proposals, row actions), so e2e covers the
-real store, approval and settle paths without spending anything. Pick with `GRADCODE_AGENT=fake`.
+real store, approval and settle paths without spending anything. Pick with `GETMYPROF_AGENT=fake`.
 
 ## Outreach
 
@@ -138,10 +138,10 @@ school, to Offer. An accepted offer anywhere ends the hunt, also derived: loops 
 schedule, cold mail and follow-ups stop, and answers and thank-yous still go. Un-accepting it
 resumes everything. The user connects their own
 mailbox with an app password, or signs in with Google (Gmail) or Microsoft (Outlook.com, which
-dropped app passwords). The login, password or refresh token, sits in `GRADCODE_HOME/mail.json`,
+dropped app passwords). The login, password or refresh token, sits in `GETMYPROF_HOME/mail.json`,
 mode 0600, and never crosses the wire.
 
-- **Signing in takes no setup.** gradcode ships its own OAuth clients (`SHARED_CLIENTS` in
+- **Signing in takes no setup.** getmyprof ships its own OAuth clients (`SHARED_CLIENTS` in
   `outreach/oauth.ts`): a Desktop app in Google Cloud and a public client in Azure. Neither can
   keep a secret, so they live in the source; a user brings their own only by choice. Gmail's
   scope is restricted: until Google verifies the app (a review plus a yearly paid security
@@ -175,13 +175,13 @@ mode 0600, and never crosses the wire.
   composer and "Approve all" all apply it, and the agent hears why a draft can't go yet.
 - **Only reviewed addresses.** A draft must go to the address already accepted in the record;
   apply-only professors get none. On Siam's install gradhunt's rows belong to its cloud outreach
-  routine, so gradcode never drafts to them and the two can't double-send.
+  routine, so getmyprof never drafts to them and the two can't double-send.
 - **Replies come back to the agent.** Sync files mail from contacted professors only (by
   In-Reply-To, then sender); a real reply goes to the thread that drafted the first email for
   `classify_reply` and an answer draft. Follow-ups that come due get one drafting thread per day.
 - **LinkedIn is assisted.** The user sends the note there and marks it sent; replies arrive as
   LinkedIn's notification emails. No account automation.
-- `GRADCODE_AGENT=fake` also swaps in `fakeMailer`: sends stay in memory and fixture professors
+- `GETMYPROF_AGENT=fake` also swaps in `fakeMailer`: sends stay in memory and fixture professors
   answer on the next sync.
 
 ## Vault
@@ -191,11 +191,11 @@ without proof is never written into anything. On Siam's install hq stays the sou
 Vault shows its facts read-only.
 
 - **An OKF bundle, like hq.** `okf.ts` writes the whole Vault (facts by kind, documents, programs,
-  professors, applications, offers, writing) to `GRADCODE_HOME/vault` as typed markdown notes
+  professors, applications, offers, writing) to `GETMYPROF_HOME/vault` as typed markdown notes
   with relative links: a fact links its proof, an application its program and professors, a piece
   of writing the facts it cites. It is one way, rebuilt a moment after any change: the app is the
   source, the folder is for Obsidian and for search. On Siam's install hq keeps the facts and
-  gradcode writes none of them.
+  getmyprof writes none of them.
 - **The agent searches before it writes.** The same notes (plus hq's own facts, documents,
   decisions and research on an install that reads hq) fill an FTS5 table, `notes`. `vault_search`
   returns the best notes with what they link to and what links to them, so a fact comes with its
@@ -207,7 +207,7 @@ Vault shows its facts read-only.
 
 - **One table, typed by kind.** Documents, scholarships, programs, applications and To file
   share the `vault` table; `vault.ts` parses each kind with its zod schema on read.
-- **Files stay private.** Document bytes live in `GRADCODE_HOME/files`, mode 0600, named by id
+- **Files stay private.** Document bytes live in `GETMYPROF_HOME/files`, mode 0600, named by id
   only. `/api/files/<id>` serves them with `Content-Security-Policy: sandbox`, so an uploaded
   HTML file can't run on the app's origin.
 - **Nothing is filed without a click.** The agent's `propose_program` and `propose_scholarship`

@@ -23,7 +23,8 @@ const TABLES = [
 
 const Row = z.record(z.string(), z.union([z.string(), z.number(), z.null()]));
 export const Backup = z.object({
-  app: z.literal("gradcode"),
+  // gradcode was this app's name until 2026-10-08; its backups restore as they are.
+  app: z.enum(["getmyprof", "gradcode"]),
   version: z.literal(1),
   at: z.string(),
   tables: z.record(z.string(), z.array(Row)),
@@ -50,7 +51,7 @@ export function exportAll(db: Db): Backup {
     if (r.kind === "document" && DOC_ID.test(id) && NodeFS.existsSync(documentPath(id)))
       files[id] = NodeFS.readFileSync(documentPath(id)).toString("base64");
   }
-  return { app: "gradcode", version: 1, at: now(), tables, files };
+  return { app: "getmyprof", version: 1, at: now(), tables, files };
 }
 
 /** Restores a backup over this store: rows by primary key, files by id. Returns rows per table. */

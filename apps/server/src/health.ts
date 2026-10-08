@@ -1,4 +1,4 @@
-import type { Check, Health } from "@gradcode/contracts";
+import type { Check, Health } from "@getmyprof/contracts";
 import { z } from "zod";
 import * as NodeChild from "node:child_process";
 import * as NodeFS from "node:fs";
@@ -27,7 +27,7 @@ export function health(env: Env = process.env, found: () => string | null = find
     scout: NodeFS.existsSync(NodePath.join(gradhuntDir(env), "scout.py")),
     treg: onPath(env, "treg"),
   } satisfies Record<Check, boolean>;
-  return { host: NodeOS.hostname(), checks, scripted: env.GRADCODE_AGENT === "fake" };
+  return { host: NodeOS.hostname(), checks, scripted: env.GETMYPROF_AGENT === "fake" };
 }
 
 const ClaudeConfig = z.object({

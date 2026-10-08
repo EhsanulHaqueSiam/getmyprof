@@ -8,7 +8,7 @@ import {
   unbackedScore,
   uncitedClaims,
   type Writing,
-} from "@gradcode/contracts";
+} from "@getmyprof/contracts";
 import { strToU8, zipSync } from "fflate";
 
 export { unbackedScore };

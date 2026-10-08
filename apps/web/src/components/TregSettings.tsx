@@ -1,4 +1,4 @@
-import { ROW_OPS, type RowOp, type TregCustomers, type TregStatus } from "@gradcode/contracts";
+import { ROW_OPS, type RowOp, type TregCustomers, type TregStatus } from "@getmyprof/contracts";
 import { Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { Chip } from "~/components/FormParts";
@@ -241,7 +241,7 @@ export function TregSettings() {
             Back
           </Button>
         </div>
-        {hint("From treg.to, or the one whoever runs your gradcode gave you.")}
+        {hint("From treg.to, or the one whoever runs your getmyprof gave you.")}
         {failed}
       </form>
     );

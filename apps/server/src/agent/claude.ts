@@ -4,7 +4,7 @@ import {
   tool,
   type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
-import type { ThreadEvent } from "@gradcode/contracts";
+import type { ThreadEvent } from "@getmyprof/contracts";
 import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
 import { z } from "zod";
@@ -183,7 +183,7 @@ export const claudeProvider: AgentProvider = {
         mcpServers: {
           hunt: server,
           ...Object.fromEntries(
-            // "hunt" is gradcode's own in-process server; a user server can't take its name.
+            // "hunt" is getmyprof's own in-process server; a user server can't take its name.
             s.mcpServers
               .filter((m) => m.name !== "hunt")
               .map((m) => [
@@ -211,7 +211,7 @@ export const claudeProvider: AgentProvider = {
               : { behavior: "deny", message: "The applicant declined this tool call." };
           }
           const t = tools.find((x) => mcpName(x) === toolName);
-          if (!t) return { behavior: "deny", message: `${toolName} isn't available in gradcode.` };
+          if (!t) return { behavior: "deny", message: `${toolName} isn't available in getmyprof.` };
           const blocked = askBlocked(s.toolContext, t.name);
           if (blocked) return { behavior: "deny", message: blocked };
           const args = z.object(t.shape).safeParse(raw);

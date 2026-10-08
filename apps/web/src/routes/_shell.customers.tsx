@@ -1,4 +1,4 @@
-import type { TregCustomers } from "@gradcode/contracts";
+import type { TregCustomers } from "@getmyprof/contracts";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PlusIcon, XIcon } from "lucide-react";
 import { Fragment, useState } from "react";
@@ -96,7 +96,7 @@ function CustomersPage() {
         ? ` It allows ${usd(holder.dailyUsd)} a day.`
         : "";
   const invite = key
-    ? `Your gradcode key for paid lookups: ${key.key}\nIn gradcode: Settings, Paid lookups, Paste a key.${terms}`
+    ? `Your getmyprof key for paid lookups: ${key.key}\nIn getmyprof: Settings, Paid lookups, Paste a key.${terms}`
     : "";
 
   if (!manage)

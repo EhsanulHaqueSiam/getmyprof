@@ -1,4 +1,4 @@
-# gradcode
+# getmyprof
 
 An app for anyone hunting a funded degree. Every thread is a Claude Code session
 on your own subscription, with free sources (NSF and NIH awards, UKRI, CORDIS, ARC, DFG and
@@ -15,57 +15,57 @@ Design and the full spec, three required pages: the main spec
 
 ## Install
 
-gradcode runs on macOS and Linux, with the agent on your own Claude subscription. The first run
+getmyprof runs on macOS and Linux, with the agent on your own Claude subscription. The first run
 downloads Claude Code (about 100 MB, straight from npm, checked against its published checksum)
-into `~/.gradcode`; then sign in from Setup's Connect step, or with `gradcode login`.
+into `~/.getmyprof`; then sign in from Setup's Connect step, or with `getmyprof login`.
 
 ### Command line
 
 ```sh
-curl -fsSL https://github.com/EhsanulHaqueSiam/gradcode/releases/latest/download/install.sh | sh
+curl -fsSL https://github.com/EhsanulHaqueSiam/getmyprof/releases/latest/download/install.sh | sh
 ```
 
-Then run `gradcode` to start the server and open the app in your browser. `gradcode serve` keeps
-it running in the background, `gradcode update` moves to the newest release, and `gradcode --help`
+Then run `getmyprof` to start the server and open the app in your browser. `getmyprof serve` keeps
+it running in the background, `getmyprof update` moves to the newest release, and `getmyprof --help`
 has the rest. It brings its own Node and says when a new version is out. Once the npm package is
-published, `npx gradcode@latest` (Node 24+) tries it once without installing.
+published, `npx getmyprof@latest` (Node 24+) tries it once without installing.
 
 ### Desktop app
 
 Install the latest version from
-[GitHub Releases](https://github.com/EhsanulHaqueSiam/gradcode/releases/latest) or with one of the
+[GitHub Releases](https://github.com/EhsanulHaqueSiam/getmyprof/releases/latest) or with one of the
 commands below. The app tells you when there's a new version and installs it in one click (the
 Mac app and the AppImage); `.deb` and AUR installs update through their package manager.
 
-The one-liner with `--desktop` installs the app instead: `gradcode.app` in Applications on a Mac,
+The one-liner with `--desktop` installs the app instead: `getmyprof.app` in Applications on a Mac,
 or the AppImage with a menu entry on Linux.
 
 ```sh
-curl -fsSL https://github.com/EhsanulHaqueSiam/gradcode/releases/latest/download/install.sh | sh -s -- --desktop
+curl -fsSL https://github.com/EhsanulHaqueSiam/getmyprof/releases/latest/download/install.sh | sh -s -- --desktop
 ```
 
 #### macOS (Homebrew)
 
 ```sh
-brew install --cask EhsanulHaqueSiam/tap/gradcode
+brew install --cask EhsanulHaqueSiam/tap/getmyprof
 ```
 
 The Mac app isn't notarized yet. Homebrew and the one-liner handle that; after dragging a
 downloaded dmg (`arm64` for Apple Silicon, `x64` for Intel) to Applications, run
-`xattr -dr com.apple.quarantine /Applications/gradcode.app` once.
+`xattr -dr com.apple.quarantine /Applications/getmyprof.app` once.
 
 #### Debian, Ubuntu (`.deb`)
 
 Download the `.deb` from GitHub Releases, then:
 
 ```sh
-sudo apt install ./gradcode_*.deb
+sudo apt install ./getmyprof_*.deb
 ```
 
 #### Arch Linux, Omarchy (AUR)
 
 ```sh
-yay -S gradcode-bin
+yay -S getmyprof-bin
 ```
 
 #### Any Linux (AppImage)
@@ -77,7 +77,7 @@ Download the `.AppImage` from GitHub Releases, `chmod +x` it and run it. It upda
 Install it (see [Install](#install)) or start it from source (see [Run it](#run-it)), and
 open it. The first run opens Setup:
 
-1. **Connect.** gradcode runs on your own Claude Code login; Setup shows whose, or downloads
+1. **Connect.** getmyprof runs on your own Claude Code login; Setup shows whose, or downloads
    Claude Code on the first run and signs you in. Free sources are on. Paid lookups (people search, email finding) are optional: connect treg by signing in, or
    paste a key someone gave you.
 2. **You.** Paste your CV. It becomes facts, each with its source; tick the ones that are right.
@@ -106,7 +106,7 @@ Then:
 
 ## Screenshots
 
-Taken from the running app on the scripted agent (`GRADCODE_AGENT=fake`), so the data is fixtures.
+Taken from the running app on the scripted agent (`GETMYPROF_AGENT=fake`), so the data is fixtures.
 
 ![A thread: the agent's work log, findings and Review](docs/screenshots/thread.png)
 
@@ -136,8 +136,8 @@ Taken from the running app on the scripted agent (`GRADCODE_AGENT=fake`), so the
 | **Pipeline.** Your own mailbox (a Gmail app password by default, free; or sign in with Google or Microsoft) or your mail app. Drafts cite your facts and fit the professor's money tier; one with an unproven or uncited claim, a third link or an unchecked address waits for a fix. Sends go Tuesday to Thursday at 08:00 the professor's time within warm-up caps; approve one, a day's worth, or all. Follow-ups at +7 and +14 business days, or your own timing; replies come back to the thread, update the record, and can attach your CV. Professors move through To contact, Contacted, Replied, Call, Applied and Offer; accepting an offer ends the hunt. LinkedIn is assisted: a short note opens their message box, and their answer comes back through LinkedIn's email. | Add "I led a team of five." to a draft: it can't be sent until you cite a fact or cut it.        |
 | **Vault and Writer.** Your Lifeline: add a CV, a link or a sentence and it becomes dated facts with proof; the panel shows a fact's note, your facts as a CV, or the file itself. Everything is also an OKF bundle on disk (like hq, openable in Obsidian) that the agent searches before it writes. Documents with expiry, scholarships, programs, applications and a To file inbox. The Writer drafts statements, CVs and essays citing your facts; an unproven claim, or one that cites nothing, blocks export to text, PDF or Word.                                                                                                                                                                                                                                                | Unconfirm a cited fact: export turns off until it has proof.                                     |
 | **After applying.** Interview prep packs, calendar files and thank-yous; offers compared after rent; negotiation letters; visa steps; reminders and thanks for recommenders.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Two offers side by side: the one leaving more after a year of rent is marked best.               |
-| **MCP both ways.** Other agents drive gradcode at `/api/mcp` with a token. Your own MCP servers join every session and ask before each call unless you trust them.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Paste the config from Settings into another agent and search the sheet.                          |
-| **Your data stays yours.** One local SQLite file. A full backup of every table and Vault file downloads and restores in one click; professors also export and import as CSV. gradcode sends no telemetry.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Download a backup, wipe, restore: nothing lost.                                                  |
+| **MCP both ways.** Other agents drive getmyprof at `/api/mcp` with a token. Your own MCP servers join every session and ask before each call unless you trust them.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Paste the config from Settings into another agent and search the sheet.                          |
+| **Your data stays yours.** One local SQLite file. A full backup of every table and Vault file downloads and restores in one click; professors also export and import as CSV. getmyprof sends no telemetry.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Download a backup, wipe, restore: nothing lost.                                                  |
 | **Polish bar.** ⌘K jumps to any view, thread, professor or school, runs actions (answer an approval, accept Review, approve drafts, run a loop) and searches what was said; j/k through threads, proposals and rows, a/r/⇧A, ↵/esc on approvals, ⌘↵ steer, ⌘. stop, ⌘1 to 3 panel tabs; one-shot motion, nothing animates forever. On a phone, open the tailnet link or scan its QR code in Settings: the sidebar and panel open over the page to read and approve.                                                                                                                                                                                                                                                                                                                    | Triage the thread list without the mouse.                                                        |
 
 **Not yet**, against the original spec: `scout.py add` and `exclude` on Siam's install.
@@ -151,7 +151,7 @@ A pnpm monorepo on Vite+ (`vp` for lint, format, test and staged hooks),
 TypeScript 7, React 19 with the React Compiler, TanStack Router, Zustand, Base UI with a vendored
 `components/ui` kit (MIT, notice kept), Tailwind v4, lucide icons and zod contracts. A local Node
 server runs the agent sessions, loops and the send queue; everything lives in one SQLite file
-under `~/.gradcode`. How the pieces fit: [docs/internals/overview.md](docs/internals/overview.md).
+under `~/.getmyprof`. How the pieces fit: [docs/internals/overview.md](docs/internals/overview.md).
 
 ## Run it
 
@@ -167,17 +167,17 @@ scripts/dev-local.sh down
 # tests: unit, then e2e on a fresh stack with the scripted agent (free, deterministic)
 pnpm test
 scripts/dev-local.sh down
-rm -rf /tmp/gc-e2e && GRADCODE_HOME=/tmp/gc-e2e GRADCODE_AGENT=fake scripts/dev-local.sh up
+rm -rf /tmp/gc-e2e && GETMYPROF_HOME=/tmp/gc-e2e GETMYPROF_AGENT=fake scripts/dev-local.sh up
 pnpm e2e
 ```
 
-The desktop app and the `gradcode` command build into `dist/release`:
+The desktop app and the `getmyprof` command build into `dist/release`:
 
 ```sh
 pnpm dist runtime                       # web app, bundled server and CLI, Electron's main
 pnpm dist cli darwin-arm64              # the command line tarball (also darwin-x64, linux-x64, linux-arm64)
 pnpm dist desktop mac arm64             # dmg + zip, on a Mac; `desktop linux x64` builds the AppImage + .deb
-pnpm --filter @gradcode/desktop start   # or run the app from the checkout, after `pnpm dist runtime`
+pnpm --filter @getmyprof/desktop start   # or run the app from the checkout, after `pnpm dist runtime`
 ```
 
 How releases are cut: [docs/internals/release.md](docs/internals/release.md). Agents start at

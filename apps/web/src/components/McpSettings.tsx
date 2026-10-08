@@ -1,4 +1,4 @@
-import type { McpServer } from "@gradcode/contracts";
+import type { McpServer } from "@getmyprof/contracts";
 import { Trash2Icon } from "lucide-react";
 import { useState } from "react";
 import { Chip } from "~/components/FormParts";
@@ -81,7 +81,7 @@ export function McpServers() {
   );
 }
 
-/** Settings' row for other agents: gradcode's own MCP endpoint and the config to paste. */
+/** Settings' row for other agents: getmyprof's own MCP endpoint and the config to paste. */
 export function McpEndpoint() {
   const token = useStore((s) => s.app?.settings.mcpToken) ?? "";
   const [copied, setCopied] = useState(false);
@@ -89,7 +89,7 @@ export function McpEndpoint() {
   const config = JSON.stringify(
     {
       mcpServers: {
-        gradcode: { type: "http", url, headers: { Authorization: `Bearer ${token}` } },
+        getmyprof: { type: "http", url, headers: { Authorization: `Bearer ${token}` } },
       },
     },
     null,

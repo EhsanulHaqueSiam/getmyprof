@@ -1,4 +1,4 @@
-import type { Award, Proposal } from "@gradcode/contracts";
+import type { Award, Proposal } from "@getmyprof/contracts";
 import { describe, expect, it } from "vite-plus/test";
 import { fieldSources, timeline } from "./professor-page.ts";
 import { blankProfessor, professorFromAward } from "./records.ts";

@@ -23,7 +23,7 @@ function QrCode({ text }: { text: string }) {
   );
 }
 
-/** Settings' row for opening gradcode on a phone or laptop over the tailnet. */
+/** Settings' row for opening getmyprof on a phone or laptop over the tailnet. */
 export function PairSettings() {
   const link = useStore((s) => s.app?.tailnet);
   const [copied, setCopied] = useState(false);

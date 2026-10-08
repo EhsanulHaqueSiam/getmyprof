@@ -1,4 +1,4 @@
-import { type Professor, ROW_OPS, type RowOp, type ThreadView } from "@gradcode/contracts";
+import { type Professor, ROW_OPS, type RowOp, type ThreadView } from "@getmyprof/contracts";
 import { Link } from "@tanstack/react-router";
 import {
   BanknoteIcon,

@@ -1,4 +1,4 @@
-import { DocKind } from "@gradcode/contracts";
+import { DocKind } from "@getmyprof/contracts";
 import { Trash2Icon, UploadIcon } from "lucide-react";
 import { useState } from "react";
 import { Choice, Table, Td } from "~/components/Table";

@@ -1,4 +1,4 @@
-import type { AutoRules, LoopRow, Schedule, ScopeItem, ScoutLoop } from "@gradcode/contracts";
+import type { AutoRules, LoopRow, Schedule, ScopeItem, ScoutLoop } from "@getmyprof/contracts";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PlayIcon, PlusIcon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -168,7 +168,10 @@ function Loops() {
                 </tr>
               ))}
               {scout ? (
-                <tr data-testid="scout-loop" title="Scout runs in gradhunt; gradcode only reads it">
+                <tr
+                  data-testid="scout-loop"
+                  title="Scout runs in gradhunt; getmyprof only reads it"
+                >
                   <td className="h-9 border-b px-3 font-medium whitespace-nowrap">
                     Scout (gradhunt)
                   </td>

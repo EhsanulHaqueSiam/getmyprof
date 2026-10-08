@@ -19,7 +19,7 @@ const isFile = (path: string) =>
 
 /**
  * The built web app (apps/web/dist) on the server's own origin, for the desktop app and the
- * `gradcode` command (bin.ts turns it on with GRADCODE_WEB_DIR). Any other path gets index.html
+ * `getmyprof` command (bin.ts turns it on with GETMYPROF_WEB_DIR). Any other path gets index.html
  * so the router can take it; a missing hashed asset is a 404. Returns false for what it doesn't
  * serve: /api, /ws, and methods other than GET and HEAD.
  */

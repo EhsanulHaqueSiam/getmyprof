@@ -1,4 +1,4 @@
-import type { MethodOutput } from "@gradcode/contracts";
+import type { MethodOutput } from "@getmyprof/contracts";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { BookOpenIcon, FileTextIcon, GlobeIcon, LinkIcon, MessageSquareIcon } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";

@@ -1,6 +1,6 @@
 // More free sources: DFG (Germany, GEPRIS) and NSERC (Canada) awards, CSRankings' faculty
 // lists, and OpenAlex by topic (who works on it at a school; topics next to a field). The big
-// public files (CSRankings, NSERC) are kept under GRADCODE_HOME/cache for a month.
+// public files (CSRankings, NSERC) are kept under GETMYPROF_HOME/cache for a month.
 import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
 import { parseCsv } from "./adapters.ts";
@@ -18,7 +18,7 @@ import {
 
 const MONTH = 30 * 864e5;
 
-/** A big public file, downloaded at most once a month into GRADCODE_HOME/cache. */
+/** A big public file, downloaded at most once a month into GETMYPROF_HOME/cache. */
 async function cached(name: string, url: string, encoding: BufferEncoding = "utf8") {
   const file = NodePath.join(homeDir(), "cache", name);
   try {

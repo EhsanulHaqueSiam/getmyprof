@@ -10,7 +10,7 @@ import { saveDocument, saveEdit, startApplication } from "./vault.ts";
 
 describe("the vault as an OKF bundle", () => {
   it("writes linked, typed notes to disk and finds a fact with its proof", () => {
-    process.env.GRADCODE_HOME = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "gc-okf-"));
+    process.env.GETMYPROF_HOME = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "gc-okf-"));
     const db = openDb(":memory:");
     saveDocument(db, {
       name: "ra-letter.pdf",
@@ -59,7 +59,7 @@ describe("the vault as an OKF bundle", () => {
     });
 
     refreshVault(db);
-    const dir = NodePath.join(process.env.GRADCODE_HOME, "vault");
+    const dir = NodePath.join(process.env.GETMYPROF_HOME, "vault");
     const role = NodeFS.readdirSync(NodePath.join(dir, "facts/roles")).find(
       (f) => f !== "index.md",
     );

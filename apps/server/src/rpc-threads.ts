@@ -1,6 +1,6 @@
 // The thread methods: start, send (queue, steer), scope, detail, fork, settle and the rest.
 // rpc.ts spreads these into its handlers.
-import { ROW_OPS, type ScopeItem } from "@gradcode/contracts";
+import { ROW_OPS, type ScopeItem } from "@getmyprof/contracts";
 import { scopeNote, threadProposals, threadRows } from "./records.ts";
 import type { Handlers, Services } from "./rpc.ts";
 import {

@@ -1,4 +1,4 @@
-import type { Applicant } from "@gradcode/contracts";
+import type { Applicant } from "@getmyprof/contracts";
 import { Chip, ListEditor, Row } from "~/components/FormParts";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";

@@ -1,4 +1,4 @@
-import type { Scholarship, VaultState } from "@gradcode/contracts";
+import type { Scholarship, VaultState } from "@getmyprof/contracts";
 import { describe, expect, it } from "vite-plus/test";
 import { comingUp, fitsMe, interviewIcs, leftAfterRent } from "./vault";
 

@@ -1,6 +1,6 @@
-# gradcode
+# getmyprof
 
-gradcode is an app for anyone hunting a funded degree. A Node WebSocket server runs
+getmyprof is an app for anyone hunting a funded degree. A Node WebSocket server runs
 Claude Code sessions (Claude Agent SDK, on the user's own subscription) that use free grant APIs,
 the web and optional paid treg lookups to find professors who can fund a student and the money
 behind them. A React client shows threads, Results, Review, Funding, Pipeline, Vault and Loops.
@@ -33,14 +33,14 @@ Channel "measure twice, cut once" and "yagni". Simple systems, no machinery for 
 
 ## The ways to hurt yourself
 
-1. **Touching real data.** The store is `~/.gradcode/gradcode.sqlite`; gradhunt's files belong to
-   `scout.py` alone (lint: `gradcode/single-writer`). Tests, e2e and `/verify` run with
-   `GRADCODE_HOME` set to a temp dir, `GRADCODE_AGENT=fake`, and gradhunt sync off.
+1. **Touching real data.** The store is `~/.getmyprof/getmyprof.sqlite`; gradhunt's files belong to
+   `scout.py` alone (lint: `getmyprof/single-writer`). Tests, e2e and `/verify` run with
+   `GETMYPROF_HOME` set to a temp dir, `GETMYPROF_AGENT=fake`, and gradhunt sync off.
 2. **Spending money or quota in tests.** treg calls cost money and email lookups hit real people;
    real agent turns spend the user's subscription. The fake provider covers every flow for free.
    Only a task that changes the Claude provider itself earns one short live turn.
 3. **Sending real email.** A connected mailbox sends to real professors. Tests and e2e use the
-   fake mailer (`GRADCODE_AGENT=fake`); to exercise IMAP and SMTP, run a local GreenMail
+   fake mailer (`GETMYPROF_AGENT=fake`); to exercise IMAP and SMTP, run a local GreenMail
    container, never a real inbox.
 4. **Claiming facts about Siam.** Facts live once, in hq (`~/Personal/hq/CLAUDE.md`). Read them;
    never copy them into this repo or invent one. A missing fact becomes a question.
@@ -62,8 +62,8 @@ apps/web                  React 19 + Vite+. src/routes (TanStack file routes), s
                           src/components/ui (a vendored Base UI kit), src/lib
 packages/contracts        zod schemas for everything on the wire. Decode untrusted input with .parse.
 apps/desktop              Electron app (main, preload, updates) and scripts/dist.ts, every release build
-packaging                 install.sh, the gradcode launcher, Homebrew cask and AUR PKGBUILD templates
-oxlint-plugin-gradcode    golden rules as lint rules, each tested against real oxlint
+packaging                 install.sh, the getmyprof launcher, Homebrew cask and AUR PKGBUILD templates
+oxlint-plugin-getmyprof    golden rules as lint rules, each tested against real oxlint
 e2e                       Playwright specs against the running stack
 scripts/dev-local.sh      one-command stack in tmux (see /dev-local)
 docs/internals            decisions and constraints the code can't carry
@@ -73,7 +73,7 @@ docs/internals            decisions and constraints the code can't carry
 
 `pnpm install` · `scripts/dev-local.sh up|down|status|logs|share` · `pnpm lint` · `pnpm fmt` ·
 `pnpm typecheck` · `pnpm test` · `pnpm build`. e2e needs a fresh fake stack:
-`rm -rf /tmp/gc-e2e && GRADCODE_HOME=/tmp/gc-e2e GRADCODE_AGENT=fake scripts/dev-local.sh up`, then `pnpm e2e`.
+`rm -rf /tmp/gc-e2e && GETMYPROF_HOME=/tmp/gc-e2e GETMYPROF_AGENT=fake scripts/dev-local.sh up`, then `pnpm e2e`.
 `vp` is Vite+: `pnpm exec vp test run <file>` for one test file.
 
 ## Taste

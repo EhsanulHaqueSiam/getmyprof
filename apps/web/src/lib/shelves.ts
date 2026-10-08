@@ -1,4 +1,4 @@
-import type { ThreadSummary } from "@gradcode/contracts";
+import type { ThreadSummary } from "@getmyprof/contracts";
 
 export type Shelves = {
   main: ThreadSummary[];

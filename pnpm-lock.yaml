@@ -50,10 +50,10 @@ importers:
 
   apps/desktop:
     devDependencies:
-      '@gradcode/contracts':
+      '@getmyprof/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@gradcode/server':
+      '@getmyprof/server':
         specifier: workspace:*
         version: link:../server
       '@types/node':
@@ -83,7 +83,7 @@ importers:
       '@anthropic-ai/claude-agent-sdk':
         specifier: ^0.3.292
         version: 0.3.292(@anthropic-ai/sdk@0.131.0(zod@4.6.5))(@modelcontextprotocol/sdk@1.32.1(zod@4.6.5))(zod@4.6.5)
-      '@gradcode/contracts':
+      '@getmyprof/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
       '@modelcontextprotocol/sdk':
@@ -129,7 +129,7 @@ importers:
       '@formkit/auto-animate':
         specifier: ^0.10.0
         version: 0.10.0
-      '@gradcode/contracts':
+      '@getmyprof/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
       '@tanstack/react-router':
@@ -196,7 +196,7 @@ importers:
 
   e2e:
     devDependencies:
-      '@gradcode/contracts':
+      '@getmyprof/contracts':
         specifier: workspace:*
         version: link:../packages/contracts
       '@playwright/test':
@@ -209,7 +209,7 @@ importers:
         specifier: 'catalog:'
         version: 7.0.2
 
-  oxlint-plugin-gradcode:
+  oxlint-plugin-getmyprof:
     dependencies:
       '@oxlint/plugins':
         specifier: ^1.79.0

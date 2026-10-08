@@ -1,7 +1,7 @@
-// A scripted agent for e2e and offline dev (GRADCODE_AGENT=fake). It runs the real hunt tools
+// A scripted agent for e2e and offline dev (GETMYPROF_AGENT=fake). It runs the real hunt tools
 // against fixture sources, so proposals, approvals, spend and settling behave exactly as with
 // Claude, for free and the same way every time.
-import { addressChecked, type RowOp, type ThreadEvent } from "@gradcode/contracts";
+import { addressChecked, type RowOp, type ThreadEvent } from "@getmyprof/contracts";
 import { now } from "../db.ts";
 import { getRecord, pendingCount } from "../records.ts";
 import { listDocuments } from "../vault.ts";
@@ -37,7 +37,7 @@ const ZONE: Record<string, string> = {
 };
 
 export const fakeProvider = (
-  delayMs = Number(process.env.GRADCODE_FAKE_DELAY ?? 120),
+  delayMs = Number(process.env.GETMYPROF_FAKE_DELAY ?? 120),
 ): AgentProvider => ({
   start(s: SessionStart) {
     const { hooks } = s;

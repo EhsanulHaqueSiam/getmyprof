@@ -1,4 +1,4 @@
-import type { Writing } from "@gradcode/contracts";
+import type { Writing } from "@getmyprof/contracts";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";

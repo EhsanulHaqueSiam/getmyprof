@@ -6,7 +6,7 @@ import {
   type ProfessorField,
   Proposal,
   type ScopeItem,
-} from "@gradcode/contracts";
+} from "@getmyprof/contracts";
 import { type Db, newId, now } from "./db.ts";
 import { sameSchool } from "./sources.ts";
 

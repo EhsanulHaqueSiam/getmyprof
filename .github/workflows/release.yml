@@ -1,7 +1,7 @@
 name: Release
 
 # A version tag (vX.Y.Z, the version in package.json) builds every download and publishes them
-# as this repo's release, where installed apps and `gradcode update` find them. The steps,
+# as this repo's release, where installed apps and `getmyprof update` find them. The steps,
 # the secrets and what is skipped without them: docs/internals/release.md.
 on:
   push:
@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  GRADCODE_RELEASES: ${{ github.repository }}
+  GETMYPROF_RELEASES: ${{ github.repository }}
 
 jobs:
   # Everything but the Mac app builds here, on the cheap runner: the command line for all four
@@ -108,16 +108,16 @@ jobs:
           path: dist/release
           merge-multiple: true
       # install.sh rides along: the one-line install reads it from releases/latest/download, and
-      # `gradcode update` checks it against SHA256SUMS.
+      # `getmyprof update` checks it against SHA256SUMS.
       - run: cp packaging/install.sh dist/release/ && pnpm dist sums && pnpm dist manifests
 
       # gh uploads every asset to a draft and publishes it last, so no updater sees half a release.
       - name: Release
         run: |
           cd dist/release
-          gh release create "$GITHUB_REF_NAME" --repo "$GRADCODE_RELEASES" \
-            --title "gradcode ${GITHUB_REF_NAME#v}" \
-            --notes "Install: https://github.com/$GRADCODE_RELEASES#install" \
+          gh release create "$GITHUB_REF_NAME" --repo "$GETMYPROF_RELEASES" \
+            --title "getmyprof ${GITHUB_REF_NAME#v}" \
+            --notes "Install: https://github.com/$GETMYPROF_RELEASES#install" \
             ./*.tar.gz ./*.dmg ./*.zip ./*.blockmap ./*.AppImage ./*.deb ./latest-*.yml install.sh SHA256SUMS
 
       # A deploy key with write access on the tap repo, so this needs no personal token.
@@ -128,14 +128,14 @@ jobs:
           [ -n "$TAP_KEY" ] || { echo "No HOMEBREW_TAP_KEY: the cask is in this run's publish artifact."; exit 0; }
           install -Dm600 /dev/stdin ~/.ssh/tap <<<"$TAP_KEY"
           export GIT_SSH_COMMAND="ssh -i ~/.ssh/tap -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
-          owner="${GRADCODE_RELEASES%%/*}"
+          owner="${GETMYPROF_RELEASES%%/*}"
           git clone --depth 1 "git@github.com:$owner/homebrew-tap.git" "$RUNNER_TEMP/tap"
           mkdir -p "$RUNNER_TEMP/tap/Casks"
-          cp dist/publish/gradcode.rb "$RUNNER_TEMP/tap/Casks/gradcode.rb"
+          cp dist/publish/getmyprof.rb "$RUNNER_TEMP/tap/Casks/getmyprof.rb"
           cd "$RUNNER_TEMP/tap"
-          git add Casks/gradcode.rb
-          git -c user.name="gradcode release" -c user.email="EhsanulHaqueSiam@users.noreply.github.com" \
-            commit -m "gradcode ${GITHUB_REF_NAME#v}"
+          git add Casks/getmyprof.rb
+          git -c user.name="getmyprof release" -c user.email="EhsanulHaqueSiam@users.noreply.github.com" \
+            commit -m "getmyprof ${GITHUB_REF_NAME#v}"
           git push origin HEAD
 
       - name: npm
@@ -166,20 +166,20 @@ jobs:
         with:
           name: publish
           path: artifact
-      - name: gradcode-bin on the AUR
+      - name: getmyprof-bin on the AUR
         run: |
           [ -n "$AUR_SSH_KEY" ] || { echo "No AUR_SSH_KEY: the PKGBUILD is in this run's publish artifact."; exit 0; }
           pacman -Sy --noconfirm --needed git openssh
           install -Dm600 /dev/stdin ~/.ssh/aur <<<"$AUR_SSH_KEY"
           printf 'Host aur.archlinux.org\n  User aur\n  IdentityFile ~/.ssh/aur\n' > ~/.ssh/config
           ssh-keyscan aur.archlinux.org >> ~/.ssh/known_hosts
-          git clone ssh://aur@aur.archlinux.org/gradcode-bin.git aur
+          git clone ssh://aur@aur.archlinux.org/getmyprof-bin.git aur
           cp artifact/publish/PKGBUILD aur/PKGBUILD
           useradd -m builder && chown -R builder aur
           su builder -c "cd aur && makepkg --printsrcinfo > .SRCINFO"
           cd aur
           git config --global --add safe.directory "$PWD"
           git add PKGBUILD .SRCINFO
-          git -c user.name="gradcode release" -c user.email="EhsanulHaqueSiam@users.noreply.github.com" \
+          git -c user.name="getmyprof release" -c user.email="EhsanulHaqueSiam@users.noreply.github.com" \
             commit -m "${GITHUB_REF_NAME#v}"
           git push origin HEAD:master

@@ -1,4 +1,4 @@
-import { type LoopRow, type Professor, ROW_OPS, type RowOp } from "@gradcode/contracts";
+import { type LoopRow, type Professor, ROW_OPS, type RowOp } from "@getmyprof/contracts";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   CheckIcon,

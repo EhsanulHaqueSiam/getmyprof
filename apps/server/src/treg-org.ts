@@ -2,7 +2,7 @@
 // mint a key pinned to one customer, cap, block or remove them, top up, and invoice from treg's
 // ledger. Settings (rpc.ts) and scripts/treg-admin.ts both call these. Signing in reuses
 // `treg login`'s browser handshake, so a user connects their own account without copying a key.
-import { TagValue } from "@gradcode/contracts";
+import { TagValue } from "@getmyprof/contracts";
 import { z } from "zod";
 import { invoiceLines, TREG_BASE } from "./treg.ts";
 
@@ -46,10 +46,10 @@ const Me = z.object({ org_id: z.number(), org: z.string(), role: z.string(), ema
 export async function whoIs(token: string, fetchFn: Fetch = fetch) {
   const me = Me.parse(await tregApi(token, "GET", "/auth/me", undefined, fetchFn));
   // Keys minted for a machine sign in as agent-<team>-<name>@agents.treg.local; a customer's
-  // name is gradcode-<customer> (agentName).
+  // name is getmyprof-<customer> (agentName).
   const issued = me.email.endsWith("@agents.treg.local");
   const local = me.email.split("@")[0] ?? "";
-  const prefix = `agent-${me.org}-gradcode-`;
+  const prefix = `agent-${me.org}-getmyprof-`;
   const customer = TagValue.safeParse(local.slice(prefix.length));
   return {
     orgId: me.org_id,
@@ -116,7 +116,7 @@ const Balance = z.object({ balance_micro: z.number() });
 
 const usd = (micro: number | null | undefined) => (micro == null ? null : micro / 1e6);
 const micro = (dollars: number) => Math.round(dollars * 1e6);
-const agentName = (customer: string) => `gradcode-${TagValue.parse(customer)}`;
+const agentName = (customer: string) => `getmyprof-${TagValue.parse(customer)}`;
 
 /**
  * The team's balance and every customer with a key: what they spent this month and today, their

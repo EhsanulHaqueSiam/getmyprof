@@ -1,11 +1,11 @@
-import { CHECKS, Health } from "@gradcode/contracts";
+import { CHECKS, Health } from "@getmyprof/contracts";
 import * as NodeFS from "node:fs";
 import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
 import { describe, expect, it } from "vite-plus/test";
 import { claudeLogin, health } from "./health.ts";
 
-const tempDir = () => NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "gradcode-health-"));
+const tempDir = () => NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "getmyprof-health-"));
 
 describe("health", () => {
   it("finds tools on PATH and scout.py under GRADHUNT_DIR", () => {
@@ -18,7 +18,7 @@ describe("health", () => {
     expect(result.checks).toEqual({ claude: true, scout: true, treg: true });
     // Only the scripted agent says it's safe for e2e.
     expect(result.scripted).toBe(false);
-    expect(health({ PATH: "", GRADHUNT_DIR: gradhunt, GRADCODE_AGENT: "fake" }).scripted).toBe(
+    expect(health({ PATH: "", GRADHUNT_DIR: gradhunt, GETMYPROF_AGENT: "fake" }).scripted).toBe(
       true,
     );
   });

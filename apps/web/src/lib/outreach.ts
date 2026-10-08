@@ -1,6 +1,6 @@
 // What the Pipeline shows about a conversation: labels, the sequence and the one next step.
 // Pure, from the server's derived Conversation, so Inbox and Board agree.
-import type { Conversation, OutreachMessage, PipelineStage, Turn } from "@gradcode/contracts";
+import type { Conversation, OutreachMessage, PipelineStage, Turn } from "@getmyprof/contracts";
 
 export const TURN_LABEL: Record<Turn, string> = {
   yours: "Your turn",
@@ -90,7 +90,7 @@ export function cardLine(c: Conversation) {
             : "needs a draft";
     case "contacted":
       return [
-        first?.at ? `sent ${day(first.at, zone)}` : "sent outside gradcode",
+        first?.at ? `sent ${day(first.at, zone)}` : "sent outside getmyprof",
         c.messages.findLast((m) => m.kind === "auto-reply")?.note ?? "",
         c.followUpAt ? `follow-up ${day(c.followUpAt, zone)}` : "",
       ]

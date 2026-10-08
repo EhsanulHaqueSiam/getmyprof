@@ -1,5 +1,5 @@
 import { DropToFile } from "~/components/DropToFile";
-import type { FileItem } from "@gradcode/contracts";
+import type { FileItem } from "@getmyprof/contracts";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Button } from "~/components/ui/button";
 import { VaultApplications } from "~/components/VaultApplications";

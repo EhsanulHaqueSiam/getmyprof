@@ -1,4 +1,4 @@
-import { FactKind, factStatus, type ProfileFact } from "@gradcode/contracts";
+import { FactKind, factStatus, type ProfileFact } from "@getmyprof/contracts";
 import { Trash2Icon, UploadIcon } from "lucide-react";
 import { useState } from "react";
 import { Choice, Table, Td } from "~/components/Table";

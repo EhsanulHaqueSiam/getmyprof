@@ -1,14 +1,14 @@
 // Release builds. `pnpm dist <step>`, run in this order; release.yml runs the same steps.
 //
 //   runtime                      web app + bundled server and CLI + Electron's main, in apps/desktop/dist
-//   cli <os-arch>...             self-contained `gradcode` tarballs, each with its own Node
+//   cli <os-arch>...             self-contained `getmyprof` tarballs, each with its own Node
 //   desktop <mac|linux> <arch>...  dmg + zip, or AppImage + deb, with latest*.yml for the updater
-//   npm                          the `gradcode` npm package, packed (never published from here)
+//   npm                          the `getmyprof` npm package, packed (never published from here)
 //   sums                         SHA256SUMS over the release assets in dist/release
 //   manifests                    the Homebrew cask and AUR PKGBUILD for this release, in dist/publish
 //
-// The version is the root package.json's. GRADCODE_RELEASES (owner/name) moves the public update
-// feed; GRADCODE_UPDATE_URL points the desktop app at any static folder instead, for testing.
+// The version is the root package.json's. GETMYPROF_RELEASES (owner/name) moves the public update
+// feed; GETMYPROF_UPDATE_URL points the desktop app at any static folder instead, for testing.
 // The Mac app is signed and notarized when CSC_LINK and Apple's API key are set, else ad-hoc.
 import { build as pack } from "vite-plus/pack";
 import { build, type Configuration } from "electron-builder";
@@ -26,7 +26,7 @@ const cache = NodePath.join(root, "dist/cache");
 const readJson = (file: string): Record<string, unknown> =>
   JSON.parse(NodeFS.readFileSync(file, "utf8"));
 const version = String(readJson(NodePath.join(root, "package.json")).version);
-const releases = process.env.GRADCODE_RELEASES ?? "EhsanulHaqueSiam/gradcode";
+const releases = process.env.GETMYPROF_RELEASES ?? "EhsanulHaqueSiam/getmyprof";
 // The CLI's Node: the LTS line Electron 44 runs the server on, so both run the same runtime.
 const NODE = "24.21.0";
 // The Agent SDK's native binary is one npm package per platform at the SDK's version. Its license
@@ -60,7 +60,7 @@ async function cached(url: string, name = NodePath.basename(url)) {
 
 /** The web app, the server and CLI bundles, and the Electron main and preload. */
 async function buildRuntime() {
-  run("pnpm", ["--filter", "@gradcode/web", "build"]);
+  run("pnpm", ["--filter", "@getmyprof/web", "build"]);
   NodeFS.rmSync(NodePath.join(desktop, "dist"), { recursive: true, force: true });
   const common = {
     config: false,
@@ -77,14 +77,14 @@ async function buildRuntime() {
     format: "esm",
     fixedExtension: true,
     deps: { onlyBundle: false },
-    define: { "process.env.GRADCODE_CLAUDE_SDK": JSON.stringify(sdk) },
+    define: { "process.env.GETMYPROF_CLAUDE_SDK": JSON.stringify(sdk) },
   });
   NodeFS.cpSync(NodePath.join(root, "apps/web/dist"), NodePath.join(runtime, "web"), {
     recursive: true,
   });
   NodeFS.writeFileSync(
     NodePath.join(runtime, "package.json"),
-    `${JSON.stringify({ name: "gradcode", version, type: "module", gradcode: { releases } }, null, 2)}\n`,
+    `${JSON.stringify({ name: "getmyprof", version, type: "module", getmyprof: { releases } }, null, 2)}\n`,
   );
   await pack({
     ...common,
@@ -120,21 +120,21 @@ async function nodeFor(target: string) {
   return { tgz, binary: `node-v${NODE}-${target}/bin/node` };
 }
 
-/** gradcode-<v>-<os>-<arch>.tar.gz: the runtime, its Node and the `gradcode` script. */
+/** getmyprof-<v>-<os>-<arch>.tar.gz: the runtime, its Node and the `getmyprof` script. */
 async function buildCli(targets: string[]) {
   for (const target of targets) {
     if (!CLI_TARGETS.includes(target)) throw new Error(`cli targets: ${CLI_TARGETS.join(", ")}`);
-    const stem = `gradcode-${version}-${target}`;
+    const stem = `getmyprof-${version}-${target}`;
     const dir = NodePath.join(root, "dist/stage", stem);
     NodeFS.rmSync(dir, { recursive: true, force: true });
     NodeFS.cpSync(runtime, dir, { recursive: true });
     const node = await nodeFor(target);
     run("tar", ["-xzf", node.tgz, "-C", dir, "--strip-components=2", node.binary]);
     NodeFS.copyFileSync(
-      NodePath.join(root, "packaging/gradcode.sh"),
-      NodePath.join(dir, "gradcode"),
+      NodePath.join(root, "packaging/getmyprof.sh"),
+      NodePath.join(dir, "getmyprof"),
     );
-    NodeFS.chmodSync(NodePath.join(dir, "gradcode"), 0o755);
+    NodeFS.chmodSync(NodePath.join(dir, "getmyprof"), 0o755);
     NodeFS.mkdirSync(release, { recursive: true });
     run("tar", [
       "--no-xattrs",
@@ -152,22 +152,22 @@ function desktopConfig(): Configuration {
   const signed = Boolean(process.env.CSC_LINK);
   const entitlements = NodePath.join(desktop, "build/entitlements.mac.plist");
   return {
-    appId: "dev.gradcode.app",
-    productName: "gradcode",
+    appId: "dev.getmyprof.app",
+    productName: "getmyprof",
     copyright: "Ehsanul Haque Siam",
-    artifactName: "gradcode-${version}-${arch}.${ext}",
-    // desktopName is the window's app id on Linux, matching the menu entry gradcode-desktop.desktop.
+    artifactName: "getmyprof-${version}-${arch}.${ext}",
+    // desktopName is the window's app id on Linux, matching the menu entry getmyprof-desktop.desktop.
     extraMetadata: {
       version,
       homepage: `https://github.com/${releases}`,
-      desktopName: "gradcode-desktop.desktop",
+      desktopName: "getmyprof-desktop.desktop",
     },
     directories: { output: release, buildResources: "build" },
     files: ["package.json", "dist/*.mjs", "dist/*.cjs"],
     extraResources: [{ from: "dist/runtime", to: "runtime" }],
     electronLanguages: ["en", "en-US"],
-    publish: process.env.GRADCODE_UPDATE_URL
-      ? { provider: "generic", url: process.env.GRADCODE_UPDATE_URL }
+    publish: process.env.GETMYPROF_UPDATE_URL
+      ? { provider: "generic", url: process.env.GETMYPROF_UPDATE_URL }
       : { provider: "github", owner, repo, releaseType: "release" },
     mac: {
       target: ["dmg", "zip"],
@@ -179,18 +179,18 @@ function desktopConfig(): Configuration {
     },
     linux: {
       target: ["AppImage", "deb"],
-      // `gradcode` is the command line's name; the app is gradcode-desktop on the PATH.
-      executableName: "gradcode-desktop",
+      // `getmyprof` is the command line's name; the app is getmyprof-desktop on the PATH.
+      executableName: "getmyprof-desktop",
       category: "Education",
       synopsis: "Find professors who can fund your degree",
       maintainer: "Ehsanul Haque Siam <EhsanulHaqueSiam@users.noreply.github.com>",
-      desktop: { entry: { StartupWMClass: "gradcode-desktop" } },
+      desktop: { entry: { StartupWMClass: "getmyprof-desktop" } },
     },
     // The static AppImage runtime needs no libfuse2, which Arch and others no longer install.
     toolsets: { appimage: "1.0.3" },
-    appImage: { artifactName: "gradcode-${version}-${arch}.${ext}" },
+    appImage: { artifactName: "getmyprof-${version}-${arch}.${ext}" },
     deb: {
-      artifactName: "gradcode_${version}_${arch}.${ext}",
+      artifactName: "getmyprof_${version}_${arch}.${ext}",
       depends: [
         "libasound2t64 | libasound2",
         "libatspi2.0-0t64 | libatspi2.0-0",
@@ -226,7 +226,7 @@ async function buildDesktop([os, ...archs]: string[]) {
 
 /** The npm package: the runtime, with npm fetching the one Claude binary this machine needs. */
 function buildNpm() {
-  const dir = NodePath.join(root, "dist/npm/gradcode");
+  const dir = NodePath.join(root, "dist/npm/getmyprof");
   NodeFS.rmSync(dir, { recursive: true, force: true });
   NodeFS.cpSync(runtime, dir, { recursive: true });
   const platforms = [
@@ -238,22 +238,22 @@ function buildNpm() {
     "linux-arm64-musl",
   ];
   const pkg = {
-    name: "gradcode",
+    name: "getmyprof",
     version,
     description: "Find professors who can fund your degree. Runs on your own Claude Code login.",
     type: "module",
-    bin: { gradcode: "cli.mjs" },
+    bin: { getmyprof: "cli.mjs" },
     engines: { node: ">=24" },
     os: ["darwin", "linux"],
     optionalDependencies: Object.fromEntries(
       platforms.map((p) => [`@anthropic-ai/claude-agent-sdk-${p}`, sdk]),
     ),
-    gradcode: { releases },
+    getmyprof: { releases },
   };
   NodeFS.writeFileSync(NodePath.join(dir, "package.json"), `${JSON.stringify(pkg, null, 2)}\n`);
   NodeFS.writeFileSync(
     NodePath.join(dir, "README.md"),
-    "# gradcode\n\nFinds professors who can fund your degree, on your own Claude Code login.\n\n```sh\nnpx gradcode@latest\n```\n",
+    "# getmyprof\n\nFinds professors who can fund your degree, on your own Claude Code login.\n\n```sh\nnpx getmyprof@latest\n```\n",
   );
   const out = NodePath.join(release, "npm");
   NodeFS.mkdirSync(out, { recursive: true });
@@ -263,7 +263,7 @@ function buildNpm() {
 /** What a release publishes; electron-builder's debug files and folders stay out. */
 const RELEASE_ASSET = /\.(tar\.gz|dmg|zip|blockmap|AppImage|deb)$|^latest-.*\.yml$|^install\.sh$/;
 
-/** SHA256SUMS over the release's assets, as install.sh and `gradcode update` check them. */
+/** SHA256SUMS over the release's assets, as install.sh and `getmyprof update` check them. */
 function writeSums() {
   const files = NodeFS.readdirSync(release).filter((f) => RELEASE_ASSET.test(f));
   const lines = files.toSorted().map((f) => `${sha256(NodePath.join(release, f))}  ${f}`);
@@ -283,14 +283,14 @@ function writeManifests() {
   );
   const values: Record<string, string | undefined> = {
     version,
-    sha256_dmg_arm64: sums.get(`gradcode-${version}-arm64.dmg`),
-    sha256_dmg_x64: sums.get(`gradcode-${version}-x64.dmg`),
-    sha256_deb_amd64: sums.get(`gradcode_${version}_amd64.deb`),
-    sha256_deb_arm64: sums.get(`gradcode_${version}_arm64.deb`),
+    sha256_dmg_arm64: sums.get(`getmyprof-${version}-arm64.dmg`),
+    sha256_dmg_x64: sums.get(`getmyprof-${version}-x64.dmg`),
+    sha256_deb_amd64: sums.get(`getmyprof_${version}_amd64.deb`),
+    sha256_deb_arm64: sums.get(`getmyprof_${version}_arm64.deb`),
   };
   const out = NodePath.join(root, "dist/publish");
   NodeFS.mkdirSync(out, { recursive: true });
-  for (const file of ["homebrew/gradcode.rb", "aur/PKGBUILD"]) {
+  for (const file of ["homebrew/getmyprof.rb", "aur/PKGBUILD"]) {
     const text = NodeFS.readFileSync(NodePath.join(root, "packaging", file), "utf8").replace(
       /\{\{(\w+)\}\}/g,
       (_, key: string) => {

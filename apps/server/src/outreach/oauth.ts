@@ -1,9 +1,9 @@
 // Mailbox sign-in for providers that prefer OAuth to app passwords: Gmail by choice, Outlook.com
-// because it no longer takes them. gradcode's own clients (SHARED_CLIENTS) mean a user just signs
+// because it no longer takes them. getmyprof's own clients (SHARED_CLIENTS) mean a user just signs
 // in; a user can bring their own client instead. Desktop clients accept a loopback redirect on
 // any port, so the callback lands on this server, and the refresh token stays in
-// GRADCODE_HOME/mail.json like an app password.
-import { MailProvider, type MailSignIn } from "@gradcode/contracts";
+// GETMYPROF_HOME/mail.json like an app password.
+import { MailProvider, type MailSignIn } from "@getmyprof/contracts";
 import * as NodeCrypto from "node:crypto";
 import { z } from "zod";
 
@@ -36,8 +36,8 @@ export const OAUTH_PROVIDERS = {
 type OAuthProvider = MailProvider;
 
 /**
- * gradcode's own OAuth clients: a Desktop app in Google Cloud and a public client in Azure,
- * made once by whoever ships gradcode (docs/internals/overview.md, Outreach). They can't keep a
+ * getmyprof's own OAuth clients: a Desktop app in Google Cloud and a public client in Azure,
+ * made once by whoever ships getmyprof (docs/internals/overview.md, Outreach). They can't keep a
  * secret, so Google and Microsoft expect them in the app's source. null: users bring their own.
  */
 export const SHARED_CLIENTS: Record<OAuthProvider, { id: string; secret: string } | null> = {
@@ -137,7 +137,7 @@ async function tokenRequest(
     const why = e.success ? (e.data.error_description ?? e.data.error) : undefined;
     if (form.grant_type === "refresh_token" && e.success && e.data.error === "invalid_grant")
       throw new SignedOut(
-        `${OAUTH_PROVIDERS[provider].label} ended gradcode's sign-in to this mailbox (a password change, or access removed). Sign in again.`,
+        `${OAUTH_PROVIDERS[provider].label} ended getmyprof's sign-in to this mailbox (a password change, or access removed). Sign in again.`,
       );
     throw new Error(`${OAUTH_PROVIDERS[provider].label} refused: ${why ?? `HTTP ${r.status}`}`);
   }

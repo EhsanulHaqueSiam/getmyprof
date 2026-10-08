@@ -1,4 +1,4 @@
-import type { ThreadSummary } from "@gradcode/contracts";
+import type { ThreadSummary } from "@getmyprof/contracts";
 import { describe, expect, it } from "vite-plus/test";
 import { newlyWaiting } from "./notify";
 

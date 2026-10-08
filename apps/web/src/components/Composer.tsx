@@ -1,4 +1,4 @@
-import type { DetailLevel, Professor, ScopeItem } from "@gradcode/contracts";
+import type { DetailLevel, Professor, ScopeItem } from "@getmyprof/contracts";
 import {
   ArrowUpIcon,
   AtSignIcon,

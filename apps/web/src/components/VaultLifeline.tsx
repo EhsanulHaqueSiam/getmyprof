@@ -1,4 +1,4 @@
-import { factStatus, type ProfileFact, type VaultDocument } from "@gradcode/contracts";
+import { factStatus, type ProfileFact, type VaultDocument } from "@getmyprof/contracts";
 import { useState } from "react";
 import { Chip } from "~/components/FormParts";
 import { Button } from "~/components/ui/button";

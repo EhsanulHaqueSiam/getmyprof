@@ -1,4 +1,4 @@
-import { Scholarship } from "@gradcode/contracts";
+import { Scholarship } from "@getmyprof/contracts";
 import { useNavigate } from "@tanstack/react-router";
 import { ExternalLinkIcon } from "lucide-react";
 import { useState } from "react";

@@ -101,7 +101,7 @@ export const TregCustomer = z.object({
   dailyUsd: z.number().nullable(),
   ownLimit: z.boolean(),
   status: z.enum(["active", "at-limit", "blocked"]),
-  /** This month's spend by gradcode feature (hunt, loop, row-email...), from their calls' tags. */
+  /** This month's spend by getmyprof feature (hunt, loop, row-email...), from their calls' tags. */
   byFeature: z.array(z.object({ feature: z.string(), usd: z.number() })),
 });
 export type TregCustomer = z.infer<typeof TregCustomer>;
@@ -147,7 +147,7 @@ export const Settings = z.object({
   // No .default() here: a partial update would fill it in and wipe the saved value.
   // getSettings fills missing keys from DEFAULT_SETTINGS instead.
   mcpServers: z.array(McpServer),
-  /** Bearer token other agents use to reach gradcode's own MCP endpoint, /api/mcp. */
+  /** Bearer token other agents use to reach getmyprof's own MCP endpoint, /api/mcp. */
   mcpToken: z.string(),
   /** Free sources the agent may use; switching one off removes its tools. No default, as above. */
   freeSources: z.array(FreeSource),

@@ -1,11 +1,11 @@
-// The one place gradcode makes paid lookups. Every one goes through tregCall: it tags the call
+// The one place getmyprof makes paid lookups. Every one goes through tregCall: it tags the call
 // with its hunt, thread and feature (from context, never from the model), caps it at the budget
 // left, and returns what it really cost under treg's call id for the spend ledger. The login is
 // the user's own team key, or a key a team issued to them, pinned by treg to their customer id
 // (treg-org.ts mints them). Account and team management lives in treg-org.ts.
 import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
-import { TagValue } from "@gradcode/contracts";
+import { TagValue } from "@getmyprof/contracts";
 import { z } from "zod";
 import { homeDir } from "./db.ts";
 import { asRecord } from "./sources.ts";
@@ -13,7 +13,7 @@ import { asRecord } from "./sources.ts";
 export const TREG_BASE = "https://treg.to";
 
 /**
- * The vendor list: treg endpoints gradcode may call, with method, usual price, the most one call
+ * The vendor list: treg endpoints getmyprof may call, with method, usual price, the most one call
  * may cost (USD) and the arguments the agent sends (from treg's catalog, checked 2026-10-07).
  * Routed endpoints try providers in turn, so a call can cost more than the usual price; `max`
  * goes out as X-Treg-Route-Max-Cost, and treg refuses rather than charge more.
@@ -196,7 +196,7 @@ function refusal(status: number, body: unknown, maxUsd: number, endpointMax: num
         }
       : {
           reason:
-            "This lookup would cost more than gradcode allows for one call. Skipped; nothing was charged.",
+            "This lookup would cost more than getmyprof allows for one call. Skipped; nothing was charged.",
           stop: false,
         };
   if (code === "tag_spend_cap_reached")

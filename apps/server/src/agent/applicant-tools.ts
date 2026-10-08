@@ -1,6 +1,6 @@
 // Tools that act on the applicant's side of the hunt: drafting mail, reading replies, filing
 // finds into the vault, and writing statements. tools.ts lists them with the research tools.
-import { Channel, Degree, ReplyClass, Touch, WritingKind } from "@gradcode/contracts";
+import { Channel, Degree, ReplyClass, Touch, WritingKind } from "@getmyprof/contracts";
 import { z } from "zod";
 import { classify } from "../outreach/inbox.ts";
 import { getMessage, issuesFor, saveDraft } from "../outreach/store.ts";

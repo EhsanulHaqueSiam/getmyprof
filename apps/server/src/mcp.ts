@@ -1,4 +1,4 @@
-// gradcode as an MCP server, so any agent can drive a hunt: search the sheet, start
+// getmyprof as an MCP server, so any agent can drive a hunt: search the sheet, start
 // a hunt, read threads, and work Review. Each tool is a thin wrapper over an RPC handler. bin.ts
 // serves it at /api/mcp (streamable HTTP, stateless) behind the bearer token in Settings.
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -20,9 +20,9 @@ const text = (t: string) => ({ content: [{ type: "text" as const, text: t }] });
 const pendingReview = (db: Db) =>
   listThreads(db).flatMap((t) => threadProposals(db, t.id).filter((p) => p.status === "pending"));
 
-/** The MCP server with gradcode's tools. Exported for tests; serveMcp is the HTTP door. */
+/** The MCP server with getmyprof's tools. Exported for tests; serveMcp is the HTTP door. */
 export function build(db: Db, handlers: Handlers) {
-  const server = new McpServer({ name: "gradcode", version: "1.0.0" });
+  const server = new McpServer({ name: "getmyprof", version: "1.0.0" });
   server.registerTool(
     "sheet_search",
     {
@@ -49,7 +49,7 @@ export function build(db: Db, handlers: Handlers) {
     "start_hunt",
     {
       description:
-        "Start a gradcode thread with an instruction, e.g. 'Find funded NLP professors at UIC'. Returns the thread id; the hunt runs on its own.",
+        "Start a getmyprof thread with an instruction, e.g. 'Find funded NLP professors at UIC'. Returns the thread id; the hunt runs on its own.",
       inputSchema: { text: z.string().min(1), title: z.string().optional() },
     },
     async ({ text: t, title }) => {
@@ -59,7 +59,7 @@ export function build(db: Db, handlers: Handlers) {
   );
   server.registerTool(
     "list_threads",
-    { description: "List gradcode's threads: status, what waits in Review, spend." },
+    { description: "List getmyprof's threads: status, what waits in Review, spend." },
     async () =>
       text(
         listThreads(db)

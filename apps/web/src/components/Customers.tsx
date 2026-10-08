@@ -1,4 +1,4 @@
-import type { MethodOutput, TregCustomer, TregCustomers } from "@gradcode/contracts";
+import type { MethodOutput, TregCustomer, TregCustomers } from "@getmyprof/contracts";
 import { useEffect, useState } from "react";
 import { Chip } from "~/components/FormParts";
 import { featureLabel, inNewTab } from "~/components/TregSettings";

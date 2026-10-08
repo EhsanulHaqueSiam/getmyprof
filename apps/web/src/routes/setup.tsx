@@ -5,7 +5,7 @@ import {
   type FreeSource,
   type HuntPrefs,
   type ProfileFact,
-} from "@gradcode/contracts";
+} from "@getmyprof/contracts";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CheckIcon, FileTextIcon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -140,7 +140,7 @@ function Setup() {
     <div className="grid h-dvh grid-rows-[auto_minmax(0,1fr)] md:grid-cols-[230px_minmax(0,1fr)] md:grid-rows-1">
       {/* On a phone the steps run across the top and scroll sideways. */}
       <nav className="flex gap-0.5 overflow-x-auto border-b px-2.5 py-2 md:flex-col md:overflow-visible md:border-r md:border-b-0 md:py-3.5">
-        <div className="hidden px-2.5 pb-3 font-semibold text-sm md:block">gradcode</div>
+        <div className="hidden px-2.5 pb-3 font-semibold text-sm md:block">getmyprof</div>
         {STEPS.map((s, i) => (
           <button
             key={s}
@@ -174,8 +174,8 @@ function Setup() {
             <>
               <h1 className="font-semibold text-lg tracking-tight">Connect</h1>
               <p className="mt-0.5 mb-3 text-muted-foreground text-xs">
-                gradcode runs Claude Code on this machine with your own login. Nothing goes through
-                a gradcode server.
+                getmyprof runs Claude Code on this machine with your own login. Nothing goes through
+                a getmyprof server.
               </p>
               <Row label="Agent">
                 <ClaudeConnect claude={app?.claude} />

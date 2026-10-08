@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# dev-local.sh: bring gradcode's local stack up in one command (tmux, no infra).
+# dev-local.sh: bring getmyprof's local stack up in one command (tmux, no infra).
 #
 # Usage:
 #   scripts/dev-local.sh up             # start server + web (idempotent)
@@ -13,7 +13,7 @@
 #
 set -euo pipefail
 
-SESSION="gradcode-dev"
+SESSION="getmyprof-dev"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WEB_PORT="${WEB_PORT:-5174}"
 SERVER_PORT="${SERVER_PORT:-4311}"
@@ -21,8 +21,8 @@ GRADHUNT_DIR="${GRADHUNT_DIR:-$HOME/Personal/gradhunt}"
 
 # "window|command". The server must be up before the web proxy has anywhere to send /api.
 SERVERS=(
-  "server|SERVER_PORT=$SERVER_PORT GRADHUNT_DIR='$GRADHUNT_DIR' GRADCODE_HOME='${GRADCODE_HOME:-$HOME/.gradcode}' GRADCODE_AGENT='${GRADCODE_AGENT:-}' pnpm --filter @gradcode/server dev"
-  "web|WEB_PORT=$WEB_PORT SERVER_PORT=$SERVER_PORT pnpm --filter @gradcode/web dev"
+  "server|SERVER_PORT=$SERVER_PORT GRADHUNT_DIR='$GRADHUNT_DIR' GETMYPROF_HOME='${GETMYPROF_HOME:-$HOME/.getmyprof}' GETMYPROF_AGENT='${GETMYPROF_AGENT:-}' pnpm --filter @getmyprof/server dev"
+  "web|WEB_PORT=$WEB_PORT SERVER_PORT=$SERVER_PORT pnpm --filter @getmyprof/web dev"
 )
 PORTS=("server:$SERVER_PORT" "web:$WEB_PORT")
 
@@ -69,7 +69,7 @@ cmd_up() {
   for s in "${SERVERS[@]}"; do start_window "${s%%|*}" "${s#*|}"; done
   tmux kill-window -t "$SESSION:_bootstrap" 2>/dev/null || true
   for _ in $(seq 1 30); do port_up "$WEB_PORT" && port_up "$SERVER_PORT" && break; sleep 0.5; done
-  echo; ok "gradcode on http://127.0.0.1:$WEB_PORT  (server :$SERVER_PORT)"; echo
+  echo; ok "getmyprof on http://127.0.0.1:$WEB_PORT  (server :$SERVER_PORT)"; echo
   port_check
   printf "\n${c_dim}  logs: scripts/dev-local.sh logs server|web · stop: scripts/dev-local.sh down${c_reset}\n"
 }

@@ -1,4 +1,4 @@
-import { Offer } from "@gradcode/contracts";
+import { Offer } from "@getmyprof/contracts";
 import { useNavigate } from "@tanstack/react-router";
 import { Trash2Icon } from "lucide-react";
 import type { ReactNode } from "react";

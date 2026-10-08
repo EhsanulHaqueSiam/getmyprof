@@ -14,13 +14,13 @@ const PLUGIN = NodeURL.fileURLToPath(new URL("../index.ts", import.meta.url));
 
 type Diagnostic = { code: string; message: string };
 
-/** Lints `source` as `filename` with only `gradcode/<rule>` on. Returns that rule's messages. */
+/** Lints `source` as `filename` with only `getmyprof/<rule>` on. Returns that rule's messages. */
 export function lint(rule: string, source: string, filename = "fixture.tsx"): string[] {
-  const dir = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "gradcode-oxlint-"));
+  const dir = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "getmyprof-oxlint-"));
   NodeFS.writeFileSync(NodePath.join(dir, filename), source);
   NodeFS.writeFileSync(
     NodePath.join(dir, ".oxlintrc.json"),
-    JSON.stringify({ jsPlugins: [PLUGIN], rules: { [`gradcode/${rule}`]: "error" } }),
+    JSON.stringify({ jsPlugins: [PLUGIN], rules: { [`getmyprof/${rule}`]: "error" } }),
   );
   const run = NodeChild.spawnSync(
     process.execPath,
@@ -31,5 +31,5 @@ export function lint(rule: string, source: string, filename = "fixture.tsx"): st
     },
   );
   const { diagnostics } = JSON.parse(run.stdout) as { diagnostics: Diagnostic[] };
-  return diagnostics.filter((d) => d.code === `gradcode(${rule})`).map((d) => d.message);
+  return diagnostics.filter((d) => d.code === `getmyprof(${rule})`).map((d) => d.message);
 }

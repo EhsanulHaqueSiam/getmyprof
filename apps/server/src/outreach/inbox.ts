@@ -1,6 +1,6 @@
 // Filing synced mail: which professor a message is about, what kind it is, and what the agent
 // read in a reply. Mail from anyone not contacted is ignored.
-import { type OutreachMessage, type ReplyClass } from "@gradcode/contracts";
+import { type OutreachMessage, type ReplyClass } from "@getmyprof/contracts";
 import { type Db, newId, now } from "../db.ts";
 import { getRecord, listRecords, putRecord } from "../records.ts";
 import type { Incoming } from "./mail.ts";

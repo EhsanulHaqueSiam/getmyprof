@@ -1,5 +1,5 @@
 {
-  "name": "@gradcode/contracts",
+  "name": "@getmyprof/contracts",
   "private": true,
   "type": "module",
   "exports": {

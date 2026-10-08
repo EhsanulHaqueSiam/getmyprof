@@ -1,5 +1,5 @@
 // What the Vault shows: which scholarships fit, and what's coming up.
-import type { Applicant, Degree, Offer, Scholarship, VaultState } from "@gradcode/contracts";
+import type { Applicant, Degree, Offer, Scholarship, VaultState } from "@getmyprof/contracts";
 
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
@@ -168,9 +168,9 @@ export function interviewIcs(i: { id: string; with: string; at: string }, where:
   return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//gradcode//interview//EN",
+    "PRODID:-//getmyprof//interview//EN",
     "BEGIN:VEVENT",
-    `UID:${i.id}@gradcode`,
+    `UID:${i.id}@getmyprof`,
     `DTSTAMP:${stamp(new Date())}Z`,
     `DTSTART:${local}`,
     `DTEND:${stamp(end)}`,

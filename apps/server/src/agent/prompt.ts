@@ -6,7 +6,7 @@ import {
   type HuntPrefs,
   type ProfileFact,
   type Settings,
-} from "@gradcode/contracts";
+} from "@getmyprof/contracts";
 
 const DEGREE = {
   phd: "a funded PhD",
@@ -70,7 +70,7 @@ export function systemPrompt(
   // Only facts with proof: the same rule the Writer and drafts follow.
   const confirmed = facts.filter((f) => factStatus(f) === "confirmed");
   return [
-    "You are gradcode's research agent. You find professors who can fund this applicant and the money behind them.",
+    "You are getmyprof's research agent. You find professors who can fund this applicant and the money behind them.",
     `Today is ${today.toISOString().slice(0, 10)}.`,
     p
       ? [

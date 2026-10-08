@@ -1,6 +1,6 @@
 # gradhunt
 
-On Siam's install, with gradhunt sync on (Settings), gradcode copies `~/Personal/gradhunt`'s sheet
+On Siam's install, with gradhunt sync on (Settings), getmyprof copies `~/Personal/gradhunt`'s sheet
 into its store at startup and writes accepted changes back through `scout.py` (override the path
 with `GRADHUNT_DIR`). Only fit, email, email check, money, niche and website go back; the rest stays
 local. Everyone else never touches gradhunt. gradhunt's
@@ -31,7 +31,7 @@ awards for a PI, and `./scout.py verify` checks emails (paid, through treg).
 
 ## Traps
 
-- **No lock.** Every write loads and rewrites the whole JSON file. gradcode must run its
+- **No lock.** Every write loads and rewrites the whole JSON file. getmyprof must run its
   `scout.py` writes one at a time, through one queue in the server.
 - **Other writers.** Scout's nightly run (23:00 Asia/Dhaka) and `sync.sh` touch the same files.
   `sync.sh` commits and merges the cloud outreach routine's branch every 10 minutes and stops

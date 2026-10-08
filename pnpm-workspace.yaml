@@ -2,7 +2,7 @@ packages:
   - apps/*
   - packages/*
   - e2e
-  - oxlint-plugin-gradcode
+  - oxlint-plugin-getmyprof
 
 # One version per shared dependency. Packages depend on "catalog:".
 catalog:

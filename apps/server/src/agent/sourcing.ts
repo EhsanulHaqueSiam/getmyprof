@@ -1,6 +1,6 @@
 // Every free and paid source the agent reads, by key: the grant databases, OpenAlex, CSRankings
 // and treg. The fake provider swaps in fixtures (fixtures.ts).
-import type { AwardSource } from "@gradcode/contracts";
+import type { AwardSource } from "@getmyprof/contracts";
 import {
   type AwardQuery,
   type Author,

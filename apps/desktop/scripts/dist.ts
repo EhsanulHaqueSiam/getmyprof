@@ -26,7 +26,7 @@ const cache = NodePath.join(root, "dist/cache");
 const readJson = (file: string): Record<string, unknown> =>
   JSON.parse(NodeFS.readFileSync(file, "utf8"));
 const version = String(readJson(NodePath.join(root, "package.json")).version);
-const releases = process.env.GRADCODE_RELEASES ?? "EhsanulHaqueSiam/gradcode-releases";
+const releases = process.env.GRADCODE_RELEASES ?? "EhsanulHaqueSiam/gradcode";
 // The CLI's Node: the LTS line Electron 44 runs the server on, so both run the same runtime.
 const NODE = "24.21.0";
 // The Agent SDK's native binary is one npm package per platform at the SDK's version. Its license

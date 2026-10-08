@@ -1,20 +1,21 @@
 # Releases
 
 One version, in the root `package.json`. A `vX.Y.Z` tag runs `.github/workflows/release.yml`,
-which builds everything and publishes it to the public repo `EhsanulHaqueSiam/gradcode-releases`
-(the source repo stays private). Installed apps and `gradcode update` look there.
+which builds everything and publishes it as this repo's GitHub release, with the workflow's own
+token. Installed apps and `gradcode update` look there. (`EhsanulHaqueSiam/gradcode-releases`
+held them while the source was private; nothing reads it now.)
 
 ## What ships
 
-| Asset                                                          | Who uses it                                                                                             | Updates                                         |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| `gradcode-X.Y.Z-{darwin,linux}-{arm64,x64}.tar.gz`             | `install.sh`: the `gradcode` command, with its own Node 24                                              | `gradcode update` runs the release's install.sh |
-| `gradcode-X.Y.Z-{arm64,x64}.dmg` and `.zip`                    | the Mac app; the cask; the zip is Squirrel's                                                            | a notice until there is a Developer ID          |
-| `gradcode-X.Y.Z-{x86_64,arm64}.AppImage`                       | `install.sh --desktop` on Linux                                                                         | downloads and replaces itself                   |
-| `gradcode_X.Y.Z_{amd64,arm64}.deb`                             | `apt install`, and the AUR package `gradcode-bin`                                                       | a notice; the package manager installs          |
-| `latest-mac.yml`, `latest-linux.yml`, `latest-linux-arm64.yml` | electron-updater's feed                                                                                 |                                                 |
-| `SHA256SUMS`                                                   | install.sh and `gradcode update` check every download against it                                        |                                                 |
-| `install.sh`, as an asset and on the repo's `main`             | `curl -fsSL https://raw.githubusercontent.com/EhsanulHaqueSiam/gradcode-releases/main/install.sh \| sh` | synced each release                             |
+| Asset                                                          | Who uses it                                                                                         | Updates                                         |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| `gradcode-X.Y.Z-{darwin,linux}-{arm64,x64}.tar.gz`             | `install.sh`: the `gradcode` command, with its own Node 24                                          | `gradcode update` runs the release's install.sh |
+| `gradcode-X.Y.Z-{arm64,x64}.dmg` and `.zip`                    | the Mac app; the cask; the zip is Squirrel's                                                        | Update runs the release's install.sh over it    |
+| `gradcode-X.Y.Z-{x86_64,arm64}.AppImage`                       | `install.sh --desktop` on Linux                                                                     | downloads and replaces itself                   |
+| `gradcode_X.Y.Z_{amd64,arm64}.deb`                             | `apt install`, and the AUR package `gradcode-bin`                                                   | a notice; the package manager installs          |
+| `latest-mac.yml`, `latest-linux.yml`, `latest-linux-arm64.yml` | electron-updater's feed                                                                             |                                                 |
+| `SHA256SUMS`                                                   | install.sh and `gradcode update` check every download against it                                    |                                                 |
+| `install.sh`                                                   | `curl -fsSL https://github.com/EhsanulHaqueSiam/gradcode/releases/latest/download/install.sh \| sh` | always the latest release's                     |
 
 The npm package `gradcode` (`npx gradcode@latest`), the Homebrew cask and the AUR `PKGBUILD`
 are built every release and published only when their secret is set.
@@ -54,26 +55,33 @@ into `dist/release`. `GRADCODE_UPDATE_URL=http://host/feed` points a test build'
 any folder holding a `latest-*.yml`. From a checkout, `pnpm dist runtime` then
 `pnpm --filter @gradcode/desktop start` runs the app unpackaged.
 
-## Secrets (source repo, Settings, Secrets and variables, Actions)
+## Secrets (Settings, Secrets and variables, Actions)
+
+The release itself needs none. Each secret below turns on one more channel.
 
 | Secret                                                  | What                                                                          | Without it                         |
 | ------------------------------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------- |
-| `RELEASES_TOKEN`                                        | fine-grained token, Contents read and write on `gradcode-releases`            | the publish job fails              |
+| `HOMEBREW_TAP_KEY`                                      | private half of a write deploy key on `EhsanulHaqueSiam/homebrew-tap`         | the cask stays in the run artifact |
+| `AUR_SSH_KEY`                                           | private key registered on the AUR account that owns `gradcode-bin`            | the PKGBUILD stays in the artifact |
+| `NPM_TOKEN`                                             | npm token that can publish `gradcode`                                         | the package stays in the artifact  |
 | `CSC_LINK`, `CSC_KEY_PASSWORD`                          | Developer ID Application certificate as base64 `.p12`, and its password       | ad-hoc signed Mac app              |
 | `APPLE_API_KEY`, `APPLE_API_KEY_ID`, `APPLE_API_ISSUER` | App Store Connect API key (`.p8` contents), its id and issuer, for notarizing | not notarized                      |
-| `HOMEBREW_TAP_TOKEN`                                    | token with Contents write on `EhsanulHaqueSiam/homebrew-tap`                  | the cask stays in the run artifact |
-| `AUR_SSH_KEY`                                           | private key registered on the AUR account that owns `gradcode-bin`            | the PKGBUILD stays in the artifact |
-| `NPM_TOKEN`                                             | npm automation token that can publish `gradcode`                              | the package stays in the artifact  |
 
-The variable `GRADCODE_RELEASES` (owner/name) moves the whole feed to another public repo.
+A failed channel (say the AUR key isn't registered yet) can be rerun alone from the run's page
+once it's fixed: the release is already out.
 
 ## Traps
 
 - **An unsigned Mac app.** Squirrel.Mac only installs updates into a Developer ID signed app, so
-  `apps/desktop/src/updates.ts` checks the signature and turns an update into a notice whose
-  Download opens the release. Gatekeeper blocks an ad-hoc app downloaded in a browser; curl
-  (install.sh) sets no quarantine and the cask strips it. With a browser download:
+  `apps/desktop/src/updates.ts` checks the signature, and an unsigned app's Update runs the
+  release's install.sh (checked against SHA256SUMS) with `--desktop` over its own bundle, then
+  restarts. Gatekeeper blocks an ad-hoc app downloaded in a browser; curl (install.sh) sets no
+  quarantine and the cask strips it. With a browser download:
   `xattr -dr com.apple.quarantine /Applications/gradcode.app`.
+- **Testing an update.** Build with `GRADCODE_UPDATE_URL=http://127.0.0.1:<port>/feed`, serve a
+  folder whose `feed/latest-mac.yml` names a higher version and whose
+  `releases/download/v<that>/` holds its dmg, install.sh and SHA256SUMS, and start the app's
+  binary with `GRADCODE_RELEASE_URL=http://127.0.0.1:<port>/releases` and a temp `GRADCODE_HOME`.
 - **The first run needs the network** for the Claude Code binary (about 100 MB to download).
   Offline with no `claude` on PATH, the app and the CLI still start and say why the agent can't.
 - **Ubuntu 24.04 and AppImages.** Its AppArmor blocks Chromium's sandbox in any AppImage; the

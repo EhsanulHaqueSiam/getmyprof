@@ -8,16 +8,18 @@ cask "gradcode" do
   sha256 arm:   "{{sha256_dmg_arm64}}",
          intel: "{{sha256_dmg_x64}}"
 
-  url "https://github.com/EhsanulHaqueSiam/gradcode-releases/releases/download/v#{version}/gradcode-#{version}-#{arch}.dmg"
+  url "https://github.com/EhsanulHaqueSiam/gradcode/releases/download/v#{version}/gradcode-#{version}-#{arch}.dmg"
   name "gradcode"
   desc "Find professors who can fund your degree"
-  homepage "https://github.com/EhsanulHaqueSiam/gradcode-releases"
+  homepage "https://github.com/EhsanulHaqueSiam/gradcode"
 
   livecheck do
     url :url
     strategy :github_latest
   end
 
+  # The app updates itself (apps/desktop/src/updates.ts).
+  auto_updates true
   depends_on macos: ">= :monterey"
 
   app "gradcode.app"

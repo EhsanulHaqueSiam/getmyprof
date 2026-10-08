@@ -2,8 +2,8 @@ import * as NodeFS from "node:fs";
 import * as NodeHttp from "node:http";
 import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
-import { describe, expect, it } from "vite-plus/test";
-import { adopt, findRunning, newer, orphaned } from "./launch.ts";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
+import { adopt, findRunning, latestRelease, newer, orphaned } from "./launch.ts";
 
 const tempHome = () => NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "gc-launch-"));
 // No process has this pid on a test machine.
@@ -43,5 +43,24 @@ describe("launching outside dev", () => {
     expect(orphaned(mine)).toBe(false);
     expect(await findRunning(home)).toEqual(mine);
     health.close();
+  });
+});
+
+describe("the newest release", () => {
+  const answer = (url: string) => {
+    const r = new Response(null);
+    Object.defineProperty(r, "url", { value: url });
+    return r;
+  };
+  afterEach(() => vi.restoreAllMocks());
+
+  it("reads the tag GitHub redirects to, null when nothing is published, and throws offline", async () => {
+    const releases = "https://github.com/x/y/releases";
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(answer(`${releases}/tag/v0.2.0`));
+    expect(await latestRelease(releases)).toBe("0.2.0");
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(answer(releases));
+    expect(await latestRelease(releases)).toBeNull();
+    vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new TypeError("fetch failed"));
+    await expect(latestRelease(releases)).rejects.toThrow("fetch failed");
   });
 });

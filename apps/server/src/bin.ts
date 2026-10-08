@@ -336,3 +336,11 @@ new WebSocketServer({
 server.listen(PORT, "127.0.0.1", () =>
   console.log(`gradcode server on http://127.0.0.1:${PORT}${fake ? " (fake agent)" : ""}`),
 );
+
+// Stopping (gradcode stop, quitting the app, Ctrl-C) closes the store, so SQLite folds its
+// write-ahead log back into the database instead of leaving it beside it.
+for (const signal of ["SIGTERM", "SIGINT"] as const)
+  process.on(signal, () => {
+    db.close();
+    process.exit(0);
+  });

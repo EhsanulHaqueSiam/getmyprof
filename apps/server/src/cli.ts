@@ -59,7 +59,7 @@ function openBrowser(url: string) {
 }
 
 async function tellIfOutdated() {
-  const latest = await latestRelease(releases);
+  const latest = await latestRelease(releases).catch(() => null);
   if (latest && newer(latest, pkg.version))
     console.log(`gradcode ${latest} is out (you have ${pkg.version}). Run: gradcode update`);
 }
@@ -157,8 +157,10 @@ async function asset(version: string, name: string) {
  */
 async function update() {
   if (!bundledNode) return console.log("Installed with npm: run npm install -g gradcode@latest");
-  const latest = await latestRelease(releases, 10_000);
-  if (!latest) throw new Error(`Couldn't reach ${releases}. Check the connection and try again.`);
+  const latest = await latestRelease(releases, 10_000).catch(() => {
+    throw new Error(`Couldn't reach ${releases}. Check the connection and try again.`);
+  });
+  if (!latest) throw new Error(`No gradcode release is published yet at ${releases}.`);
   if (!newer(latest, pkg.version)) return console.log(`gradcode ${pkg.version} is the newest.`);
   const [sums, script] = await Promise.all([
     asset(latest, "SHA256SUMS"),

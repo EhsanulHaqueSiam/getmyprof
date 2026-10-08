@@ -154,15 +154,16 @@ export function newer(a: string, b: string) {
 export const releasesUrl = (repo: string) =>
   process.env.GRADCODE_RELEASE_URL ?? `https://github.com/${repo}/releases`;
 
-/** The newest version under a releases URL (its /latest redirects to /tag/v<version>), or null. */
+/**
+ * The newest version under a releases URL (its /latest redirects to /tag/v<version>), or null when
+ * none is published yet. Throws when the feed can't be reached.
+ */
 export async function latestRelease(releases: string, timeoutMs = 3000) {
-  try {
-    const r = await fetch(`${releases}/latest`, {
-      method: "HEAD",
-      signal: AbortSignal.timeout(timeoutMs),
-    });
-    return /\/tag\/v?([^/?#]+)$/.exec(r.url)?.[1] ?? null;
-  } catch {
-    return null;
-  }
+  // GitHub redirects /latest to the newest tag, or back to /releases when there is none yet.
+  // A feed it can't reach throws, so "nothing published" and "offline" read differently.
+  const r = await fetch(`${releases}/latest`, {
+    method: "HEAD",
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  return /\/tag\/v?([^/?#]+)$/.exec(r.url)?.[1] ?? null;
 }

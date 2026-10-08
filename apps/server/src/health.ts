@@ -4,6 +4,7 @@ import * as NodeChild from "node:child_process";
 import * as NodeFS from "node:fs";
 import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
+import { findClaude } from "./agent/binary.ts";
 
 type Env = Record<string, string | undefined>;
 
@@ -16,10 +17,13 @@ const onPath = (env: Env, bin: string) =>
     .split(NodePath.delimiter)
     .some((dir) => dir !== "" && NodeFS.existsSync(NodePath.join(dir, bin)));
 
-/** Which local tools exist. File checks only: it never spawns a process or spends money. */
-export function health(env: Env = process.env): Health {
+/**
+ * Which local tools exist. File checks only: it never spawns a process or spends money. Claude
+ * counts when it's on PATH or its binary was already fetched (`found`).
+ */
+export function health(env: Env = process.env, found: () => string | null = findClaude): Health {
   const checks = {
-    claude: onPath(env, "claude"),
+    claude: onPath(env, "claude") || found() !== null,
     scout: NodeFS.existsSync(NodePath.join(gradhuntDir(env), "scout.py")),
     treg: onPath(env, "treg"),
   } satisfies Record<Check, boolean>;

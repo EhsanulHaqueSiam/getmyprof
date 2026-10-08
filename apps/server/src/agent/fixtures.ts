@@ -46,6 +46,26 @@ export const FIXTURE_PROFESSORS = [
   },
 ];
 
+/** What the Recent work and focus row action finds for each fixture professor. */
+export const FIXTURE_WORK: Record<string, { recent: string; seeking: string; scholar: string }> = {
+  "Kevin Lybarger": {
+    recent:
+      "2026 DF-RAG: Query-Aware Diversity for Retrieval-Augmented Generation (ACL); 2026 Efficient Information Extraction Using LLMs and Knowledge Distillation",
+    seeking: "PhD students for clinical NLP and RAG in healthcare",
+    scholar: "https://scholar.google.com/citations?user=fixture-lybarger",
+  },
+  "Mohan Zalake": {
+    recent: "2026-05 LLM agents for patient conversations",
+    seeking: "students building health agents, with some HCI background",
+    scholar: "https://scholar.google.com/citations?user=fixture-zalake",
+  },
+  "Natalie Parde": {
+    recent: "2026-02 Multimodal models for health text",
+    seeking: "not stated",
+    scholar: "",
+  },
+};
+
 export const FIXTURE_SCHOLARSHIPS = [
   {
     name: "Fulbright Foreign Student Program",
@@ -173,7 +193,18 @@ export const fixtureSources: Sources = {
     works: 42,
     citations: 900,
     topics: ["NLP"],
-    recent: [],
+    recent: [
+      {
+        title: "Query-aware retrieval for clinical notes",
+        date: "2026-08-14",
+        link: "https://doi.org/10.5555/fixture.1",
+      },
+      {
+        title: "Small language models for health text",
+        date: "2026-03-02",
+        link: "https://doi.org/10.5555/fixture.2",
+      },
+    ],
   }),
   treg: async (req) => ({
     ok: true,

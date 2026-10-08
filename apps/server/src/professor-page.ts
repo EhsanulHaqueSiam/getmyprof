@@ -11,7 +11,13 @@ export { fieldSources };
 import { monthsAfter, sameSchool } from "./sources.ts";
 import { listPrograms } from "./vault.ts";
 
-const LABEL: Record<string, string> = { emailCheck: "email check", fitsBecause: "fits because" };
+const LABEL: Record<string, string> = {
+  emailCheck: "email check",
+  fitsBecause: "fits because",
+  scholar: "Scholar",
+  recent: "recent work",
+  seeking: "looking for",
+};
 
 /** The record's history, newest first: what was decided, and what went out or came back. */
 export function timeline(proposals: Proposal[], messages: OutreachMessage[]) {

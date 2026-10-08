@@ -229,10 +229,15 @@ export function BudgetStep(props: {
               [
                 "std",
                 "Standard",
-                "adds how long the money lasts, eligibility, contact rule, stage",
-                "10 columns",
+                "adds what they work on and look for, how long the money lasts, contact rule",
+                "12 columns",
               ],
-              ["deep", "Deep", "adds why they fit you and every source", "12 columns · most calls"],
+              [
+                "deep",
+                "Deep",
+                "adds recent work, why they fit you and every source",
+                "15 columns · most calls",
+              ],
             ] as const
           ).map(([id, title, body, note]) => (
             <button

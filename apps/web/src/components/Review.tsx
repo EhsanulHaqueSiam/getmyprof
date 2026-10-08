@@ -11,6 +11,9 @@ const FIELD_LABEL: Record<string, string> = {
   emailCheck: "email check",
   fitsBecause: "fits because",
   linkedin: "LinkedIn",
+  scholar: "Scholar",
+  recent: "recent work",
+  seeking: "looking for",
 };
 
 /** Pending proposals as field diffs. Accept writes to the sheet; reject drops it (and the person, for an add). */

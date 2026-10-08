@@ -322,7 +322,7 @@ export type Author = {
   works: number;
   citations: number;
   topics: string[];
-  recent: { title: string; year: number; link: string }[];
+  recent: { title: string; date: string; link: string }[];
 };
 
 export async function openAlexAuthor(name: string, university?: string): Promise<Author | null> {
@@ -364,7 +364,7 @@ export async function openAlexAuthor(name: string, university?: string): Promise
       .map((t) => text(asRecord(t).display_name)),
     recent: works.map((w) => ({
       title: text(w.title),
-      year: Number(w.publication_year ?? 0),
+      date: text(w.publication_date) || text(w.publication_year),
       link: text(w.doi) || text(asRecord(w.primary_location).landing_page_url),
     })),
   };

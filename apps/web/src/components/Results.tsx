@@ -2,6 +2,7 @@ import { type Professor, ROW_OPS, type RowOp, type ThreadView } from "@getmyprof
 import { Link } from "@tanstack/react-router";
 import {
   BanknoteIcon,
+  BookOpenIcon,
   CheckIcon,
   CircleAlertIcon,
   LoaderIcon,
@@ -24,6 +25,7 @@ const OP_ICON: Record<RowOp, ReactNode> = {
   email: <MailIcon />,
   lasts: <BanknoteIcon />,
   taking: <UserIcon />,
+  work: <BookOpenIcon />,
   draft: <PenLineIcon />,
 };
 const OPS = Object.keys(ROW_OPS) as RowOp[];

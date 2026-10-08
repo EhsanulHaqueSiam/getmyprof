@@ -208,7 +208,8 @@ export const Methods = {
     input: z.object({ key: z.string() }),
     output: z.object({
       grants: z.array(Award),
-      works: z.array(z.object({ title: z.string(), year: z.number(), link: z.string() })),
+      /** Newest first; `date` is the publication date, as precise as OpenAlex has it. */
+      works: z.array(z.object({ title: z.string(), date: z.string(), link: z.string() })),
       interests: z.array(z.string()),
     }),
   },

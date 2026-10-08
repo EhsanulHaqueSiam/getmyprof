@@ -63,6 +63,8 @@ describe("the hunt's shape", () => {
     expect(prompt).toContain("scholarships and program funding matter more than advisors");
     expect(prompt).toContain("about 2 reach, 3 match and 4 safety schools");
     expect(prompt).toContain("EURAXESS");
+    // Professors who never post an opening still get found by what they work on.
+    expect(prompt).toContain("propose everyone whose current work fits");
   });
 });
 

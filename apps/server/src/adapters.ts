@@ -116,7 +116,22 @@ const STAGE: Record<string, Professor["stage"]> = {
   replied: "replied",
 };
 
-/** Copies gradhunt's sheet into the store. Rows getmyprof already holds keep their local edits. */
+const GradhuntWork = z.union([
+  z.string(),
+  z
+    .object({ title: z.string(), year: z.unknown() })
+    .transform((w) => `${s(w.year)} ${w.title}`.trim()),
+]);
+/** gradhunt's recent_works, newest first, as one line: it holds a line, strings or {title, year}. */
+const recentLine = (works: unknown) =>
+  typeof works === "string"
+    ? works
+    : (z.array(GradhuntWork).safeParse(works).data ?? []).slice(0, 3).join("; ");
+
+/**
+ * Copies gradhunt's sheet into the store. Rows getmyprof already holds keep their local edits;
+ * their Scholar link and recent work fill in only where getmyprof has none.
+ */
 export function importGradhunt(db: Db, dir = gradhuntDir()) {
   const file = sheetPath(dir);
   if (!NodeFS.existsSync(file)) return 0;
@@ -126,7 +141,19 @@ export function importGradhunt(db: Db, dir = gradhuntDir()) {
     const r = raw as Record<string, unknown>;
     const name = s(r.name);
     const university = s(r.university);
-    if (!name || !university || getRecord(db, recordKey(name, university))) continue;
+    if (!name || !university) continue;
+    const scholar = s(r.scholar_url);
+    const recent = recentLine(r.recent_works);
+    const known = getRecord(db, recordKey(name, university));
+    if (known) {
+      if (known.origin === "gradhunt" && ((scholar && !known.scholar) || (recent && !known.recent)))
+        putRecord(db, {
+          ...known,
+          scholar: known.scholar || scholar,
+          recent: known.recent || recent,
+        });
+      continue;
+    }
     const contact = s(r.contact) || "email";
     putRecord(
       db,
@@ -147,6 +174,8 @@ export function importGradhunt(db: Db, dir = gradhuntDir()) {
         fitsBecause: s(r.notes).slice(0, 200),
         website: s(r.website),
         linkedin: s(r.linkedin),
+        scholar,
+        recent,
         sources: (Array.isArray(r.sources) ? r.sources.map(s) : s(r.sources).split(/;\s*/)).filter(
           Boolean,
         ),
@@ -213,6 +242,9 @@ const CSV_FIELDS = [
   "fitsBecause",
   "website",
   "linkedin",
+  "scholar",
+  "recent",
+  "seeking",
   "sources",
 ] as const;
 
@@ -289,6 +321,9 @@ export function importCsv(db: Db, text: string) {
         fitsBecause: col(r, "fitsBecause"),
         website: col(r, "website"),
         linkedin: col(r, "linkedin"),
+        scholar: col(r, "scholar"),
+        recent: col(r, "recent"),
+        seeking: col(r, "seeking"),
         sources: col(r, "sources").split(/\s+/).filter(Boolean),
         grants: [],
         origin: "app",

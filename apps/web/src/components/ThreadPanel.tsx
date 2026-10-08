@@ -67,6 +67,8 @@ function ProfessorTab({
     ["Niche", p.niche],
     ["Money", [p.money, p.lasts && `lasts ${p.lasts}`].filter(Boolean).join(" · ")],
     ["Taking", p.taking],
+    ["Looking for", p.seeking],
+    ["Recent work", p.recent],
     ["Contact", p.contact],
     ["Fits because", p.fitsBecause],
   ];

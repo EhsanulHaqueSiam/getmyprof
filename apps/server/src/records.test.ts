@@ -1,8 +1,12 @@
+import * as NodeFS from "node:fs";
+import * as NodeOS from "node:os";
+import * as NodePath from "node:path";
 import { describe, expect, it } from "vite-plus/test";
-import { exportCsv, importCsv, parseCsv } from "./adapters.ts";
+import { exportCsv, importCsv, importGradhunt, parseCsv } from "./adapters.ts";
 import { openDb } from "./db.ts";
 import {
   getRecord,
+  putRecord,
   propose,
   recordKey,
   resolveProposal,
@@ -80,6 +84,48 @@ describe("csv", () => {
     const fresh = openDb(":memory:");
     expect(importCsv(fresh, exportCsv(db))).toBe(1);
     expect(getRecord(fresh, add.proposal.recordKey)?.contact).toBe('email, subject "PhD 2027"');
+  });
+});
+
+describe("gradhunt's sheet", () => {
+  it("brings Scholar links and recent work, filling only what getmyprof lacks", () => {
+    const dir = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "gc-gradhunt-"));
+    const data = NodePath.join(dir, "loopany/prof-scout/data");
+    NodeFS.mkdirSync(data, { recursive: true });
+    const row = (name: string, more: object) => ({ name, university: "GMU", ...more });
+    const sheet = [
+      row("A One", {
+        scholar_url: "https://scholar.google.com/citations?user=a",
+        recent_works: [
+          { title: "Newest", year: 2026, link: "https://x" },
+          { title: "Older", year: 2025 },
+          { title: "Oldest", year: 2024 },
+          { title: "Dropped", year: 2023 },
+        ],
+      }),
+      row("B Two", { recent_works: ["Paper one (2026)", "Paper two (2025)"] }),
+      row("C Three", { recent_works: "Paper (arXiv, 2025)" }),
+    ];
+    // oxlint-disable-next-line getmyprof/single-writer -- a throwaway gradhunt layout in a temp dir
+    NodeFS.writeFileSync(NodePath.join(data, "professors.json"), JSON.stringify(sheet));
+    const db = openDb(":memory:");
+    expect(importGradhunt(db, dir)).toBe(3);
+    const a = getRecord(db, recordKey("A One", "GMU"));
+    expect(a?.scholar).toBe("https://scholar.google.com/citations?user=a");
+    expect(a?.recent).toBe("2026 Newest; 2025 Older; 2024 Oldest");
+    expect(getRecord(db, recordKey("B Two", "GMU"))?.recent).toBe(
+      "Paper one (2026); Paper two (2025)",
+    );
+    expect(getRecord(db, recordKey("C Three", "GMU"))?.recent).toBe("Paper (arXiv, 2025)");
+
+    // A row imported before these fields existed gets them; what getmyprof found stays.
+    if (!a) throw new Error("expected A One");
+    putRecord(db, { ...a, scholar: "", recent: "2026-09 Found by the agent" });
+    expect(importGradhunt(db, dir)).toBe(0);
+    expect(getRecord(db, a.key)).toMatchObject({
+      scholar: "https://scholar.google.com/citations?user=a",
+      recent: "2026-09 Found by the agent",
+    });
   });
 });
 

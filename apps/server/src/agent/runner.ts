@@ -34,6 +34,7 @@ const ROW_INSTRUCTIONS: Record<RowOp, string> = {
     "For each professor below, look up their active NSF and NIH awards and record money and how long it lasts after the intake (lasts) with propose_professor.",
   taking:
     "For each professor below, read their homepage or lab page and record whether they're taking students for the intake (taking) and how they want to be reached (contact) with propose_professor.",
+  work: 'For each professor below, look them up with openalex_author, then read their homepage or lab page (and their Google Scholar page when OpenAlex is thin), and record with propose_professor: recent (their latest two or three papers or projects, newest first, each dated), niche (their area and current topics), seeking (what they want students to work on or bring, in their words, or "not stated") and scholar (their Google Scholar profile URL, when their page or CSRankings links it).',
   draft:
     "Draft a short first message for each professor below with draft_email (touch first). Email goes only to a reviewed address. Without one, if the sheet has their LinkedIn profile, draft a LinkedIn note instead (channel linkedin, to that URL, under 200 characters so it also fits a connection request). Skip apply-only professors and anyone with neither, and say so. The applicant approves each draft in Pipeline before anything is sent.",
 };

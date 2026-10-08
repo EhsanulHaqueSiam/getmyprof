@@ -267,6 +267,12 @@ export const Professor = z.object({
   website: z.string(),
   /** Their LinkedIn profile URL, for a note when no checked address exists. */
   linkedin: z.string().default(""),
+  /** Their Google Scholar profile URL. */
+  scholar: z.string().default(""),
+  /** Their latest papers or projects, newest first, each dated: shows they are still active. */
+  recent: z.string().default(""),
+  /** What they want students to work on or bring, in their words. */
+  seeking: z.string().default(""),
   sources: z.array(z.string()),
   grants: z.array(Grant),
   origin: z.enum(["app", "gradhunt"]),
@@ -293,6 +299,9 @@ export const PROFESSOR_FIELDS = [
   "fitsBecause",
   "website",
   "linkedin",
+  "scholar",
+  "recent",
+  "seeking",
 ] as const;
 export type ProfessorField = (typeof PROFESSOR_FIELDS)[number];
 

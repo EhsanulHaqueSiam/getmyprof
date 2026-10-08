@@ -5,17 +5,23 @@ import { addressChecked, type RowOp, type ThreadEvent } from "@getmyprof/contrac
 import { now } from "../db.ts";
 import { getRecord, pendingCount } from "../records.ts";
 import { listDocuments } from "../vault.ts";
-import { FIXTURE_PROFESSORS, FIXTURE_PROGRAMS, FIXTURE_SCHOLARSHIPS } from "./fixtures.ts";
+import {
+  FIXTURE_PROFESSORS,
+  FIXTURE_PROGRAMS,
+  FIXTURE_SCHOLARSHIPS,
+  FIXTURE_WORK,
+} from "./fixtures.ts";
 import type { AgentProvider, SessionStart } from "./provider.ts";
 import { askBlocked, capProblem, type HuntTool } from "./tools.ts";
 
-const FIELD_FOR: Record<RowOp, string> = {
+// Recent work and focus fills several fields, from FIXTURE_WORK.
+const FIELD_FOR: Record<Exclude<RowOp, "work">, string> = {
   email: "emailCheck",
   lasts: "lasts",
   taking: "taking",
   draft: "stage",
 };
-const VALUE_FOR: Record<RowOp, string> = {
+const VALUE_FOR: Record<Exclude<RowOp, "work">, string> = {
   email: "ok",
   lasts: "checked: no award as PI",
   taking: "not stated",
@@ -23,7 +29,7 @@ const VALUE_FOR: Record<RowOp, string> = {
 };
 
 /** Row actions, replies and follow-ups reach the agent as tagged prompts (runner, outreach/service). */
-const ROW_TAG = /^\[row-action:(email|lasts|taking|draft)\] keys=(\S+)/;
+const ROW_TAG = /^\[row-action:(email|lasts|taking|work|draft)\] keys=(\S+)/;
 const REPLY = /^\[reply:(\S+)\] (.+?) \((.+?)\) wrote back/;
 const WRITE = /^\[write\] kind=(\w+) program=(\S+) scholarship=(\S+) revise=(\S+)/;
 const FACT_LINE = /^- \[\[(\S+?)\]\] (.+) \((confirmed|unconfirmed|needs proof|question)\)$/gm;
@@ -329,7 +335,7 @@ export const fakeProvider = (
         await call("propose_professor", `${p.name} · ${p.university}`, {
           name: p.name,
           university: p.university,
-          [FIELD_FOR[op]]: VALUE_FOR[op],
+          ...(op === "work" ? FIXTURE_WORK[p.name] : { [FIELD_FOR[op]]: VALUE_FOR[op] }),
           sources: p.sources,
         });
       }

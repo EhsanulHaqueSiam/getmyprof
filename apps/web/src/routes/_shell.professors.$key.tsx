@@ -55,9 +55,9 @@ function Line({ children, source }: { children: ReactNode; source?: ReactNode })
 }
 
 /**
- * A professor: every fact with the page it came from and when, their grants, recent work and
- * interests (live from NSF, NIH and OpenAlex), and beside it what happened, their threads, the
- * program at their school and where the email to them stands.
+ * A professor: every fact with the page it came from and when, what they look for in students,
+ * their grants, recent work and interests (live from NSF, NIH and OpenAlex), and beside it what
+ * happened, their threads, the program at their school and where the email to them stands.
  */
 function ProfessorPage() {
   const { key } = Route.useParams();
@@ -83,7 +83,16 @@ function ProfessorPage() {
   // (Add PI, a CSV, gradhunt) shows the record's own.
   const own = p.sources.length ? { sources: p.sources, at: p.updatedAt } : undefined;
   const sourceOf = (
-    field: "money" | "moneyTier" | "taking" | "contact" | "emailCheck" | "niche" | "fitsBecause",
+    field:
+      | "money"
+      | "moneyTier"
+      | "taking"
+      | "seeking"
+      | "contact"
+      | "emailCheck"
+      | "niche"
+      | "recent"
+      | "fitsBecause",
   ) => data.fieldSources[field] ?? (p[field] ? own : undefined);
   const last = p.name.split(" ").at(-1) ?? p.name;
   // The record's grants first, then any the free APIs know that it doesn't.
@@ -101,6 +110,8 @@ function ProfessorPage() {
       })),
   ];
   const interests = [p.niche, ...(live?.interests ?? [])].filter(Boolean);
+  // OpenAlex lists newest first: when they last published.
+  const lastPaper = live?.works[0]?.date.slice(0, 7);
   const draft = data.draft;
 
   return (
@@ -132,6 +143,11 @@ function ProfessorPage() {
           <span>
             stage <b className="text-foreground">{p.stage}</b>
           </span>
+          {lastPaper ? (
+            <span>
+              last paper <b className="text-foreground">{lastPaper}</b>
+            </span>
+          ) : null}
           {p.origin === "gradhunt" ? <span>from gradhunt</span> : null}
         </div>
         <div className="mt-3.5 flex flex-wrap gap-1.5">
@@ -169,7 +185,10 @@ function ProfessorPage() {
             size="xs"
             render={
               <a
-                href={`https://scholar.google.com/scholar?q=${encodeURIComponent(`author:"${p.name}" ${p.university}`)}`}
+                href={
+                  p.scholar ||
+                  `https://scholar.google.com/scholar?q=${encodeURIComponent(`author:"${p.name}" ${p.university}`)}`
+                }
                 target="_blank"
                 rel="noreferrer"
               />
@@ -224,6 +243,12 @@ function ProfessorPage() {
           </Line>
         </Section>
 
+        <Section title="Looking for">
+          <Line source={<Source of={sourceOf("seeking")} />}>
+            {p.seeking || <span className="text-placeholder">not found</span>}
+          </Line>
+        </Section>
+
         <Section title="How to reach">
           <Line source={<Source of={sourceOf("contact")} />}>
             {p.contact ? (
@@ -239,6 +264,7 @@ function ProfessorPage() {
         </Section>
 
         <Section title="Recent work">
+          {p.recent ? <Line source={<Source of={sourceOf("recent")} />}>{p.recent}</Line> : null}
           {live === null ? (
             <Line>
               <span className="text-muted-foreground">Looking up OpenAlex</span>
@@ -255,17 +281,19 @@ function ProfessorPage() {
                       rel="noreferrer"
                       className="shrink-0 text-muted-foreground text-xs hover:underline"
                     >
-                      {w.year} · {host(w.link)}
+                      {w.date.slice(0, 7)} · {host(w.link)}
                     </a>
                   ) : (
-                    <span className="shrink-0 text-muted-foreground text-xs">{w.year}</span>
+                    <span className="shrink-0 text-muted-foreground text-xs">
+                      {w.date.slice(0, 7)}
+                    </span>
                   )
                 }
               >
                 {w.title}
               </Line>
             ))
-          ) : (
+          ) : p.recent ? null : (
             <Line>
               <span className="text-placeholder">none found on OpenAlex</span>
             </Line>

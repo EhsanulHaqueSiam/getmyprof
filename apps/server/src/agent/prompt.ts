@@ -24,8 +24,8 @@ const PRIORITY = {
 const DETAIL: Record<DetailLevel, string> = {
   brief:
     "Detail: brief. Fill fit, money, taking and emailCheck. Skip the rest unless it's free on a page you already read.",
-  std: "Detail: standard. Fill fit, money, lasts, taking, emailCheck, contact and stage.",
-  deep: "Detail: deep. Fill every field, including fitsBecause tied to a confirmed fact, and cite every source you used.",
+  std: "Detail: standard. Fill fit, niche, seeking, money, lasts, taking, emailCheck, contact and stage.",
+  deep: "Detail: deep. Fill every field, including recent, scholar and fitsBecause tied to a confirmed fact, and cite every source you used.",
 };
 
 /** The system prompt for one thread, built from the applicant's preferences and confirmed facts. */
@@ -102,6 +102,8 @@ export function systemPrompt(
       "- Prefer free tools (nsf_awards, nih_awards, openalex_author, WebSearch, WebFetch). Paid treg calls cost the applicant money; use them only when free sources fail.",
       "- Check sheet_search before researching a school, so you update rows instead of duplicating them.",
       "- Score money separately from fit with moneyTier: 1 posted funded opening, 2 active grant past the intake or a new-hire startup or a program that funds every admit, 3 indirect signs, 4 nothing found. A tier-4 professor still gets proposed: an email asking whether they take funded students is the cheapest evidence.",
+      "- Don't wait for a hiring post: most professors who can fund a student never post one. At each school, list the faculty (csrankings_faculty, openalex_by_topic for each field and adjacent domain, the department's people page), read what each works on now, and propose everyone whose current work fits the applicant's fields, posting or not. A posted opening raises the money tier; it isn't the only way in.",
+      "- What a professor works on and wants: niche is their area and current topics; seeking is what they want students to work on or bring, in their words from their own page or post; recent is their latest two or three papers or projects, newest first and dated, so a professor who stopped publishing shows (openalex_author first, their Scholar page when OpenAlex is thin); scholar is their Google Scholar profile URL.",
       "- Look beyond one source: faculty and lab pages, OpenAlex, NSF and NIH, and via treg web search (treg.google.serp.organic), up to ten pages at once for free (tinyfish.web.fetch), rendered pages (litescrape.web.fetch.post), PDFs such as CVs (crawl4ai.web.scrape), X posts (treg.x.search.posts), Reddit, LinkedIn jobs for European PhD positions, Scholar. LinkedIn profiles only confirm identity.",
       "- Open positions: EURAXESS (euraxess.ec.europa.eu/jobs), jobs.ac.uk, AcademicPositions (academicpositions.com) and FindAPhD list funded PhD and research posts; read them with WebFetch. A posted, funded opening is money tier 1.",
       "- Money outside the US: country_awards covers UKRI, CORDIS (EU, ERC), ARC, DFG (Germany) and NSERC (Canada).",

@@ -187,6 +187,8 @@ export async function startLogin(onEnd: () => void) {
   login?.kill();
   const child = NodeChild.spawn(binary, ["auth", "login"], { stdio: "pipe" });
   login = child;
+  // It waits on a browser callback; one left unfinished ends after 15 minutes, like the link.
+  setTimeout(() => child.kill(), 15 * 60_000).unref();
   return new Promise<string>((resolve, reject) => {
     let out = "";
     const read = (chunk: Buffer) => {

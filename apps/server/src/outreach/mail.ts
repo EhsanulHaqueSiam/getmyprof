@@ -48,6 +48,8 @@ export type Outgoing = {
 };
 
 export type Incoming = {
+  /** Files that came with it (under 10 MB each); filing puts them in the Vault. */
+  attachments?: { filename: string; mime: string; base64: string }[];
   messageId: string | null;
   inReplyTo: string | null;
   references: string[];
@@ -171,6 +173,13 @@ function imapMailerRaw(c: MailLogin): Mailer {
               subject: p.subject ?? "",
               text: p.text ?? "",
               date: (p.date ?? new Date()).toISOString(),
+              attachments: p.attachments
+                .filter((a) => a.filename && a.size < 10e6)
+                .map((a) => ({
+                  filename: a.filename ?? "attachment",
+                  mime: a.contentType,
+                  base64: a.content.toString("base64"),
+                })),
             });
           }
         return { cursor: { uidValidity, lastUid }, messages };
@@ -191,7 +200,13 @@ export function fakeMailer() {
   // Replies get their Date when a sync first sees them, so they always land after the send.
   const inbox: (Omit<Incoming, "date"> & { uid: number; date: string | null })[] = [];
   let uid = 0;
-  const reply = (inReplyTo: string, from: string, subject: string, text: string) =>
+  const reply = (
+    inReplyTo: string,
+    from: string,
+    subject: string,
+    text: string,
+    attachments: Incoming["attachments"] = [],
+  ) =>
     inbox.push({
       uid: ++uid,
       messageId: `<fake-in-${uid}@example.edu>`,
@@ -200,6 +215,7 @@ export function fakeMailer() {
       from,
       subject,
       text,
+      attachments,
       date: null,
     });
 
@@ -214,7 +230,14 @@ export function fakeMailer() {
           messageId,
           m.to,
           `Re: ${m.subject}`,
-          "Thanks for reaching out. Could you send your CV and a short note on what you'd want to work on in clinical NLP?",
+          "Thanks for reaching out. Could you send your CV and a short note on what you'd want to work on in clinical NLP? Our current projects are attached.",
+          [
+            {
+              filename: "lab-projects.txt",
+              mime: "text/plain",
+              base64: Buffer.from("Clinical NLP projects, 2026-27").toString("base64"),
+            },
+          ],
         );
       if (m.to === "zalake@example.edu") {
         const back = new Date(Date.now() + 10 * 864e5).toLocaleDateString("en-US", {

@@ -21,14 +21,14 @@ import { refreshVault } from "./okf.ts";
 import { createHandlers, dispatch } from "./rpc.ts";
 import { getSettings } from "./state.ts";
 import { dueReminders, markReminded } from "./reminders.ts";
-import { createThread, expireApprovals, getThread, settleStale } from "./threads.ts";
+import { scopeNote } from "./records.ts";
+import { addScope, createThread, getThread, settleStale } from "./threads.ts";
 import { documentPath, listDocuments, writingBrief } from "./vault.ts";
 
 const PORT = Number(process.env.SERVER_PORT ?? 4311);
 const fake = process.env.GRADCODE_AGENT === "fake";
 
 const db = openDb();
-expireApprovals(db);
 settleStale(db);
 if (getSettings(db).gradhunt) importGradhunt(db);
 
@@ -75,11 +75,14 @@ function startLoop(id: string, body: unknown = null) {
     same?.id ??
     createThread(db, loop.reportTo === "same" ? loop.name : `${loop.name} · ${day}`, loop.id).id;
   markRan(db, loop, ranAt, threadId);
-  const text = fillPlaceholders(loop.instructions, body);
+  // The schools and professors it works on ride along the first time this thread sees them.
+  const note = scopeNote(db, addScope(db, threadId, loop.scope));
+  const filled = fillPlaceholders(loop.instructions, body);
+  const text = note ? `${filled}\n\n${note}` : filled;
   // A repeat of the same instructions in one thread shows as a short label; a webhook's filled
   // text differs every call, so it shows in full.
   const repeat = same && loop.schedule.kind !== "webhook";
-  runner.send(threadId, text, "send", repeat ? `${loop.name} · run ${day}` : text);
+  runner.send(threadId, text, "send", repeat ? `${loop.name} · run ${day}` : filled);
   bus.push({ type: "changed", what: "loops" });
   return getThread(db, threadId)!;
 }
@@ -137,6 +140,8 @@ bus.add((m) => {
 refreshSoon();
 
 const handlers = createHandlers({ db, bus, runner, sources, fake, startLoop, outreach });
+// Turns the last process was running when it stopped pick up where they left off.
+runner.resumeAfterRestart();
 
 // Loops and the send queue run on the minute, mail syncs every 3 minutes, stale threads settle
 // hourly. Each is a cheap read when there's nothing to do.

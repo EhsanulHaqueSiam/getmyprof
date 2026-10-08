@@ -305,6 +305,8 @@ export function createOutreach(deps: {
         setKv(db, "mail.sync", { cursor, at: now(), error: "", signedOut: false });
         for (const m of filed) if (m.kind === "reply" || m.kind === "linkedin") askAboutReply(m);
         if (filed.length) changed();
+        // Their attachments were filed in the Vault.
+        if (filed.some((m) => m.attachments.length)) bus.push({ type: "changed", what: "vault" });
       } catch (e) {
         setKv(db, "mail.sync", {
           ...before,

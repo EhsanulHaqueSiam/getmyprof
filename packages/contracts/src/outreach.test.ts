@@ -47,6 +47,25 @@ describe("draft issues", () => {
     ).toEqual(["more than two links", "the address isn't checked yet: run Find and check emails"]);
   });
 
+  it("keeps a first LinkedIn note short enough for a connection request, with no address to check", () => {
+    const note = {
+      ...draft,
+      channel: "linkedin" as const,
+      body: "I led a team of five [1]. Are you taking students?",
+    };
+    expect(draftIssues(note, { ...ctx, emailCheck: "" })).toEqual([]);
+    expect(
+      draftIssues({ ...note, body: `${"Are you taking students? ".repeat(9)}[1]` }, ctx),
+    ).toEqual(["a first LinkedIn note over 200 characters won't fit a connection request"]);
+    // Once connected, a follow-up message can run longer.
+    expect(
+      draftIssues(
+        { ...note, touch: "follow-up-1", body: "Are you taking students? ".repeat(9) },
+        ctx,
+      ),
+    ).toEqual([]);
+  });
+
   it("lets a reply go to the address that wrote, and passes a clean draft", () => {
     const clean = { ...draft, body: "I led a team of five [1]. Are you taking students?" };
     expect(draftIssues(clean, ctx)).toEqual([]);

@@ -2,6 +2,7 @@
 // them by id, so a later event with the same id replaces the earlier one (a tool call that
 // finishes, an approval that resolves).
 import { z } from "zod";
+import { DetailLevel, ScopeItem } from "./domain.ts";
 
 export const ThreadStatus = z.enum(["idle", "working", "approval", "input", "failed"]);
 export type ThreadStatus = z.infer<typeof ThreadStatus>;
@@ -21,6 +22,9 @@ export const ThreadSummary = z.object({
   loopId: z.string().nullable(),
   pendingReview: z.number(),
   rows: z.number(),
+  scope: z.array(ScopeItem),
+  /** This thread's detail level; null follows the install's. */
+  detail: DetailLevel.nullable(),
 });
 export type ThreadSummary = z.infer<typeof ThreadSummary>;
 

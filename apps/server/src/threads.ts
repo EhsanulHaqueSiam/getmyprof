@@ -1,4 +1,11 @@
-import { ThreadEvent, type ThreadStatus, type ThreadSummary } from "@gradcode/contracts";
+import {
+  DetailLevel,
+  ScopeItem,
+  ThreadEvent,
+  type ThreadStatus,
+  type ThreadSummary,
+} from "@gradcode/contracts";
+import { z } from "zod";
 import { type Db, newId, now } from "./db.ts";
 import { pendingCount } from "./records.ts";
 
@@ -20,11 +27,53 @@ function summarize(db: Db, r: Row): ThreadSummary {
     spendDayUsd: daySpend(db, id),
     loopId: str(r.loop_id),
     pendingReview: pendingCount(db, id),
+    // The rows Results shows (records.threadRows): in the sheet, or still proposed here. A
+    // rejected new professor is neither.
     rows: Number(
-      db.prepare("SELECT COUNT(*) AS n FROM thread_rows WHERE thread_id = ?").get(id)?.n ?? 0,
+      db
+        .prepare(
+          `SELECT COUNT(*) AS n FROM thread_rows t WHERE t.thread_id = ? AND (
+             EXISTS (SELECT 1 FROM records r WHERE r.key = t.record_key) OR
+             EXISTS (SELECT 1 FROM proposals p WHERE p.thread_id = t.thread_id
+                       AND p.record_key = t.record_key AND p.status = 'pending'))`,
+        )
+        .get(id)?.n ?? 0,
     ),
+    scope: r.scope ? z.array(ScopeItem).parse(JSON.parse(String(r.scope))) : [],
+    detail: r.detail ? DetailLevel.parse(r.detail) : null,
   };
 }
+
+const sameItem = (a: ScopeItem, b: ScopeItem) =>
+  a.kind === b.kind &&
+  (a.kind === "professor" && b.kind === "professor" ? a.key === b.key : a.name === b.name);
+
+/** Adds professors and schools to what a thread is about. Returns the ones that are new to it. */
+export function addScope(db: Db, id: string, items: ScopeItem[]) {
+  const scope = getThread(db, id)?.scope ?? [];
+  const fresh = items.filter(
+    (x, i) => !scope.some((s) => sameItem(s, x)) && items.findIndex((y) => sameItem(x, y)) === i,
+  );
+  if (fresh.length)
+    db.prepare("UPDATE threads SET scope = ? WHERE id = ?").run(
+      JSON.stringify([...scope, ...fresh]),
+      id,
+    );
+  return fresh;
+}
+
+/** "Always under $x here": paid calls up to this many USD go without asking in this thread. */
+export const allowUnder = (db: Db, id: string) =>
+  Number(db.prepare("SELECT allow_under FROM threads WHERE id = ?").get(id)?.allow_under ?? 0);
+
+export const setAllowUnder = (db: Db, id: string, usd: number) =>
+  db
+    .prepare("UPDATE threads SET allow_under = ? WHERE id = ?")
+    .run(String(Math.max(allowUnder(db, id), usd)), id);
+
+/** A thread's own detail level; null follows the install's. */
+export const setDetail = (db: Db, id: string, detail: DetailLevel | null) =>
+  db.prepare("UPDATE threads SET detail = ? WHERE id = ?").run(detail, id);
 
 export function createThread(db: Db, title: string, loopId: string | null = null) {
   const id = newId("thr");
@@ -174,6 +223,14 @@ export const threadSpend = (db: Db, threadId: string) =>
   );
 
 /** Spend in the last 24 hours, the window the day cap counts: all of it, or one thread's. */
+/** The last day's spend that belongs to no thread (a LinkedIn member-id lookup from the Pipeline). */
+export const daySpendOutsideThreads = (db: Db) =>
+  Number(
+    db
+      .prepare("SELECT COALESCE(SUM(usd), 0) AS s FROM spend WHERE at >= ? AND thread_id IS NULL")
+      .get(new Date(Date.now() - 864e5).toISOString())?.s ?? 0,
+  );
+
 export const daySpend = (db: Db, threadId?: string) =>
   Number(
     db
@@ -182,20 +239,6 @@ export const daySpend = (db: Db, threadId?: string) =>
       )
       .get(new Date(Date.now() - 864e5).toISOString(), ...(threadId ? [threadId] : []))?.s ?? 0,
   );
-
-/** Approvals still waiting when the server stopped can't be answered any more. */
-export function expireApprovals(db: Db) {
-  for (const t of listThreads(db)) {
-    for (const e of listEvents(db, t.id)) {
-      if (e.type === "approval" && e.status === "pending")
-        putEvent(db, t.id, { ...e, status: "denied" });
-      // A question survives a restart: the thread still waits for the answer.
-      if (e.type === "tool" && e.status === "running")
-        putEvent(db, t.id, { ...e, status: "error", meta: "server restarted" });
-    }
-    if (t.status !== "idle") setStatus(db, t.id, pendingQuestion(db, t.id) ? "input" : "idle");
-  }
-}
 
 /** Threads whose messages or tool calls mention `q`, newest match first, with a snippet. */
 export function searchThreads(db: Db, q: string, limit = 20) {
@@ -233,6 +276,8 @@ export function forkThread(db: Db, id: string) {
   const source = getThread(db, id);
   if (!source) throw new Error(`No thread ${id}`);
   const copy = createThread(db, `${source.title} (fork)`);
+  addScope(db, copy.id, source.scope);
+  setDetail(db, copy.id, source.detail);
   const session = sessionId(db, id);
   if (session) setSession(db, copy.id, session);
   for (const e of listEvents(db, id)) putEvent(db, copy.id, e);

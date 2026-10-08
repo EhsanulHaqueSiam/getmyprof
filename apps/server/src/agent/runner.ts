@@ -1,10 +1,13 @@
 import { ROW_OPS, type RowOp, type ThreadEvent } from "@gradcode/contracts";
 import type { Bus } from "../bus.ts";
 import { type Db, newId, now } from "../db.ts";
-import { getRecord, threadProposals } from "../records.ts";
+import { getRecord, recordLine, threadProposals } from "../records.ts";
 import { profileFacts } from "../adapters.ts";
 import { getApplicant, getHunt, getSettings } from "../state.ts";
+import { allowLoopUnder, listLoops, noteRun } from "../loops.ts";
 import {
+  allowUnder,
+  setAllowUnder,
   listThreads,
   markUnread,
   putEvent,
@@ -32,8 +35,26 @@ const ROW_INSTRUCTIONS: Record<RowOp, string> = {
   taking:
     "For each professor below, read their homepage or lab page and record whether they're taking students for the intake (taking) and how they want to be reached (contact) with propose_professor.",
   draft:
-    "Draft a short first email for each professor below with draft_email (touch first). Skip apply-only professors and anyone without a reviewed address, and say so. The applicant approves each draft in Pipeline before anything is sent.",
+    "Draft a short first message for each professor below with draft_email (touch first). Email goes only to a reviewed address. Without one, if the sheet has their LinkedIn profile, draft a LinkedIn note instead (channel linkedin, to that URL, under 200 characters so it also fits a connection request). Skip apply-only professors and anyone with neither, and say so. The applicant approves each draft in Pipeline before anything is sent.",
 };
+
+/** A loop run in a line: "2 new, 1 change, 1 accepted", why it stopped, or "nothing new". */
+export function runSummary(
+  proposals: { kind: "add" | "update"; status: string }[],
+  stop: string | null,
+) {
+  const n = (k: "add" | "update") => proposals.filter((p) => p.kind === k).length;
+  const accepted = proposals.filter((p) => p.status === "accepted").length;
+  const found = [
+    n("add") ? `${n("add")} new` : "",
+    n("update") ? `${n("update")} change${n("update") === 1 ? "" : "s"}` : "",
+    accepted ? `${accepted} accepted` : "",
+  ].filter(Boolean);
+  if (stop && stop !== "interrupted") return [stop, ...found].join(" · ");
+  return found.length ? found.join(", ") : "nothing new";
+}
+
+const RESTARTED = "The server restarted mid-turn · picking up where it left off";
 
 /**
  * Runs agent sessions for threads and turns what they do into thread state: events, status,
@@ -50,7 +71,10 @@ export function createRunner(deps: {
 }) {
   const { db, bus, provider, sources } = deps;
   const sessions = new Map<string, AgentSession>();
-  const approvals = new Map<string, { threadId: string; resolve: (ok: boolean) => void }>();
+  const approvals = new Map<
+    string,
+    { threadId: string; costUsd: number; resolve: (ok: boolean) => void }
+  >();
   const turns = new Map<string, { at: number; spend: number; calls: number }>();
 
   /** The treg feature tag of each thread's latest message: row-<op> for a row action. */
@@ -129,6 +153,15 @@ export function createRunner(deps: {
             type: "system",
             text: "Settled · nothing waits on you",
           });
+        // A loop run leaves its Last run line: what it found, or why it stopped.
+        const loopId = getThread(db, threadId)?.loopId;
+        if (loopId) {
+          const stop = listEvents(db, threadId).findLast(
+            (e) => e.type === "system" && e.at >= started && e.text.startsWith("Stopped:"),
+          );
+          noteRun(db, loopId, runSummary(mine, stop?.type === "system" ? stop.text : error));
+          bus.push({ type: "changed", what: "loops" });
+        }
         pushThreads();
       },
       requestApproval(ask) {
@@ -146,6 +179,7 @@ export function createRunner(deps: {
         return new Promise<boolean>((resolve) => {
           approvals.set(id, {
             threadId,
+            costUsd: ask.costUsd,
             resolve: (ok) => {
               approvals.delete(id);
               emit(threadId, { ...event, at: now(), status: ok ? "allowed" : "denied" });
@@ -160,8 +194,21 @@ export function createRunner(deps: {
     };
   }
 
+  /** What a paid call may cost here without asking: the install's limit, or a rule set here. */
+  function allowance(threadId: string) {
+    const loopId = getThread(db, threadId)?.loopId;
+    const loop = loopId ? listLoops(db).find((l) => l.id === loopId) : undefined;
+    return Math.max(
+      getSettings(db).budget.askOver,
+      allowUnder(db, threadId),
+      loop?.allowUnder ?? 0,
+    );
+  }
+
   function start(threadId: string, text: string, files: Attachment[]) {
-    const settings = getSettings(db);
+    const install = getSettings(db);
+    // A thread may dig deeper or lighter than the install.
+    const settings = { ...install, detail: getThread(db, threadId)?.detail ?? install.detail };
     const hunt = getHunt(db);
     const session = provider.start({
       threadId,
@@ -178,7 +225,7 @@ export function createRunner(deps: {
       ),
       model: settings.model,
       tools: toolsFor(settings),
-      askOver: settings.budget.askOver,
+      askOver: () => allowance(threadId),
       mcpServers: settings.mcpServers,
       hooks: hooksFor(threadId),
       toolContext: {
@@ -236,7 +283,8 @@ export function createRunner(deps: {
     const ask = /^\[ask\]\s*/.exec(text);
     if (ask) {
       asks.add(threadId);
-      shown = `Ask · ${text.slice(ask[0].length)}`;
+      // What was typed, not what rides along for the agent (a scope note, say).
+      shown = `Ask · ${shown.replace(/^\[ask\]\s*/, "")}`;
       text = `${text}\n\n(Ask mode: answer from what you can read. Change nothing, propose nothing, spend nothing.)`;
     } else asks.delete(threadId);
     const op = /^\[row-action:(\w+)\]/.exec(text)?.[1];
@@ -282,6 +330,20 @@ export function createRunner(deps: {
     return true;
   }
 
+  /** Sends a held message now, mid-turn, instead of after the current tool call. */
+  function steerQueued(threadId: string, eventId: string) {
+    const queue = held.get(threadId) ?? [];
+    const i = queue.findIndex((m) => m.eventId === eventId);
+    const live = sessions.get(threadId);
+    const m = queue[i];
+    if (!m || !live) return false;
+    queue.splice(i, 1);
+    live.push(m.text, "now", m.files);
+    const e = listEvents(db, threadId).find((x) => x.id === eventId);
+    if (e?.type === "user") emit(threadId, { ...e, delivery: "steered" });
+    return true;
+  }
+
   /** Moves a held message one place earlier (-1) or later (+1); the transcript follows. */
   function moveQueued(threadId: string, eventId: string, by: -1 | 1) {
     const queue = held.get(threadId) ?? [];
@@ -304,18 +366,50 @@ export function createRunner(deps: {
     return true;
   }
 
+  /**
+   * After a restart: approvals and tool calls the old process was waiting on lapse, and a turn it
+   * was running picks up where it stopped, its session resumed with a note. A thread cut off
+   * again right after resuming is left idle, so a crash can't loop. A question still waits.
+   */
+  function resumeAfterRestart() {
+    for (const t of listThreads(db)) {
+      const events = listEvents(db, t.id);
+      for (const e of events) {
+        if (e.type === "approval" && e.status === "pending")
+          putEvent(db, t.id, { ...e, status: "denied" });
+        if (e.type === "tool" && e.status === "running")
+          putEvent(db, t.id, { ...e, status: "error", meta: "server restarted" });
+      }
+      if (t.status === "idle") continue;
+      const last = events.at(-1);
+      const cutOff = t.status === "working" || t.status === "approval";
+      if (!cutOff || !sessionId(db, t.id) || (last?.type === "system" && last.text === RESTARTED)) {
+        setStatus(db, t.id, pendingQuestion(db, t.id) ? "input" : "idle");
+        continue;
+      }
+      emit(t.id, { id: newId("sys"), at: now(), type: "system", text: RESTARTED });
+      // An Ask stays read-only and free across the restart.
+      const asked = events.findLast((e) => e.type === "user")?.text.startsWith("Ask · ");
+      if (asked) asks.add(t.id);
+      start(
+        t.id,
+        `The server restarted during your last turn. Pick up where you left off; what you already proposed or drafted is saved.${asked ? "\n\n(Ask mode: answer from what you can read. Change nothing, propose nothing, spend nothing.)" : ""}`,
+        [],
+      );
+    }
+    pushThreads();
+  }
+
   return {
     send,
+    resumeAfterRestart,
     editQueued,
+    steerQueued,
     moveQueued,
     rowAction(threadId: string, op: RowOp, keys: string[]) {
       const rows = keys.flatMap((k) => {
         const r = getRecord(db, k);
-        return r
-          ? [
-              `- ${r.name} | ${r.university} | key ${r.key} | email ${r.email || "?"} | site ${r.website || "?"} | contact ${r.contact || "?"} | money tier ${r.moneyTier || "?"}: ${r.money || "?"}`,
-            ]
-          : [];
+        return r ? [recordLine(r)] : [];
       });
       const prompt = `[row-action:${op}] keys=${keys.join(",")}\n${ROW_INSTRUCTIONS[op]}\n${rows.join("\n")}`;
       send(
@@ -332,8 +426,17 @@ export function createRunner(deps: {
       if (held.delete(threadId)) reloadThread(threadId);
       await sessions.get(threadId)?.interrupt();
     },
-    resolveApproval(approvalId: string, ok: boolean) {
-      approvals.get(approvalId)?.resolve(ok);
+    /** once allows this call; always also allows any call up to the next cent above it, here. */
+    resolveApproval(approvalId: string, decision: "once" | "always" | "deny") {
+      const a = approvals.get(approvalId);
+      if (!a) return;
+      if (decision === "always") {
+        const under = Math.max(0.01, Math.ceil(a.costUsd * 100) / 100);
+        setAllowUnder(db, a.threadId, under);
+        const loopId = getThread(db, a.threadId)?.loopId;
+        if (loopId) allowLoopUnder(db, loopId, under);
+      }
+      a.resolve(decision !== "deny");
     },
     isLive: (threadId: string) => sessions.has(threadId),
   };

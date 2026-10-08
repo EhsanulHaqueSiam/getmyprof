@@ -4,11 +4,13 @@ import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { CheckIcon, LinkIcon } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Kbd } from "~/components/ui/kbd";
+import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
 
 const FIELD_LABEL: Record<string, string> = {
   emailCheck: "email check",
   fitsBecause: "fits because",
+  linkedin: "LinkedIn",
 };
 
 /** Pending proposals as field diffs. Accept writes to the sheet; reject drops it (and the person, for an add). */
@@ -21,12 +23,18 @@ export function Review({
   drafts = 0,
   finds = 0,
   findsIn,
+  onOpen,
+  selected = null,
 }: {
   proposals: Proposal[];
   drafts?: number;
   finds?: number;
   /** The Vault section the finds belong in. */
   findsIn?: "scholarships" | "programs" | undefined;
+  /** Opens a proposal's professor beside it. */
+  onOpen?: (recordKey: string) => void;
+  /** The proposal the keyboard is on: a and r act on it. */
+  selected?: string | null;
 }) {
   const pending = proposals.filter((p) => p.status === "pending");
   const [ref] = useAutoAnimate<HTMLDivElement>({
@@ -93,9 +101,24 @@ export function Review({
           </div>
         ) : (
           pending.map((p) => (
-            <div key={p.id} data-testid="proposal" className="border-t px-3.5 py-3">
+            <div
+              key={p.id}
+              data-testid="proposal"
+              aria-current={p.id === selected || undefined}
+              className={cn("border-t px-3.5 py-3", p.id === selected && "bg-primary/7")}
+            >
               <div className="flex items-baseline gap-2">
-                <span className="truncate font-semibold text-sm">{p.recordName}</span>
+                {onOpen ? (
+                  <button
+                    type="button"
+                    onClick={() => onOpen(p.recordKey)}
+                    className="truncate font-semibold text-sm hover:underline"
+                  >
+                    {p.recordName}
+                  </button>
+                ) : (
+                  <span className="truncate font-semibold text-sm">{p.recordName}</span>
+                )}
                 <span className="truncate text-muted-foreground text-xs">{p.university}</span>
                 <span className="ml-auto text-2xs text-muted-foreground">
                   {p.kind === "add" ? "new" : "update"}
@@ -114,6 +137,14 @@ export function Review({
                       <div className="bg-success/8 px-2.5 text-success-foreground">
                         + {FIELD_LABEL[c.field] ?? c.field}: {c.to}
                       </div>
+                      {c.disagrees ? (
+                        <div
+                          className="bg-warning/8 px-2.5 text-warning-foreground"
+                          data-testid="disagrees"
+                        >
+                          ? {c.disagrees} said otherwise: accept if this source is more current
+                        </div>
+                      ) : null}
                     </div>
                   ))}
               </div>

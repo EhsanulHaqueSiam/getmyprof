@@ -6,13 +6,21 @@ import {
   UserIcon,
   UsersIcon,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import type { ScopeItem } from "@gradcode/contracts";
+import { type ReactNode, useEffect } from "react";
 import { Composer } from "~/components/Composer";
 import { Kbd } from "~/components/ui/kbd";
 import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
 
-export const Route = createFileRoute("/_shell/")({ component: NewThread });
+// "Ask about Lybarger" lands here with ?about=<record key>&name=<name>.
+export const Route = createFileRoute("/_shell/")({
+  component: NewThread,
+  validateSearch: (s: Record<string, unknown>): { about?: string; name?: string } => ({
+    ...(typeof s.about === "string" ? { about: s.about } : {}),
+    ...(typeof s.name === "string" ? { name: s.name } : {}),
+  }),
+});
 
 const STARTERS: { icon: ReactNode; title: string; detail: string; prompt: string }[] = [
   {
@@ -52,17 +60,43 @@ const STARTERS: { icon: ReactNode; title: string; detail: string; prompt: string
   },
 ];
 
+const typingIn = (t: EventTarget | null) =>
+  t instanceof HTMLElement && t.closest("input, textarea, [contenteditable]") !== null;
+
 function NewThread() {
   const navigate = useNavigate();
   const hunt = useStore((s) => s.app?.hunt);
-  const start = async (text: string, title?: string, attachments: string[] = []) => {
+  const { about, name } = Route.useSearch();
+  const asking: ScopeItem[] = about && name ? [{ kind: "professor", key: about, name }] : [];
+  const start = async (
+    text: string,
+    title?: string,
+    attachments: string[] = [],
+    scope: ScopeItem[] = [],
+  ) => {
     const t = await call("threads.create", {
       text,
       ...(title ? { title } : {}),
       ...(attachments.length ? { attachments } : {}),
+      ...(scope.length ? { scope } : {}),
     });
     void navigate({ to: "/t/$threadId", params: { threadId: t.id } });
   };
+
+  // 1 to 5 start a starter; any other key starts typing in the composer.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (typingIn(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
+      const starter = STARTERS[Number(e.key) - 1];
+      if (/^[1-5]$/.test(e.key) && starter) {
+        e.preventDefault();
+        void start(starter.prompt, starter.title);
+      } else if (e.key.length === 1)
+        document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Message"]')?.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
   return (
     <div className="flex min-w-0 flex-1 flex-col justify-center px-6">
       <div className="mx-auto w-full max-w-[46rem]">
@@ -86,9 +120,19 @@ function NewThread() {
           ))}
         </div>
         <Composer
-          autoFocus
-          placeholder="Describe what to find."
-          onSend={(text, _delivery, attachments) => void start(text, undefined, attachments)}
+          key={about ?? "new"}
+          // Asking about someone starts typing at once; otherwise 1 to 5 pick a starter first.
+          autoFocus={asking.length > 0}
+          mentions={asking}
+          ask={asking.length > 0}
+          placeholder={
+            name
+              ? `Ask about ${name}.`
+              : "Describe what to find. @ a school or professor to scope it."
+          }
+          onSend={(text, _delivery, attachments, scope) =>
+            void start(text, undefined, attachments, scope)
+          }
         />
       </div>
     </div>

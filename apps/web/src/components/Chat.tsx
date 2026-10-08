@@ -131,7 +131,7 @@ function WorkLog({
   );
 }
 
-/** A message waiting for the next tool call: edit, remove or move it until it goes out. */
+/** A message waiting for the next tool call: steer it in now, edit, remove or move it until it goes out. */
 function QueuedMessage({
   event,
   threadId,
@@ -179,6 +179,15 @@ function QueuedMessage({
       )}
       <span className="flex items-center gap-1 pr-1 text-2xs text-muted-foreground">
         queued · after the current tool call
+        <Button
+          size="xs"
+          variant="ghost-muted"
+          onClick={() =>
+            void call("threads.steerQueued", { threadId, eventId: event.id }).catch(() => {})
+          }
+        >
+          Steer
+        </Button>
         <Button
           size="icon-micro"
           variant="ghost-muted"
@@ -229,8 +238,10 @@ export function ApprovalCard({ event, threadId }: { event: Approval; threadId: s
         {event.status === "allowed" ? "Allowed" : "Denied"} · {event.body}
       </div>
     );
-  const resolve = (decision: "once" | "deny") =>
+  const resolve = (decision: "once" | "always" | "deny") =>
     void call("approvals.resolve", { threadId, approvalId: event.id, decision });
+  // "Always" allows paid calls up to the next cent above this one, in this thread (and its loop).
+  const under = Math.max(0.01, Math.ceil(event.costUsd * 100) / 100);
   return (
     <div
       data-testid="approval"
@@ -245,6 +256,9 @@ export function ApprovalCard({ event, threadId }: { event: Approval; threadId: s
       <div className="mt-2.5 flex justify-end gap-1.5">
         <Button variant="ghost-muted" size="xs" onClick={() => resolve("deny")}>
           Deny
+        </Button>
+        <Button variant="outline" size="xs" onClick={() => resolve("always")}>
+          Always under ${under.toFixed(2)} here
         </Button>
         <Button size="xs" onClick={() => resolve("once")}>
           Allow once <Kbd className="bg-transparent text-primary-foreground/60">↵</Kbd>

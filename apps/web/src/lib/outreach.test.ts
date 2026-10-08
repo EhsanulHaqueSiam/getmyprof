@@ -20,6 +20,7 @@ const record: Professor = {
   stage: "sent",
   fitsBecause: "",
   website: "",
+  linkedin: "",
   sources: [],
   grants: [],
   origin: "app",
@@ -88,6 +89,14 @@ describe("the Pipeline's reading of a conversation", () => {
     });
     expect(sequence(applied).find((s) => s.id === "plan-applied")?.state).toBe("now");
     expect(cardLine(applied)).toBe("PhD in IT · submitted Nov 2");
+
+    // The hunt ended before a first email went: the card doesn't offer its draft any more.
+    const ended = convo({
+      stage: "to-contact",
+      turn: "closed",
+      messages: [msg({ status: "draft" })],
+    });
+    expect(cardLine(ended)).toBe("closed");
 
     const replied = convo({
       stage: "replied",

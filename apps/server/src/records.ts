@@ -1,11 +1,14 @@
 import {
+  type Award,
   type Change,
   PROFESSOR_FIELDS,
   Professor,
   type ProfessorField,
   Proposal,
+  type ScopeItem,
 } from "@gradcode/contracts";
 import { type Db, newId, now } from "./db.ts";
+import { sameSchool } from "./sources.ts";
 
 const slug = (s: string) =>
   s
@@ -37,6 +40,7 @@ export function blankProfessor(name: string, university: string): Professor {
     stage: "new",
     fitsBecause: "",
     website: "",
+    linkedin: "",
     sources: [],
     grants: [],
     origin: "app",
@@ -118,6 +122,20 @@ export function propose(
     if (to !== "" && to !== from) changes.push({ field, from, to });
   }
   if (current && changes.length === 0) return { skipped: "no change" };
+  // A money tier of 1 or 2 is a claim about money: it needs the page that shows it.
+  const tier = Number(input.fields.moneyTier ?? 0);
+  if ((tier === 1 || tier === 2) && !input.sources.some((s) => /^https?:\/\//.test(s)))
+    return { skipped: "a money tier of 1 or 2 needs the page that shows the money as a source" };
+  // A value set from one page and now changed from another: both sources go to Review.
+  const known = fieldSources(recordProposals(db, key));
+  const host = (u: string) => u.replace(/^https?:\/\/(www\.)?/, "").split("/")[0] ?? u;
+  const newHosts = new Set(input.sources.map(host));
+  for (const c of changes) {
+    const was = known[c.field];
+    const wasHost = was?.sources.find((s) => /^https?:\/\//.test(s));
+    if (c.from && wasHost && !newHosts.has(host(wasHost)))
+      c.disagrees = `${host(wasHost)}, ${was?.at.slice(0, 10)}`;
+  }
   const proposal: Proposal = {
     id: newId("prop"),
     threadId,
@@ -220,4 +238,99 @@ export function threadRows(db: Db, threadId: string): Professor[] {
       return [mine.reduce((acc, p) => applyChanges(acc, p.changes), base)];
     })
     .toSorted(byMoneyThenFit);
+}
+
+/** Every proposal ever made about one professor, in any thread. */
+export const recordProposals = (db: Db, key: string) =>
+  db
+    .prepare("SELECT body FROM proposals WHERE record_key = ?")
+    .all(key)
+    .map((r) => Proposal.parse(JSON.parse(String(r.body))));
+
+/** Each field's current value: the sources and date of the latest accepted change to it. */
+export function fieldSources(proposals: Proposal[]) {
+  const out: Record<string, { sources: string[]; at: string }> = {};
+  const accepted = proposals
+    .filter((p) => p.status === "accepted")
+    .toSorted((a, b) => a.createdAt.localeCompare(b.createdAt));
+  for (const p of accepted)
+    for (const c of p.changes) out[c.field] = { sources: p.sources, at: p.createdAt };
+  return out;
+}
+
+/** One professor as the agent reads it: what the sheet knows, on one line. */
+export const recordLine = (r: Professor) =>
+  [
+    `- ${r.name}`,
+    r.department ? `${r.university}, ${r.department}` : r.university,
+    `key ${r.key}`,
+    `fit ${r.fit}`,
+    `money tier ${r.moneyTier || "?"}: ${r.money || "?"}`,
+    `lasts ${r.lasts || "?"}`,
+    `taking ${r.taking || "?"}`,
+    `email ${r.email || "?"} (${r.emailCheck || "unchecked"})`,
+    `contact ${r.contact || "?"}`,
+    `stage ${r.stage}`,
+    `site ${r.website || "?"}`,
+    `linkedin ${r.linkedin || "?"}`,
+    ...(r.niche ? [`niche ${r.niche}`] : []),
+    ...(r.sources.length ? [`sources ${r.sources.join(" ")}`] : []),
+  ].join(" | ");
+
+/**
+ * What the sheet knows about professors and schools a thread just took on: each professor's
+ * record, each school's professors. The agent reads this instead of fetching the same pages.
+ */
+export function scopeNote(db: Db, items: ScopeItem[]) {
+  if (!items.length) return "";
+  const records = listRecords(db);
+  const lines = items.flatMap((x) => {
+    if (x.kind === "professor") {
+      const r = getRecord(db, x.key);
+      return [r ? recordLine(r) : `- ${x.name}: not in the sheet yet`];
+    }
+    const at = records.filter((r) => sameSchool(r.university, x.name));
+    return at.length
+      ? [`${x.name}, ${at.length} in the sheet:`, ...at.slice(0, 30).map(recordLine)]
+      : [`- ${x.name}: nobody in the sheet yet`];
+  });
+  // ponytail: a fixed cap keeps a 24-school loop's note readable; search the sheet for the rest.
+  const shown =
+    lines.length > 80
+      ? [...lines.slice(0, 80), `(${lines.length - 80} more lines: use sheet_search)`]
+      : lines;
+  return `Scope: ${items.map((x) => x.name).join(", ")}. What the sheet already has, with its sources; use it instead of fetching again, and fetch only what's missing or asked:\n${shown.join("\n")}`;
+}
+
+/** "LYBARGER, KEVIN" and "Kevin Lybarger" are the same person. */
+export const personKey = (name: string) => {
+  const parts = name.includes(",") ? name.split(",").toReversed().join(" ") : name;
+  const w = parts.toLowerCase().split(/\s+/).filter(Boolean);
+  return `${w[0]?.[0] ?? ""} ${w.at(-1) ?? ""}`;
+};
+
+/**
+ * The sheet row for an award's PI, from one click in Funding: the award becomes their grant and
+ * its page their source. A PI already in the sheet just gains the grant.
+ */
+export function professorFromAward(existing: Professor | null, a: Award): Professor {
+  const grant = {
+    source: a.source,
+    id: a.id,
+    title: a.title,
+    usd: a.currency === "USD" ? a.amount : null,
+    ends: a.ends,
+  };
+  const base = existing ?? {
+    ...blankProfessor(a.pi, a.university),
+    moneyTier: (a.monthsAfterIntake ?? 0) > 0 ? 2 : 3,
+    money: `${a.source} award as PI${a.amount ? `, ${a.currency} ${Math.round(a.amount).toLocaleString("en-US")}` : ""}`,
+    lasts: a.ends ?? "",
+  };
+  return {
+    ...base,
+    grants: base.grants.some((g) => g.id === a.id) ? base.grants : [...base.grants, grant],
+    sources: base.sources.includes(a.url) ? base.sources : [...base.sources, a.url],
+    updatedAt: now(),
+  };
 }

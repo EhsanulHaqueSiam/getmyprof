@@ -1,4 +1,11 @@
-import type { Applicant, DetailLevel, HuntPrefs, ProfileFact } from "@gradcode/contracts";
+import {
+  type Applicant,
+  type DetailLevel,
+  FREE_SOURCES,
+  type FreeSource,
+  type HuntPrefs,
+  type ProfileFact,
+} from "@gradcode/contracts";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CheckIcon, FileTextIcon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -15,6 +22,13 @@ import { useStore } from "~/state/store";
 export const Route = createFileRoute("/setup")({ component: Setup });
 
 const STEPS = ["Connect", "You", "Your hunt", "Detail and budget"] as const;
+const FREE_LABEL: Record<FreeSource, string> = {
+  NSF: "NSF awards",
+  NIH: "NIH RePORTER",
+  OpenAlex: "OpenAlex",
+  CSRankings: "CSRankings",
+  web: "web search and faculty pages",
+};
 const DEFAULT_PREFS: HuntPrefs = {
   degrees: ["phd", "ms_phd"],
   intake: "Fall 2027",
@@ -31,6 +45,7 @@ const DEFAULT_PREFS: HuntPrefs = {
 
 function Setup() {
   const app = useStore((s) => s.app);
+  const saveSettings = useStore((s) => s.saveSettings);
   const loadApp = useStore((s) => s.loadApp);
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
@@ -121,9 +136,10 @@ function Setup() {
   const hqFacts = profileSource === "hq" ? (app?.facts ?? []) : [];
 
   return (
-    <div className="grid h-dvh grid-cols-[230px_minmax(0,1fr)]">
-      <nav className="flex flex-col gap-0.5 border-r px-2.5 py-3.5">
-        <div className="px-2.5 pb-3 font-semibold text-sm">gradcode</div>
+    <div className="grid h-dvh grid-rows-[auto_minmax(0,1fr)] md:grid-cols-[230px_minmax(0,1fr)] md:grid-rows-1">
+      {/* On a phone the steps run across the top and scroll sideways. */}
+      <nav className="flex gap-0.5 overflow-x-auto border-b px-2.5 py-2 md:flex-col md:overflow-visible md:border-r md:border-b-0 md:py-3.5">
+        <div className="hidden px-2.5 pb-3 font-semibold text-sm md:block">gradcode</div>
         {STEPS.map((s, i) => (
           <button
             key={s}
@@ -131,7 +147,7 @@ function Setup() {
             onClick={() => setStep(i)}
             aria-label={`Step ${i + 1}: ${s}`}
             className={cn(
-              "flex h-8.5 items-center gap-2.5 rounded-lg px-2.5 text-left text-sm transition-colors",
+              "flex h-8.5 shrink-0 items-center gap-2.5 rounded-lg px-2.5 text-left text-sm whitespace-nowrap transition-colors",
               i === step
                 ? "bg-secondary text-foreground"
                 : "text-muted-foreground hover:bg-accent hover:text-foreground",
@@ -152,7 +168,7 @@ function Setup() {
         ))}
       </nav>
       <section className="overflow-y-auto">
-        <div key={step} className="max-w-[820px] animate-fade-up px-7 py-6">
+        <div key={step} className="max-w-[820px] animate-fade-up px-4 py-6 md:px-7">
           {step === 0 ? (
             <>
               <h1 className="font-semibold text-lg tracking-tight">Connect</h1>
@@ -161,10 +177,23 @@ function Setup() {
                 a gradcode server.
               </p>
               <Row label="Agent">
-                <span className="text-success-foreground">●</span> Claude Code{" "}
-                <span className="text-muted-foreground text-xs">
-                  · your subscription pays for the thinking
-                </span>
+                {app?.claude.signedIn ? (
+                  <>
+                    <span className="text-success-foreground">●</span> Claude Code{" "}
+                    <span className="text-muted-foreground text-xs">
+                      · signed in as {app.claude.who}; your subscription pays for the thinking
+                    </span>
+                  </>
+                ) : (
+                  <span data-testid="claude-missing">
+                    <span className="text-warning-foreground">●</span> Claude Code isn't signed in
+                    on this machine.{" "}
+                    <span className="text-muted-foreground text-xs">
+                      Run <code className="font-mono">claude</code> in a terminal, log in, then
+                      reload.
+                    </span>
+                  </span>
+                )}
               </Row>
               <Row label="Runs on">
                 {app?.host ?? "this machine"}{" "}
@@ -174,17 +203,24 @@ function Setup() {
               </Row>
               <Row label="Free sources">
                 <div className="flex flex-wrap gap-1.5">
-                  {[
-                    "NSF awards",
-                    "NIH RePORTER",
-                    "OpenAlex",
-                    "web search",
-                    "faculty and lab pages",
-                  ].map((s) => (
-                    <Chip key={s} on onClick={() => undefined}>
-                      {s}
-                    </Chip>
-                  ))}
+                  {FREE_SOURCES.map((s) => {
+                    const on = app?.settings.freeSources.includes(s) ?? true;
+                    return (
+                      <Chip
+                        key={s}
+                        on={on}
+                        onClick={() =>
+                          void saveSettings({
+                            freeSources: on
+                              ? (app?.settings.freeSources ?? []).filter((x) => x !== s)
+                              : [...(app?.settings.freeSources ?? []), s],
+                          })
+                        }
+                      >
+                        {FREE_LABEL[s]}
+                      </Chip>
+                    );
+                  })}
                 </div>
               </Row>
               <Row label="Paid lookups (treg)">

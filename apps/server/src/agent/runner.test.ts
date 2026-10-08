@@ -227,6 +227,8 @@ describe("forking a thread", () => {
       () => getThread(db, source)?.status === "idle" && (getThread(db, source)?.rows ?? 0) > 0,
     );
 
+    // Review stays with the original thread; accepted rows are the sheet's and carry over.
+    for (const p of threadProposals(db, source)) resolveProposal(db, p.id, "accept");
     const copy = forkThread(db, source);
     expect(listEvents(db, copy.id)).toHaveLength(listEvents(db, source).length);
     expect(copy.rows).toBe(getThread(db, source)?.rows);

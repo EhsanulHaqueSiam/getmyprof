@@ -48,7 +48,7 @@ export function Interviews({
           (w) => w.kind === "prep" && w.programId === app.programId && w.title.endsWith(i.with),
         );
         return (
-          <div key={i.id} className="flex items-center gap-2">
+          <div key={i.id} className="flex flex-wrap items-center gap-2">
             <span className="w-36 truncate text-foreground">{i.with}</span>
             <span className="w-28 text-muted-foreground">{when(i.at)}</span>
             <Button
@@ -108,7 +108,7 @@ export function Interviews({
         );
       })}
       <form
-        className="flex items-center gap-1.5"
+        className="flex flex-wrap items-center gap-1.5"
         onSubmit={(e) => {
           e.preventDefault();
           if (!who.trim() || !at) return;

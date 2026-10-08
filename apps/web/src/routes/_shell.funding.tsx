@@ -7,6 +7,7 @@ import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
+import { plural } from "~/lib/format";
 
 export const Route = createFileRoute("/_shell/funding")({ component: Funding });
 
@@ -21,6 +22,8 @@ const SOURCE_NOTE: Record<AwardSource, string> = {
   UKRI: "UK",
   CORDIS: "EU, ERC",
   ARC: "Australia",
+  DFG: "Germany",
+  NSERC: "Canada",
 };
 
 /**
@@ -79,9 +82,9 @@ function Funding() {
   };
 
   return (
-    <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_340px]">
+    <div className="grid min-w-0 flex-1 grid-cols-1 overflow-y-auto md:grid-cols-[minmax(0,1fr)_340px] md:overflow-visible">
       <section className="flex min-w-0 flex-col">
-        <header className="flex h-12 shrink-0 items-center gap-2.5 px-4">
+        <header className="flex min-h-12 shrink-0 flex-wrap items-center gap-2.5 px-4 py-2">
           <h1 className="font-semibold text-sm">Funding</h1>
           <div className="inline-flex rounded-lg border p-0.5 text-xs" role="tablist">
             {(["awards", "programs", "fellowships"] as const).map((t) => (
@@ -276,7 +279,7 @@ function Funding() {
         </div>
         {tab === "awards" && awards?.length ? (
           <div className="flex h-9 shrink-0 items-center gap-2 border-t px-4 text-muted-foreground text-xs">
-            {awards.length} awards
+            {plural(awards.length, "award")}
             <span className="ml-auto">ranked by months left after your intake, then fit</span>
           </div>
         ) : null}

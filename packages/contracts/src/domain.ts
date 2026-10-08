@@ -61,14 +61,22 @@ export const TagValue = z
   .string()
   .regex(/^[A-Za-z0-9._:-]{1,128}$/, "letters, digits and . _ - : only");
 
-/** A treg token pinned to one customer, as scripts/treg-admin.ts prints it. */
-export const TregConnect = z.object({ customer: TagValue, token: z.string().min(8) });
+/**
+ * A treg key to connect: the user's own team's, or one issued to them. An issued key is pinned
+ * to its customer by treg, so the customer never has to be typed.
+ */
+export const TregConnect = z.object({ token: z.string().trim().min(8) });
 export type TregConnect = z.infer<typeof TregConnect>;
 
-/** Paid lookups on this install: who they bill and what they cost this month. */
+/** Paid lookups on this install: the treg team behind the key, who pays, and this month's cost. */
 export const TregStatus = z.object({
   connected: z.boolean(),
-  customer: z.string(),
+  /** The treg team the key belongs to. */
+  org: z.string(),
+  /** Issued by that team to this user, so the team pays; otherwise the key is the user's own. */
+  issued: z.boolean(),
+  /** An owner or admin of the team: may manage its customers and see its balance. */
+  manage: z.boolean(),
   month: z.object({
     usd: z.number(),
     calls: z.number(),
@@ -76,6 +84,55 @@ export const TregStatus = z.object({
   }),
 });
 export type TregStatus = z.infer<typeof TregStatus>;
+
+/** The free sources setup lists. "web" is the agent's own web search and page reading. */
+export const FREE_SOURCES = ["NSF", "NIH", "OpenAlex", "CSRankings", "web"] as const;
+export const FreeSource = z.enum(FREE_SOURCES);
+export type FreeSource = z.infer<typeof FreeSource>;
+
+/** One customer of a treg team: a key pinned to them, what they spent, and their daily limit. */
+export const TregCustomer = z.object({
+  id: z.string(),
+  since: z.string(),
+  monthUsd: z.number(),
+  calls: z.number(),
+  todayUsd: z.number(),
+  /** Their own limit, else the team default; null when there is none. */
+  dailyUsd: z.number().nullable(),
+  ownLimit: z.boolean(),
+  status: z.enum(["active", "at-limit", "blocked"]),
+  /** This month's spend by gradcode feature (hunt, loop, row-email...), from their calls' tags. */
+  byFeature: z.array(z.object({ feature: z.string(), usd: z.number() })),
+});
+export type TregCustomer = z.infer<typeof TregCustomer>;
+
+/** A team's customers, its balance, and this month's spend: billed to customers, and its own. */
+export const TregCustomers = z.object({
+  balanceUsd: z.number(),
+  defaultDailyUsd: z.number().nullable(),
+  billedUsd: z.number(),
+  ownUseUsd: z.number(),
+  customers: z.array(TregCustomer),
+  /** How the team pays; null where treg offers no top-ups. */
+  billing: z
+    .object({
+      minTopUpUsd: z.number(),
+      /** treg's top-up amounts, with the bonus it adds to bigger ones. */
+      topUps: z.array(z.object({ usd: z.number(), bonusUsd: z.number() })),
+      /** Adds `addUsd` whenever the balance drops under `underUsd`, at most `monthCapUsd` a month. */
+      auto: z.object({
+        on: z.boolean(),
+        underUsd: z.number(),
+        addUsd: z.number(),
+        monthCapUsd: z.number(),
+        cardOnFile: z.boolean(),
+        /** Why treg switched it off (a card declined...); empty when nothing is wrong. */
+        problem: z.string(),
+      }),
+    })
+    .nullable(),
+});
+export type TregCustomers = z.infer<typeof TregCustomers>;
 
 export const Settings = z.object({
   detail: DetailLevel,
@@ -92,6 +149,8 @@ export const Settings = z.object({
   mcpServers: z.array(McpServer),
   /** Bearer token other agents use to reach gradcode's own MCP endpoint, /api/mcp. */
   mcpToken: z.string(),
+  /** Free sources the agent may use; switching one off removes its tools. No default, as above. */
+  freeSources: z.array(FreeSource),
 });
 export type Settings = z.infer<typeof Settings>;
 
@@ -206,6 +265,8 @@ export const Professor = z.object({
   stage: Stage,
   fitsBecause: z.string(),
   website: z.string(),
+  /** Their LinkedIn profile URL, for a note when no checked address exists. */
+  linkedin: z.string().default(""),
   sources: z.array(z.string()),
   grants: z.array(Grant),
   origin: z.enum(["app", "gradhunt"]),
@@ -231,6 +292,7 @@ export const PROFESSOR_FIELDS = [
   "stage",
   "fitsBecause",
   "website",
+  "linkedin",
 ] as const;
 export type ProfessorField = (typeof PROFESSOR_FIELDS)[number];
 
@@ -238,6 +300,9 @@ export const Change = z.object({
   field: z.enum(PROFESSOR_FIELDS),
   from: z.string().nullable(),
   to: z.string(),
+  /** The page that set the value this replaces, when the new sources don't include it: two
+   * sources disagree, and Review asks which is right. */
+  disagrees: z.string().optional(),
 });
 export type Change = z.infer<typeof Change>;
 
@@ -335,8 +400,8 @@ export const ScoutLoop = z.object({
 });
 export type ScoutLoop = z.infer<typeof ScoutLoop>;
 
-/** Free grant databases: NSF and NIH (US), UKRI (UK), CORDIS (EU, ERC), ARC (Australia). */
-export const AwardSource = z.enum(["NSF", "NIH", "UKRI", "CORDIS", "ARC"]);
+/** Free grant databases: NSF and NIH (US), UKRI (UK), CORDIS (EU, ERC), ARC (Australia), DFG (Germany), NSERC (Canada). */
+export const AwardSource = z.enum(["NSF", "NIH", "UKRI", "CORDIS", "ARC", "DFG", "NSERC"]);
 export type AwardSource = z.infer<typeof AwardSource>;
 
 export const Award = z.object({

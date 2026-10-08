@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ShellRouteImport } from './routes/_shell'
 import { Route as SetupRouteImport } from './routes/setup'
 import { Route as ShellIndexRouteImport } from './routes/_shell.index'
+import { Route as ShellCustomersRouteImport } from './routes/_shell.customers'
 import { Route as ShellFundingRouteImport } from './routes/_shell.funding'
 import { Route as ShellLoopsRouteImport } from './routes/_shell.loops'
 import { Route as ShellPipelineRouteImport } from './routes/_shell.pipeline'
@@ -36,6 +37,11 @@ const SetupRoute = SetupRouteImport.update({
 const ShellIndexRoute = ShellIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellCustomersRoute = ShellCustomersRouteImport.update({
+  id: '/customers',
+  path: '/customers',
   getParentRoute: () => ShellRoute,
 } as any)
 const ShellFundingRoute = ShellFundingRouteImport.update({
@@ -97,6 +103,7 @@ const ShellVaultWritingIdRoute = ShellVaultWritingIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof ShellIndexRoute
   '/setup': typeof SetupRoute
+  '/customers': typeof ShellCustomersRoute
   '/funding': typeof ShellFundingRoute
   '/loops': typeof ShellLoopsRoute
   '/pipeline': typeof ShellPipelineRoute
@@ -111,6 +118,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/setup': typeof SetupRoute
+  '/customers': typeof ShellCustomersRoute
   '/funding': typeof ShellFundingRoute
   '/loops': typeof ShellLoopsRoute
   '/pipeline': typeof ShellPipelineRoute
@@ -128,6 +136,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_shell': typeof ShellRouteWithChildren
   '/setup': typeof SetupRoute
+  '/_shell/customers': typeof ShellCustomersRoute
   '/_shell/funding': typeof ShellFundingRoute
   '/_shell/loops': typeof ShellLoopsRoute
   '/_shell/pipeline': typeof ShellPipelineRoute
@@ -146,6 +155,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/setup'
+    | '/customers'
     | '/funding'
     | '/loops'
     | '/pipeline'
@@ -160,6 +170,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/setup'
+    | '/customers'
     | '/funding'
     | '/loops'
     | '/pipeline'
@@ -176,6 +187,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_shell'
     | '/setup'
+    | '/_shell/customers'
     | '/_shell/funding'
     | '/_shell/loops'
     | '/_shell/pipeline'
@@ -217,6 +229,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof ShellIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/customers': {
+      id: '/_shell/customers'
+      path: '/customers'
+      fullPath: '/customers'
+      preLoaderRoute: typeof ShellCustomersRouteImport
       parentRoute: typeof ShellRoute
     }
     '/_shell/funding': {
@@ -300,6 +319,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface ShellRouteChildren {
+  ShellCustomersRoute: typeof ShellCustomersRoute
   ShellFundingRoute: typeof ShellFundingRoute
   ShellLoopsRoute: typeof ShellLoopsRoute
   ShellPipelineRoute: typeof ShellPipelineRoute
@@ -314,6 +334,7 @@ interface ShellRouteChildren {
 }
 
 const ShellRouteChildren: ShellRouteChildren = {
+  ShellCustomersRoute: ShellCustomersRoute,
   ShellFundingRoute: ShellFundingRoute,
   ShellLoopsRoute: ShellLoopsRoute,
   ShellPipelineRoute: ShellPipelineRoute,

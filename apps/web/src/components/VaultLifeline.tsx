@@ -96,7 +96,7 @@ export function VaultLifeline() {
   };
 
   return (
-    <div className="grid min-h-0 min-w-0 flex-1 grid-cols-[minmax(0,1fr)_360px]">
+    <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 overflow-y-auto md:grid-cols-[minmax(0,1fr)_360px] md:overflow-visible">
       <div className="min-h-0 overflow-y-auto px-5 py-4">
         {fromHq ? (
           <p className="mb-3 text-muted-foreground text-xs">

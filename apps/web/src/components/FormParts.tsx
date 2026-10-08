@@ -18,7 +18,7 @@ export function Chip({
       aria-pressed={on}
       onClick={onClick}
       className={cn(
-        "inline-flex h-6.5 items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 text-xs transition-colors",
+        "inline-flex min-h-6.5 max-w-full items-center gap-1.5 rounded-lg border px-2.5 py-1 text-left text-xs transition-colors",
         on
           ? "border-transparent bg-accent text-foreground before:size-1.5 before:rounded-full before:bg-primary"
           : "border-input text-muted-foreground hover:text-foreground",
@@ -31,7 +31,7 @@ export function Chip({
 
 export function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="grid grid-cols-[160px_minmax(0,1fr)] items-start gap-4 border-b py-3">
+    <div className="grid grid-cols-1 items-start gap-1.5 border-b py-3 md:grid-cols-[160px_minmax(0,1fr)] md:gap-4">
       <span className="pt-0.5 text-muted-foreground text-xs">{label}</span>
       <div className="min-w-0 text-sm">{children}</div>
     </div>

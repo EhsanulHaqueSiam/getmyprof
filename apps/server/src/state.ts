@@ -1,4 +1,4 @@
-import { Applicant, Hunt, ProfileFact, Settings } from "@gradcode/contracts";
+import { Applicant, Hunt, ProfileFact, Settings, FREE_SOURCES } from "@gradcode/contracts";
 import * as NodeCrypto from "node:crypto";
 import { z } from "zod";
 import { type Db, getKv, newId, setKv } from "./db.ts";
@@ -13,6 +13,7 @@ export const DEFAULT_SETTINGS: Settings = {
   setupDone: false,
   mcpServers: [],
   mcpToken: "",
+  freeSources: [...FREE_SOURCES],
 };
 
 /** The saved settings. The MCP token is made the first time anyone asks, then kept. */

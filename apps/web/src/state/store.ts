@@ -46,7 +46,8 @@ export const useStore = create<Store>()((set, get) => ({
   vault: null,
   recordsVersion: 0,
   loopsVersion: 0,
-  sidebarOpen: true,
+  // A phone starts with the sidebar closed; it opens over the page.
+  sidebarOpen: typeof window === "undefined" || window.matchMedia("(min-width: 768px)").matches,
   paletteOpen: false,
   notice: null,
   loadApp: async () => {

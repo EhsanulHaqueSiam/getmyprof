@@ -123,3 +123,94 @@ test("funding and professor pages: Add PI, tabs, every fact with its source, fin
     page.getByRole("heading", { name: "Check money (NSF, NIH) · 1 professor" }),
   ).toBeVisible();
 });
+
+test("keyboard: Enter allows, j moves, r rejects, shift-A accepts all; ⌘K goes to a school", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "What should we find?" })).toBeVisible();
+  await page.keyboard.press("1");
+  await expect(page.getByTestId("approval")).toBeVisible();
+  // Out of the composer, Enter allows the open approval.
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await page.keyboard.press("Enter");
+  await expect(page.getByText(/^Allowed · /)).toBeVisible();
+
+  const proposals = page.getByTestId("proposal");
+  await expect(proposals.first()).toBeVisible();
+  // How many depends on what earlier tests left in the sheet; j stops at the last one.
+  const before = await proposals.count();
+  await page.keyboard.press("j");
+  await expect(proposals.nth(Math.min(1, before - 1))).toHaveAttribute("aria-current", "true");
+  await page.keyboard.press("r");
+  await expect(proposals).toHaveCount(before - 1);
+  if (before > 1) {
+    await page.keyboard.press("Shift+A");
+    await expect(proposals).toHaveCount(0);
+  }
+
+  await page.keyboard.press("ControlOrMeta+k");
+  await page.getByLabel("Command").fill("University of Illinois");
+  await page.getByLabel("Command").press("Enter");
+  await expect(page).toHaveURL(/\/professors\?school=/);
+  await expect(page.getByLabel("School")).toHaveValue("University of Illinois Chicago");
+});
+
+test("phone: the sidebar opens over the page and closes on the way somewhere", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/professors");
+  // The page itself gets the width: a 0px column would hide its heading.
+  await expect(page.getByRole("heading", { name: "Professors" })).toBeVisible();
+  const sidebar = page.getByRole("link", { name: /^Funding/ });
+  await expect(sidebar).toBeHidden();
+  await page.getByRole("button", { name: "Menu" }).click();
+  await sidebar.click();
+  await expect(page).toHaveURL(/\/funding$/);
+  await expect(sidebar).toBeHidden();
+  await expect(page.getByRole("heading", { name: "Funding" })).toBeVisible();
+  // The Vault stacks too: its content column keeps the width.
+  await page.goto("/vault?section=facts");
+  const width = await page.locator("main").evaluate((m) => m.scrollWidth <= m.clientWidth + 1);
+  expect(width).toBe(true);
+});
+
+test("treg team: its owner signs in, adds a customer with a key, sees what one spent on, blocks them", async ({
+  page,
+}) => {
+  await page.goto("/settings");
+  const row = page.getByTestId("treg-connected");
+  await row.getByRole("button", { name: "Disconnect" }).click();
+  // The scripted sign-in shows its code, then makes you the owner of the team "scripted".
+  await page.getByRole("button", { name: "Connect treg" }).click();
+  await expect(page.getByTestId("treg-waiting")).toContainText("TEST");
+  await expect(row).toContainText("team scripted");
+  await expect(row).toContainText("balance $18.40");
+  await row.getByRole("link", { name: "Manage" }).click();
+  await expect(page).toHaveURL(/\/customers$/);
+
+  const table = page.getByTestId("customers");
+  await expect(table.getByRole("row", { name: /^rafi/ })).toContainText("at limit");
+  await page.getByRole("button", { name: "Add customer" }).click();
+  await page.getByLabel("Customer id").fill("lena");
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(page.getByText("Key for lena, shown once:")).toBeVisible();
+  await expect(table.getByRole("row", { name: /^lena/ })).toContainText("$1.00 default");
+  // Someone who already has a key isn't re-added: that would cut their key off.
+  await page.getByRole("button", { name: "Add customer" }).click();
+  await page.getByLabel("Customer id").fill("maya");
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(page.getByText("maya already has a key")).toBeVisible();
+  await page.getByRole("button", { name: "Cancel" }).click();
+
+  // Auto top-up keeps the balance from running dry.
+  const auto = page.getByTestId("auto-top-up");
+  await auto.getByRole("button", { name: "Off" }).click();
+  await expect(auto.getByRole("button", { name: "On" })).toHaveAttribute("aria-pressed", "true");
+
+  await table.getByRole("row", { name: /^maya/ }).click();
+  const detail = page.getByTestId("customer-detail");
+  await expect(detail).toContainText("164 calls · Find and check emails $1.62 · hunts $0.30");
+  await detail.getByRole("button", { name: "Block" }).click();
+  await expect(table.getByRole("row", { name: /^maya/ })).toContainText("blocked");
+  await expect(page.getByRole("row", { name: /This month so far/ })).toContainText("adds up");
+});

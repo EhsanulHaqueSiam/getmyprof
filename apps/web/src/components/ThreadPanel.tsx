@@ -150,6 +150,7 @@ function SourceTab({ recordKey, proposals }: { recordKey: string | null; proposa
  * `focus` is that professor: the one picked in Review, else the thread's first @ professor.
  */
 export function ThreadPanel({
+  selected,
   tab,
   onTab,
   focus,
@@ -159,6 +160,8 @@ export function ThreadPanel({
   finds,
   findsIn,
 }: {
+  /** The proposal j and k are on. */
+  selected: string | null;
   tab: PanelTab;
   onTab: (t: PanelTab) => void;
   focus: string | null;
@@ -199,6 +202,7 @@ export function ThreadPanel({
           drafts={drafts}
           finds={finds}
           findsIn={findsIn}
+          selected={selected}
           onOpen={(key) => {
             onFocus(key);
             onTab("professor");

@@ -11,12 +11,23 @@ import { homeDir } from "./db.ts";
 /** Asked for first, so the page's origin (and what it keeps in localStorage) stays the same. */
 export const PREFERRED_PORT = 4350;
 
-const Running = z.object({ pid: z.number(), port: z.number(), owner: z.enum(["desktop", "cli"]) });
+/**
+ * A started server: its process, port, and who answers for it. `ownerPid` is the app or terminal
+ * that stops it on exit; null for `gradcode serve`, which runs until `gradcode stop`.
+ */
+const Running = z.object({
+  pid: z.number(),
+  port: z.number(),
+  owner: z.enum(["desktop", "cli"]),
+  ownerPid: z.number().nullable(),
+});
 export type Running = z.infer<typeof Running>;
 
 const runFile = (home: string) => NodePath.join(home, "server.json");
 
 export const urlOf = (r: Pick<Running, "port">) => `http://127.0.0.1:${r.port}`;
+
+export { homeDir };
 
 async function healthy(port: number) {
   try {
@@ -98,10 +109,25 @@ export async function startServer(o: Launch) {
     }
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
-  const running: Running = { pid: child.pid ?? 0, port, owner: o.owner };
+  const running: Running = {
+    pid: child.pid ?? 0,
+    port,
+    owner: o.owner,
+    ownerPid: o.detached ? null : process.pid,
+  };
   NodeFS.writeFileSync(runFile(home), JSON.stringify(running));
   if (o.detached) child.unref();
   return { ...running, child };
+}
+
+/** Whether the app or terminal that answered for this server died (a crash, a kill -9). */
+export const orphaned = (r: Running) => r.ownerPid !== null && !alive(r.ownerPid);
+
+/** Takes over an orphaned server, so this process stops it when it exits. */
+export function adopt(r: Running, owner: Running["owner"], home = homeDir()) {
+  const next: Running = { ...r, owner, ownerPid: process.pid };
+  NodeFS.writeFileSync(runFile(home), JSON.stringify(next));
+  return next;
 }
 
 /** Stops a server this home recorded, by its recorded pid, and forgets it. */
@@ -124,12 +150,16 @@ export function newer(a: string, b: string) {
   return false;
 }
 
-/** The newest release's version in a public GitHub repo (owner/name), or null offline. */
-export async function latestRelease(repo: string) {
+/** A repo's releases page; GRADCODE_RELEASE_URL points at a mirror, as it does for install.sh. */
+export const releasesUrl = (repo: string) =>
+  process.env.GRADCODE_RELEASE_URL ?? `https://github.com/${repo}/releases`;
+
+/** The newest version under a releases URL (its /latest redirects to /tag/v<version>), or null. */
+export async function latestRelease(releases: string, timeoutMs = 3000) {
   try {
-    const r = await fetch(`https://github.com/${repo}/releases/latest`, {
+    const r = await fetch(`${releases}/latest`, {
       method: "HEAD",
-      signal: AbortSignal.timeout(3000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
     return /\/releases\/tag\/v?([^/?#]+)$/.exec(r.url)?.[1] ?? null;
   } catch {

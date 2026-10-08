@@ -1,13 +1,26 @@
 // gradcode's desktop app: Electron's main process. It starts the bundled server (runtime/server.mjs)
 // on Electron's own Node, opens a window on the web app it serves, and stops the server on quit.
 // Data stays in ~/.gradcode (GRADCODE_HOME moves it), the same store the `gradcode` command uses.
-import { findRunning, type Running, startServer, stopServer, urlOf } from "@gradcode/server/launch";
+import {
+  adopt,
+  findRunning,
+  homeDir,
+  orphaned,
+  type Running,
+  startServer,
+  stopServer,
+  urlOf,
+} from "@gradcode/server/launch";
 import { app, BrowserWindow, dialog, shell } from "electron";
 import * as NodeChild from "node:child_process";
 import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
 import { z } from "zod";
 import { watchUpdates } from "./updates.ts";
+
+// Electron's profile and its one-instance lock live with the data, so a test run on a temp
+// GRADCODE_HOME never shares (or waits on) a real install's.
+app.setPath("userData", NodePath.join(homeDir(), "desktop"));
 
 // Packaged, the runtime sits in Resources; from a checkout, `pnpm dist runtime` stages it here.
 const runtime = app.isPackaged
@@ -85,6 +98,8 @@ function openWindow(url: string) {
 
 async function boot() {
   const running = await findRunning();
+  // A server left by a crashed app is this one's now: it stops it on quit.
+  if (running && orphaned(running)) ours = adopt(running, "desktop");
   const server =
     running ??
     (await startServer({

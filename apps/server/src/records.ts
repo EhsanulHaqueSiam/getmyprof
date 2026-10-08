@@ -40,6 +40,7 @@ export function blankProfessor(name: string, university: string): Professor {
     stage: "new",
     fitsBecause: "",
     website: "",
+    linkedin: "",
     sources: [],
     grants: [],
     origin: "app",
@@ -271,6 +272,7 @@ export const recordLine = (r: Professor) =>
     `contact ${r.contact || "?"}`,
     `stage ${r.stage}`,
     `site ${r.website || "?"}`,
+    `linkedin ${r.linkedin || "?"}`,
     ...(r.niche ? [`niche ${r.niche}`] : []),
     ...(r.sources.length ? [`sources ${r.sources.join(" ")}`] : []),
   ].join(" | ");

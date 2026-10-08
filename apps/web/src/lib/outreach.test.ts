@@ -20,6 +20,7 @@ const record: Professor = {
   stage: "sent",
   fitsBecause: "",
   website: "",
+  linkedin: "",
   sources: [],
   grants: [],
   origin: "app",

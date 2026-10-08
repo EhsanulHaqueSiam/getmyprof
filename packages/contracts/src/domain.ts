@@ -213,6 +213,8 @@ export const Professor = z.object({
   stage: Stage,
   fitsBecause: z.string(),
   website: z.string(),
+  /** Their LinkedIn profile URL, for a note when no checked address exists. */
+  linkedin: z.string().default(""),
   sources: z.array(z.string()),
   grants: z.array(Grant),
   origin: z.enum(["app", "gradhunt"]),
@@ -238,6 +240,7 @@ export const PROFESSOR_FIELDS = [
   "stage",
   "fitsBecause",
   "website",
+  "linkedin",
 ] as const;
 export type ProfessorField = (typeof PROFESSOR_FIELDS)[number];
 

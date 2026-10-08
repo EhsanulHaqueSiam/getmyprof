@@ -152,6 +152,12 @@ const professorFields = {
     .describe("Why they fit this applicant, citing a confirmed fact"),
   website: z.string().optional(),
   sources: z.array(z.string()).min(1).describe("URLs backing every value you set"),
+  linkedin: z
+    .string()
+    .optional()
+    .describe(
+      "Their LinkedIn profile URL (https://www.linkedin.com/in/...), only when their own page links it or a search shows it is them",
+    ),
 };
 
 export const HUNT_TOOLS = [

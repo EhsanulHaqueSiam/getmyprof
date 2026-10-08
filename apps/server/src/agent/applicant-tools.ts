@@ -39,7 +39,7 @@ export const APPLICANT_TOOLS = [
   define({
     name: "draft_email",
     description:
-      "Draft an email (or a LinkedIn note) to a professor in the sheet. It waits for the applicant to approve; nothing is sent by you. Email goes only to the address already in the sheet; apply-only professors get none. Plain text, one recipient, at most two links. Cite each claim about the applicant with [[fact-id]] right after it, as in the Writer; an uncited or unproven claim keeps the draft from being approved.",
+      "Draft an email (or a LinkedIn note) to a professor in the sheet. It waits for the applicant to approve; nothing is sent by you. Email goes only to the address already in the sheet; apply-only professors get none. Plain text, one recipient, at most two links. A first LinkedIn note stays under 200 characters, so it also fits a connection request. Cite each claim about the applicant with [[fact-id]] right after it, as in the Writer; an uncited or unproven claim keeps the draft from being approved.",
     shape: {
       name: z.string(),
       university: z.string(),

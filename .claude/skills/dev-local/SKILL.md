@@ -1,26 +1,26 @@
 ---
 name: dev-local
-description: Start, stop or inspect gradcode's local stack (server + web in tmux). Use for "start the app", "run gradcode", "dev server", "is the stack up", "restart the server", "share it on the tailnet", "/dev-local".
+description: Start, stop or inspect getmyprof's local stack (server + web in tmux). Use for "start the app", "run getmyprof", "dev server", "is the stack up", "restart the server", "share it on the tailnet", "/dev-local".
 ---
 
 # /dev-local
 
-One script: `scripts/dev-local.sh`. tmux session `gradcode-dev`, no infra.
+One script: `scripts/dev-local.sh`. tmux session `getmyprof-dev`, no infra.
 
-| Window | Command                                                          | Port           |
-| ------ | ---------------------------------------------------------------- | -------------- |
-| server | `pnpm --filter @gradcode/server dev` (node --watch)              | 4311, loopback |
-| web    | `pnpm --filter @gradcode/web dev` (vp dev, proxies /api and /ws) | 5174           |
+| Window | Command                                                           | Port           |
+| ------ | ----------------------------------------------------------------- | -------------- |
+| server | `pnpm --filter @getmyprof/server dev` (node --watch)              | 4311, loopback |
+| web    | `pnpm --filter @getmyprof/web dev` (vp dev, proxies /api and /ws) | 5174           |
 
 Open http://127.0.0.1:5174.
 
 Prerequisites: `pnpm install`, tmux. Environment it passes through:
 
-- `GRADCODE_HOME`: data dir (default `~/.gradcode`). Use a temp dir for tests and verification.
-- `GRADCODE_AGENT=fake`: the scripted agent, free and deterministic. Unset means the real one.
+- `GETMYPROF_HOME`: data dir (default `~/.getmyprof`). Use a temp dir for tests and verification.
+- `GETMYPROF_AGENT=fake`: the scripted agent, free and deterministic. Unset means the real one.
 - `GRADHUNT_DIR`: gradhunt checkout for the sync (default `~/Personal/gradhunt`).
 
-Test stack: `rm -rf /tmp/gc-e2e && GRADCODE_HOME=/tmp/gc-e2e GRADCODE_AGENT=fake scripts/dev-local.sh up`.
+Test stack: `rm -rf /tmp/gc-e2e && GETMYPROF_HOME=/tmp/gc-e2e GETMYPROF_AGENT=fake scripts/dev-local.sh up`.
 
 | Command               | Does                                                          |
 | --------------------- | ------------------------------------------------------------- |

@@ -1,4 +1,4 @@
-import { type WritingKind } from "@gradcode/contracts";
+import { type WritingKind } from "@getmyprof/contracts";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Choice, Table, Td } from "~/components/Table";

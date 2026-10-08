@@ -1,6 +1,6 @@
 // Data sources the agent and the Funding view use: free public APIs (NSF, NIH RePORTER, UKRI,
 // CORDIS, ARC, OpenAlex). Paid lookups go through treg.ts.
-import type { Award } from "@gradcode/contracts";
+import type { Award } from "@getmyprof/contracts";
 
 const TIMEOUT_MS = 20_000;
 

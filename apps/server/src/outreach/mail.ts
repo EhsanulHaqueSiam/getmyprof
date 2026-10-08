@@ -1,7 +1,7 @@
-// The mailbox: the login saved 0600 under GRADCODE_HOME, a real mailer over IMAP and SMTP with
+// The mailbox: the login saved 0600 under GETMYPROF_HOME, a real mailer over IMAP and SMTP with
 // an app password or an OAuth sign-in, and a scripted one for tests and e2e. Only
 // outreach/service.ts uses a Mailer.
-import { MailConnect } from "@gradcode/contracts";
+import { MailConnect } from "@getmyprof/contracts";
 import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
 import * as NodeFS from "node:fs";
@@ -105,7 +105,7 @@ function refusedLogin(e: unknown, c: MailLogin): never {
   if (!refused) throw e;
   throw new SignedOut(
     c.oauth
-      ? `${OAUTH_PROVIDERS[c.oauth.provider].label} ended gradcode's sign-in to this mailbox. Sign in again.`
+      ? `${OAUTH_PROVIDERS[c.oauth.provider].label} ended getmyprof's sign-in to this mailbox. Sign in again.`
       : "The mail server refused the app password (a new Google password revokes old ones). Enter a new one.",
   );
 }
@@ -192,7 +192,7 @@ function imapMailerRaw(c: MailLogin): Mailer {
 }
 
 /**
- * A mailbox that never touches the network (GRADCODE_AGENT=fake, tests). Sends are kept in
+ * A mailbox that never touches the network (GETMYPROF_AGENT=fake, tests). Sends are kept in
  * `sent`; fixture professors answer on the next sync: Lybarger asks for a CV, Zalake is away.
  */
 export function fakeMailer() {
@@ -223,7 +223,7 @@ export function fakeMailer() {
     sent,
     verify: async () => {},
     async send(m) {
-      const messageId = `<fake-out-${++uid}@gradcode.test>`;
+      const messageId = `<fake-out-${++uid}@getmyprof.test>`;
       sent.push(m);
       if (m.to === "lybarger@example.edu")
         reply(

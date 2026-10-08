@@ -1,4 +1,4 @@
-import type { ServerMessage, ThreadEvent } from "@gradcode/contracts";
+import type { ServerMessage, ThreadEvent } from "@getmyprof/contracts";
 import { describe, expect, it } from "vite-plus/test";
 import { createBus } from "../bus.ts";
 import { openDb } from "../db.ts";

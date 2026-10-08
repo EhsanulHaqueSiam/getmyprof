@@ -1,5 +1,5 @@
 import { query, type SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
-import { FactKind, type ProfileFact } from "@gradcode/contracts";
+import { FactKind, type ProfileFact } from "@getmyprof/contracts";
 import { z } from "zod";
 import { newId } from "../db.ts";
 import { ensureClaude } from "./binary.ts";

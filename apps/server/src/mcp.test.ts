@@ -1,4 +1,4 @@
-import { Methods } from "@gradcode/contracts";
+import { Methods } from "@getmyprof/contracts";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
@@ -16,7 +16,7 @@ import { getSettings, updateSettings } from "./state.ts";
 
 const textOf = (r: unknown) => JSON.stringify(r).match(/"text":"((?:[^"\\]|\\.)*)"/)?.[1] ?? "";
 
-describe("gradcode as an MCP server", () => {
+describe("getmyprof as an MCP server", () => {
   it("lets another agent search the sheet and start a hunt", async () => {
     const db = openDb(":memory:");
     putRecord(db, {

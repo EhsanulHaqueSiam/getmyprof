@@ -8,7 +8,7 @@ import {
   OutreachMessage,
   type Professor,
   Touch,
-} from "@gradcode/contracts";
+} from "@getmyprof/contracts";
 import { profileFacts } from "../adapters.ts";
 import { type Db, newId, now } from "../db.ts";
 import { getRecord, putRecord } from "../records.ts";

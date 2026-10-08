@@ -1,6 +1,6 @@
 // When outreach goes out and comes back: send slots, warm-up caps, follow-up timing, and what
 // an incoming message is. Pure functions; the mail sync and send queue call them.
-import type { MailKind } from "@gradcode/contracts";
+import type { MailKind } from "@getmyprof/contracts";
 
 /** Milliseconds a zone is ahead of UTC at `ts`. */
 function zoneOffset(ts: number, timeZone: string) {

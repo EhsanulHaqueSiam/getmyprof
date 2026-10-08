@@ -1,4 +1,4 @@
-import { type Application, AppStatus, type Professor, type Program } from "@gradcode/contracts";
+import { type Application, AppStatus, type Professor, type Program } from "@getmyprof/contracts";
 import { PlusIcon, Trash2Icon } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useEffect, useState } from "react";

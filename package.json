@@ -1,18 +1,18 @@
 {
-  "name": "@gradcode/monorepo",
+  "name": "@getmyprof/monorepo",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "prepare": "vp config --no-agent",
     "dev": "scripts/dev-local.sh up",
-    "build": "vp run --filter @gradcode/web build",
+    "build": "vp run --filter @getmyprof/web build",
     "typecheck": "vp run -r typecheck",
     "lint": "vp lint --report-unused-disable-directives",
     "fmt": "vp fmt",
     "fmt:check": "vp fmt --check",
     "test": "vp test run",
-    "e2e": "vp run --filter @gradcode/e2e test",
+    "e2e": "vp run --filter @getmyprof/e2e test",
     "dist": "node apps/desktop/scripts/dist.ts"
   },
   "devDependencies": {

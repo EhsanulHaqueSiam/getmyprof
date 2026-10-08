@@ -9,7 +9,7 @@ import {
   addressChecked,
   Program,
   stripCitations,
-} from "@gradcode/contracts";
+} from "@getmyprof/contracts";
 import { z } from "zod";
 import type { Runner } from "../agent/runner.ts";
 import type { Bus } from "../bus.ts";
@@ -85,7 +85,7 @@ export function createOutreach(deps: {
   mailerFor: (c: MailLogin) => Mailer;
   /**
    * Mailbox sign-in: this server's port for the OAuth callback, the token endpoint to use, and
-   * gradcode's own clients (SHARED_CLIENTS unless a test or the scripted stack swaps them).
+   * getmyprof's own clients (SHARED_CLIENTS unless a test or the scripted stack swaps them).
    */
   signIn?: {
     port: number;

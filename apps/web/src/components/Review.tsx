@@ -1,4 +1,4 @@
-import type { Proposal } from "@gradcode/contracts";
+import type { Proposal } from "@getmyprof/contracts";
 import { Link } from "@tanstack/react-router";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { CheckIcon, LinkIcon } from "lucide-react";

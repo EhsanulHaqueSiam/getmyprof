@@ -10,7 +10,7 @@ import { documentPath, saveDocument, vaultState } from "./vault.ts";
 
 describe("a full backup", () => {
   it("survives export, wipe and import with nothing lost, files included", () => {
-    process.env.GRADCODE_HOME = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "gc-backup-"));
+    process.env.GETMYPROF_HOME = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "gc-backup-"));
     const db = openDb(":memory:");
     putRecord(db, blankProfessor("Kevin Lybarger", "George Mason University"));
     createThread(db, "Find professors");
@@ -33,7 +33,7 @@ describe("a full backup", () => {
     expect(NodeFS.readFileSync(documentPath(doc.id), "utf8")).toBe("%PDF-1.4 cv");
   });
 
-  it("refuses a file that isn't a gradcode backup", () => {
+  it("refuses a file that isn't a getmyprof backup", () => {
     expect(() => importAll(openDb(":memory:"), { tables: {} })).toThrow();
   });
 });

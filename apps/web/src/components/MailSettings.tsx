@@ -1,4 +1,4 @@
-import type { MailConnect, MailProvider } from "@gradcode/contracts";
+import type { MailConnect, MailProvider } from "@getmyprof/contracts";
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -9,7 +9,7 @@ import { useStore } from "~/state/store";
 
 // Providers that take an app password over IMAP and SMTP; "Other" covers any host that still
 // allows them. Gmail can also sign in with Google; Outlook.com dropped app passwords, so it only
-// signs in with Microsoft. Sign-in uses gradcode's own OAuth client when it has one, or the
+// signs in with Microsoft. Sign-in uses getmyprof's own OAuth client when it has one, or the
 // user's.
 const PRESETS = {
   gmail: { label: "Gmail", imap: ["imap.gmail.com", 993], smtp: ["smtp.gmail.com", 465] },
@@ -39,16 +39,16 @@ const OWN_CLIENT_HELP = {
   microsoft:
     "Your own Azure app: allow personal accounts, and add the Mobile and desktop platform with redirect http://localhost.",
 } as const satisfies Record<MailProvider, string>;
-// What the provider shows before gradcode's own client is verified.
+// What the provider shows before getmyprof's own client is verified.
 const SHARED_CLIENT_HELP = {
-  google: "Google will say gradcode isn't verified yet. Choose Advanced, then Go to gradcode.",
+  google: "Google will say getmyprof isn't verified yet. Choose Advanced, then Go to getmyprof.",
   microsoft: "",
 } as const satisfies Record<MailProvider, string>;
 
 const textLink = "text-foreground underline underline-offset-2";
 
 /**
- * Sign in with Google or Microsoft. With gradcode's own client (`shared`) it takes only a name;
+ * Sign in with Google or Microsoft. With getmyprof's own client (`shared`) it takes only a name;
  * otherwise, or on request, the user's own client. The provider's page opens in this tab and
  * sends it back to Settings with the mailbox connected.
  */
@@ -130,7 +130,7 @@ function SignInForm({ provider, shared }: { provider: MailProvider; shared: bool
             variant="ghost-muted"
             onClick={() => setOwnClient(!ownClient)}
           >
-            {ownClient ? "Use gradcode's client" : "Use my own client"}
+            {ownClient ? "Use getmyprof's client" : "Use my own client"}
           </Button>
         ) : null}
       </div>
@@ -380,7 +380,7 @@ export function MailSettings() {
               >
                 create an app password
               </a>{" "}
-              named gradcode and paste it here.
+              named getmyprof and paste it here.
             </span>
           ) : (
             <span className="text-muted-foreground text-xs">

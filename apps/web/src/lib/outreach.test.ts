@@ -1,4 +1,4 @@
-import type { Conversation, OutreachMessage, Professor } from "@gradcode/contracts";
+import type { Conversation, OutreachMessage, Professor } from "@getmyprof/contracts";
 import { describe, expect, it } from "vite-plus/test";
 import { cardLine, nextStep, openDraft, sequence } from "./outreach";
 

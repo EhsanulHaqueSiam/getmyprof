@@ -1,4 +1,4 @@
-import { type Award, AwardSource } from "@gradcode/contracts";
+import { type Award, AwardSource } from "@getmyprof/contracts";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ExternalLinkIcon, MessageSquareIcon, PlusIcon, SearchIcon } from "lucide-react";
 import { useState } from "react";

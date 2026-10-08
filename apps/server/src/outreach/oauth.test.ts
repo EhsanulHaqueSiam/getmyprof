@@ -54,7 +54,7 @@ describe("mailbox sign-in", () => {
     await expect(finishSignIn(q.get("state")!, "code-1", f)).rejects.toThrow(/expired/);
   });
 
-  it("signs in through gradcode's own client unless the user brings one", () => {
+  it("signs in through getmyprof's own client unless the user brings one", () => {
     const start = (
       clientId: string,
       shared: Parameters<typeof startSignIn>[2] = {

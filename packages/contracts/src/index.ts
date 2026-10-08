@@ -10,7 +10,7 @@ export type Check = z.infer<typeof Check>;
 export const Health = z.object({
   host: z.string(),
   checks: z.record(Check, z.boolean()),
-  /** Runs the scripted agent and fake mailbox (GRADCODE_AGENT=fake): safe for e2e and /verify. */
+  /** Runs the scripted agent and fake mailbox (GETMYPROF_AGENT=fake): safe for e2e and /verify. */
   scripted: z.boolean(),
 });
 export type Health = z.infer<typeof Health>;

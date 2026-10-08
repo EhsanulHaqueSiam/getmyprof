@@ -1,4 +1,4 @@
-import type { DocKind } from "@gradcode/contracts";
+import type { DocKind } from "@getmyprof/contracts";
 
 /** A file's bytes as base64, for upload over the socket. */
 export const toBase64 = (file: File) =>

@@ -1,4 +1,4 @@
-import { type Method, type MethodOutput, Methods, type ThreadSummary } from "@gradcode/contracts";
+import { type Method, type MethodOutput, Methods, type ThreadSummary } from "@getmyprof/contracts";
 import type { z } from "zod";
 import {
   importGradhunt,

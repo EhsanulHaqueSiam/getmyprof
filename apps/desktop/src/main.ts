@@ -1,6 +1,6 @@
-// gradcode's desktop app: Electron's main process. It starts the bundled server (runtime/server.mjs)
+// getmyprof's desktop app: Electron's main process. It starts the bundled server (runtime/server.mjs)
 // on Electron's own Node, opens a window on the web app it serves, and stops the server on quit.
-// Data stays in ~/.gradcode (GRADCODE_HOME moves it), the same store the `gradcode` command uses.
+// Data stays in ~/.getmyprof (GETMYPROF_HOME moves it), the same store the `getmyprof` command uses.
 import {
   adopt,
   findRunning,
@@ -10,7 +10,7 @@ import {
   startServer,
   stopServer,
   urlOf,
-} from "@gradcode/server/launch";
+} from "@getmyprof/server/launch";
 import { app, BrowserWindow, dialog, shell } from "electron";
 import * as NodeChild from "node:child_process";
 import * as NodeFS from "node:fs";
@@ -19,7 +19,7 @@ import { z } from "zod";
 import { watchUpdates } from "./updates.ts";
 
 // Electron's profile and its one-instance lock live with the data, so a test run on a temp
-// GRADCODE_HOME never shares (or waits on) a real install's.
+// GETMYPROF_HOME never shares (or waits on) a real install's.
 app.setPath("userData", NodePath.join(homeDir(), "desktop"));
 
 // Packaged, the runtime sits in Resources; from a checkout, `pnpm dist runtime` stages it here.
@@ -29,7 +29,7 @@ const runtime = app.isPackaged
 
 /** The public releases repo (owner/name), written by `pnpm dist runtime`. */
 const release = z
-  .object({ gradcode: z.object({ releases: z.string() }) })
+  .object({ getmyprof: z.object({ releases: z.string() }) })
   .parse(JSON.parse(NodeFS.readFileSync(NodePath.join(runtime, "package.json"), "utf8")));
 
 let window: BrowserWindow | null = null;
@@ -74,7 +74,7 @@ function openWindow(url: string) {
     height: 860,
     minWidth: 720,
     minHeight: 480,
-    title: "gradcode",
+    title: "getmyprof",
     backgroundColor: "#000000",
     // Linux: the menu bar shows on Alt; the app's own UI is the menu.
     autoHideMenuBar: true,
@@ -112,7 +112,7 @@ async function boot() {
   if (!running) ours = server;
   appUrl = urlOf(server);
   openWindow(appUrl);
-  watchUpdates((update) => window?.webContents.send("update", update), release.gradcode.releases);
+  watchUpdates((update) => window?.webContents.send("update", update), release.getmyprof.releases);
 }
 
 /** Brings the window back: a second launch or a dock click, also after it was closed on a Mac. */
@@ -138,7 +138,7 @@ else {
     .then(boot)
     .catch((error: unknown) => {
       dialog.showErrorBox(
-        "gradcode couldn't start",
+        "getmyprof couldn't start",
         error instanceof Error ? error.message : String(error),
       );
       app.quit();

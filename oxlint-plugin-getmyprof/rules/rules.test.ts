@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import { lint } from "../test/lint.ts";
 
-describe("gradcode/single-writer", () => {
+describe("getmyprof/single-writer", () => {
   it("reports a direct write to gradhunt data", () => {
     expect(
       lint("single-writer", `fs.writeFileSync(join(dir, "professors.json"), body);`),
@@ -15,7 +15,7 @@ describe("gradcode/single-writer", () => {
   });
 });
 
-describe("gradcode/no-forever-animation", () => {
+describe("getmyprof/no-forever-animation", () => {
   it("reports looping Tailwind classes and infinite keyframes", () => {
     expect(
       lint("no-forever-animation", `const el = <span className="size-3 animate-spin" />;`),
@@ -39,7 +39,7 @@ describe("gradcode/no-forever-animation", () => {
   });
 });
 
-describe("gradcode/no-em-dash-copy", () => {
+describe("getmyprof/no-em-dash-copy", () => {
   it("reports em dashes in JSX text and strings", () => {
     expect(lint("no-em-dash-copy", "const el = <p>Funded — apply now</p>;")).toHaveLength(1);
     expect(lint("no-em-dash-copy", 'const label = "Done — settled";')).toHaveLength(1);

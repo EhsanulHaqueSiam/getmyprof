@@ -47,7 +47,7 @@ export const AppState = z.object({
   adapters: z.object({ hq: z.boolean(), gradhunt: z.boolean(), treg: z.boolean() }),
   mail: MailStatus,
   treg: TregStatus,
-  /** Where a phone on the tailnet opens gradcode, and whether it's being served there. */
+  /** Where a phone on the tailnet opens getmyprof, and whether it's being served there. */
   tailnet: z.object({ url: z.string(), served: z.boolean() }).nullable(),
   /** Whether Claude Code can run: its binary is here (release builds fetch it on first run), and
    * it's signed in (and as whom). */

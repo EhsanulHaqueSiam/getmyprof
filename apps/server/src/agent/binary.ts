@@ -1,9 +1,9 @@
 // The Claude Code binary the Agent SDK runs, and its sign-in. Dev and npm installs have the SDK's
 // own platform package in node_modules. Release builds don't ship it (its license reserves
 // redistribution), so this machine fetches that same package from registry.npmjs.org into
-// GRADCODE_HOME on first need, checked against the sha512 the registry publishes. When it can't
+// GETMYPROF_HOME on first need, checked against the sha512 the registry publishes. When it can't
 // be fetched, a `claude` on PATH stands in.
-import type { ClaudeBinary } from "@gradcode/contracts";
+import type { ClaudeBinary } from "@getmyprof/contracts";
 import * as NodeChild from "node:child_process";
 import * as NodeCrypto from "node:crypto";
 import * as NodeFS from "node:fs";
@@ -15,7 +15,7 @@ import { z } from "zod";
 import { homeDir } from "../db.ts";
 
 /** The SDK version a release build pins (`pnpm dist runtime` defines it); unset in dev. */
-const PINNED = process.env.GRADCODE_CLAUDE_SDK;
+const PINNED = process.env.GETMYPROF_CLAUDE_SDK;
 const PACKAGE = `@anthropic-ai/claude-agent-sdk-${process.platform}-${process.arch}`;
 
 const resolveFrom = (base: string, id: string) => {
@@ -121,7 +121,7 @@ async function download(version: string, progress: (percent: number) => void) {
   } finally {
     NodeFS.rmSync(work, { recursive: true, force: true });
   }
-  // Versions an older gradcode fetched go.
+  // Versions an older getmyprof fetched go.
   const all = NodePath.dirname(dir);
   for (const old of NodeFS.readdirSync(all))
     if (old !== version) NodeFS.rmSync(NodePath.join(all, old), { recursive: true, force: true });

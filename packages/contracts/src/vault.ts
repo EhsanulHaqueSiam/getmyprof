@@ -14,7 +14,7 @@ export const DocKind = z.enum([
 ]);
 export type DocKind = z.infer<typeof DocKind>;
 
-/** A file the applicant keeps here. The bytes live under GRADCODE_HOME/files. */
+/** A file the applicant keeps here. The bytes live under GETMYPROF_HOME/files. */
 export const VaultDocument = z.object({
   id: z.string(),
   name: z.string(),

@@ -1,6 +1,6 @@
 // The Lifeline's panel: a fact's note (with an answer box for a question), your facts as a CV,
 // and a preview of a file. VaultLifeline.tsx shows the line itself.
-import { factStatus, type ProfileFact, type VaultDocument } from "@gradcode/contracts";
+import { factStatus, type ProfileFact, type VaultDocument } from "@getmyprof/contracts";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "~/components/ui/button";

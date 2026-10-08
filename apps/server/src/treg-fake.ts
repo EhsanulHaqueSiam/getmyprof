@@ -1,4 +1,4 @@
-// A treg team in memory for the scripted stack (GRADCODE_AGENT=fake): connecting, the Customers
+// A treg team in memory for the scripted stack (GETMYPROF_AGENT=fake): connecting, the Customers
 // page and invoices work end to end without reaching treg or spending anything. Signing in makes
 // you the team's owner; any pasted key is one the team issued. treg-org.ts talks to it through
 // the fetch it would use for treg.to, so every path it takes is the real one.
@@ -62,7 +62,7 @@ export function fakeTregTeam(): typeof fetch {
               org_id: 1,
               org: "scripted",
               role: "member",
-              email: `agent-scripted-${agent ? `gradcode-${agent.customer}` : "key"}@agents.treg.local`,
+              email: `agent-scripted-${agent ? `getmyprof-${agent.customer}` : "key"}@agents.treg.local`,
             },
       );
     }
@@ -71,13 +71,13 @@ export function fakeTregTeam(): typeof fetch {
       return json(
         agents.map((a) => ({
           user_id: a.user_id,
-          name: `gradcode-${a.customer}`,
+          name: `getmyprof-${a.customer}`,
           created_at: a.created_at,
           pinned_tags: { customer: a.customer },
         })),
       );
     if (route === "POST /orgs/1/agents") {
-      const customer = String(body.name).replace(/^gradcode-/, "");
+      const customer = String(body.name).replace(/^getmyprof-/, "");
       const key = `trg_fake_${customer}_${++n}`;
       const had = agents.find((a) => a.customer === customer);
       // Minting again under the same name is a new key: the old one stops working.

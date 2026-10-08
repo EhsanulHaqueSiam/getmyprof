@@ -1,4 +1,4 @@
-import { ClientRequest, type ServerMessage } from "@gradcode/contracts";
+import { ClientRequest, type ServerMessage } from "@getmyprof/contracts";
 import * as NodeFS from "node:fs";
 import * as NodeHttp from "node:http";
 import { WebSocketServer } from "ws";
@@ -28,7 +28,7 @@ import { addScope, createThread, getThread, settleStale } from "./threads.ts";
 import { documentPath, listDocuments, writingBrief } from "./vault.ts";
 
 const PORT = Number(process.env.SERVER_PORT ?? 4311);
-const fake = process.env.GRADCODE_AGENT === "fake";
+const fake = process.env.GETMYPROF_AGENT === "fake";
 
 const db = openDb();
 settleStale(db);
@@ -61,7 +61,7 @@ const outreach = createOutreach({
 
 /** A one-line page for the end of a mailbox sign-in that has nowhere to send the browser back. */
 const plainPage = (text: string) =>
-  `<!doctype html><meta charset="utf-8"><title>gradcode</title><p>${text.replace(/[&<>]/g, (c) => (c === "&" ? "&amp;" : c === "<" ? "&lt;" : "&gt;"))}</p>`;
+  `<!doctype html><meta charset="utf-8"><title>getmyprof</title><p>${text.replace(/[&<>]/g, (c) => (c === "&" ? "&amp;" : c === "<" ? "&lt;" : "&gt;"))}</p>`;
 
 /**
  * Starts one loop run: in a fresh thread, or back in the loop's one thread. A webhook's request
@@ -178,8 +178,8 @@ function remindRecommenders() {
 setInterval(() => void outreach.sync(), 180_000);
 setInterval(() => settleStale(db), 3_600_000);
 
-// The desktop app and the `gradcode` command serve the built web app from here too; in dev Vite does.
-const site = process.env.GRADCODE_WEB_DIR ? staticSite(process.env.GRADCODE_WEB_DIR) : null;
+// The desktop app and the `getmyprof` command serve the built web app from here too; in dev Vite does.
+const site = process.env.GETMYPROF_WEB_DIR ? staticSite(process.env.GETMYPROF_WEB_DIR) : null;
 
 // Loopback only. Vite proxies /api and /ws here, and `scripts/dev-local.sh share` puts Vite on
 // the tailnet, so every client sees one origin (docs/internals/overview.md).
@@ -202,7 +202,7 @@ const server = NodeHttp.createServer((req, res) => {
       .then((returnTo) =>
         returnTo
           ? res.writeHead(302, { location: returnTo }).end()
-          : page(200, "Your mailbox is connected. Close this tab and go back to gradcode."),
+          : page(200, "Your mailbox is connected. Close this tab and go back to getmyprof."),
       )
       .catch((error: unknown) =>
         page(400, `Sign-in failed: ${error instanceof Error ? error.message : String(error)}`),
@@ -235,7 +235,7 @@ const server = NodeHttp.createServer((req, res) => {
       res
         .writeHead(200, {
           "content-type": "application/json",
-          "content-disposition": `attachment; filename="gradcode-backup-${new Date().toISOString().slice(0, 10)}.json"`,
+          "content-disposition": `attachment; filename="getmyprof-backup-${new Date().toISOString().slice(0, 10)}.json"`,
         })
         .end(JSON.stringify(exportAll(db)));
       return;
@@ -255,7 +255,7 @@ const server = NodeHttp.createServer((req, res) => {
       return;
     }
   }
-  // gradcode's own MCP endpoint for other agents (stateless streamable HTTP: POST only).
+  // getmyprof's own MCP endpoint for other agents (stateless streamable HTTP: POST only).
   if (req.url === "/api/mcp") {
     if (req.method !== "POST") {
       res.writeHead(405, { allow: "POST" }).end();
@@ -334,10 +334,10 @@ new WebSocketServer({
 });
 
 server.listen(PORT, "127.0.0.1", () =>
-  console.log(`gradcode server on http://127.0.0.1:${PORT}${fake ? " (fake agent)" : ""}`),
+  console.log(`getmyprof server on http://127.0.0.1:${PORT}${fake ? " (fake agent)" : ""}`),
 );
 
-// Stopping (gradcode stop, quitting the app, Ctrl-C) closes the store, so SQLite folds its
+// Stopping (getmyprof stop, quitting the app, Ctrl-C) closes the store, so SQLite folds its
 // write-ahead log back into the database instead of leaving it beside it.
 for (const signal of ["SIGTERM", "SIGINT"] as const)
   process.on(signal, () => {

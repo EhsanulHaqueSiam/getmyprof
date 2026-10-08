@@ -1,4 +1,4 @@
-import type { ThreadEvent } from "@gradcode/contracts";
+import type { ThreadEvent } from "@getmyprof/contracts";
 import {
   BanIcon,
   CheckIcon,

@@ -1,7 +1,7 @@
 // What a professor's page shows beyond the record: where each field's value came from and when,
 // a dated timeline, the latest email's state and their school's programs (records.get), and
 // their grants, recent work and interests from free APIs (records.scholarly).
-import type { Award, OutreachMessage, Professor, Proposal } from "@gradcode/contracts";
+import type { Award, OutreachMessage, Professor, Proposal } from "@getmyprof/contracts";
 import type { Sources } from "./agent/tools.ts";
 import type { Db } from "./db.ts";
 import { listMessages } from "./outreach/store.ts";

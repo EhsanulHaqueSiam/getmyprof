@@ -1,4 +1,4 @@
-import type { ThreadEvent } from "@gradcode/contracts";
+import type { ThreadEvent } from "@getmyprof/contracts";
 import * as NodeFS from "node:fs";
 import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
@@ -144,7 +144,7 @@ describe("Scout's loop", () => {
       NodePath.join(prof, "README.md"),
       "# Scout\n\n## Timeline\n- **2026-10-05 (run 26)** — Old run.\n- **2026-10-06 (run 27)** — Watch check clean (0/19); facts\n  changed, nothing to file.\n\n## Notes\nmore\n",
     );
-    // oxlint-disable-next-line gradcode/single-writer -- a throwaway gradhunt layout in a temp dir
+    // oxlint-disable-next-line getmyprof/single-writer -- a throwaway gradhunt layout in a temp dir
     NodeFS.writeFileSync(
       NodePath.join(prof, "data/professors.json"),
       JSON.stringify([{ date_added: "2026-10-06" }, { date_added: "2026-09-01" }, {}]),

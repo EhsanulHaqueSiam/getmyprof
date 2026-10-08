@@ -1,6 +1,6 @@
 // The Results grid's columns by detail level, and its row rules: what Filter searches, which
 // rows show dimmed, and each cell's tone.
-import type { DetailLevel, Professor } from "@gradcode/contracts";
+import type { DetailLevel, Professor } from "@getmyprof/contracts";
 
 export type Col = {
   key: keyof Professor | "select";

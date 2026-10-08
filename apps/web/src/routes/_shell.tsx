@@ -58,7 +58,7 @@ function Shell() {
           <Button variant="ghost-muted" size="icon-sm" aria-label="Menu" onClick={toggleSidebar}>
             <PanelLeftIcon />
           </Button>
-          <span className="font-semibold text-sm">gradcode</span>
+          <span className="font-semibold text-sm">getmyprof</span>
         </div>
         <div className="flex min-h-0 min-w-0 flex-1">
           <Outlet />

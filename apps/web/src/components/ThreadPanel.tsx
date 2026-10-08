@@ -1,4 +1,4 @@
-import type { MethodOutput, Proposal } from "@gradcode/contracts";
+import type { MethodOutput, Proposal } from "@getmyprof/contracts";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { LinkIcon, MessageSquareIcon } from "lucide-react";
 import { useEffect, useState } from "react";

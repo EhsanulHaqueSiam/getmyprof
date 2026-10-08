@@ -1,4 +1,4 @@
-import type { OutreachMessage } from "@gradcode/contracts";
+import type { OutreachMessage } from "@getmyprof/contracts";
 import { describe, expect, it } from "vite-plus/test";
 import { openDb } from "../db.ts";
 import { dueLoops, saveLoop } from "../loops.ts";

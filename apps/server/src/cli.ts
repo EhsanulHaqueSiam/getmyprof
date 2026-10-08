@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// The `gradcode` command, from install.sh's tarball (with its own Node) or from npm. It runs the
+// The `getmyprof` command, from install.sh's tarball (with its own Node) or from npm. It runs the
 // bundled server (server.mjs) and the built web app (web/) that ship beside it; the release
 // build writes the version and the public releases repo into the package.json there.
-import type { ClaudeBinary } from "@gradcode/contracts";
+import type { ClaudeBinary } from "@getmyprof/contracts";
 import * as NodeChild from "node:child_process";
 import * as NodeFS from "node:fs";
 import * as NodeOS from "node:os";
@@ -25,22 +25,22 @@ import {
 } from "./launch.ts";
 
 const here = NodePath.dirname(NodeURL.fileURLToPath(import.meta.url));
-const Pkg = z.object({ version: z.string(), gradcode: z.object({ releases: z.string() }) });
+const Pkg = z.object({ version: z.string(), getmyprof: z.object({ releases: z.string() }) });
 const pkg = Pkg.parse(JSON.parse(NodeFS.readFileSync(NodePath.join(here, "package.json"), "utf8")));
-const releases = releasesUrl(pkg.gradcode.releases);
+const releases = releasesUrl(pkg.getmyprof.releases);
 // The tarball puts its Node beside cli.mjs; an npm install runs on the user's own Node.
 const bundledNode = NodePath.dirname(process.execPath) === here;
 
-const HELP = `gradcode ${pkg.version}: find professors who can fund your degree
+const HELP = `getmyprof ${pkg.version}: find professors who can fund your degree
 
-  gradcode           start it and open it in your browser (Ctrl-C stops it)
-  gradcode serve     keep it running in the background
-  gradcode stop      stop the background server
-  gradcode login     sign in to Claude; your subscription runs the agent
-  gradcode update    install the newest release
-  gradcode --version
+  getmyprof           start it and open it in your browser (Ctrl-C stops it)
+  getmyprof serve     keep it running in the background
+  getmyprof stop      stop the background server
+  getmyprof login     sign in to Claude; your subscription runs the agent
+  getmyprof update    install the newest release
+  getmyprof --version
 
-Your data lives in ${homeDir()} (set GRADCODE_HOME to move it).`;
+Your data lives in ${homeDir()} (set GETMYPROF_HOME to move it).`;
 
 const launch = (detached: boolean) =>
   startServer({
@@ -61,12 +61,12 @@ function openBrowser(url: string) {
 async function tellIfOutdated() {
   const latest = await latestRelease(releases).catch(() => null);
   if (latest && newer(latest, pkg.version))
-    console.log(`gradcode ${latest} is out (you have ${pkg.version}). Run: gradcode update`);
+    console.log(`getmyprof ${latest} is out (you have ${pkg.version}). Run: getmyprof update`);
 }
 
 const already = (r: Running) =>
   console.log(
-    `gradcode is already running at ${urlOf(r)}${r.owner === "desktop" && !orphaned(r) ? " (the desktop app)" : ""}`,
+    `getmyprof is already running at ${urlOf(r)}${r.owner === "desktop" && !orphaned(r) ? " (the desktop app)" : ""}`,
   );
 
 /** One line that counts up on a terminal; a few lines when the output is a log. */
@@ -82,14 +82,14 @@ function progressLine() {
 
 /** The first run fetches the agent's binary here, where its progress shows. Offline, it says so. */
 async function fetchAgent() {
-  if (process.env.GRADCODE_AGENT === "fake" || findClaude()) return;
+  if (process.env.GETMYPROF_AGENT === "fake" || findClaude()) return;
   try {
     await ensureClaude(progressLine());
     if (process.stdout.isTTY) process.stdout.write("\n");
   } catch (error) {
     if (process.stdout.isTTY) process.stdout.write("\n");
     console.log(
-      `${error instanceof Error ? error.message : String(error)} gradcode starts anyway.`,
+      `${error instanceof Error ? error.message : String(error)} getmyprof starts anyway.`,
     );
   }
 }
@@ -104,7 +104,7 @@ async function start() {
   }
   await fetchAgent();
   const server = await launch(false);
-  console.log(`gradcode on ${urlOf(server)} · Ctrl-C stops it`);
+  console.log(`getmyprof on ${urlOf(server)} · Ctrl-C stops it`);
   openBrowser(urlOf(server));
   const end = () => stopServer(server);
   process.once("SIGINT", end).once("SIGTERM", end);
@@ -119,13 +119,13 @@ async function serve() {
   if (running) return already(running);
   await fetchAgent();
   const server = await launch(true);
-  console.log(`gradcode on ${urlOf(server)} · gradcode stop stops it`);
+  console.log(`getmyprof on ${urlOf(server)} · getmyprof stop stops it`);
   await tellIfOutdated();
 }
 
 async function stop() {
   const running = await findRunning();
-  if (!running) return console.log("gradcode isn't running.");
+  if (!running) return console.log("getmyprof isn't running.");
   if (running.owner === "desktop" && !orphaned(running))
     return console.log("The desktop app runs it; quit the app.");
   stopServer(running);
@@ -145,23 +145,23 @@ async function login() {
  * release's SHA256SUMS. Any failure says what and leaves the installed version in place.
  */
 async function update() {
-  if (!bundledNode) return console.log("Installed with npm: run npm install -g gradcode@latest");
+  if (!bundledNode) return console.log("Installed with npm: run npm install -g getmyprof@latest");
   const latest = await latestRelease(releases, 10_000).catch(() => {
     throw new Error(`Couldn't reach ${releases}. Check the connection and try again.`);
   });
-  if (!latest) throw new Error(`No gradcode release is published yet at ${releases}.`);
-  if (!newer(latest, pkg.version)) return console.log(`gradcode ${pkg.version} is the newest.`);
+  if (!latest) throw new Error(`No getmyprof release is published yet at ${releases}.`);
+  if (!newer(latest, pkg.version)) return console.log(`getmyprof ${pkg.version} is the newest.`);
   const script = await releaseInstaller(releases, latest);
-  const file = NodePath.join(NodeOS.tmpdir(), `gradcode-install-${process.pid}.sh`);
+  const file = NodePath.join(NodeOS.tmpdir(), `getmyprof-install-${process.pid}.sh`);
   NodeFS.writeFileSync(file, script);
   const r = NodeChild.spawnSync("sh", [file], {
     stdio: "inherit",
-    env: { ...process.env, GRADCODE_VERSION: latest },
+    env: { ...process.env, GETMYPROF_VERSION: latest },
   });
   NodeFS.rmSync(file, { force: true });
-  if (r.status !== 0) throw new Error(`The update didn't install; gradcode ${pkg.version} stays.`);
+  if (r.status !== 0) throw new Error(`The update didn't install; getmyprof ${pkg.version} stays.`);
   if (await findRunning())
-    console.log("The running server keeps the old version until: gradcode stop");
+    console.log("The running server keeps the old version until: getmyprof stop");
 }
 
 const commands: Record<string, () => unknown> = {

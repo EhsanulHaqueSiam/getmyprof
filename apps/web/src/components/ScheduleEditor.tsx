@@ -1,4 +1,4 @@
-import type { Schedule } from "@gradcode/contracts";
+import type { Schedule } from "@getmyprof/contracts";
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";

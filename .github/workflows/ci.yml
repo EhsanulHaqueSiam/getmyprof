@@ -30,11 +30,11 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
 
-      # The bundled server serves the built web app: what the desktop app and `gradcode` run.
+      # The bundled server serves the built web app: what the desktop app and `getmyprof` run.
       - name: Packaging smoke
         run: |
           pnpm dist runtime
-          export GRADCODE_HOME="$RUNNER_TEMP/gc-home" GRADCODE_AGENT=fake GRADHUNT_DIR="$RUNNER_TEMP/none"
+          export GETMYPROF_HOME="$RUNNER_TEMP/gc-home" GETMYPROF_AGENT=fake GRADHUNT_DIR="$RUNNER_TEMP/none"
           node apps/desktop/dist/runtime/cli.mjs serve
           curl -fsS http://127.0.0.1:4350/api/health
           curl -fsS http://127.0.0.1:4350/settings | grep -q '<div id="root">'

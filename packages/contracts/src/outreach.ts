@@ -114,7 +114,7 @@ export const MailProvider = z.enum(["google", "microsoft"]);
 export type MailProvider = z.infer<typeof MailProvider>;
 
 /**
- * Starts a mailbox sign-in. An empty `clientId` uses gradcode's own client for the provider;
+ * Starts a mailbox sign-in. An empty `clientId` uses getmyprof's own client for the provider;
  * a user can bring theirs instead. `returnTo` is the Settings page the browser comes back to.
  */
 export const MailSignIn = z.object({
@@ -143,7 +143,7 @@ export const MailStatus = z.object({
   signedOut: z.boolean(),
   /** How many first emails and follow-ups may go out today under the warm-up. */
   dailyCap: z.number(),
-  /** Providers gradcode has its own OAuth client for: signing in needs no setup. */
+  /** Providers getmyprof has its own OAuth client for: signing in needs no setup. */
   sharedClients: z.array(MailProvider),
 });
 export type MailStatus = z.infer<typeof MailStatus>;

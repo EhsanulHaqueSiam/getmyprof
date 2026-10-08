@@ -1,11 +1,11 @@
-import { DesktopUpdate } from "@gradcode/contracts";
+import { DesktopUpdate } from "@getmyprof/contracts";
 import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
 
 declare global {
   interface Window {
     /** Only inside the desktop app: its preload (apps/desktop/src/preload.ts) puts it here. */
-    gradcodeDesktop?: {
+    getmyprofDesktop?: {
       onUpdate: (listener: (update: unknown) => void) => () => void;
       act: () => void;
     };
@@ -17,7 +17,7 @@ export function UpdateBanner() {
   const [update, setUpdate] = useState<DesktopUpdate>({ state: "none" });
   useEffect(
     () =>
-      window.gradcodeDesktop?.onUpdate((raw) => {
+      window.getmyprofDesktop?.onUpdate((raw) => {
         const parsed = DesktopUpdate.safeParse(raw);
         if (parsed.success) setUpdate(parsed.data);
       }),
@@ -31,16 +31,16 @@ export function UpdateBanner() {
     >
       {update.state === "downloading" ? (
         <span className="text-muted-foreground tabular-nums">
-          Downloading gradcode {update.version} · {Math.round(update.percent)}%
+          Downloading getmyprof {update.version} · {Math.round(update.percent)}%
         </span>
       ) : (
         <>
           <span className="text-secondary-label">
             {update.state === "ready"
-              ? `Update ready · gradcode ${update.version}`
-              : `gradcode ${update.version} is out`}
+              ? `Update ready · getmyprof ${update.version}`
+              : `getmyprof ${update.version} is out`}
           </span>
-          <Button size="micro" variant="outline" onClick={() => window.gradcodeDesktop?.act()}>
+          <Button size="micro" variant="outline" onClick={() => window.getmyprofDesktop?.act()}>
             {update.state === "ready" ? "Restart" : update.inPlace ? "Update" : "Download"}
           </Button>
         </>

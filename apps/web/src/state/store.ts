@@ -6,7 +6,7 @@ import type {
   VaultState,
   ThreadSummary,
   ThreadView,
-} from "@gradcode/contracts";
+} from "@getmyprof/contracts";
 import { create } from "zustand";
 import { notifyWaiting } from "~/lib/notify";
 import { call, onClose, onPush } from "~/rpc/client";

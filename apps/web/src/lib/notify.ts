@@ -1,10 +1,10 @@
 // Desktop notifications, only for what needs the user: a thread waiting on an Approval or an
 // Input answer. Opt-in from Settings; the choice lives in this browser.
-import type { ThreadSummary } from "@gradcode/contracts";
+import type { ThreadSummary } from "@getmyprof/contracts";
 
-const KEY = "gradcode.notify";
+const KEY = "getmyprof.notify";
 /** Fired on window when a notification is clicked; the root route opens that thread. */
-export const OPEN_THREAD = "gradcode:open-thread";
+export const OPEN_THREAD = "getmyprof:open-thread";
 
 const supported = () => typeof window !== "undefined" && "Notification" in window;
 export const notifyOn = () =>

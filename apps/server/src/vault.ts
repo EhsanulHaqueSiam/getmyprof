@@ -1,5 +1,5 @@
 // The vault's store: one table of typed items (documents, scholarships, programs, applications,
-// and the agent's finds waiting in To file), plus document bytes under GRADCODE_HOME/files.
+// and the agent's finds waiting in To file), plus document bytes under GETMYPROF_HOME/files.
 import {
   Application,
   factStatus,
@@ -14,7 +14,7 @@ import {
   Offer,
   Writing,
   type WritingKind,
-} from "@gradcode/contracts";
+} from "@getmyprof/contracts";
 import * as NodeCrypto from "node:crypto";
 import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";

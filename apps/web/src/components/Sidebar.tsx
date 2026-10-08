@@ -1,4 +1,4 @@
-import type { ThreadSummary } from "@gradcode/contracts";
+import type { ThreadSummary } from "@getmyprof/contracts";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import {
@@ -272,7 +272,7 @@ export function Sidebar() {
   return (
     <aside className="flex h-dvh min-w-0 flex-col overflow-hidden border-r px-2 pb-2">
       <div className="flex h-12 shrink-0 items-center gap-1.5 pr-1 pl-2">
-        <span className="mr-auto font-semibold text-sm tracking-tight">gradcode</span>
+        <span className="mr-auto font-semibold text-sm tracking-tight">getmyprof</span>
         <Tooltip>
           <TooltipTrigger
             render={

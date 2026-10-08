@@ -19,8 +19,8 @@ const crossImport = (other: "web" | "server") => [
     patterns: [
       {
         group: [
-          `@gradcode/${other}`,
-          `@gradcode/${other}/*`,
+          `@getmyprof/${other}`,
+          `@getmyprof/${other}/*`,
           `**/apps/${other}/**`,
           `**/${other}/src/**`,
         ],
@@ -47,7 +47,7 @@ export default defineConfig({
   lint: {
     ignorePatterns: IGNORE,
     plugins: ["eslint", "oxc", "react", "unicorn", "typescript"],
-    jsPlugins: ["./oxlint-plugin-gradcode/index.ts", "@shadcn/lint"],
+    jsPlugins: ["./oxlint-plugin-getmyprof/index.ts", "@shadcn/lint"],
     settings: { shadcn: { ui: "~/components/ui" } },
     categories: { correctness: "warn", suspicious: "warn", perf: "warn" },
     rules: {
@@ -61,15 +61,15 @@ export default defineConfig({
       "react/set-state-in-effect": "off",
       "typescript/no-explicit-any": "error",
       "eslint/max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }],
-      "gradcode/single-writer": "error",
-      "gradcode/no-forever-animation": "error",
+      "getmyprof/single-writer": "error",
+      "getmyprof/no-forever-animation": "error",
     },
     overrides: [
       {
         files: ["apps/web/src/**"],
         rules: {
           "eslint/no-restricted-imports": crossImport("server"),
-          "gradcode/no-em-dash-copy": "error",
+          "getmyprof/no-em-dash-copy": "error",
           // Every class must be one Tailwind generates, and colors come from theme tokens.
           "shadcn/no-unknown-classes": "error",
           "shadcn/no-raw-colors": "error",
@@ -86,8 +86,8 @@ export default defineConfig({
       },
       {
         // The rule tests hold the forbidden patterns as fixtures.
-        files: ["oxlint-plugin-gradcode/**"],
-        rules: { "gradcode/single-writer": "off", "gradcode/no-forever-animation": "off" },
+        files: ["oxlint-plugin-getmyprof/**"],
+        rules: { "getmyprof/single-writer": "off", "getmyprof/no-forever-animation": "off" },
       },
     ],
   },

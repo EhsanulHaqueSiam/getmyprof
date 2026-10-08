@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>gradcode · round 2</title>
+<title>getmyprof · round 2</title>
 <style>
 :root{--fg:#f1f3f7;--fg2:#d4d4d8;--mut:#a3a3a3;--dim:#737373;--faint:#4a4a4a;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.12);--input:rgba(255,255,255,.18);--hov:#191a1d;--sel:rgba(241,243,247,.07);--pri:oklch(.571 .21 264);--pri2:oklch(.74 .14 264);--ok:#34d399;--warn:#fbbf24;--err:#f87171;--info:#60a5fa;--ind:#a5b4fc;--ease:cubic-bezier(.32,.72,0,1);--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;--mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -406,12 +406,12 @@ td.ok{color:var(--ok)}td.err{color:var(--err)}td.dim,td.no2{color:var(--dim)}td.
 <symbol id="i-book" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
 </svg>
 
-<div class="bar"><div class="in"><b>gradcode · round 2</b><nav><a href="#decided">Decided</a><a href="#done">Done</a><a href="#shell">Shell</a><a href="#firstrun">First run</a><a href="#loops">Loops</a><a href="#flow">Workflow</a><a href="#screens">Screens</a><a href="#motion">Motion and keys</a><a href="#build">Build</a><a href="#decide">Questions</a><a href="#round1">Round 1</a></nav></div></div>
+<div class="bar"><div class="in"><b>getmyprof · round 2</b><nav><a href="#decided">Decided</a><a href="#done">Done</a><a href="#shell">Shell</a><a href="#firstrun">First run</a><a href="#loops">Loops</a><a href="#flow">Workflow</a><a href="#screens">Screens</a><a href="#motion">Motion and keys</a><a href="#build">Build</a><a href="#decide">Questions</a><a href="#round1">Round 1</a></nav></div></div>
 
 <main class="doc">
-<h1>gradcode: round 2</h1>
-<p><b>gradcode artifacts.</b> These pages are the approved design for the repo EhsanulHaqueSiam/gradcode, kept in its docs/mocks folder: <b>Main spec</b> (this page) · <a href="https://b9y2xzrirkk3.postplan.dev">Journey</a> · <a href="https://81t2rbxgjuh0.postplan.dev">Pipeline, Vault and Writer</a> · <a href="https://igc9ez9zbtyo.postplan.dev">Plan and status</a>.</p>
-<p>Your picks are in, and the scope grew: gradcode is for anyone hunting a funded degree. Each person brings their own Claude subscription, profile, preferences, loops and level of detail, and finds full funding on their own terms. Your install keeps reading hq and gradhunt. Round 1 is at the bottom.</p>
+<h1>getmyprof: round 2</h1>
+<p><b>getmyprof artifacts.</b> These pages are the approved design for the repo EhsanulHaqueSiam/getmyprof, kept in its docs/mocks folder: <b>Main spec</b> (this page) · <a href="https://b9y2xzrirkk3.postplan.dev">Journey</a> · <a href="https://81t2rbxgjuh0.postplan.dev">Pipeline, Vault and Writer</a> · <a href="https://igc9ez9zbtyo.postplan.dev">Plan and status</a>.</p>
+<p>Your picks are in, and the scope grew: getmyprof is for anyone hunting a funded degree. Each person brings their own Claude subscription, profile, preferences, loops and level of detail, and finds full funding on their own terms. Your install keeps reading hq and gradhunt. Round 1 is at the bottom.</p>
 
 <h2 id="decided"><span class="n">1</span>Decided</h2>
 <table class="spec decided"><tbody>
@@ -445,7 +445,7 @@ td.ok{color:var(--ok)}td.err{color:var(--err)}td.dim,td.no2{color:var(--dim)}td.
 <div class="flow-pre">browser ⇄ /api, /ws ⇄ server on your machine ⇄ Claude Code (your subscription)
 sources   free: NSF awards, NIH RePORTER, OpenAlex, CSRankings, faculty and lab pages
           paid: treg, only with your key (people search, email finding and checks)
-store     ~/.gradcode/gradcode.sqlite  (Node's built-in node:sqlite, no dependency)
+store     ~/.getmyprof/getmyprof.sqlite  (Node's built-in node:sqlite, no dependency)
 adapters  hq: profile facts, read-only  ·  gradhunt: records through scout.py   (your install)</div>
 
 <h2 id="shell"><span class="n">3</span>Shell: A + B + C</h2>
@@ -453,7 +453,7 @@ adapters  hq: profile facts, read-only  ·  gradhunt: records through scout.py  
 <div class="try"><span>switch Chat and Results</span><span>tick rows, then run an action from the dock</span><span>select 6 or more rows and Find emails asks first (over $0.01)</span><span>switch Detail: Brief, Standard, Deep</span><span>Accept the blue cells</span></div>
 <div class="scroll"><div class="win" id="mockX" style="min-width:1320px"><div class="appX m-grid" id="xApp">
  <aside class="sb">
-  <div class="sb-top"><div class="lights"><i></i><i></i><i></i></div><span class="brand">gradcode</span><span class="ib"><svg class="i sm"><use href="#i-search"/></svg></span><span class="ib"><svg class="i sm"><use href="#i-pen"/></svg></span></div>
+  <div class="sb-top"><div class="lights"><i></i><i></i><i></i></div><span class="brand">getmyprof</span><span class="ib"><svg class="i sm"><use href="#i-search"/></svg></span><span class="ib"><svg class="i sm"><use href="#i-pen"/></svg></span></div>
   <div class="nv">
    <a><svg class="i sm"><use href="#i-plus"/></svg>New thread<span class="kbd">⌘N</span></a>
    <a><svg class="i sm"><use href="#i-users"/></svg>Professors<span class="c">117</span></a>
@@ -549,7 +549,7 @@ adapters  hq: profile facts, read-only  ·  gradhunt: records through scout.py  
 <div class="try"><span>click the steps on the left</span></div>
 <div class="scroll"><div class="win" id="mockO" style="min-width:1100px"><div class="appO">
  <nav class="steps">
-  <div class="brand"><div class="lights"><i></i><i></i><i></i></div><b style="font-size:13px">gradcode</b></div>
+  <div class="brand"><div class="lights"><i></i><i></i><i></i></div><b style="font-size:13px">getmyprof</b></div>
   <div class="step done" data-step="1"><span class="sn">1</span>Connect</div>
   <div class="step done" data-step="2"><span class="sn">2</span>You</div>
   <div class="step on" data-step="3"><span class="sn">3</span>Your hunt</div>
@@ -557,11 +557,11 @@ adapters  hq: profile facts, read-only  ·  gradhunt: records through scout.py  
  </nav>
  <section style="overflow:auto">
   <div class="opane" data-opane="1">
-   <h5>Connect</h5><div class="sub">gradcode runs Claude Code on this machine with your own login. Nothing goes through a gradcode server.</div>
+   <h5>Connect</h5><div class="sub">getmyprof runs Claude Code on this machine with your own login. Nothing goes through a getmyprof server.</div>
    <div class="fr"><span class="k">Agent</span><span class="v"><span class="ok">●</span> Claude Code, signed in <span class="s">· your subscription pays for the thinking</span></span></div>
    <div class="fr"><span class="k">Runs on</span><span class="v">This Mac <span class="s">· pick a machine that stays on, so loops run while you sleep. Open it from your laptop or phone over Tailscale.</span></span></div>
    <div class="fr"><span class="k">Free sources</span><span class="v"><span class="opts"><span class="opt on">NSF awards</span><span class="opt on">NIH RePORTER</span><span class="opt on">OpenAlex</span><span class="opt on">CSRankings</span><span class="opt on">faculty and lab pages</span></span></span></div>
-   <div class="fr"><span class="k">treg <span class="s">(optional)</span></span><span class="v">Paid lookups: people search, email finding and checks. <span class="btn sm" style="margin-left:6px">Add key</span><br><span class="s">Without it, gradcode only uses emails printed on official pages.</span></span></div>
+   <div class="fr"><span class="k">treg <span class="s">(optional)</span></span><span class="v">Paid lookups: people search, email finding and checks. <span class="btn sm" style="margin-left:6px">Add key</span><br><span class="s">Without it, getmyprof only uses emails printed on official pages.</span></span></div>
    <div class="fr"><span class="k">Profile from</span><span class="v"><span class="seg"><span class="on">This app</span><span>A notes vault (hq)</span><span>A file</span></span></span></div>
   </div>
   <div class="opane" data-opane="2">
@@ -652,7 +652,7 @@ adapters  hq: profile facts, read-only  ·  gradhunt: records through scout.py  
 <div>
 <h3>Coding-agent concepts, mapped</h3>
 <table class="spec">
-<thead><tr><th>Coding agent</th><th>gradcode</th></tr></thead>
+<thead><tr><th>Coding agent</th><th>getmyprof</th></tr></thead>
 <tbody>
 <tr><td>Project</td><td>Hunt: Fall 2027, funded PhD</td></tr>
 <tr><td>Thread in a worktree</td><td>Thread scoped to a school, professor or search</td></tr>
@@ -809,7 +809,7 @@ adapters  hq: profile facts, read-only  ·  gradhunt: records through scout.py  
 <p>Power comes from keys, the palette and the inbox sidebar, not from more panes.</p>
 </div>
 <div>
-<h3>gradcode</h3>
+<h3>getmyprof</h3>
 <ul class="pl">
 <li><b>Take:</b> an MIT <code>components/ui</code> kit, copied with its notice. Buttons, menus, tooltips, dialogs and kbd come out identical.</li>
 <li><b>Add:</b> Claude Agent SDK on a small Node server over a WebSocket, treg MCP, a hunt MCP holding the zod-typed <code>propose_*</code> tools, and scout.py as the only writer.</li>
@@ -828,7 +828,7 @@ adapters  hq: profile facts, read-only  ·  gradhunt: records through scout.py  
 <tr><td class="n">2</td><td><b>Open source it</b> under MIT, so anyone can install it?</td><td class="c">Yes, once v1 works on your hunt.</td></tr>
 <tr><td class="n">3</td><td><b>Providers.</b> Claude only in v1, Codex later through an adapter?</td><td class="c">Yes. The agent sits behind one interface from day one.</td></tr>
 <tr><td class="n">4</td><td><b>Free sources:</b> NSF, NIH RePORTER, OpenAlex, CSRankings, faculty pages. Anything to add?</td><td class="c">These five.</td></tr>
-<tr><td class="n">5</td><td><b>Name.</b> Keep gradcode for a public tool?</td><td class="c">Keep it until v1 ships.</td></tr>
+<tr><td class="n">5</td><td><b>Name.</b> Keep getmyprof for a public tool?</td><td class="c">Keep it until v1 ships.</td></tr>
 </tbody></table>
 <h2 id="round1"><span class="n">11</span>Round 1</h2>
 <details><summary class="note" style="cursor:pointer">The first done list and shells A, B and C. A is still clickable.</summary>
@@ -863,7 +863,7 @@ adapters  hq: profile facts, read-only  ·  gradhunt: records through scout.py  
 <div class="try"><span>hover a sidebar row, then Settle or Snooze</span><span>Allow once, or Deny, on the approval</span><span>Accept or Reject each change; the last one settles the thread</span><span>Steer the queued message</span><span>switch panel tabs</span></div>
 <div class="scroll"><div class="win" id="mockA"><div class="app">
  <aside class="sb">
-  <div class="sb-top"><div class="lights"><i></i><i></i><i></i></div><span class="brand">gradcode</span><span class="ib"><svg class="i sm"><use href="#i-search"/></svg></span><span class="ib"><svg class="i sm"><use href="#i-pen"/></svg></span></div>
+  <div class="sb-top"><div class="lights"><i></i><i></i><i></i></div><span class="brand">getmyprof</span><span class="ib"><svg class="i sm"><use href="#i-search"/></svg></span><span class="ib"><svg class="i sm"><use href="#i-pen"/></svg></span></div>
   <div class="nv">
    <a><svg class="i sm"><use href="#i-plus"/></svg>New thread<span class="kbd">⌘N</span></a>
    <a><svg class="i sm"><use href="#i-users"/></svg>Professors<span class="c">110</span></a>
@@ -1058,7 +1058,7 @@ adapters  hq: profile facts, read-only  ·  gradhunt: records through scout.py  
 <div class="vh"><span class="k">C</span><span class="t">Research grid</span><span class="s">One query, then every column is an agent or treg enrichment that fills cell by cell, Clay style</span></div>
 <div class="scroll"><div class="win"><div class="appC">
  <aside class="sb">
-  <div class="sb-top"><div class="lights"><i></i><i></i><i></i></div><span class="brand">gradcode</span><span class="ib"><svg class="i sm"><use href="#i-plus"/></svg></span></div>
+  <div class="sb-top"><div class="lights"><i></i><i></i><i></i></div><span class="brand">getmyprof</span><span class="ib"><svg class="i sm"><use href="#i-plus"/></svg></span></div>
   <div class="ph">Grids</div>
   <div class="rows">
    <div class="row active"><svg class="i sm dim"><use href="#i-grid"/></svg><span class="tt">Health NLP · GMU, UIC, Arizona</span><span class="st info">running</span></div>

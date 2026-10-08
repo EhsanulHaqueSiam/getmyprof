@@ -1,5 +1,5 @@
 {
-  "name": "@gradcode/e2e",
+  "name": "@getmyprof/e2e",
   "private": true,
   "type": "module",
   "scripts": {
@@ -7,7 +7,7 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@gradcode/contracts": "workspace:*",
+    "@getmyprof/contracts": "workspace:*",
     "@playwright/test": "^1.63.0",
     "@types/node": "catalog:",
     "typescript": "catalog:"

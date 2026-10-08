@@ -11,7 +11,7 @@ export default async function stackUp(config: FullConfig) {
   if (!(res instanceof Response && res.ok)) {
     const why = res instanceof Response ? `HTTP ${res.status}` : String(res);
     throw new Error(
-      `No gradcode stack at ${base} (${why}). Start it first: scripts/dev-local.sh up`,
+      `No getmyprof stack at ${base} (${why}). Start it first: scripts/dev-local.sh up`,
     );
   }
   const health: unknown = await res.json();
@@ -19,6 +19,6 @@ export default async function stackUp(config: FullConfig) {
     typeof health === "object" && health !== null && "scripted" in health && health.scripted;
   if (!scripted)
     throw new Error(
-      `The stack at ${base} runs the real agent, maybe on real data. e2e runs only against a scripted one: rm -rf /tmp/gc-e2e && GRADCODE_HOME=/tmp/gc-e2e GRADCODE_AGENT=fake scripts/dev-local.sh up (or point APP_URL at one on other ports).`,
+      `The stack at ${base} runs the real agent, maybe on real data. e2e runs only against a scripted one: rm -rf /tmp/gc-e2e && GETMYPROF_HOME=/tmp/gc-e2e GETMYPROF_AGENT=fake scripts/dev-local.sh up (or point APP_URL at one on other ports).`,
     );
 }

@@ -1,4 +1,4 @@
-import type { ScopeItem } from "@gradcode/contracts";
+import type { ScopeItem } from "@getmyprof/contracts";
 import { XIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { call } from "~/rpc/client";

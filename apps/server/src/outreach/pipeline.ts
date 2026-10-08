@@ -1,7 +1,7 @@
 // Everyone in the Pipeline and where they stand: stage and turn from their messages
 // (store.ts), joined with what the rest of the hunt knows (applications, offers, the hunt's
 // follow-up timing). Derived on every read, never stored.
-import { addressChecked, type Conversation, type Professor, Touch } from "@gradcode/contracts";
+import { addressChecked, type Conversation, type Professor, Touch } from "@getmyprof/contracts";
 import type { Db } from "../db.ts";
 import { listRecords } from "../records.ts";
 import { sameSchool } from "../sources.ts";

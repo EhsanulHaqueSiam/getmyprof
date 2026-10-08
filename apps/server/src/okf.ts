@@ -1,9 +1,9 @@
 // The Vault as an OKF v0.2 bundle, like hq: one markdown note per fact, document, program,
 // application, offer, piece of writing and professor, each with a typed front-matter header and
-// relative links between them. gradcode writes it one way from the store to
-// GRADCODE_HOME/vault, for Obsidian and for search; edits happen in the app. A full-text index
+// relative links between them. getmyprof writes it one way from the store to
+// GETMYPROF_HOME/vault, for Obsidian and for search; edits happen in the app. A full-text index
 // of the notes (plus hq's own notes on an install that reads hq) backs the agent's vault_search.
-import type { ProfileFact } from "@gradcode/contracts";
+import type { ProfileFact } from "@getmyprof/contracts";
 import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
 import { hqDir, profileFacts } from "./adapters.ts";
@@ -186,7 +186,7 @@ export function renderNote(n: Note, all: Map<string, Note>) {
     `type: ${n.type}`,
     `title: ${JSON.stringify(n.title)}`,
     ...Object.entries(n.fields).map(([k, v]) => `${k}: ${yaml(v)}`),
-    'generated: {by: "process:gradcode"}',
+    'generated: {by: "process:getmyprof"}',
     "---",
   ].join("\n");
   const related = n.links
@@ -222,7 +222,7 @@ export function writeBundle(notes: Note[], dir = bundleDir()) {
   NodeFS.mkdirSync(dir, { recursive: true });
   NodeFS.writeFileSync(
     NodePath.join(dir, "okf-base.yaml"),
-    'okf_version: "0.2"\nbase:\n  name: gradcode vault\n  reserved_files: {index: index.md}\n',
+    'okf_version: "0.2"\nbase:\n  name: getmyprof vault\n  reserved_files: {index: index.md}\n',
   );
 }
 

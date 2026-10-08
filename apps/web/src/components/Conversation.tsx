@@ -3,7 +3,7 @@ import {
   draftIssues,
   type OutreachMessage,
   stripCitations,
-} from "@gradcode/contracts";
+} from "@getmyprof/contracts";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { act, ChannelBadge, TOUCH_LABEL } from "~/components/Pipeline";

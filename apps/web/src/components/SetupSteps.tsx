@@ -1,4 +1,4 @@
-import type { DetailLevel, HuntPrefs } from "@gradcode/contracts";
+import type { DetailLevel, HuntPrefs } from "@getmyprof/contracts";
 import { ArrowDownIcon, ArrowUpIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Chip, ListEditor, Row } from "~/components/FormParts";

@@ -74,7 +74,7 @@ describe("the newest release", () => {
         .mockImplementation(async (url) =>
           String(url).endsWith("/SHA256SUMS") ? new Response(sums) : new Response(script),
         );
-    serve(`${"0".repeat(64)}  gradcode.dmg\n${sum}  install.sh\n`);
+    serve(`${"0".repeat(64)}  getmyprof.dmg\n${sum}  install.sh\n`);
     expect(String(await releaseInstaller("https://x/releases", "0.2.0"))).toBe(script);
     serve(`${"f".repeat(64)}  install.sh\n`);
     await expect(releaseInstaller("https://x/releases", "0.2.0")).rejects.toThrow("SHA256SUMS");

@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-// One journey through v1 against the fake agent (GRADCODE_AGENT=fake, fresh GRADCODE_HOME).
+// One journey through v1 against the fake agent (GETMYPROF_AGENT=fake, fresh GETMYPROF_HOME).
 // The fake runs the real hunt tools on fixture data, so proposals, approvals, spend and
 // settling are the real code paths. Tests share one server, so they run in order.
 test.describe.configure({ mode: "serial" });
@@ -307,7 +307,7 @@ test("loops: a webhook run fills its placeholders, and every run goes back to on
   await expect(page.getByText("Vet Rui Zhang at Penn State.")).toBeVisible();
 });
 
-test("mcp: your own servers reach every session, and gradcode answers other agents", async ({
+test("mcp: your own servers reach every session, and getmyprof answers other agents", async ({
   page,
   request,
 }) => {
@@ -388,7 +388,7 @@ test("your data: a backup holds everything and restores", async ({ request }) =>
   const download = await request.get("/api/backup");
   expect(download.ok()).toBe(true);
   const backup = await download.json();
-  expect(backup.app).toBe("gradcode");
+  expect(backup.app).toBe("getmyprof");
   expect(backup.tables.records.length).toBeGreaterThan(0);
   expect(Object.keys(backup.files).length).toBeGreaterThan(0);
 
@@ -411,7 +411,7 @@ test("mailbox: sign in with Google with nothing to set up", async ({ page }) => 
   // A user can still bring their own client.
   await form.getByRole("button", { name: "Use my own client" }).click();
   await expect(form.getByLabel("Client ID")).toBeVisible();
-  await form.getByRole("button", { name: "Use gradcode's client" }).click();
+  await form.getByRole("button", { name: "Use getmyprof's client" }).click();
   await form.getByLabel("Your name").fill("Test Applicant");
   await form.getByRole("button", { name: "Sign in with Google" }).click();
   await expect(page).toHaveURL(/\/settings$/);

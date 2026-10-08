@@ -1,5 +1,5 @@
 {
-  "name": "@gradcode/server",
+  "name": "@getmyprof/server",
   "private": true,
   "type": "module",
   "exports": {
@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.3.292",
-    "@gradcode/contracts": "workspace:*",
+    "@getmyprof/contracts": "workspace:*",
     "@modelcontextprotocol/sdk": "1.32.1",
     "imapflow": "^2.2.6",
     "mailparser": "^3.9.36",

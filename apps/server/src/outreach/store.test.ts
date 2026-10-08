@@ -1,4 +1,4 @@
-import type { OutreachMessage, Professor } from "@gradcode/contracts";
+import type { OutreachMessage, Professor } from "@getmyprof/contracts";
 import { describe, expect, it } from "vite-plus/test";
 import { blankProfessor } from "../records.ts";
 import { draftProblem, standing } from "./store.ts";

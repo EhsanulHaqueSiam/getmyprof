@@ -8,7 +8,7 @@ const css = NodeFS.readdirSync(SRC, { recursive: true, encoding: "utf8" }).filte
   f.endsWith(".css"),
 );
 
-// oxlint reads scripts, not stylesheets, so the CSS half of gradcode/no-forever-animation lives here.
+// oxlint reads scripts, not stylesheets, so the CSS half of getmyprof/no-forever-animation lives here.
 describe("stylesheets", () => {
   it.each(css)("%s keeps the root at 16px, so rem sizes read as named", (file) => {
     const text = NodeFS.readFileSync(NodePath.join(SRC, file), "utf8");

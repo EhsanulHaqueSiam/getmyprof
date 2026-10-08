@@ -43,12 +43,12 @@ CREATE INDEX IF NOT EXISTS proposals_thread ON proposals (thread_id, status);
 CREATE INDEX IF NOT EXISTS spend_at ON spend (at);
 `;
 
-/** ~/.gradcode, or GRADCODE_HOME. Tests and /verify point it at a temp dir. */
+/** ~/.getmyprof, or GETMYPROF_HOME. Tests and /verify point it at a temp dir. */
 export const homeDir = (env: Record<string, string | undefined> = process.env) =>
-  env.GRADCODE_HOME ?? NodePath.join(NodeOS.homedir(), ".gradcode");
+  env.GETMYPROF_HOME ?? NodePath.join(NodeOS.homedir(), ".getmyprof");
 
 /** Opens (and creates) the one SQLite file that holds everything. `:memory:` for tests. */
-export function openDb(file = NodePath.join(homeDir(), "gradcode.sqlite")) {
+export function openDb(file = NodePath.join(homeDir(), "getmyprof.sqlite")) {
   if (file !== ":memory:") NodeFS.mkdirSync(NodePath.dirname(file), { recursive: true });
   const db = new DatabaseSync(file);
   db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");

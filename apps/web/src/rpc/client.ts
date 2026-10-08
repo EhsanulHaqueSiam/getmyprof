@@ -4,7 +4,7 @@ import {
   type MethodOutput,
   Methods,
   ServerMessage,
-} from "@gradcode/contracts";
+} from "@getmyprof/contracts";
 
 type Pending = {
   resolve: (value: unknown) => void;

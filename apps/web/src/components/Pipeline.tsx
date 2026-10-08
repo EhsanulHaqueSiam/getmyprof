@@ -1,5 +1,5 @@
-import type { Channel, Conversation, OutreachMessage } from "@gradcode/contracts";
-import { draftIssues, PIPELINE_STAGES } from "@gradcode/contracts";
+import type { Channel, Conversation, OutreachMessage } from "@getmyprof/contracts";
+import { draftIssues, PIPELINE_STAGES } from "@getmyprof/contracts";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "~/components/ui/button";

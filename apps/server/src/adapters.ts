@@ -6,7 +6,7 @@ import {
   Professor,
   type ProfileFact,
   Stage,
-} from "@gradcode/contracts";
+} from "@getmyprof/contracts";
 import * as NodeChild from "node:child_process";
 import * as NodeFS from "node:fs";
 import * as NodeOS from "node:os";
@@ -98,7 +98,7 @@ export function scoutLoop(dir = gradhuntDir(), nowAt = new Date()) {
   const since = new Date(nowAt.getTime() - 7 * 864e5).toISOString().slice(0, 10);
   const rows = Array.isArray(sheet) ? sheet : [];
   return {
-    // Its own schedule (Asia/Dhaka), set outside gradcode.
+    // Its own schedule (Asia/Dhaka), set outside getmyprof.
     when: "nightly 23:00, Asia/Dhaka",
     lastRun: last?.[1] ?? "",
     summary: (last?.[2] ?? "").slice(0, 160),
@@ -116,7 +116,7 @@ const STAGE: Record<string, Professor["stage"]> = {
   replied: "replied",
 };
 
-/** Copies gradhunt's sheet into the store. Rows gradcode already holds keep their local edits. */
+/** Copies gradhunt's sheet into the store. Rows getmyprof already holds keep their local edits. */
 export function importGradhunt(db: Db, dir = gradhuntDir()) {
   const file = sheetPath(dir);
   if (!NodeFS.existsSync(file)) return 0;
@@ -160,7 +160,7 @@ export function importGradhunt(db: Db, dir = gradhuntDir()) {
   return added;
 }
 
-/** gradcode fields scout.py can take, and their gradhunt names. Others stay local to gradcode. */
+/** getmyprof fields scout.py can take, and their gradhunt names. Others stay local to getmyprof. */
 const SCOUT_FIELDS: Partial<Record<Change["field"], string>> = {
   fit: "fit",
   email: "email",
@@ -259,7 +259,7 @@ export function parseCsv(text: string): string[][] {
   return rows.filter((r) => r.some((x) => x.trim()));
 }
 
-/** Adds rows from a CSV with gradcode's export header. Existing people are left alone. */
+/** Adds rows from a CSV with getmyprof's export header. Existing people are left alone. */
 export function importCsv(db: Db, text: string) {
   const [header, ...rows] = parseCsv(text);
   if (!header) return 0;

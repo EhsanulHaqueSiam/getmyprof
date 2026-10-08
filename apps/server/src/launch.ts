@@ -1,5 +1,5 @@
-// Starting the server outside dev: the desktop app and the `gradcode` command both come here.
-// One server per GRADCODE_HOME. Two on the same store would each run the loops and the send
+// Starting the server outside dev: the desktop app and the `getmyprof` command both come here.
+// One server per GETMYPROF_HOME. Two on the same store would each run the loops and the send
 // queue, so a launcher that finds one already running opens it instead of starting another.
 import * as NodeChild from "node:child_process";
 import * as NodeCrypto from "node:crypto";
@@ -14,7 +14,7 @@ export const PREFERRED_PORT = 4350;
 
 /**
  * A started server: its process, port, and who answers for it. `ownerPid` is the app or terminal
- * that stops it on exit; null for `gradcode serve`, which runs until `gradcode stop`.
+ * that stops it on exit; null for `getmyprof serve`, which runs until `getmyprof stop`.
  */
 const Running = z.object({
   pid: z.number(),
@@ -82,12 +82,12 @@ export type Launch = {
   webDir: string;
   owner: Running["owner"];
   env?: Record<string, string | undefined>;
-  /** Outlives the launcher (`gradcode serve`). */
+  /** Outlives the launcher (`getmyprof serve`). */
   detached?: boolean;
 };
 
 /**
- * Starts the server on a free port, logging to GRADCODE_HOME/server.log, and records it in
+ * Starts the server on a free port, logging to GETMYPROF_HOME/server.log, and records it in
  * server.json once /api/health answers. Rejects if it exits or stays silent for 30 seconds.
  */
 export async function startServer(o: Launch) {
@@ -96,7 +96,7 @@ export async function startServer(o: Launch) {
   const port = await freePort();
   const log = NodeFS.openSync(NodePath.join(home, "server.log"), "a");
   const child = NodeChild.spawn(o.node, [o.entry], {
-    env: { ...process.env, ...o.env, SERVER_PORT: String(port), GRADCODE_WEB_DIR: o.webDir },
+    env: { ...process.env, ...o.env, SERVER_PORT: String(port), GETMYPROF_WEB_DIR: o.webDir },
     stdio: ["ignore", log, log],
     detached: o.detached ?? false,
   });
@@ -106,7 +106,7 @@ export async function startServer(o: Launch) {
   for (let waited = 0; !(await healthy(port)); waited += 200) {
     if (exited || waited > 30_000) {
       child.kill();
-      throw new Error(`gradcode's server didn't start. See ${NodePath.join(home, "server.log")}`);
+      throw new Error(`getmyprof's server didn't start. See ${NodePath.join(home, "server.log")}`);
     }
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
@@ -151,9 +151,9 @@ export function newer(a: string, b: string) {
   return false;
 }
 
-/** A repo's releases page; GRADCODE_RELEASE_URL points at a mirror, as it does for install.sh. */
+/** A repo's releases page; GETMYPROF_RELEASE_URL points at a mirror, as it does for install.sh. */
 export const releasesUrl = (repo: string) =>
-  process.env.GRADCODE_RELEASE_URL ?? `https://github.com/${repo}/releases`;
+  process.env.GETMYPROF_RELEASE_URL ?? `https://github.com/${repo}/releases`;
 
 /**
  * The newest version under a releases URL (its /latest redirects to /tag/v<version>), or null when
@@ -181,7 +181,7 @@ async function releaseAsset(releases: string, version: string, name: string) {
 }
 
 /**
- * A release's own install.sh, checked against that release's SHA256SUMS. `gradcode update` runs
+ * A release's own install.sh, checked against that release's SHA256SUMS. `getmyprof update` runs
  * it, and so does an unsigned Mac app (`--desktop`) to replace itself.
  */
 export async function releaseInstaller(releases: string, version: string) {

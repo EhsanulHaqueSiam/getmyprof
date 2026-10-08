@@ -58,7 +58,7 @@ const program = {
 };
 
 beforeEach(() => {
-  process.env.GRADCODE_HOME = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "gc-vault-"));
+  process.env.GETMYPROF_HOME = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "gc-vault-"));
 });
 
 describe("To file", () => {

@@ -1,4 +1,4 @@
-import type { AppState } from "@gradcode/contracts";
+import type { AppState } from "@getmyprof/contracts";
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";

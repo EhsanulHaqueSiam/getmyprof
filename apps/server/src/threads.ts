@@ -4,7 +4,7 @@ import {
   ThreadEvent,
   type ThreadStatus,
   type ThreadSummary,
-} from "@gradcode/contracts";
+} from "@getmyprof/contracts";
 import { z } from "zod";
 import { type Db, newId, now } from "./db.ts";
 import { pendingCount } from "./records.ts";

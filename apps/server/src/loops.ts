@@ -5,7 +5,7 @@ import {
   type Professor,
   type Proposal,
   type Schedule,
-} from "@gradcode/contracts";
+} from "@getmyprof/contracts";
 import * as NodeCrypto from "node:crypto";
 import { writeBackToGradhunt } from "./adapters.ts";
 import { type Db, newId } from "./db.ts";

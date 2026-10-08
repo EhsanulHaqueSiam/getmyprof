@@ -6,7 +6,7 @@ import {
   UserIcon,
   UsersIcon,
 } from "lucide-react";
-import type { ScopeItem } from "@gradcode/contracts";
+import type { ScopeItem } from "@getmyprof/contracts";
 import { type ReactNode, useEffect } from "react";
 import { Composer } from "~/components/Composer";
 import { Kbd } from "~/components/ui/kbd";

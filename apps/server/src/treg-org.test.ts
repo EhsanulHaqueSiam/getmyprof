@@ -19,7 +19,7 @@ function fakeTreg(routes: Record<string, unknown>) {
   return { f: f as typeof fetch, sent };
 }
 
-const me = { org_id: 7, org: "gradcode", role: "owner", email: "siam@example.com" };
+const me = { org_id: 7, org: "getmyprof", role: "owner", email: "siam@example.com" };
 const usage = (rows: object[], unattributed = 0) => ({ rows, unattributed_micro: unattributed });
 
 describe("a team's customers", () => {
@@ -33,19 +33,19 @@ describe("a team's customers", () => {
       "GET /orgs/7/agents": [
         {
           user_id: 1,
-          name: "gradcode-maya",
+          name: "getmyprof-maya",
           created_at: "2026-10-02",
           pinned_tags: { customer: "maya" },
         },
         {
           user_id: 2,
-          name: "gradcode-rafi",
+          name: "getmyprof-rafi",
           created_at: "2026-09-29",
           pinned_tags: { customer: "rafi" },
         },
         {
           user_id: 3,
-          name: "gradcode-tan",
+          name: "getmyprof-tan",
           created_at: "2026-09-20",
           pinned_tags: { customer: "tan" },
         },
@@ -95,12 +95,12 @@ describe("a team's customers", () => {
   it("knows which customer a key it issued belongs to", async () => {
     const key = (email: string) =>
       whoIs("k", fakeTreg({ "GET /auth/me": { ...me, role: "member", email } }).f);
-    expect(await key("agent-gradcode-gradcode-maya.k@agents.treg.local")).toMatchObject({
+    expect(await key("agent-getmyprof-getmyprof-maya.k@agents.treg.local")).toMatchObject({
       issued: true,
       customer: "maya.k",
     });
     // Another machine key of the team, and a person's own key, belong to no customer.
-    expect((await key("agent-gradcode-ci-bot@agents.treg.local")).customer).toBeUndefined();
+    expect((await key("agent-getmyprof-ci-bot@agents.treg.local")).customer).toBeUndefined();
     expect(await key("siam@example.com")).toMatchObject({ issued: false, customer: undefined });
   });
 
@@ -114,7 +114,7 @@ describe("a team's customers", () => {
     });
     expect(await addCustomer("key", "maya", 5, ok.f)).toBe("trg_new");
     expect(ok.sent.find((s) => s.route === "POST /orgs/7/agents")?.body).toMatchObject({
-      name: "gradcode-maya",
+      name: "getmyprof-maya",
       tool_access: null,
       local_run_enabled: false,
       pinned_tags: { customer: "maya" },
@@ -134,7 +134,7 @@ describe("a team's customers", () => {
     // Adding someone who already has a key would replace it: refused, nothing minted.
     const twice = fakeTreg({
       "GET /auth/me": me,
-      "GET /orgs/7/agents": [{ user_id: 1, name: "gradcode-maya", created_at: "2026-10-02" }],
+      "GET /orgs/7/agents": [{ user_id: 1, name: "getmyprof-maya", created_at: "2026-10-02" }],
       "GET /tools": [],
     });
     await expect(addCustomer("key", "maya", null, twice.f)).rejects.toThrow(/already has a key/);

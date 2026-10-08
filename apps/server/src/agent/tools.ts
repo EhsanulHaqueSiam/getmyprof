@@ -1,7 +1,7 @@
 // The hunt tools the agent calls. Both providers run these same handlers: Claude through an
 // in-process MCP server, the fake provider directly. A handler returns a one-line summary
 // (shown in the work log) and the full text the model reads.
-import { type FreeSource, type Hunt, type Settings, Stage } from "@gradcode/contracts";
+import { type FreeSource, type Hunt, type Settings, Stage } from "@getmyprof/contracts";
 import { z } from "zod";
 import type { Db } from "../db.ts";
 import { acceptByRules, listLoops } from "../loops.ts";

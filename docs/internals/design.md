@@ -46,7 +46,7 @@ see Motion.
 | Done                           | one white dot, no toast, no sound         | none                |
 
 Nothing animates forever: no spinners, pulses, shimmer or `infinite` keyframes. They repaint
-every frame on high-refresh displays. `gradcode/no-forever-animation` and
+every frame on high-refresh displays. `getmyprof/no-forever-animation` and
 `apps/web/src/design.test.ts` enforce it. Reduced motion turns every transition off.
 
 ## The inbox sidebar
@@ -58,5 +58,5 @@ proposal reviewed and no approval pending. Untouched threads auto-settle after 3
 
 ## Copy
 
-Minimal. No em dashes (`gradcode/no-em-dash-copy`). No decorative chrome or subtitle lines above
+Minimal. No em dashes (`getmyprof/no-em-dash-copy`). No decorative chrome or subtitle lines above
 sections. State the fact, then the action.

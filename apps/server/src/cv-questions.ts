@@ -2,7 +2,7 @@
 // question fact goes to one thread, "Questions from your CV", which waits in Input; the
 // applicant's reply there answers the oldest question: it becomes a fact (unconfirmed, so it
 // still needs their proof before anything cites it). No agent turn, nothing spent.
-import type { ThreadEvent } from "@gradcode/contracts";
+import type { ThreadEvent } from "@getmyprof/contracts";
 import { type Db, getKv, now, setKv } from "./db.ts";
 import { getFacts, saveFacts } from "./state.ts";
 import { createThread, getThread, listEvents, putEvent, setStatus } from "./threads.ts";

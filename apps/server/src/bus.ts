@@ -1,4 +1,4 @@
-import type { ServerMessage } from "@gradcode/contracts";
+import type { ServerMessage } from "@getmyprof/contracts";
 
 type Send = (message: ServerMessage) => void;
 

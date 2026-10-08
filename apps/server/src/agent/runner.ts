@@ -1,4 +1,4 @@
-import { ROW_OPS, type RowOp, type ThreadEvent } from "@gradcode/contracts";
+import { ROW_OPS, type RowOp, type ThreadEvent } from "@getmyprof/contracts";
 import type { Bus } from "../bus.ts";
 import { type Db, newId, now } from "../db.ts";
 import { getRecord, recordLine, threadProposals } from "../records.ts";

@@ -25,7 +25,7 @@ const LOGIN = {
 
 /** A connected-ready store with one professor and a first-email draft to them. */
 function setup(email = "lybarger@example.edu") {
-  process.env.GRADCODE_HOME = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "gc-mail-"));
+  process.env.GETMYPROF_HOME = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "gc-mail-"));
   const db = openDb(":memory:");
   const record = {
     ...blankProfessor("Kevin Lybarger", "George Mason University"),
@@ -56,12 +56,12 @@ function setup(email = "lybarger@example.edu") {
 }
 
 describe("outreach on a mailbox", () => {
-  beforeEach(() => delete process.env.GRADCODE_HOME);
+  beforeEach(() => delete process.env.GETMYPROF_HOME);
 
   it("keeps the login readable by this user only", async () => {
     const { outreach } = setup();
     expect((await outreach.connect(LOGIN)).connected).toBe(true);
-    const file = NodePath.join(process.env.GRADCODE_HOME ?? "", "mail.json");
+    const file = NodePath.join(process.env.GETMYPROF_HOME ?? "", "mail.json");
     expect(NodeFS.statSync(file).mode & 0o777).toBe(0o600);
     expect(JSON.stringify(outreach.status())).not.toContain(LOGIN.password);
   });
@@ -163,7 +163,7 @@ describe("an attachment", () => {
 
 describe("signing in to a mailbox", () => {
   it("connects a Gmail box by OAuth and returns only to the app's own pages", async () => {
-    process.env.GRADCODE_HOME = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "gc-signin-"));
+    process.env.GETMYPROF_HOME = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "gc-signin-"));
     const outreach = createOutreach({
       db: openDb(":memory:"),
       bus: createBus(),
@@ -254,7 +254,7 @@ describe("the test-score rule", () => {
 
 describe("a mailbox that signs out", () => {
   it("says so, keeps the box and its warm-up, and a new app password brings it back", async () => {
-    process.env.GRADCODE_HOME = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "gc-mail-"));
+    process.env.GETMYPROF_HOME = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "gc-mail-"));
     const db = openDb(":memory:");
     let refused = false;
     const box = fakeMailer();

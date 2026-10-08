@@ -1,4 +1,4 @@
-import { type Professor, ROW_OPS, type RowOp } from "@gradcode/contracts";
+import { type Professor, ROW_OPS, type RowOp } from "@getmyprof/contracts";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { DownloadIcon, SearchIcon, UploadIcon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -74,7 +74,7 @@ function Professors() {
 
   const exportCsv = async () => {
     const { csv } = await call("records.export", {});
-    download("gradcode-professors.csv", csv, "text/csv");
+    download("getmyprof-professors.csv", csv, "text/csv");
   };
 
   return (

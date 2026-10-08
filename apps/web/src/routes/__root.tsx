@@ -55,7 +55,7 @@ function NotFound() {
     <div className="m-auto flex flex-col items-center gap-2 py-24 text-muted-foreground text-xs">
       Nothing lives at this address.
       <Link to="/" className="text-foreground underline">
-        Back to gradcode
+        Back to getmyprof
       </Link>
     </div>
   );

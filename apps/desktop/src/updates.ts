@@ -1,7 +1,7 @@
 // In-app updates from the public release feed: app-update.yml, which electron-builder writes from
 // the publish target in scripts/dist.ts. Checks at launch and every 6 hours.
-import type { DesktopUpdate } from "@gradcode/contracts";
-import { releaseInstaller, releasesUrl } from "@gradcode/server/launch";
+import type { DesktopUpdate } from "@getmyprof/contracts";
+import { releaseInstaller, releasesUrl } from "@getmyprof/server/launch";
 import { app, ipcMain, shell } from "electron";
 import electronUpdater from "electron-updater";
 import * as NodeChild from "node:child_process";
@@ -10,7 +10,7 @@ import * as NodePath from "node:path";
 
 const { autoUpdater } = electronUpdater;
 
-/** The running gradcode.app; process.execPath is its Contents/MacOS binary. */
+/** The running getmyprof.app; process.execPath is its Contents/MacOS binary. */
 const bundle = () => NodePath.resolve(process.execPath, "../../..");
 
 /**
@@ -28,18 +28,18 @@ function updateWay() {
 
 /**
  * Replaces this unsigned Mac app with `version`: the release's install.sh, checked against its
- * SHA256SUMS, downloads the dmg and copies gradcode.app over this bundle. Reports curl's percent.
+ * SHA256SUMS, downloads the dmg and copies getmyprof.app over this bundle. Reports curl's percent.
  */
 async function installOver(releases: string, version: string, progress: (percent: number) => void) {
   const script = await releaseInstaller(releasesUrl(releases), version);
-  const file = NodePath.join(app.getPath("temp"), `gradcode-install-${process.pid}.sh`);
+  const file = NodePath.join(app.getPath("temp"), `getmyprof-install-${process.pid}.sh`);
   NodeFS.writeFileSync(file, script);
   const child = NodeChild.spawn("sh", [file, "--desktop"], {
     stdio: ["ignore", "ignore", "pipe"],
     env: {
       ...process.env,
-      GRADCODE_VERSION: version,
-      GRADCODE_APP_DIR: NodePath.dirname(bundle()),
+      GETMYPROF_VERSION: version,
+      GETMYPROF_APP_DIR: NodePath.dirname(bundle()),
     },
   });
   let log = "";

@@ -163,7 +163,9 @@ export type MailConnect = z.infer<typeof MailConnect>;
 const GENERIC_SALUTATION =
   /\bdear\s+(?:sir|madam)s?\b|\bsir\s*\/\s*madam|\brespected\s+(?:sir|madam|professor)\b|\bto whom it may concern|\bdear\s+(?:professor|prof\.?|dr\.?)\s*(?:,|$)/im;
 const GENERIC_LINES = [
-  /\bI find your (?:research|work) (?:fascinating|interesting|inspiring)/i,
+  /\bfind your (?:research|work) (?:very |truly |really )?(?:fascinating|interesting|inspiring|impressive|intriguing)/i,
+  /\byour (?:research|work) is (?:very |truly |really )?(?:fascinating|interesting|inspiring|impressive|intriguing)/i,
+  /\b(?:fascinated|impressed|inspired) by your (?:research|work)\b/i,
   /\byour esteemed \w+/i,
   /\bI came across your (?:profile|website|page)/i,
   /\bI am writing to express my (?:keen |strong )?interest/i,
@@ -231,7 +233,7 @@ function personalIssues(
   }
   if (m.channel !== "email") return issues;
   const words = body.split(/\s+/).filter(Boolean).length;
-  if (words > 180) issues.push(`${words} words: a first email reads best under 150`);
+  if (words > 150) issues.push(`${words} words: keep a first email under 150`);
   const subject = m.subject.split(/\s+/).filter(Boolean).length;
   const bare = significant(m.subject).every((w) => BARE_SUBJECT.test(w));
   if (!subject || subject > 12 || bare)

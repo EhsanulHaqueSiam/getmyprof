@@ -255,7 +255,8 @@ function Row({
         </span>
       </td>
       <td className={cn(cell, "max-w-[110px] text-xs")} title={s.rank}>
-        {s.rank || <span className="text-placeholder">?</span>}
+        {/* The number first, so truncation never cuts it; the source is in the tooltip. */}
+        {s.rank.match(/#\s*\d.*/)?.[0] ?? (s.rank || <span className="text-placeholder">?</span>)}
       </td>
       <td
         className={cn(

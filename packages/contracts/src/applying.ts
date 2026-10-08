@@ -47,11 +47,14 @@ const takesMoi = (text: string) =>
 
 /**
  * What a program's test rules need that the applicant doesn't have, one line each: "needs IELTS
- * 7, you have 6.5", "needs TOEFL 100, none taken". One English test that meets its minimum is
+ * 7.0, you have 6.5", "needs TOEFL 100, none taken". One English test that meets its minimum is
  * enough, and so is an MOI certificate where the program takes one. Booked tests aren't scores;
  * a taken one whose score can't be read gives no line, since nothing is known either way.
  */
 export function scoreGaps(english: string, applicant: Pick<Applicant, "tests" | "moi">) {
+  // IELTS bands read with one decimal, as score reports print them.
+  const shown = (v: number | null, name: string) =>
+    v !== null && name === "IELTS" ? v.toFixed(1) : String(v);
   const needs = minimums(english).map((n) => {
     const tests = applicant.tests.filter((x) => x.status === "taken" && n.test.is.test(x.name));
     const scores = tests.flatMap((x) => scoreIn(x.score, n.test) ?? []);
@@ -63,10 +66,13 @@ export function scoreGaps(english: string, applicant: Pick<Applicant, "tests" | 
   const languages = needs.filter((n) => n.test.english);
   if (languages.length && !(applicant.moi && takesMoi(english)) && !languages.some(fine)) {
     const short = languages.filter((n) => n.taken);
-    for (const n of short) lines.push(`needs ${n.test.name} ${n.min}, you have ${n.best}`);
+    for (const n of short)
+      lines.push(
+        `needs ${n.test.name} ${shown(n.min, n.test.name)}, you have ${shown(n.best, n.test.name)}`,
+      );
     if (!short.length)
       lines.push(
-        `needs ${languages.map((n) => `${n.test.name} ${n.min}`).join(" or ")}, none taken`,
+        `needs ${languages.map((n) => `${n.test.name} ${shown(n.min, n.test.name)}`).join(" or ")}, none taken`,
       );
   }
   for (const n of needs.filter((x) => !x.test.english && !fine(x)))

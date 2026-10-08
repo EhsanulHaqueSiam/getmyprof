@@ -14,7 +14,7 @@ const me = (tests: Tests, moi = false) => ({ tests, moi });
 describe("score gaps", () => {
   it("compares each minimum the program names with the applicant's taken scores", () => {
     const ielts = me([taken("IELTS Academic", "6.5")]);
-    expect(scoreGaps("IELTS 7.0 overall", ielts)).toEqual(["needs IELTS 7, you have 6.5"]);
+    expect(scoreGaps("IELTS 7.0 overall", ielts)).toEqual(["needs IELTS 7.0, you have 6.5"]);
     expect(scoreGaps("IELTS 6.5; no band below 6", ielts)).toEqual([]);
     expect(scoreGaps("minimum TOEFL of 100", me([]))).toEqual(["needs TOEFL 100, none taken"]);
     // One English test that meets its minimum is enough.
@@ -39,7 +39,7 @@ describe("score gaps", () => {
 
   it("lets an MOI certificate stand in where the program accepts one", () => {
     expect(scoreGaps("IELTS 7.0; MOI accepted", me([], true))).toEqual([]);
-    expect(scoreGaps("IELTS 7.0; MOI accepted", me([]))).toEqual(["needs IELTS 7, none taken"]);
+    expect(scoreGaps("IELTS 7.0; MOI accepted", me([]))).toEqual(["needs IELTS 7.0, none taken"]);
     // "Considered" is not a promise.
     expect(scoreGaps("IELTS 6.5; MOI considered", me([], true))).toEqual([
       "needs IELTS 6.5, none taken",

@@ -132,10 +132,10 @@ describe("a first message written for one professor", () => {
   it("names each generic line, so it can be replaced with something about their work", () => {
     expect(
       email(
-        `Dear Dr. Lybarger,\nGreetings of the day. I find your research fascinating and would love to join your esteemed lab. ${named} I am a highly motivated, hardworking student.`,
+        `Dear Dr. Lybarger,\nGreetings of the day. I read your papers and find your research fascinating, and would love to join your esteemed lab. ${named} I am a highly motivated, hardworking student.`,
       ),
     ).toEqual([
-      'generic: "I find your research fascinating": say what in their work, specifically',
+      'generic: "find your research fascinating": say what in their work, specifically',
       'generic: "your esteemed lab": say what in their work, specifically',
       'generic: "Greetings of the day": say what in their work, specifically',
       'generic: "highly motivated": say what in their work, specifically',
@@ -145,9 +145,10 @@ describe("a first message written for one professor", () => {
 
   it("keeps an email under about 150 words, citation markers aside", () => {
     expect(email(`${named} ${"word ".repeat(173)}`)).toEqual([
-      "181 words: a first email reads best under 150",
+      "181 words: keep a first email under 150",
     ]);
-    expect(email(`${named} ${"word [1] ".repeat(160)}`)).toEqual(["[1] points at no fact"]);
+    // 143 words once the markers go: under the limit.
+    expect(email(`${named} ${"word [1] ".repeat(135)}`)).toEqual(["[1] points at no fact"]);
   });
 
   it("wants a short subject that names the topic and intake", () => {

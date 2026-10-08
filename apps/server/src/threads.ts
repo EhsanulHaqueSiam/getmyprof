@@ -223,6 +223,14 @@ export const threadSpend = (db: Db, threadId: string) =>
   );
 
 /** Spend in the last 24 hours, the window the day cap counts: all of it, or one thread's. */
+/** The last day's spend that belongs to no thread (a LinkedIn member-id lookup from the Pipeline). */
+export const daySpendOutsideThreads = (db: Db) =>
+  Number(
+    db
+      .prepare("SELECT COALESCE(SUM(usd), 0) AS s FROM spend WHERE at >= ? AND thread_id IS NULL")
+      .get(new Date(Date.now() - 864e5).toISOString())?.s ?? 0,
+  );
+
 export const daySpend = (db: Db, threadId?: string) =>
   Number(
     db

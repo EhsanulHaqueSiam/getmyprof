@@ -24,6 +24,8 @@ export const TREG_ENDPOINTS: Record<string, { method: "GET" | "POST"; usd: numbe
     "getleadsio.people.enrich.from_linkedin": { method: "POST", usd: 0, max: 0.01 },
     "tinyfish.web.search": { method: "GET", usd: 0, max: 0 },
     "litescrape.web.fetch.post": { method: "POST", usd: 0.00015, max: 0.00015 },
+    // The member id LinkedIn's message box needs (outreach/linkedin.ts).
+    "fetchinio.linkedin.user.profile": { method: "GET", usd: 0.0015, max: 0.0015 },
     "anyapi.linkedin.search.jobs": { method: "POST", usd: 0.0005, max: 0.0005 },
     "treg.x.search.posts": { method: "POST", usd: 0.00075, max: 0.015 },
     "anyapi.x.search.posts": { method: "POST", usd: 0.00075, max: 0.00075 },

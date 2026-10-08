@@ -302,7 +302,7 @@ export function Sidebar() {
   const counts = useStore((st) => st.app?.counts);
   const outreach = useStore((st) => st.conversations.filter(needsYou).length);
   const toFile = useStore((st) => st.vault?.toFile.length);
-  const today = threads.reduce((n, t) => n + t.spendDayUsd, 0);
+  const today = threads.reduce((n, t) => n + t.spendDayUsd, 0) + (counts?.spendOutsideThreads ?? 0);
   const activeId = "threadId" in params ? params.threadId : undefined;
 
   return (

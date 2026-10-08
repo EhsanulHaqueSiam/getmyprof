@@ -49,8 +49,8 @@ export const AppState = z.object({
   /** Whether Claude Code can run: signed in (and as whom), or not yet. */
   claude: z.object({ signedIn: z.boolean(), who: z.string() }),
   /** The sidebar's counts: awards from the last search worth a look (running past the intake,
-   * on topic, PI not in the sheet), and loops on. */
-  counts: z.object({ funding: z.number(), loops: z.number() }),
+   * on topic, PI not in the sheet), loops on, and the last day's spend outside any thread. */
+  counts: z.object({ funding: z.number(), loops: z.number(), spendOutsideThreads: z.number() }),
 });
 export type AppState = z.infer<typeof AppState>;
 
@@ -276,6 +276,11 @@ export const Methods = {
   "outreach.cancel": { input: id, output: ok },
   /** LinkedIn is assisted: the user sends it there, then marks it sent here. */
   "outreach.markSent": { input: id, output: ok },
+  /** Where a LinkedIn note opens: their message box, or their profile (with why, if it costs). */
+  "outreach.linkedinOpen": {
+    input: id,
+    output: z.object({ url: z.string(), note: z.string() }),
+  },
 
   "vault.get": { input: z.object({}), output: VaultState },
   "vault.save": { input: VaultEdit, output: ok },

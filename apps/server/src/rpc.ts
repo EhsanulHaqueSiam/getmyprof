@@ -15,7 +15,9 @@ import { type Db, getKv, newId, now } from "./db.ts";
 import { claudeLogin, health, tailnetLink } from "./health.ts";
 import { listLoops, loopStats, saveLoop, STARTER_LOOPS } from "./loops.ts";
 import type { Outreach } from "./outreach/service.ts";
+import { linkedinOpen } from "./outreach/linkedin.ts";
 import { conversations } from "./outreach/pipeline.ts";
+import { getMessage } from "./outreach/store.ts";
 import {
   findsWaiting,
   listPrograms,
@@ -48,6 +50,7 @@ import {
   listThreads,
   putEvent,
   settleIfDone,
+  daySpendOutsideThreads,
 } from "./threads.ts";
 
 type Input<M extends Method> = z.output<(typeof Methods)[M]["input"]>;
@@ -109,6 +112,7 @@ export function createHandlers(svc: Services): Handlers {
         counts: {
           funding: getKv(db, "funding.waiting", Number, 0),
           loops: listLoops(db).filter((l) => l.enabled).length,
+          spendOutsideThreads: daySpendOutsideThreads(db),
         },
       };
     },
@@ -225,6 +229,14 @@ export function createHandlers(svc: Services): Handlers {
     "outreach.cancel": ({ id }) => {
       outreach.cancel(id);
       return OK;
+    },
+    "outreach.linkedinOpen": async ({ id }) => {
+      const m = getMessage(db, id);
+      if (!m || m.channel !== "linkedin") throw new Error("No LinkedIn note to open.");
+      const opened = await linkedinOpen(db, svc.sources, m.recordKey, m.to);
+      // A lookup it paid for shows in today's spend.
+      bus.push({ type: "changed", what: "state" });
+      return opened;
     },
     "outreach.markSent": ({ id }) => {
       outreach.markSent(id);

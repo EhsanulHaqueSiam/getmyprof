@@ -176,7 +176,10 @@ export const fixtureSources: Sources = {
   }),
   treg: async (req) => ({
     ok: true,
-    result: "deliverable",
+    result:
+      req.endpoint === "fetchinio.linkedin.user.profile"
+        ? { profileId: "ACoAAFixtureMember", firstName: "Fixture" }
+        : "deliverable",
     callId: `fake-${req.endpoint}`,
     costUsd: TREG_ENDPOINTS[req.endpoint]?.usd ?? 0,
   }),

@@ -15,13 +15,20 @@ import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
 
 /** One message. Times read in the professor's zone, both ways, so a quick reply looks quick. */
+/** What a message is, for its header: a LinkedIn note, or the email's touch (first email...). */
+const kindOf = (m: Pick<OutreachMessage, "channel" | "touch">) =>
+  m.channel === "linkedin" ? "LinkedIn note" : m.touch ? TOUCH_LABEL[m.touch] : "";
+
 function Bubble({ m, name, zone }: { m: OutreachMessage; name: string; zone: string }) {
   const mine = m.direction === "out";
   const head = mine
     ? m.status === "scheduled"
       ? `Queued · ${theirTime(m)}`
-      : `You · ${theirTime(m)} · ${m.touch ? TOUCH_LABEL[m.touch] : ""}`
+      : `You · ${theirTime(m)} · ${kindOf(m)}`
     : `${name} · ${theirTime({ at: m.at, scheduledAt: null, timeZone: zone })}`;
+  // Files on the message, sent or received; a reply's land in the Vault's documents.
+  const docs = useStore((s) => s.vault?.documents);
+  const files = (docs ?? []).filter((d) => m.attachments.includes(d.id)).map((d) => d.name);
   return (
     <div
       data-testid="message"
@@ -38,6 +45,11 @@ function Bubble({ m, name, zone }: { m: OutreachMessage; name: string; zone: str
         <div className="font-medium text-xs">{m.subject}</div>
       ) : null}
       <div className="whitespace-pre-wrap text-secondary-label">{stripCitations(m.body)}</div>
+      {files.length ? (
+        <div className="mt-1.5 text-muted-foreground text-xs" data-testid="message-attachments">
+          Attached: {files.join(", ")}
+        </div>
+      ) : null}
       {m.status === "scheduled" ? (
         <div className="mt-2 flex justify-end gap-1.5">
           <Button
@@ -153,7 +165,7 @@ function Composer({
           <span className="shrink-0 text-warning-foreground">{dashes} em dashes ·</span>
         ) : null}
         <span className="truncate" title={draft.to}>
-          {draft.touch ? TOUCH_LABEL[draft.touch] : ""} · to {draft.to}
+          {kindOf(draft)} · to {draft.to}
           {draft.status === "failed" ? ` · not sent: ${draft.note}` : ""}
         </span>
         <Button
@@ -170,12 +182,25 @@ function Composer({
               size="xs"
               variant="outline"
               disabled={blocked}
-              onClick={() =>
+              onClick={() => {
+                // The tab opens while the click still counts; the server says where it goes:
+                // their message box, or their profile when the member id can't be had.
+                const tab = window.open("", "_blank");
                 then(async () => {
-                  await navigator.clipboard.writeText(stripCitations(body));
-                  window.open(draft.to, "_blank", "noopener");
-                })
-              }
+                  try {
+                    await navigator.clipboard.writeText(stripCitations(body));
+                    const { url, note } = await call("outreach.linkedinOpen", { id: draft.id });
+                    if (tab) {
+                      tab.opener = null;
+                      tab.location.href = url;
+                    }
+                    if (note) useStore.getState().setNotice(note);
+                  } catch (e) {
+                    tab?.close();
+                    throw e;
+                  }
+                });
+              }}
             >
               Copy and open LinkedIn
             </Button>

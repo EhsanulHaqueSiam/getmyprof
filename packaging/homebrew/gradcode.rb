@@ -27,9 +27,8 @@ cask "gradcode" do
     system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{appdir}/gradcode.app"]
   end
 
-  # The hunt itself lives in ~/.gradcode and stays.
+  # The hunt and the app's profile live in ~/.gradcode and stay.
   zap trash: [
-    "~/Library/Application Support/gradcode",
     "~/Library/Logs/gradcode",
     "~/Library/Preferences/dev.gradcode.app.plist",
   ]

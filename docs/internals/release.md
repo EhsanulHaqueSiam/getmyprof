@@ -6,15 +6,15 @@ which builds everything and publishes it to the public repo `EhsanulHaqueSiam/gr
 
 ## What ships
 
-| Asset                                                          | Who uses it                                                                                             | Updates                                |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| `gradcode-X.Y.Z-{darwin,linux}-{arm64,x64}.tar.gz`             | `install.sh`: the `gradcode` command, with its own Node 24                                              | `gradcode update` reruns install.sh    |
-| `gradcode-X.Y.Z-{arm64,x64}.dmg` and `.zip`                    | the Mac app; the cask; the zip is Squirrel's                                                            | a notice until there is a Developer ID |
-| `gradcode-X.Y.Z-{x86_64,arm64}.AppImage`                       | `install.sh --desktop` on Linux                                                                         | downloads and replaces itself          |
-| `gradcode_X.Y.Z_{amd64,arm64}.deb`                             | `apt install`, and the AUR package `gradcode-bin`                                                       | a notice; the package manager installs |
-| `latest-mac.yml`, `latest-linux.yml`, `latest-linux-arm64.yml` | electron-updater's feed                                                                                 |                                        |
-| `SHA256SUMS`                                                   | install.sh checks every download against it                                                             |                                        |
-| `install.sh` on the repo's `main`                              | `curl -fsSL https://raw.githubusercontent.com/EhsanulHaqueSiam/gradcode-releases/main/install.sh \| sh` | synced each release                    |
+| Asset                                                          | Who uses it                                                                                             | Updates                                         |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| `gradcode-X.Y.Z-{darwin,linux}-{arm64,x64}.tar.gz`             | `install.sh`: the `gradcode` command, with its own Node 24                                              | `gradcode update` runs the release's install.sh |
+| `gradcode-X.Y.Z-{arm64,x64}.dmg` and `.zip`                    | the Mac app; the cask; the zip is Squirrel's                                                            | a notice until there is a Developer ID          |
+| `gradcode-X.Y.Z-{x86_64,arm64}.AppImage`                       | `install.sh --desktop` on Linux                                                                         | downloads and replaces itself                   |
+| `gradcode_X.Y.Z_{amd64,arm64}.deb`                             | `apt install`, and the AUR package `gradcode-bin`                                                       | a notice; the package manager installs          |
+| `latest-mac.yml`, `latest-linux.yml`, `latest-linux-arm64.yml` | electron-updater's feed                                                                                 |                                                 |
+| `SHA256SUMS`                                                   | install.sh and `gradcode update` check every download against it                                        |                                                 |
+| `install.sh`, as an asset and on the repo's `main`             | `curl -fsSL https://raw.githubusercontent.com/EhsanulHaqueSiam/gradcode-releases/main/install.sh \| sh` | synced each release                             |
 
 The npm package `gradcode` (`npx gradcode@latest`), the Homebrew cask and the AUR `PKGBUILD`
 are built every release and published only when their secret is set.
@@ -26,12 +26,21 @@ are built every release and published only when their secret is set.
   `GRADCODE_WEB_DIR` is set (`apps/server/src/static.ts`); dev doesn't set it.
 - The desktop app runs that server on Electron's own Node (`ELECTRON_RUN_AS_NODE`, Node 24.21
   in Electron 44, with `node:sqlite` and FTS5). The CLI tarball ships the official Node 24.21.
-- The Agent SDK finds its native Claude binary through `node_modules/@anthropic-ai/
-claude-agent-sdk-<os>-<arch>/claude` next to `server.mjs`; the build puts the target's copy
-  there (outside the asar, so it can run).
-- One server per `GRADCODE_HOME`: the launcher records it in `server.json`, and the desktop app
-  and the CLI open a running one instead of starting a second (two would both run loops and the
-  send queue). Port 4350 when free, so the page's origin and its localStorage stay put.
+- **No download carries the Claude Code binary**: its license reserves redistribution.
+  `apps/server/src/agent/binary.ts` uses the SDK's own platform package when node_modules has it
+  (dev, npm installs), else fetches `@anthropic-ai/claude-agent-sdk-<os>-<arch>` at the version
+  `pnpm dist runtime` pins from registry.npmjs.org into `GRADCODE_HOME/claude/<version>`,
+  checked against the registry's sha512. The CLI does that on its first run with a progress
+  line; the server starts it at boot and Setup's Connect step shows the percent, or the error
+  with a Download button. When it can't be fetched, a `claude` on PATH stands in. Sign-in runs
+  that binary's own `auth login`: `gradcode login`, or Setup's Sign in (browser, or a pasted code).
+- One server per `GRADCODE_HOME`: the launcher records it in `server.json` with the process
+  that answers for it, and the desktop app and the CLI open a running one instead of starting a
+  second (two would both run loops and the send queue). A server whose app crashed is adopted by
+  the next app launch (which stops it on quit) and can be stopped with `gradcode stop`. Port
+  4350 when free, so the page's origin and its localStorage stay put.
+- The app's Electron profile and its one-instance lock live in `GRADCODE_HOME/desktop`, so a run
+  on a temp home never touches a real install's.
 - On Linux the command line is `gradcode` and the app is `gradcode-desktop`.
 
 ## Cutting a release
@@ -65,8 +74,8 @@ The variable `GRADCODE_RELEASES` (owner/name) moves the whole feed to another pu
   Download opens the release. Gatekeeper blocks an ad-hoc app downloaded in a browser; curl
   (install.sh) sets no quarantine and the cask strips it. With a browser download:
   `xattr -dr com.apple.quarantine /Applications/gradcode.app`.
-- **Size.** The Claude binary is 235 MB of every download; `compression: "maximum"` keeps a dmg
-  near 200 MB.
+- **The first run needs the network** for the Claude Code binary (about 100 MB to download).
+  Offline with no `claude` on PATH, the app and the CLI still start and say why the agent can't.
 - **Ubuntu 24.04 and AppImages.** Its AppArmor blocks Chromium's sandbox in any AppImage; the
   `.deb` ships a setuid sandbox and works. Arch is fine.
 - **`ELECTRON_RUN_AS_NODE` in your shell** (any terminal inside an Electron app, T3 Code's

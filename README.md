@@ -64,9 +64,10 @@ under `~/.gradcode`. How the pieces fit: [docs/internals/overview.md](docs/inter
 
 ## Install
 
-gradcode runs the agent on your own Claude Code login: install
-[Claude Code](https://claude.com/product/claude-code) and run `claude auth login` first. Downloads
-live in the public [gradcode-releases](https://github.com/EhsanulHaqueSiam/gradcode-releases) repo.
+gradcode runs the agent on your own Claude subscription. The first run downloads Claude Code
+(about 100 MB, straight from npm, checked against its published checksum) into `~/.gradcode`;
+then sign in from Setup's Connect step, or with `gradcode login`. Downloads live in the public
+[gradcode-releases](https://github.com/EhsanulHaqueSiam/gradcode-releases) repo.
 
 ### Command line
 
@@ -74,13 +75,17 @@ live in the public [gradcode-releases](https://github.com/EhsanulHaqueSiam/gradc
 curl -fsSL https://raw.githubusercontent.com/EhsanulHaqueSiam/gradcode-releases/main/install.sh | sh
 ```
 
-Then `gradcode` starts the server and opens the app in your browser. `gradcode serve` keeps it
-running in the background, `gradcode update` moves to the newest release, and `gradcode --help`
-lists the rest. It brings its own Node; to try it once with yours (24+), run `npx gradcode@latest`.
+Then run `gradcode` to start the server and open the app in your browser. `gradcode serve` keeps
+it running in the background, `gradcode update` moves to the newest release, and `gradcode --help`
+has the rest. It brings its own Node. To try it once without installing, run
+`npx gradcode@latest` (Node 24+).
 
 ### Desktop app
 
-The app tells you when there's a new version. On Linux the AppImage updates itself.
+Install the latest version from
+[GitHub Releases](https://github.com/EhsanulHaqueSiam/gradcode-releases/releases/latest) (dmg for
+Apple Silicon `arm64` or Intel `x64`, AppImage, `.deb`), or from your package registry. The app
+tells you when there's a new version; the AppImage updates itself.
 
 #### macOS (Homebrew)
 
@@ -88,9 +93,12 @@ The app tells you when there's a new version. On Linux the AppImage updates itse
 brew install --cask EhsanulHaqueSiam/tap/gradcode
 ```
 
+The Mac app isn't notarized yet. Homebrew handles that; after dragging a downloaded dmg to
+Applications, run `xattr -dr com.apple.quarantine /Applications/gradcode.app` once.
+
 #### Debian, Ubuntu (`.deb`)
 
-Download the `.deb` from the [latest release](https://github.com/EhsanulHaqueSiam/gradcode-releases/releases/latest), then:
+Download the `.deb` from GitHub Releases, then:
 
 ```sh
 sudo apt install ./gradcode_*.deb
@@ -102,35 +110,35 @@ sudo apt install ./gradcode_*.deb
 yay -S gradcode-bin
 ```
 
-#### Any Linux (AppImage)
+## Build from source
+
+Install [Vite+](https://viteplus.dev), which brings Node and pnpm, and tmux:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/EhsanulHaqueSiam/gradcode-releases/main/install.sh | sh -s -- --desktop
+curl -fsSL https://vite.plus | bash
+vp i                          # or: pnpm install
+scripts/dev-local.sh up       # server :4311 + web http://127.0.0.1:5174, in tmux
+scripts/dev-local.sh share    # open it from your phone over Tailscale
+scripts/dev-local.sh down
 ```
 
-#### Direct downloads
-
-The dmg (Apple Silicon `arm64`, Intel `x64`), AppImage and `.deb` are on the
-[latest release](https://github.com/EhsanulHaqueSiam/gradcode-releases/releases/latest). The Mac
-app isn't notarized yet: after dragging it to Applications, run
-`xattr -dr com.apple.quarantine /Applications/gradcode.app` once (Homebrew and install.sh do this
-for you). How releases are cut: [docs/internals/release.md](docs/internals/release.md).
-
-## Run it from source
-
-Needs Node 24+, pnpm and tmux.
+The desktop app and the `gradcode` command build into `dist/release`:
 
 ```sh
-pnpm install
-scripts/dev-local.sh up      # server :4311 + web http://127.0.0.1:5174, in tmux
-scripts/dev-local.sh share   # open it from your phone over Tailscale
-scripts/dev-local.sh down
+pnpm dist runtime                   # web app, bundled server and CLI, Electron's main
+pnpm dist cli darwin-arm64          # gradcode-<version>-darwin-arm64.tar.gz (also darwin-x64, linux-x64, linux-arm64)
+pnpm dist desktop mac arm64         # dmg + zip (on a Mac); `desktop linux x64` builds the AppImage + .deb
+pnpm --filter @gradcode/desktop start   # or run the app from the checkout, after `pnpm dist runtime`
+```
 
-# tests: unit, then e2e on a fresh stack with the scripted agent (free, deterministic)
+Tests: unit, then e2e on a fresh stack with the scripted agent (free, deterministic).
+
+```sh
 pnpm test
 scripts/dev-local.sh down
 rm -rf /tmp/gc-e2e && GRADCODE_HOME=/tmp/gc-e2e GRADCODE_AGENT=fake scripts/dev-local.sh up
 pnpm e2e
 ```
 
-Agents start at [AGENTS.md](AGENTS.md).
+How releases are cut: [docs/internals/release.md](docs/internals/release.md). Agents start at
+[AGENTS.md](AGENTS.md).

@@ -119,6 +119,10 @@ describe("offers and interviews", () => {
   it("compare offers by what a year of stipend leaves after rent", () => {
     expect(leftAfterRent({ stipend: 3000, stipendPer: "month", rentPerMonth: 1400 })).toBe(19200);
     expect(leftAfterRent({ stipend: 32000, stipendPer: "year", rentPerMonth: 1100 })).toBe(18800);
+    // With dependents: rent for a family home, 1.4 times.
+    expect(leftAfterRent({ stipend: 32000, stipendPer: "year", rentPerMonth: 1100 }, true)).toBe(
+      13520,
+    );
     expect(leftAfterRent({ stipend: 32000, stipendPer: "year", rentPerMonth: null })).toBeNull();
   });
 

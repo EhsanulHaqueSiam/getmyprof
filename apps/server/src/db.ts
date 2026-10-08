@@ -54,7 +54,10 @@ export function openDb(file = NodePath.join(homeDir(), "gradcode.sqlite")) {
   db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
   db.exec(SCHEMA);
   // Columns added after a store was first made. CREATE TABLE IF NOT EXISTS leaves old tables alone.
-  const added = { spend: ["call_id", "feature", "subject"], threads: ["scope", "detail"] };
+  const added = {
+    spend: ["call_id", "feature", "subject"],
+    threads: ["scope", "detail", "allow_under"],
+  };
   for (const [table, columns] of Object.entries(added)) {
     const have = new Set(
       db

@@ -1,8 +1,9 @@
 // A scripted agent for e2e and offline dev (GRADCODE_AGENT=fake). It runs the real hunt tools
 // against fixture sources, so proposals, approvals, spend and settling behave exactly as with
 // Claude, for free and the same way every time.
-import { type RowOp, type ThreadEvent } from "@gradcode/contracts";
+import { addressChecked, type RowOp, type ThreadEvent } from "@gradcode/contracts";
 import { now } from "../db.ts";
+import { getRecord, pendingCount } from "../records.ts";
 import { listDocuments } from "../vault.ts";
 import { FIXTURE_PROFESSORS, FIXTURE_PROGRAMS, FIXTURE_SCHOLARSHIPS } from "./fixtures.ts";
 import type { AgentProvider, SessionStart } from "./provider.ts";
@@ -100,7 +101,7 @@ export const fakeProvider = (
         if (cap) s.toolContext.capHit(cap);
         const ok =
           !cap &&
-          (price <= s.askOver ||
+          (price <= s.askOver() ||
             (await hooks.requestApproval({
               title: "paid lookup",
               body: `${args.endpoint} · $${price}`,
@@ -120,8 +121,9 @@ export const fakeProvider = (
             costUsd: 0,
           });
       }
+      const waiting = pendingCount(s.toolContext.db, s.toolContext.threadId);
       say(
-        "Three came up. Lybarger and Zalake can likely take a student for your intake; Parde wants applications, not cold email. Three changes are waiting in Review.",
+        `Three came up. Lybarger and Zalake can likely take a student for your intake; Parde wants applications, not cold email. ${waiting ? `${waiting} change${waiting === 1 ? " is" : "s are"} waiting in Review.` : "Nothing waits in Review."}`,
       );
     }
 
@@ -305,7 +307,23 @@ export const fakeProvider = (
           continue;
         }
         if (op === "draft") {
-          await call("draft_email", `first · ${p.name}`, firstEmail(p));
+          // No checked address but a LinkedIn profile: a short note instead, like the real agent.
+          const record = getRecord(s.toolContext.db, p.key);
+          const note =
+            record && !addressChecked(record.emailCheck) && "linkedin" in p && p.linkedin;
+          await call(
+            "draft_email",
+            `first · ${p.name}`,
+            note
+              ? {
+                  ...firstEmail(p),
+                  channel: "linkedin",
+                  to: note,
+                  subject: "",
+                  body: `Dear Dr. ${p.name.split(" ").at(-1)}, I'm applying for a funded PhD for Fall 2027 and your work on ${p.niche} is close to mine. Are you taking students?`,
+                }
+              : firstEmail(p),
+          );
           continue;
         }
         await call("propose_professor", `${p.name} · ${p.university}`, {

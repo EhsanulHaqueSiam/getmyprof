@@ -4,7 +4,7 @@ import type { Award } from "@gradcode/contracts";
 
 const TIMEOUT_MS = 20_000;
 
-async function getJson(url: string, init?: RequestInit): Promise<unknown> {
+export async function getJson(url: string, init?: RequestInit): Promise<unknown> {
   const res = await fetch(url, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS) });
   if (!res.ok) throw new Error(`${new URL(url).host} answered ${res.status}`);
   return res.json();
@@ -12,8 +12,8 @@ async function getJson(url: string, init?: RequestInit): Promise<unknown> {
 
 export const asRecord = (v: unknown): Record<string, unknown> =>
   v && typeof v === "object" ? (v as Record<string, unknown>) : {};
-const asArray = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
-const text = (v: unknown) => (v == null ? "" : String(v));
+export const asArray = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
+export const text = (v: unknown) => (v == null ? "" : String(v));
 
 /** First day of an intake like "Fall 2027" (Sep 1) or "Spring 2028" (Jan 15). */
 export function intakeStart(intake: string): Date | null {
@@ -48,7 +48,7 @@ export type AwardQuery = {
   pi?: string;
   activeAfter?: string;
 };
-export type RawAward = Omit<Award, "monthsAfterIntake" | "inSheet">;
+export type RawAward = Omit<Award, "monthsAfterIntake" | "inSheet" | "fit">;
 
 const schoolWords = (s: string) =>
   s
@@ -219,8 +219,10 @@ export function sourcesFor(places: string[]): Award["source"][] {
   )
     picked.add("CORDIS");
   if (/\baustralia\b/.test(where)) picked.add("ARC");
-  // Places none of these cover (Canada, India...) get none: the agent searches the web for their
-  // funders (NSERC, DFG) instead of quietly reading US awards.
+  if (/\bgermany\b/.test(where)) picked.add("DFG");
+  if (/\bcanada\b/.test(where)) picked.add("NSERC");
+  // Places none of these cover (India...) get none: the agent searches the web for their
+  // funders instead of quietly reading US awards.
   return picked.size || where.trim() ? [...picked] : ["NSF", "NIH"];
 }
 

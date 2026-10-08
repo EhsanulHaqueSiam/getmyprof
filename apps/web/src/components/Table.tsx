@@ -19,7 +19,17 @@ export function Table({
 }) {
   return (
     <div className="min-h-0 flex-1 overflow-auto border-t" data-testid={testId}>
-      <table className={cn("w-full border-collapse text-[12.5px]", widths && "table-fixed")}>
+      <table
+        className={cn("w-full border-collapse text-[12.5px]", widths && "table-fixed")}
+        // Fixed columns plus 200px for the "auto" one, so it never shrinks to nothing.
+        style={
+          widths
+            ? {
+                minWidth: `calc(${widths.filter((w) => w !== "auto").join(" + ") || "0px"} + 200px)`,
+              }
+            : undefined
+        }
+      >
         {widths ? (
           <colgroup>
             {widths.map((w, i) => (

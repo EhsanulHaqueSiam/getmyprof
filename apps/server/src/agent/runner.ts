@@ -4,7 +4,10 @@ import { type Db, newId, now } from "../db.ts";
 import { getRecord, recordLine, threadProposals } from "../records.ts";
 import { profileFacts } from "../adapters.ts";
 import { getApplicant, getHunt, getSettings } from "../state.ts";
+import { allowLoopUnder, listLoops, noteRun } from "../loops.ts";
 import {
+  allowUnder,
+  setAllowUnder,
   listThreads,
   markUnread,
   putEvent,
@@ -32,8 +35,24 @@ const ROW_INSTRUCTIONS: Record<RowOp, string> = {
   taking:
     "For each professor below, read their homepage or lab page and record whether they're taking students for the intake (taking) and how they want to be reached (contact) with propose_professor.",
   draft:
-    "Draft a short first email for each professor below with draft_email (touch first). Skip apply-only professors and anyone without a reviewed address, and say so. The applicant approves each draft in Pipeline before anything is sent.",
+    "Draft a short first message for each professor below with draft_email (touch first). Email goes only to a reviewed address. Without one, if the sheet has their LinkedIn profile, draft a LinkedIn note instead (channel linkedin, to that URL, under 200 characters so it also fits a connection request). Skip apply-only professors and anyone with neither, and say so. The applicant approves each draft in Pipeline before anything is sent.",
 };
+
+/** A loop run in a line: "2 new, 1 change, 1 accepted", why it stopped, or "nothing new". */
+export function runSummary(
+  proposals: { kind: "add" | "update"; status: string }[],
+  stop: string | null,
+) {
+  const n = (k: "add" | "update") => proposals.filter((p) => p.kind === k).length;
+  const accepted = proposals.filter((p) => p.status === "accepted").length;
+  const found = [
+    n("add") ? `${n("add")} new` : "",
+    n("update") ? `${n("update")} change${n("update") === 1 ? "" : "s"}` : "",
+    accepted ? `${accepted} accepted` : "",
+  ].filter(Boolean);
+  if (stop && stop !== "interrupted") return [stop, ...found].join(" · ");
+  return found.length ? found.join(", ") : "nothing new";
+}
 
 const RESTARTED = "The server restarted mid-turn · picking up where it left off";
 
@@ -52,7 +71,10 @@ export function createRunner(deps: {
 }) {
   const { db, bus, provider, sources } = deps;
   const sessions = new Map<string, AgentSession>();
-  const approvals = new Map<string, { threadId: string; resolve: (ok: boolean) => void }>();
+  const approvals = new Map<
+    string,
+    { threadId: string; costUsd: number; resolve: (ok: boolean) => void }
+  >();
   const turns = new Map<string, { at: number; spend: number; calls: number }>();
 
   /** The treg feature tag of each thread's latest message: row-<op> for a row action. */
@@ -131,6 +153,15 @@ export function createRunner(deps: {
             type: "system",
             text: "Settled · nothing waits on you",
           });
+        // A loop run leaves its Last run line: what it found, or why it stopped.
+        const loopId = getThread(db, threadId)?.loopId;
+        if (loopId) {
+          const stop = listEvents(db, threadId).findLast(
+            (e) => e.type === "system" && e.at >= started && e.text.startsWith("Stopped:"),
+          );
+          noteRun(db, loopId, runSummary(mine, stop?.type === "system" ? stop.text : error));
+          bus.push({ type: "changed", what: "loops" });
+        }
         pushThreads();
       },
       requestApproval(ask) {
@@ -148,6 +179,7 @@ export function createRunner(deps: {
         return new Promise<boolean>((resolve) => {
           approvals.set(id, {
             threadId,
+            costUsd: ask.costUsd,
             resolve: (ok) => {
               approvals.delete(id);
               emit(threadId, { ...event, at: now(), status: ok ? "allowed" : "denied" });
@@ -160,6 +192,17 @@ export function createRunner(deps: {
       },
       closed: () => sessions.delete(threadId),
     };
+  }
+
+  /** What a paid call may cost here without asking: the install's limit, or a rule set here. */
+  function allowance(threadId: string) {
+    const loopId = getThread(db, threadId)?.loopId;
+    const loop = loopId ? listLoops(db).find((l) => l.id === loopId) : undefined;
+    return Math.max(
+      getSettings(db).budget.askOver,
+      allowUnder(db, threadId),
+      loop?.allowUnder ?? 0,
+    );
   }
 
   function start(threadId: string, text: string, files: Attachment[]) {
@@ -182,7 +225,7 @@ export function createRunner(deps: {
       ),
       model: settings.model,
       tools: toolsFor(settings),
-      askOver: settings.budget.askOver,
+      askOver: () => allowance(threadId),
       mcpServers: settings.mcpServers,
       hooks: hooksFor(threadId),
       toolContext: {
@@ -383,8 +426,17 @@ export function createRunner(deps: {
       if (held.delete(threadId)) reloadThread(threadId);
       await sessions.get(threadId)?.interrupt();
     },
-    resolveApproval(approvalId: string, ok: boolean) {
-      approvals.get(approvalId)?.resolve(ok);
+    /** once allows this call; always also allows any call up to the next cent above it, here. */
+    resolveApproval(approvalId: string, decision: "once" | "always" | "deny") {
+      const a = approvals.get(approvalId);
+      if (!a) return;
+      if (decision === "always") {
+        const under = Math.max(0.01, Math.ceil(a.costUsd * 100) / 100);
+        setAllowUnder(db, a.threadId, under);
+        const loopId = getThread(db, a.threadId)?.loopId;
+        if (loopId) allowLoopUnder(db, loopId, under);
+      }
+      a.resolve(decision !== "deny");
     },
     isLive: (threadId: string) => sessions.has(threadId),
   };

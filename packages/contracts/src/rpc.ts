@@ -4,21 +4,27 @@ import { z } from "zod";
 import {
   Applicant,
   Award,
+  AutoRules,
   AwardSource,
   DetailLevel,
   Hunt,
   HuntPrefs,
   Loop,
+  LoopRow,
   Professor,
   ProfileFact,
   Proposal,
   Schedule,
+  ScopeItem,
+  ScoutLoop,
   Settings,
+  TagValue,
   TregConnect,
+  TregCustomers,
   TregStatus,
 } from "./domain.ts";
 import { Conversation, MailConnect, MailSignIn, MailStatus } from "./outreach.ts";
-import { RowOp, ScopeItem, ThreadEvent, ThreadSummary } from "./threads.ts";
+import { RowOp, ThreadEvent, ThreadSummary } from "./threads.ts";
 import {
   Application,
   DocKind,
@@ -42,6 +48,11 @@ export const AppState = z.object({
   treg: TregStatus,
   /** Where a phone on the tailnet opens gradcode, and whether it's being served there. */
   tailnet: z.object({ url: z.string(), served: z.boolean() }).nullable(),
+  /** Whether Claude Code can run: signed in (and as whom), or not yet. */
+  claude: z.object({ signedIn: z.boolean(), who: z.string() }),
+  /** The sidebar's counts: awards from the last search worth a look (running past the intake,
+   * on topic, PI not in the sheet), loops on, and the last day's spend outside any thread. */
+  counts: z.object({ funding: z.number(), loops: z.number(), spendOutsideThreads: z.number() }),
 });
 export type AppState = z.infer<typeof AppState>;
 
@@ -136,6 +147,11 @@ export const Methods = {
   },
   "threads.visit": { input: id, output: ok },
   "threads.rename": { input: z.object({ id: z.string(), title: z.string().min(1) }), output: ok },
+  /** A row action on professors picked in the finder, in a new thread of its own. */
+  "threads.startRowAction": {
+    input: z.object({ op: RowOp, keys: z.array(z.string()).min(1) }),
+    output: ThreadSummary,
+  },
   "threads.rowAction": {
     input: z.object({ id: z.string(), op: RowOp, keys: z.array(z.string()).min(1) }),
     output: ok,
@@ -145,7 +161,8 @@ export const Methods = {
     input: z.object({
       threadId: z.string(),
       approvalId: z.string(),
-      decision: z.enum(["once", "deny"]),
+      /** always: allow it, and every paid call up to the next cent above it, here from now on. */
+      decision: z.enum(["once", "always", "deny"]),
     }),
     output: ok,
   },
@@ -161,7 +178,42 @@ export const Methods = {
       record: Professor,
       threads: z.array(ThreadSummary),
       proposals: z.array(Proposal),
+      /** Each field's sources and date: the latest accepted change to it. */
+      fieldSources: z.record(
+        z.string(),
+        z.object({ sources: z.array(z.string()), at: z.string() }),
+      ),
+      /** Newest first: decisions, and mail that went out or came back. */
+      timeline: z.array(z.object({ at: z.string(), text: z.string() })),
+      /** The latest email to them, whatever its state. */
+      draft: z
+        .object({
+          id: z.string(),
+          status: z.string(),
+          touch: z.string(),
+          subject: z.string(),
+          at: z.string(),
+        })
+        .nullable(),
+      /** Programs at their school, from the Vault. */
+      programs: z.array(
+        z.object({ name: z.string(), deadline: z.string().nullable(), funding: z.string() }),
+      ),
     }),
+  },
+  /** Their grants (NSF, NIH), recent work and interests (OpenAlex), live from free APIs. */
+  "records.scholarly": {
+    input: z.object({ key: z.string() }),
+    output: z.object({
+      grants: z.array(Award),
+      works: z.array(z.object({ title: z.string(), year: z.number(), link: z.string() })),
+      interests: z.array(z.string()),
+    }),
+  },
+  /** One click from Funding: the award's PI goes into the sheet, the award as their grant. */
+  "records.addFromAward": {
+    input: z.object({ award: Award }),
+    output: z.object({ key: z.string() }),
   },
   "records.import": {
     input: z.object({ csv: z.string() }),
@@ -179,7 +231,14 @@ export const Methods = {
     output: z.array(Award),
   },
 
-  "loops.list": { input: z.object({}), output: z.array(Loop) },
+  /** Topics next to the given fields, from OpenAlex; empty when it can't be reached. */
+  "hunt.adjacent": {
+    input: z.object({ fields: z.array(z.string()) }),
+    output: z.array(z.string()),
+  },
+  "loops.list": { input: z.object({}), output: z.array(LoopRow) },
+  /** Scout's nightly loop, read from gradhunt; null on any install without it. */
+  "loops.scout": { input: z.object({}), output: ScoutLoop.nullable() },
   "loops.save": {
     input: z.object({
       id: z.string().optional(),
@@ -189,6 +248,9 @@ export const Methods = {
       budgetUsd: z.number(),
       enabled: z.boolean(),
       reportTo: z.enum(["fresh", "same"]).optional(),
+      scope: z.array(ScopeItem).optional(),
+      autonomy: z.enum(["propose", "auto"]).optional(),
+      rules: AutoRules.optional(),
     }),
     output: Loop,
   },
@@ -201,9 +263,52 @@ export const Methods = {
   "mail.disconnect": { input: z.object({}), output: MailStatus },
   "mail.sync": { input: z.object({}), output: MailStatus },
 
-  /** Checks the pinned token with treg before saving it; switches paid lookups on. */
+  /** Checks the key with treg before saving it; switches paid lookups on. */
   "treg.connect": { input: TregConnect, output: TregStatus },
+  /** Opens treg's own sign-in; once approved there, the team's key connects by itself. */
+  "treg.signIn": { input: z.object({}), output: z.object({ url: z.string(), code: z.string() }) },
   "treg.disconnect": { input: z.object({}), output: TregStatus },
+  // A team owner or admin managing its customers. A new key is returned once, never stored.
+  "treg.customers": { input: z.object({}), output: TregCustomers },
+  "treg.addCustomer": {
+    input: z.object({ customer: TagValue, dailyUsd: z.number().positive().nullable() }),
+    output: z.object({ key: z.string() }),
+  },
+  "treg.newKey": { input: z.object({ customer: TagValue }), output: z.object({ key: z.string() }) },
+  "treg.setCustomer": {
+    input: z.object({
+      customer: TagValue,
+      dailyUsd: z.number().positive().nullable().optional(),
+      blocked: z.boolean().optional(),
+    }),
+    output: TregCustomers,
+  },
+  "treg.removeCustomer": { input: z.object({ customer: TagValue }), output: TregCustomers },
+  "treg.setDefaultLimit": {
+    input: z.object({ dailyUsd: z.number().positive() }),
+    output: TregCustomers,
+  },
+  "treg.invoice": {
+    input: z.object({ days: z.number().int().min(1).max(365) }),
+    output: z.object({
+      lines: z.array(z.object({ customer: z.string(), calls: z.number(), usd: z.number() })),
+      unattributedUsd: z.number(),
+    }),
+  },
+  "treg.topUp": {
+    input: z.object({ usd: z.number().positive() }),
+    output: z.object({ url: z.string() }),
+  },
+  /** Turns auto top-up on (consenting to these amounts) or off; url: treg's card page, or "". */
+  "treg.autoTopUp": {
+    input: z.object({
+      on: z.boolean(),
+      underUsd: z.number().positive(),
+      addUsd: z.number().positive(),
+      monthCapUsd: z.number().positive(),
+    }),
+    output: z.object({ url: z.string() }),
+  },
 
   "outreach.list": { input: z.object({}), output: z.array(Conversation) },
   /** Schedules drafts into send slots; replies and LinkedIn notes are ready at once. */
@@ -216,6 +321,11 @@ export const Methods = {
   "outreach.cancel": { input: id, output: ok },
   /** LinkedIn is assisted: the user sends it there, then marks it sent here. */
   "outreach.markSent": { input: id, output: ok },
+  /** Where a LinkedIn note opens: their message box, or their profile (with why, if it costs). */
+  "outreach.linkedinOpen": {
+    input: id,
+    output: z.object({ url: z.string(), note: z.string() }),
+  },
 
   "vault.get": { input: z.object({}), output: VaultState },
   "vault.save": { input: VaultEdit, output: ok },

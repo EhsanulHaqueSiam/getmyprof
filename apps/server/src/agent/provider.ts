@@ -31,7 +31,11 @@ export type SessionStart = {
   model: string;
   tools: HuntTool[];
   toolContext: ToolContext;
-  askOver: number;
+  /**
+   * USD a paid call may cost without asking: the install's limit, raised by "Always under $x
+   * here" for this thread or its loop. Read at every call, so a new rule applies at once.
+   */
+  askOver: () => number;
   hooks: SessionHooks;
   /** The user's own MCP servers; their tools ask first unless the server is trusted. */
   mcpServers: McpServer[];

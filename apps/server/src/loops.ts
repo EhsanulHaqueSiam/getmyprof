@@ -1,6 +1,16 @@
-import { Loop, type Schedule } from "@gradcode/contracts";
+import {
+  addressChecked,
+  type AutoRules,
+  Loop,
+  type Professor,
+  type Proposal,
+  type Schedule,
+} from "@gradcode/contracts";
 import * as NodeCrypto from "node:crypto";
+import { writeBackToGradhunt } from "./adapters.ts";
 import { type Db, newId } from "./db.ts";
+import { applyChanges, blankProfessor, getRecord, resolveProposal } from "./records.ts";
+import { getThread } from "./threads.ts";
 import { acceptedOffer } from "./vault.ts";
 
 const clock = (hhmm: string) => {
@@ -65,6 +75,9 @@ export function saveLoop(
   input: Pick<Loop, "name" | "instructions" | "schedule" | "budgetUsd" | "enabled"> & {
     id?: string | undefined;
     reportTo?: Loop["reportTo"] | undefined;
+    scope?: Loop["scope"] | undefined;
+    autonomy?: Loop["autonomy"] | undefined;
+    rules?: Loop["rules"] | undefined;
   },
 ) {
   const existing = input.id ? listLoops(db).find((l) => l.id === input.id) : undefined;
@@ -80,6 +93,11 @@ export function saveLoop(
     nextRunAt: input.enabled ? (nextRun(input.schedule, new Date())?.toISOString() ?? null) : null,
     reportTo: input.reportTo ?? existing?.reportTo ?? "fresh",
     threadId: existing?.threadId ?? null,
+    scope: input.scope ?? existing?.scope ?? [],
+    autonomy: input.autonomy ?? existing?.autonomy ?? "propose",
+    rules: input.rules ??
+      existing?.rules ?? { verifiedEmail: true, officialSource: true, fit4: false },
+    allowUnder: existing?.allowUnder ?? 0,
     // A webhook's secret is made once and kept, so the URL a sender holds stays valid.
     hookToken:
       input.schedule.kind === "webhook"
@@ -100,6 +118,86 @@ export function markRan(db: Db, loop: Loop, ranAt: Date, threadId: string) {
   };
   putLoop(db, next);
   return next;
+}
+
+/** What a run found, for the Loops table's Last run. */
+export function noteRun(db: Db, id: string, summary: string) {
+  const loop = listLoops(db).find((l) => l.id === id);
+  if (loop) putLoop(db, { ...loop, lastSummary: summary });
+}
+
+/** "Always under $x here": paid calls up to `usd` go without asking in this loop's runs. */
+export function allowLoopUnder(db: Db, id: string, usd: number) {
+  const loop = listLoops(db).find((l) => l.id === id);
+  if (loop) putLoop(db, { ...loop, allowUnder: Math.max(loop.allowUnder, usd) });
+}
+
+/** What a loop's runs found (new professors) and spent in the last 7 days. */
+export function loopStats(db: Db, id: string, nowAt = new Date()) {
+  const since = new Date(nowAt.getTime() - 7 * 864e5).toISOString();
+  const threads = db
+    .prepare("SELECT id FROM threads WHERE loop_id = ?")
+    .all(id)
+    .map((r) => String(r.id));
+  let found = 0;
+  let spend = 0;
+  for (const t of threads) {
+    found += Number(
+      db
+        .prepare(
+          "SELECT COUNT(*) AS n FROM proposals WHERE thread_id = ? AND created_at >= ? AND json_extract(body, '$.kind') = 'add'",
+        )
+        .get(t, since)?.n ?? 0,
+    );
+    spend += Number(
+      db
+        .prepare("SELECT COALESCE(SUM(usd), 0) AS s FROM spend WHERE thread_id = ? AND at >= ?")
+        .get(t, since)?.s ?? 0,
+    );
+  }
+  return { found7d: found, spend7d: spend };
+}
+
+/** A university's own page: .edu, .ac.xx or .edu.xx, or the professor's own site. */
+function official(url: string, website: string) {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, "");
+    const own = website ? new URL(website).hostname.replace(/^www\./, "") : "";
+    return /\.(edu|ac\.[a-z]{2}|edu\.[a-z]{2})$/.test(host) || (own !== "" && host === own);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Whether a loop's rules take a change without review: every rule that's on must hold for the
+ * record as it would be after the change. With no rule on, nothing is taken.
+ */
+export function autoAccepts(
+  rules: AutoRules,
+  after: Pick<Professor, "email" | "emailCheck" | "fit" | "website">,
+  sources: string[],
+) {
+  if (!rules.verifiedEmail && !rules.officialSource && !rules.fit4) return false;
+  if (rules.verifiedEmail && !(after.email && addressChecked(after.emailCheck))) return false;
+  if (rules.officialSource && !sources.some((s) => official(s, after.website))) return false;
+  if (rules.fit4 && after.fit < 4) return false;
+  return true;
+}
+
+/**
+ * Takes a loop run's proposal straight to the sheet when the loop may finish on its own and the
+ * record as it would be passes its rules. Returns whether it did.
+ */
+export function acceptByRules(db: Db, threadId: string, p: Proposal, gradhunt: boolean) {
+  const loopId = getThread(db, threadId)?.loopId;
+  const loop = loopId ? listLoops(db).find((l) => l.id === loopId) : undefined;
+  if (loop?.autonomy !== "auto") return false;
+  const before = getRecord(db, p.recordKey) ?? blankProfessor(p.recordName, p.university);
+  if (!autoAccepts(loop.rules, applyChanges(before, p.changes), p.sources)) return false;
+  const r = resolveProposal(db, p.id, "accept");
+  if (r?.record && gradhunt) void writeBackToGradhunt(r.record, p.changes);
+  return r !== null;
 }
 
 /** Loops whose time has come. None once an offer is accepted: the hunt is over (Run now still works). */

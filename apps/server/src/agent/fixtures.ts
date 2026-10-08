@@ -28,6 +28,7 @@ export const FIXTURE_PROFESSORS = [
     lasts: "not posted",
     email: "zalake@example.edu",
     contact: "follow the join-us page",
+    linkedin: "https://www.linkedin.com/in/mohan-zalake",
     sources: ["https://vare.ahs.uic.edu/"],
   },
   {
@@ -126,6 +127,46 @@ export const fixtureSources: Sources = {
   ],
   cordis: async () => [],
   arc: async () => [],
+  dfg: async () => [
+    {
+      source: "DFG",
+      id: "558595415",
+      title: "Fixture: large language models for production control",
+      pi: "Marvin May",
+      university: "Technical University of Munich",
+      amount: null,
+      currency: "EUR",
+      url: "https://gepris.dfg.de/gepris/projekt/558595415",
+      starts: "2025-01-01",
+      ends: "2029-12-31",
+      abstract: "Fixture award.",
+    },
+  ],
+  nserc: async () => [],
+  csrankings: async (university) =>
+    university.toLowerCase().includes("george mason")
+      ? [
+          {
+            name: "Ziyu Yao",
+            homepage: "https://ziyuyao.org",
+            scholar: "https://scholar.google.com/citations?user=fixture",
+          },
+        ]
+      : [],
+  byTopic: async (topic) => [
+    {
+      name: "Ziyu Yao",
+      works: 61,
+      citations: 2400,
+      topics: [topic, "Topic Modeling"],
+      link: "https://openalex.org/A0000000001",
+    },
+  ],
+  adjacent: async () => [
+    "Computational linguistics",
+    "Health informatics",
+    "Information retrieval",
+  ],
   openalex: async (name) => ({
     name,
     institution: "Fixture University",
@@ -136,7 +177,10 @@ export const fixtureSources: Sources = {
   }),
   treg: async (req) => ({
     ok: true,
-    result: "deliverable",
+    result:
+      req.endpoint === "fetchinio.linkedin.user.profile"
+        ? { profileId: "ACoAAFixtureMember", firstName: "Fixture" }
+        : "deliverable",
     callId: `fake-${req.endpoint}`,
     costUsd: TREG_ENDPOINTS[req.endpoint]?.usd ?? 0,
   }),

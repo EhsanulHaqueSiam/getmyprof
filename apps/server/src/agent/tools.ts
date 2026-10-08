@@ -1,62 +1,21 @@
 // The hunt tools the agent calls. Both providers run these same handlers: Claude through an
 // in-process MCP server, the fake provider directly. A handler returns a one-line summary
 // (shown in the work log) and the full text the model reads.
-import { type AwardSource, type Hunt, type Settings, Stage } from "@gradcode/contracts";
+import { type FreeSource, type Hunt, type Settings, Stage } from "@gradcode/contracts";
 import { z } from "zod";
 import type { Db } from "../db.ts";
-import { listLoops } from "../loops.ts";
+import { acceptByRules, listLoops } from "../loops.ts";
 import { searchVault } from "../okf.ts";
-import { propose, listRecords } from "../records.ts";
-import {
-  arcAwards,
-  type Author,
-  type AwardQuery,
-  cordisAwards,
-  intakeStart,
-  monthsAfter,
-  nihAwards,
-  nsfAwards,
-  openAlexAuthor,
-  type RawAward,
-  ukriAwards,
-} from "../sources.ts";
-import { TREG_ENDPOINTS, tregCall, type TregOutcome, type TregRequest } from "../treg.ts";
+import { listRecords, propose } from "../records.ts";
+import { intakeStart, monthsAfter } from "../sources.ts";
+import { TREG_ENDPOINTS } from "../treg.ts";
 import { daySpend, getThread, recordSpend, threadSpend } from "../threads.ts";
 import { APPLICANT_TOOLS } from "./applicant-tools.ts";
+import { DISCOVERY_TOOLS } from "./discovery-tools.ts";
+import { TREG_TOOL_NAMES, tregJobs } from "./treg-jobs.ts";
 
-type AwardFetch = (q: AwardQuery) => Promise<RawAward[]>;
-
-/** Every grant database by key, plus OpenAlex and treg. The fake provider swaps in fixtures. */
-export type Sources = {
-  nsf: AwardFetch;
-  nih: AwardFetch;
-  ukri: AwardFetch;
-  cordis: AwardFetch;
-  arc: AwardFetch;
-  openalex: (name: string, university?: string) => Promise<Author | null>;
-  treg: (req: TregRequest) => Promise<TregOutcome>;
-};
-
-export const realSources: Sources = {
-  nsf: nsfAwards,
-  nih: nihAwards,
-  ukri: ukriAwards,
-  cordis: cordisAwards,
-  arc: arcAwards,
-  openalex: openAlexAuthor,
-  treg: (req) => tregCall(req),
-};
-
-const SOURCE_KEY = {
-  NSF: "nsf",
-  NIH: "nih",
-  UKRI: "ukri",
-  CORDIS: "cordis",
-  ARC: "arc",
-} as const satisfies Record<AwardSource, keyof Sources>;
-
-/** An award source's key in Sources. */
-export const sourceKey = (s: AwardSource) => SOURCE_KEY[s];
+export { realSources, type Sources, sourceKey } from "./sourcing.ts";
+import { type Sources, sourceKey } from "./sourcing.ts";
 
 export type ToolContext = {
   db: Db;
@@ -90,6 +49,8 @@ export const READ_ONLY = new Set([
   "openalex_author",
   "sheet_search",
   "vault_search",
+  "csrankings_faculty",
+  "openalex_by_topic",
 ]);
 
 /** Why a tool can't run in this turn, or null: an Ask changes nothing and spends nothing. */
@@ -120,7 +81,7 @@ const money = (amount: number | null, currency = "USD") =>
 
 const awardLines = async (
   ctx: ToolContext,
-  which: "nsf" | "nih" | "ukri" | "cordis" | "arc",
+  which: ReturnType<typeof sourceKey>,
   args: { terms: string[]; university?: string | undefined; pi?: string | undefined },
 ) => {
   const start = intakeStart(ctx.hunt?.prefs.intake ?? "");
@@ -191,6 +152,12 @@ const professorFields = {
     .describe("Why they fit this applicant, citing a confirmed fact"),
   website: z.string().optional(),
   sources: z.array(z.string()).min(1).describe("URLs backing every value you set"),
+  linkedin: z
+    .string()
+    .optional()
+    .describe(
+      "Their LinkedIn profile URL (https://www.linkedin.com/in/...), only when their own page links it or a search shows it is them",
+    ),
 };
 
 export const HUNT_TOOLS = [
@@ -223,9 +190,9 @@ export const HUNT_TOOLS = [
   define({
     name: "country_awards",
     description:
-      "Search active grants outside the US by topic terms, optionally at one university or for one PI: UKRI (UK), CORDIS (EU Horizon and ERC; names the host, not the PI), ARC (Australia). Free.",
+      "Search active grants outside the US by topic terms, optionally at one university or for one PI: UKRI (UK), CORDIS (EU Horizon and ERC; names the host, not the PI), ARC (Australia), DFG (Germany; no amounts), NSERC (Canada; amounts per year). Free.",
     shape: {
-      source: z.enum(["UKRI", "CORDIS", "ARC"]),
+      source: z.enum(["UKRI", "CORDIS", "ARC", "DFG", "NSERC"]),
       terms: z.array(z.string()),
       university: z.string().optional(),
       pi: z.string().optional(),
@@ -321,22 +288,34 @@ export const HUNT_TOOLS = [
       const result = propose(ctx.db, ctx.threadId, { name, university, sources, fields });
       if ("skipped" in result)
         return { summary: result.skipped, text: `Not proposed: ${result.skipped}.` };
-      ctx.changed();
       const p = result.proposal;
+      const fieldCount = `${p.changes.length} field${p.changes.length === 1 ? "" : "s"}`;
+      if (acceptByRules(ctx.db, ctx.threadId, p, ctx.settings.gradhunt)) {
+        ctx.changed();
+        // The sheet changed, not just Review (this also refreshes the Pipeline, harmlessly).
+        ctx.outreachChanged();
+        return {
+          summary: `${p.kind} · ${fieldCount} · auto-accepted`,
+          text: `Accepted by this loop's rules (${p.kind}); it is in the sheet.`,
+        };
+      }
+      ctx.changed();
+      const clash = p.changes.filter((c) => c.disagrees);
       return {
-        summary: `${p.kind} · ${p.changes.length} field${p.changes.length === 1 ? "" : "s"}`,
-        text: `Proposed (${p.kind}) for review.`,
+        summary: `${p.kind} · ${fieldCount}${clash.length ? ` · ${clash.length} disagree` : ""}`,
+        text: `Proposed (${p.kind}) for review.${clash.length ? ` ${clash.map((c) => `${c.field} disagrees with ${c.disagrees}`).join("; ")}: say in your reply which source is more current, so the applicant can choose.` : ""}`,
       };
     },
   }),
   ...APPLICANT_TOOLS,
+  ...DISCOVERY_TOOLS,
   define({
     name: "treg",
-    description: `Paid data lookups through treg, for when free sources fail. Allowed endpoints, usual USD per call and the most one call may cost: ${Object.entries(
+    description: `Paid data lookups through treg, for when free sources fail. Allowed endpoints with their data fields, usual USD per call and the most one call may cost:\n${Object.entries(
       TREG_ENDPOINTS,
     )
-      .map(([e, p]) => `${e} $${p.usd}${p.max > p.usd ? ` (up to $${p.max})` : ""}`)
-      .join(", ")}. Calls over the applicant's limit wait for approval.`,
+      .map(([e, p]) => `- ${e} {${p.args}} $${p.usd}${p.max > p.usd ? ` (up to $${p.max})` : ""}`)
+      .join("\n")}\nCalls over the applicant's limit wait for approval.`,
     shape: {
       endpoint: z.string(),
       data: z
@@ -416,5 +395,23 @@ export function capProblem(ctx: Pick<ToolContext, "db" | "threadId" | "settings"
 }
 
 /** Tools available to this install: treg only when it's switched on. */
+const tregTool: HuntTool | undefined = HUNT_TOOLS.find((t) => t.name === "treg");
+const ALL_TOOLS: HuntTool[] = [...HUNT_TOOLS, ...(tregTool ? tregJobs(tregTool) : [])];
+
 export const toolsFor = (settings: Settings) =>
-  HUNT_TOOLS.filter((t) => t.name !== "treg" || settings.treg);
+  ALL_TOOLS.filter((t) => {
+    const needs = NEEDS[t.name];
+    return (
+      (!TREG_TOOL_NAMES.has(t.name) || settings.treg) &&
+      (!needs || settings.freeSources.includes(needs))
+    );
+  });
+
+/** The free source each tool reads; a tool not listed reads none of them. */
+const NEEDS: Record<string, FreeSource> = {
+  nsf_awards: "NSF",
+  nih_awards: "NIH",
+  openalex_author: "OpenAlex",
+  openalex_by_topic: "OpenAlex",
+  csrankings_faculty: "CSRankings",
+};

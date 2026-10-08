@@ -47,7 +47,7 @@ describe("a fake agent turn", () => {
     );
     expect(approval?.costUsd).toBe(0.0245);
 
-    runner.resolveApproval(approval!.id, true);
+    runner.resolveApproval(approval!.id, "once");
     await until(() => getThread(db, thread)?.status === "idle");
 
     expect(threadSpend(db, thread)).toBe(0.0245);
@@ -78,7 +78,7 @@ describe("a fake agent turn", () => {
     runner.send(thread, "go", "send");
     await until(() => getThread(db, thread)?.status === "approval");
     const approval = listEvents(db, thread).find((e) => e.type === "approval");
-    runner.resolveApproval(approval!.id, false);
+    runner.resolveApproval(approval!.id, "deny");
     await until(() => getThread(db, thread)?.status === "idle");
     expect(threadSpend(db, thread)).toBe(0);
     expect(listEvents(db, thread).some((e) => e.type === "tool" && e.status === "denied")).toBe(
@@ -227,6 +227,8 @@ describe("forking a thread", () => {
       () => getThread(db, source)?.status === "idle" && (getThread(db, source)?.rows ?? 0) > 0,
     );
 
+    // Review stays with the original thread; accepted rows are the sheet's and carry over.
+    for (const p of threadProposals(db, source)) resolveProposal(db, p.id, "accept");
     const copy = forkThread(db, source);
     expect(listEvents(db, copy.id)).toHaveLength(listEvents(db, source).length);
     expect(copy.rows).toBe(getThread(db, source)?.rows);

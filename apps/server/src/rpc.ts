@@ -1,28 +1,23 @@
-import {
-  type Award,
-  type Method,
-  type MethodOutput,
-  Methods,
-  type ThreadSummary,
-} from "@gradcode/contracts";
+import { type Method, type MethodOutput, Methods, type ThreadSummary } from "@gradcode/contracts";
 import type { z } from "zod";
 import {
-  exportCsv,
-  importCsv,
   importGradhunt,
   profileFacts,
   readHqFacts,
+  scoutLoop,
   writeBackToGradhunt,
 } from "./adapters.ts";
 import { extractFacts, fakeFacts } from "./agent/extract.ts";
 import type { Runner } from "./agent/runner.ts";
-import { type Sources, sourceKey } from "./agent/tools.ts";
+import { type Sources } from "./agent/tools.ts";
 import type { Bus } from "./bus.ts";
-import { type Db, newId, now } from "./db.ts";
-import { health, tailnetLink } from "./health.ts";
-import { listLoops, saveLoop, STARTER_LOOPS } from "./loops.ts";
+import { type Db, getKv, newId, now } from "./db.ts";
+import { claudeLogin, health, tailnetLink } from "./health.ts";
+import { listLoops, loopStats, saveLoop, STARTER_LOOPS } from "./loops.ts";
 import type { Outreach } from "./outreach/service.ts";
+import { linkedinOpen } from "./outreach/linkedin.ts";
 import { conversations } from "./outreach/pipeline.ts";
+import { getMessage } from "./outreach/store.ts";
 import {
   findsWaiting,
   listPrograms,
@@ -34,8 +29,7 @@ import {
   vaultState,
   writingBrief,
 } from "./vault.ts";
-import { getRecord, listRecords, resolveProposal, threadProposals } from "./records.ts";
-import { intakeStart, monthsAfter, sameSchool, sourcesFor } from "./sources.ts";
+import { resolveProposal } from "./records.ts";
 import {
   getApplicant,
   getHunt,
@@ -45,11 +39,14 @@ import {
   saveHunt,
   updateSettings,
 } from "./state.ts";
+import { recordHandlers } from "./rpc-records.ts";
+import { askCvQuestions } from "./cv-questions.ts";
 import { threadHandlers } from "./rpc-threads.ts";
-import { checkTregToken, readTregLogin, removeTregLogin, saveTregLogin } from "./treg.ts";
+import { tregHandlers, tregStatus } from "./rpc-treg.ts";
+import { readTregLogin } from "./treg.ts";
 import {
   createThread,
-  usageSince,
+  daySpendOutsideThreads,
   getThread,
   listThreads,
   putEvent,
@@ -62,12 +59,6 @@ export type Handlers = {
 };
 
 const OK = { ok: true } as const;
-/** "LYBARGER, KEVIN" and "Kevin Lybarger" are the same person. */
-const personKey = (name: string) => {
-  const parts = name.includes(",") ? name.split(",").toReversed().join(" ") : name;
-  const w = parts.toLowerCase().split(/\s+/).filter(Boolean);
-  return `${w[0]?.[0] ?? ""} ${w.at(-1) ?? ""}`;
-};
 
 export type Services = {
   db: Db;
@@ -80,23 +71,12 @@ export type Services = {
 };
 
 export function createHandlers(svc: Services): Handlers {
-  const { db, bus, runner, sources, outreach } = svc;
+  const { db, bus, runner, outreach } = svc;
   const pushThreads = () => bus.push({ type: "threads", threads: listThreads(db) });
   const thread = (id: string) => {
     const t = getThread(db, id);
     if (!t) throw new Error(`No thread ${id}`);
     return t;
-  };
-
-  /** This install's treg login (never the token) and what paid lookups cost this calendar month. */
-  const tregStatus = () => {
-    const login = readTregLogin();
-    const d = new Date();
-    return {
-      connected: login !== null,
-      customer: login?.customer ?? "",
-      month: usageSince(db, new Date(d.getFullYear(), d.getMonth(), 1).toISOString()),
-    };
   };
 
   return {
@@ -115,8 +95,14 @@ export function createHandlers(svc: Services): Handlers {
           treg: svc.fake || readTregLogin() !== null,
         },
         mail: outreach.status(),
-        treg: tregStatus(),
+        treg: tregStatus(db),
         tailnet: svc.fake ? null : tailnetLink(),
+        claude: svc.fake ? { signedIn: true, who: "the scripted agent" } : claudeLogin(),
+        counts: {
+          funding: getKv(db, "funding.waiting", Number, 0),
+          loops: listLoops(db).filter((l) => l.enabled).length,
+          spendOutsideThreads: daySpendOutsideThreads(db),
+        },
       };
     },
     "settings.update": (patch) => {
@@ -140,6 +126,8 @@ export function createHandlers(svc: Services): Handlers {
       const saved = saveFacts(db, facts);
       // Every view of the facts (Lifeline, Facts, the Writer's checks) and the bundle follow.
       bus.push({ type: "changed", what: "state" });
+      // What the CV couldn't settle waits in Input as a question.
+      if (askCvQuestions(db)) pushThreads();
       return saved;
     },
     "facts.extract": async (input) =>
@@ -148,7 +136,7 @@ export function createHandlers(svc: Services): Handlers {
     ...threadHandlers(svc),
 
     "approvals.resolve": ({ approvalId, decision }) => {
-      runner.resolveApproval(approvalId, decision === "once");
+      runner.resolveApproval(approvalId, decision);
       return OK;
     },
     "proposals.resolve": ({ ids, decision }) => {
@@ -178,71 +166,18 @@ export function createHandlers(svc: Services): Handlers {
       return OK;
     },
 
-    "records.list": () => listRecords(db),
-    "records.get": ({ key }) => {
-      const record = getRecord(db, key);
-      if (!record) throw new Error(`No professor ${key}`);
-      const threadIds = db
-        .prepare("SELECT thread_id FROM thread_rows WHERE record_key = ?")
-        .all(key)
-        .map((r) => String(r.thread_id));
-      return {
-        record,
-        threads: threadIds.flatMap((id) => getThread(db, id) ?? []),
-        proposals: threadIds
-          .flatMap((id) => threadProposals(db, id))
-          .filter((p) => p.recordKey === key),
-      };
-    },
-    "records.import": ({ csv }) => {
-      const added = importCsv(db, csv);
-      bus.push({ type: "changed", what: "records" });
-      return { added };
-    },
-    "records.export": () => ({ csv: exportCsv(db) }),
+    ...recordHandlers(svc),
 
-    "funding.search": async ({ terms, universities, sources: picked }) => {
-      const records = listRecords(db);
-      const hunt = getHunt(db);
-      const which = picked?.length ? picked : sourcesFor(hunt?.prefs.places ?? []);
-      const start = intakeStart(hunt?.prefs.intake ?? "");
-      const activeAfter = start?.toISOString().slice(0, 10);
-      const base = { terms, ...(activeAfter ? { activeAfter } : {}) };
-      // Named schools filter every source. By default the sheet's schools filter the US pair,
-      // and the other databases search the topic everywhere: the sheet's schools are mostly US.
-      const sheetSchools = [...new Set(records.map((r) => r.university))].slice(0, 8);
-      const runs = which.flatMap((s) => {
-        const schools = universities.length
-          ? universities
-          : s === "NSF" || s === "NIH"
-            ? sheetSchools
-            : [];
-        return (schools.length ? schools : [undefined]).map((u) =>
-          sources[sourceKey(s)]({ ...base, ...(u ? { university: u } : {}) }),
-        );
-      });
-      const found = (await Promise.allSettled(runs)).flatMap((r) =>
-        r.status === "fulfilled" ? r.value : [],
-      );
-      const unique = [...new Map(found.map((a) => [`${a.source}:${a.id}`, a])).values()];
-      return unique
-        .map((a): Award => ({
-          ...a,
-          monthsAfterIntake: monthsAfter(a.ends, start),
-          inSheet:
-            !!a.pi &&
-            records.some(
-              (r) =>
-                personKey(r.name) === personKey(a.pi) && sameSchool(r.university, a.university),
-            ),
-        }))
-        .toSorted((a, b) => (b.monthsAfterIntake ?? -999) - (a.monthsAfterIntake ?? -999));
-    },
-
-    "loops.list": () => listLoops(db),
+    "hunt.adjacent": async ({ fields }) =>
+      fields.length ? await svc.sources.adjacent(fields).catch(() => []) : [],
+    "loops.list": () => listLoops(db).map((l) => ({ ...l, ...loopStats(db, l.id) })),
+    // Only where gradhunt sync is on: Siam's install. Read-only.
+    "loops.scout": () => (getSettings(db).gradhunt ? scoutLoop() : null),
     "loops.save": (input) => {
       const loop = saveLoop(db, input);
       bus.push({ type: "changed", what: "loops" });
+      // The sidebar counts loops on.
+      bus.push({ type: "changed", what: "state" });
       return loop;
     },
     "loops.run": ({ id }) => svc.startLoop(id),
@@ -252,20 +187,7 @@ export function createHandlers(svc: Services): Handlers {
     "mail.disconnect": () => outreach.disconnect(),
     "mail.sync": () => outreach.sync(),
 
-    "treg.connect": async (login) => {
-      // The scripted stack never reaches treg; a real install proves the token first.
-      if (!svc.fake) await checkTregToken(login.token);
-      saveTregLogin(login);
-      updateSettings(db, { treg: true });
-      bus.push({ type: "changed", what: "state" });
-      return tregStatus();
-    },
-    "treg.disconnect": () => {
-      removeTregLogin();
-      updateSettings(db, { treg: false });
-      bus.push({ type: "changed", what: "state" });
-      return tregStatus();
-    },
+    ...tregHandlers(svc),
 
     "outreach.list": () => conversations(db),
     "outreach.approve": async ({ ids }) => {
@@ -283,6 +205,14 @@ export function createHandlers(svc: Services): Handlers {
     "outreach.cancel": ({ id }) => {
       outreach.cancel(id);
       return OK;
+    },
+    "outreach.linkedinOpen": async ({ id }) => {
+      const m = getMessage(db, id);
+      if (!m || m.channel !== "linkedin") throw new Error("No LinkedIn note to open.");
+      const opened = await linkedinOpen(db, svc.sources, m.recordKey, m.to);
+      // A lookup it paid for shows in today's spend.
+      bus.push({ type: "changed", what: "state" });
+      return opened;
     },
     "outreach.markSent": ({ id }) => {
       outreach.markSent(id);

@@ -1,11 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { XIcon } from "lucide-react";
+import { ChevronLeftIcon, XIcon } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Toggle, ToggleGroup } from "~/components/ui/toggle-group";
 import { ConversationView } from "~/components/Conversation";
 import { Board, InboxList, MailLabel, SendQueue } from "~/components/Pipeline";
 import { needsYou } from "~/lib/outreach";
 import { useStore } from "~/state/store";
+import { plural } from "~/lib/format";
+import { cn } from "~/lib/utils";
 
 /** Both optional, so a plain link to /pipeline opens the Inbox. */
 type Search = { view?: "inbox" | "board"; key?: string };
@@ -34,7 +36,7 @@ function PipelinePage() {
 
   return (
     <div className="flex min-w-0 flex-1 flex-col">
-      <header className="flex h-12 shrink-0 items-center gap-3 border-b px-4">
+      <header className="flex min-h-12 shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-b px-4 py-2">
         <h1 className="font-semibold text-sm">Pipeline</h1>
         <ToggleGroup
           value={[view]}
@@ -50,8 +52,8 @@ function PipelinePage() {
             Inbox
           </Toggle>
         </ToggleGroup>
-        <span className="text-muted-foreground text-xs tabular-nums">
-          {conversations.length} professors · {needYou} need you
+        <span className="whitespace-nowrap text-muted-foreground text-xs tabular-nums">
+          {plural(conversations.length, "professor")} · {needYou} need you
         </span>
         {notice ? (
           <span className="flex min-w-0 items-center gap-1 text-destructive-foreground text-xs">
@@ -79,14 +81,32 @@ function PipelinePage() {
       ) : view === "board" ? (
         <Board conversations={conversations} onOpen={open} />
       ) : (
-        <div className="grid min-h-0 flex-1 grid-cols-[300px_minmax(0,1fr)]">
-          <InboxList
-            conversations={conversations}
-            selected={selected?.record.key}
-            onSelect={open}
-            connected={connected}
-          />
-          {selected ? <ConversationView c={selected} connected={connected} /> : <div />}
+        // On a phone: the list, or the conversation you opened with a way back to it.
+        <div
+          className={cn(
+            "grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[300px_minmax(0,1fr)]",
+            key && "max-md:grid-rows-[auto_minmax(0,1fr)]",
+          )}
+        >
+          <div className={cn("contents", key && "max-md:hidden")}>
+            <InboxList
+              conversations={conversations}
+              selected={selected?.record.key}
+              onSelect={open}
+              connected={connected}
+            />
+          </div>
+          <div className={cn("contents", !key && "max-md:hidden")}>
+            <Button
+              size="xs"
+              variant="ghost-muted"
+              className="m-1.5 justify-self-start md:hidden"
+              onClick={() => void navigate({ search: { view: "inbox" } })}
+            >
+              <ChevronLeftIcon /> Inbox
+            </Button>
+            {selected ? <ConversationView c={selected} connected={connected} /> : <div />}
+          </div>
         </div>
       )}
     </div>

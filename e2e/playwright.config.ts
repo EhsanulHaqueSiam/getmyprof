@@ -11,5 +11,18 @@ export default defineConfig({
     video: "on",
     trace: "retain-on-failure",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"], colorScheme: "dark" } }],
+  projects: [
+    {
+      name: "chromium",
+      testMatch: "app.spec.ts",
+      use: { ...devices["Desktop Chrome"], colorScheme: "dark" },
+    },
+    // Builds on what app.spec.ts leaves behind, so it waits for it.
+    {
+      name: "after",
+      testMatch: "threads-loops.spec.ts",
+      dependencies: ["chromium"],
+      use: { ...devices["Desktop Chrome"], colorScheme: "dark" },
+    },
+  ],
 });

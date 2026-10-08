@@ -11,6 +11,7 @@ import * as NodeChild from "node:child_process";
 import * as NodeFS from "node:fs";
 import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
+import { z } from "zod";
 import { type Db, now } from "./db.ts";
 import { getRecord, listRecords, putRecord, recordKey } from "./records.ts";
 import { getFacts, getSettings } from "./state.ts";
@@ -72,6 +73,42 @@ export const gradhuntDir = (env = process.env) =>
   env.GRADHUNT_DIR ?? NodePath.join(NodeOS.homedir(), "Personal/gradhunt");
 const sheetPath = (dir: string) => NodePath.join(dir, "loopany/prof-scout/data/professors.json");
 
+/**
+ * Scout, gradhunt's nightly loop, as the Loops table shows it: its latest Timeline entry in its
+ * README and the professors it added in the last 7 days. Null where there is no gradhunt.
+ */
+export function scoutLoop(dir = gradhuntDir(), nowAt = new Date()) {
+  let readme: string;
+  let sheet: unknown;
+  try {
+    readme = NodeFS.readFileSync(NodePath.join(dir, "loopany/prof-scout/README.md"), "utf8");
+    sheet = JSON.parse(NodeFS.readFileSync(sheetPath(dir), "utf8"));
+  } catch {
+    return null;
+  }
+  // Entries read "- **2026-10-02 (run 23)** — what happened", wrapped over indented lines,
+  // one per run, newest last; the section ends at the next heading.
+  const timeline = readme.slice(readme.indexOf("## Timeline")).split(/\n(?=#)/)[0] ?? "";
+  const entry =
+    timeline
+      .split(/\n(?=- \*\*)/)
+      .at(-1)
+      ?.replace(/\s+/g, " ") ?? "";
+  const last = /^- \*\*(.+?)\*\*\s*[—-]\s*(.+)$/.exec(entry.trim());
+  const since = new Date(nowAt.getTime() - 7 * 864e5).toISOString().slice(0, 10);
+  const rows = Array.isArray(sheet) ? sheet : [];
+  return {
+    // Its own schedule (Asia/Dhaka), set outside gradcode.
+    when: "nightly 23:00, Asia/Dhaka",
+    lastRun: last?.[1] ?? "",
+    summary: (last?.[2] ?? "").slice(0, 160),
+    found7d: rows.filter((r) => {
+      const added = z.object({ date_added: z.string() }).safeParse(r);
+      return added.success && added.data.date_added.slice(0, 10) >= since;
+    }).length,
+  };
+}
+
 const STAGE: Record<string, Professor["stage"]> = {
   new: "new",
   drafted: "drafted",
@@ -109,6 +146,7 @@ export function importGradhunt(db: Db, dir = gradhuntDir()) {
         stage: contact === "apply-only" ? "apply-only" : (STAGE[s(r.status)] ?? "new"),
         fitsBecause: s(r.notes).slice(0, 200),
         website: s(r.website),
+        linkedin: s(r.linkedin),
         sources: (Array.isArray(r.sources) ? r.sources.map(s) : s(r.sources).split(/;\s*/)).filter(
           Boolean,
         ),
@@ -174,6 +212,7 @@ const CSV_FIELDS = [
   "stage",
   "fitsBecause",
   "website",
+  "linkedin",
   "sources",
 ] as const;
 
@@ -249,6 +288,7 @@ export function importCsv(db: Db, text: string) {
         stage: stage.success ? stage.data : "new",
         fitsBecause: col(r, "fitsBecause"),
         website: col(r, "website"),
+        linkedin: col(r, "linkedin"),
         sources: col(r, "sources").split(/\s+/).filter(Boolean),
         grants: [],
         origin: "app",

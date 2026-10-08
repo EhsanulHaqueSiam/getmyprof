@@ -96,7 +96,7 @@ export function VaultFacts() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex h-12 shrink-0 items-center gap-3 px-4">
+      <header className="flex min-h-12 shrink-0 flex-wrap items-center gap-3 px-4 py-2">
         <h1 className="font-semibold text-sm">Facts</h1>
         <div className="flex gap-0.5">
           {TABS.map((t) => (

@@ -167,8 +167,8 @@ function WriterPage() {
   };
 
   return (
-    <div className="grid min-w-0 flex-1 grid-cols-[240px_minmax(0,1fr)_300px]">
-      <aside className="min-h-0 overflow-y-auto border-r px-4 py-4 text-xs">
+    <div className="grid min-w-0 flex-1 grid-cols-1 max-md:auto-rows-max max-md:overflow-y-auto md:grid-cols-[240px_minmax(0,1fr)_300px]">
+      <aside className="min-h-0 overflow-y-auto px-4 py-4 text-xs max-md:border-b md:border-r">
         <Link
           to="/vault"
           search={{ section: "writing" }}
@@ -338,7 +338,7 @@ function WriterPage() {
           )}
         </div>
       </div>
-      <aside className="min-h-0 overflow-y-auto border-l px-4 py-4 text-xs">
+      <aside className="min-h-0 overflow-y-auto px-4 py-4 text-xs max-md:border-t md:border-l">
         <Label>Facts used</Label>
         <ol className="flex flex-col" data-testid="facts-used">
           {cited.map((x) => (

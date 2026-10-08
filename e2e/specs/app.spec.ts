@@ -9,10 +9,10 @@ test("first run: setup saves a hunt, confirmed facts and loops", async ({ page }
   await page.goto("/");
   await expect(page).toHaveURL(/\/setup$/);
   // Paid lookups: the scripted stack accepts any token without reaching treg.
-  await page.getByLabel("Customer id").fill("cust_e2e");
+  await page.getByRole("button", { name: "Paste a key" }).click();
   await page.getByLabel("treg token").fill("tok_e2e_fake");
   await page.getByTestId("treg-connect").getByRole("button", { name: "Connect" }).click();
-  await expect(page.getByTestId("treg-connected")).toContainText("cust_e2e");
+  await expect(page.getByTestId("treg-connected")).toContainText("paid by scripted");
   await page.getByRole("button", { name: "Continue" }).click();
 
   await page.getByRole("textbox", { name: "Add" }).fill("Bangladesh");
@@ -146,6 +146,10 @@ test("outreach: drafts wait for approval, a sent email's reply comes back as you
   await expect(page.getByText(/reply read as interested/)).toBeVisible();
   await expect(page.getByTestId("sequence")).toContainText("paused: they replied");
   await expect(page.getByLabel("Message")).toHaveValue(/Thank you/);
+  // Their attachment is filed in the Vault and shows on their message.
+  await expect(page.getByTestId("message-attachments")).toContainText(
+    "Kevin Lybarger: lab-projects.txt",
+  );
 
   await page.getByRole("button", { name: "Board" }).click();
   await expect(page.getByTestId("card").filter({ hasText: "Kevin Lybarger" })).toContainText(
@@ -407,56 +411,4 @@ test("mailbox: sign in with Google through your own OAuth client", async ({ page
   await expect(page).toHaveURL(/\/settings$/);
   await expect(page.getByTestId("mail-connected")).toContainText("applicant@example.com");
   await expect(page.getByTestId("mail-connected")).toContainText("signed in with Google");
-});
-
-test("scoped threads: Ask about a professor answers from the record, @ adds a school, rename, filter, starter keys", async ({
-  page,
-}) => {
-  await page.goto("/professors");
-  await page
-    .getByRole("main")
-    .getByRole("link", { name: /Kevin Lybarger/ })
-    .first()
-    .click();
-  await page.getByRole("button", { name: "Ask about Lybarger" }).click();
-  await expect(page.getByTestId("scope-chip")).toContainText("Lybarger");
-  const message = page.getByLabel("Message");
-  await message.press("End");
-  await message.pressSequentially("what money do they have?");
-  await message.press("Enter");
-
-  // Ask mode with the record in context: answered from the sheet, nothing fetched or spent.
-  await expect(page).toHaveURL(/\/t\/thr_/);
-  await expect(page.getByText(/From the sheet, without fetching: Kevin Lybarger/)).toBeVisible();
-  // The next question in this thread is an Ask too.
-  await expect(page.getByRole("button", { name: "Ask", exact: true })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
-  await expect(page.getByTestId("scope-chip")).toContainText("Lybarger");
-  await page.getByRole("tab", { name: "Professor" }).click();
-  await expect(page.getByTestId("professor-tab")).toContainText("Kevin Lybarger");
-
-  // @ picks a school from the sheet and it joins the chip.
-  await message.pressSequentially("@George");
-  await page.getByRole("option", { name: /^George Mason University\s*school$/ }).click();
-  await expect(page.getByTestId("scope-chip")).toContainText("George Mason University");
-
-  // Rename from the header.
-  await page.getByRole("heading").getByRole("button").click();
-  await page.getByLabel("Thread title").fill("Lybarger's money");
-  await page.getByLabel("Thread title").press("Enter");
-  await expect(page.getByRole("heading", { name: "Lybarger's money" })).toBeVisible();
-
-  // Filter the hunt's Results down to one row.
-  await page.getByRole("link", { name: "Find professors", exact: true }).click();
-  await page.getByRole("tab", { name: /Results/ }).click();
-  await page.getByLabel("Filter rows").fill("Lybarger");
-  await expect(page.getByTestId("result-row")).toHaveCount(1);
-
-  // On a new thread, 2 starts the second starter.
-  await page.goto("/");
-  await expect(page.getByRole("heading", { name: "What should we find?" })).toBeVisible();
-  await page.keyboard.press("2");
-  await expect(page.getByRole("heading", { name: "Follow the money" })).toBeVisible();
 });

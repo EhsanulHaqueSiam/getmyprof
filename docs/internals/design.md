@@ -17,6 +17,13 @@ verbatim.
 Thread status hues mean the same thing everywhere a thread shows up: `status-approval` (amber),
 `status-input` (indigo), `status-working` (blue). Done has no hue: one white unread dot.
 
+## Type
+
+As in T3 Code, the root stays at the browser's 16px: `text-sm` is 14px, `text-xs` 12px,
+`text-2xs` 11px, and body copy 13px. Nothing reads below 10px, so a 1080p screen at 1x (no
+font smoothing on macOS) stays legible. Pixel sizes like the tables' 12.5px come from the mocks.
+`apps/web/src/design.test.ts` keeps `font-size` off `html`.
+
 ## Components
 
 `apps/web/src/components/ui` is T3 Code's coss ui kit on Base UI, copied with its MIT license

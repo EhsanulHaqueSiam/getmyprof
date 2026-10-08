@@ -15,7 +15,7 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Composer } from "~/components/Composer";
 import { COLUMNS, dimmed, haystack, RANK, TIER_LABEL, tone } from "~/lib/columns";
-import { usd } from "~/lib/format";
+import { plural, usd } from "~/lib/format";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
@@ -123,8 +123,10 @@ export function Results({
             />
           </div>
           <span className="ml-auto text-muted-foreground text-xs">
-            {needle ? `${rows.length} of ${view.rows.length}` : view.rows.length} rows ·{" "}
-            {keys.length} selected
+            {needle
+              ? `${rows.length} of ${plural(view.rows.length, "row")}`
+              : plural(view.rows.length, "row")}{" "}
+            · {keys.length} selected
           </span>
         </div>
         <div className="min-h-0 flex-1 overflow-auto">
@@ -314,7 +316,7 @@ export function Results({
               <CircleAlertIcon className="size-3.5" /> Approval · paid action
             </div>
             <div className="mt-1.5 text-sm">
-              {ROW_OPS[ask.op].label} for {keys.length} rows · {usd(ask.cost)}
+              {ROW_OPS[ask.op].label} for {plural(keys.length, "row")} · {usd(ask.cost)}
             </div>
             <div className="mt-2.5 flex justify-end gap-1.5">
               <Button variant="ghost-muted" size="xs" onClick={() => setAsk(null)}>

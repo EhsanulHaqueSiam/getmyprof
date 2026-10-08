@@ -1,0 +1,41 @@
+name: CI
+
+# Lint, types, unit tests and a packaging smoke on every PR. Ubuntu only: the repo is private,
+# where macOS minutes bill at 10x; the Mac build runs at release time (release.yml).
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+
+      # The bundled server serves the built web app: what the desktop app and `gradcode` run.
+      - name: Packaging smoke
+        run: |
+          pnpm dist runtime
+          export GRADCODE_HOME="$RUNNER_TEMP/gc-home" GRADCODE_AGENT=fake GRADHUNT_DIR="$RUNNER_TEMP/none"
+          node apps/desktop/dist/runtime/cli.mjs serve
+          curl -fsS http://127.0.0.1:4350/api/health
+          curl -fsS http://127.0.0.1:4350/settings | grep -q '<div id="root">'
+          node apps/desktop/dist/runtime/cli.mjs stop

@@ -7,6 +7,7 @@ import {
   scoutLoop,
   writeBackToGradhunt,
 } from "./adapters.ts";
+import { claudeStatus, ensureClaude, loginCode, startLogin } from "./agent/binary.ts";
 import { extractFacts, fakeFacts } from "./agent/extract.ts";
 import type { Runner } from "./agent/runner.ts";
 import { type Sources } from "./agent/tools.ts";
@@ -71,6 +72,7 @@ export type Services = {
 export function createHandlers(svc: Services): Handlers {
   const { db, bus, runner, outreach } = svc;
   const pushThreads = () => bus.push({ type: "threads", threads: listThreads(db) });
+  const changedState = () => bus.push({ type: "changed", what: "state" });
   const thread = (id: string) => {
     const t = getThread(db, id);
     if (!t) throw new Error(`No thread ${id}`);
@@ -95,7 +97,9 @@ export function createHandlers(svc: Services): Handlers {
         mail: outreach.status(),
         treg: tregStatus(db),
         tailnet: svc.fake ? null : tailnetLink(),
-        claude: svc.fake ? { signedIn: true, who: "the scripted agent" } : claudeLogin(),
+        claude: svc.fake
+          ? { signedIn: true, who: "the scripted agent", binary: { state: "ready" } }
+          : { ...claudeLogin(), binary: claudeStatus() },
         counts: {
           funding: getKv(db, "funding.waiting", Number, 0),
           loops: listLoops(db).filter((l) => l.enabled).length,
@@ -181,6 +185,18 @@ export function createHandlers(svc: Services): Handlers {
     "loops.run": ({ id }) => svc.startLoop(id),
 
     ...mailHandlers(svc),
+    "claude.fetch": () => {
+      void ensureClaude(changedState).catch(() => undefined);
+      return { ok: true as const };
+    },
+    "claude.login": async () => {
+      if (svc.fake) throw new Error("The scripted agent needs no sign-in.");
+      return { url: await startLogin(changedState) };
+    },
+    "claude.loginCode": ({ code }) => {
+      loginCode(code);
+      return { ok: true as const };
+    },
 
     ...tregHandlers(svc),
 

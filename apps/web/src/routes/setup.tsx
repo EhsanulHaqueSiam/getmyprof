@@ -9,6 +9,7 @@ import {
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CheckIcon, FileTextIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { ClaudeConnect } from "~/components/ClaudeConnect";
 import { Chip, Row } from "~/components/FormParts";
 import { EligibilityFields } from "~/components/EligibilityFields";
 import { BudgetStep, HuntStep, LOOP_NAMES } from "~/components/SetupSteps";
@@ -177,23 +178,7 @@ function Setup() {
                 a gradcode server.
               </p>
               <Row label="Agent">
-                {app?.claude.signedIn ? (
-                  <>
-                    <span className="text-success-foreground">●</span> Claude Code{" "}
-                    <span className="text-muted-foreground text-xs">
-                      · signed in as {app.claude.who}; your subscription pays for the thinking
-                    </span>
-                  </>
-                ) : (
-                  <span data-testid="claude-missing">
-                    <span className="text-warning-foreground">●</span> Claude Code isn't signed in
-                    on this machine.{" "}
-                    <span className="text-muted-foreground text-xs">
-                      Run <code className="font-mono">claude</code> in a terminal, log in, then
-                      reload.
-                    </span>
-                  </span>
-                )}
+                <ClaudeConnect claude={app?.claude} />
               </Row>
               <Row label="Runs on">
                 {app?.host ?? "this machine"}{" "}

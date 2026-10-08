@@ -1,0 +1,27 @@
+# Maintainer: Ehsanul Haque Siam <EhsanulHaqueSiam at users dot noreply dot github dot com>
+# The desktop app, from its release .deb. release.yml fills in the version and checksums and
+# pushes this with its .SRCINFO to aur.archlinux.org/gradcode-bin.git when AUR_SSH_KEY is set.
+pkgname=gradcode-bin
+pkgver={{version}}
+pkgrel=1
+pkgdesc="Find professors who can fund your degree"
+arch=('x86_64' 'aarch64')
+url="https://github.com/EhsanulHaqueSiam/gradcode-releases"
+license=('LicenseRef-gradcode')
+depends=('alsa-lib' 'gtk3' 'libnotify' 'libsecret' 'libxss' 'libxtst' 'mesa' 'nss' 'xdg-utils')
+provides=('gradcode-desktop')
+conflicts=('gradcode-desktop')
+options=('!strip' '!debug')
+source_x86_64=("$url/releases/download/v$pkgver/gradcode_${pkgver}_amd64.deb")
+source_aarch64=("$url/releases/download/v$pkgver/gradcode_${pkgver}_arm64.deb")
+sha256sums_x86_64=('{{sha256_deb_amd64}}')
+sha256sums_aarch64=('{{sha256_deb_arm64}}')
+
+package() {
+  bsdtar -xf data.tar.* -C "$pkgdir"
+  # The .deb makes this link in its postinst, which pacman doesn't run.
+  install -d "$pkgdir/usr/bin"
+  ln -s /opt/gradcode/gradcode-desktop "$pkgdir/usr/bin/gradcode-desktop"
+  # Electron's sandbox helper runs setuid root where user namespaces are off.
+  chmod 4755 "$pkgdir/opt/gradcode/chrome-sandbox"
+}

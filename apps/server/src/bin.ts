@@ -4,6 +4,7 @@ import * as NodeHttp from "node:http";
 import { WebSocketServer } from "ws";
 import { z } from "zod";
 import { importGradhunt, profileFacts } from "./adapters.ts";
+import { ensureClaude } from "./agent/binary.ts";
 import { claudeProvider } from "./agent/claude.ts";
 import { fakeProvider } from "./agent/fake.ts";
 import { fixtureSources } from "./agent/fixtures.ts";
@@ -22,6 +23,7 @@ import { createHandlers, dispatch } from "./rpc.ts";
 import { getSettings } from "./state.ts";
 import { dueReminders, markReminded } from "./reminders.ts";
 import { scopeNote } from "./records.ts";
+import { staticSite } from "./static.ts";
 import { addScope, createThread, getThread, settleStale } from "./threads.ts";
 import { documentPath, listDocuments, writingBrief } from "./vault.ts";
 
@@ -140,6 +142,9 @@ bus.add((m) => {
 refreshSoon();
 
 const handlers = createHandlers({ db, bus, runner, sources, fake, startLoop, outreach });
+// A release build fetches the agent's binary on first run; Setup follows the download.
+if (!fake)
+  void ensureClaude(() => bus.push({ type: "changed", what: "state" })).catch(() => undefined);
 // Turns the last process was running when it stopped pick up where they left off.
 runner.resumeAfterRestart();
 
@@ -172,6 +177,9 @@ function remindRecommenders() {
 }
 setInterval(() => void outreach.sync(), 180_000);
 setInterval(() => settleStale(db), 3_600_000);
+
+// The desktop app and the `gradcode` command serve the built web app from here too; in dev Vite does.
+const site = process.env.GRADCODE_WEB_DIR ? staticSite(process.env.GRADCODE_WEB_DIR) : null;
 
 // Loopback only. Vite proxies /api and /ws here, and `scripts/dev-local.sh share` puts Vite on
 // the tailnet, so every client sees one origin (docs/internals/overview.md).
@@ -279,6 +287,7 @@ const server = NodeHttp.createServer((req, res) => {
     else NodeFS.createReadStream(documentPath(doc.id)).pipe(res);
     return;
   }
+  if (site?.(req, res)) return;
   res.writeHead(404).end();
 });
 
@@ -327,3 +336,11 @@ new WebSocketServer({
 server.listen(PORT, "127.0.0.1", () =>
   console.log(`gradcode server on http://127.0.0.1:${PORT}${fake ? " (fake agent)" : ""}`),
 );
+
+// Stopping (gradcode stop, quitting the app, Ctrl-C) closes the store, so SQLite folds its
+// write-ahead log back into the database instead of leaving it beside it.
+for (const signal of ["SIGTERM", "SIGINT"] as const)
+  process.on(signal, () => {
+    db.close();
+    process.exit(0);
+  });

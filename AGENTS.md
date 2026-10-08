@@ -61,6 +61,8 @@ apps/server               Node WebSocket + HTTP server. rpc.ts maps contract met
 apps/web                  React 19 + Vite+. src/routes (TanStack file routes), src/state (Zustand),
                           src/components/ui (a vendored Base UI kit), src/lib
 packages/contracts        zod schemas for everything on the wire. Decode untrusted input with .parse.
+apps/desktop              Electron app (main, preload, updates) and scripts/dist.ts, every release build
+packaging                 install.sh, the gradcode launcher, Homebrew cask and AUR PKGBUILD templates
 oxlint-plugin-gradcode    golden rules as lint rules, each tested against real oxlint
 e2e                       Playwright specs against the running stack
 scripts/dev-local.sh      one-command stack in tmux (see /dev-local)
@@ -114,4 +116,5 @@ changes, rewrite the text; don't append. Never commit plans or scratch notes.
 | Tokens, status hues, motion, copy           | [docs/internals/design.md](docs/internals/design.md)     |
 | gradhunt data, scout.py writes, hq facts    | [docs/internals/gradhunt.md](docs/internals/gradhunt.md) |
 | What is built, what is not yet              | [README.md](README.md)                                   |
+| Releases, installers, the update feed       | [docs/internals/release.md](docs/internals/release.md)   |
 | What it must do                             | the three pages in [docs/mocks/](docs/mocks/)            |

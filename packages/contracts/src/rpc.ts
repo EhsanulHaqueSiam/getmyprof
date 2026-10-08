@@ -23,6 +23,7 @@ import {
   TregCustomers,
   TregStatus,
 } from "./domain.ts";
+import { ClaudeBinary } from "./desktop.ts";
 import { Conversation, MailConnect, MailSignIn, MailStatus } from "./outreach.ts";
 import { RowOp, ThreadEvent, ThreadSummary } from "./threads.ts";
 import {
@@ -48,8 +49,9 @@ export const AppState = z.object({
   treg: TregStatus,
   /** Where a phone on the tailnet opens gradcode, and whether it's being served there. */
   tailnet: z.object({ url: z.string(), served: z.boolean() }).nullable(),
-  /** Whether Claude Code can run: signed in (and as whom), or not yet. */
-  claude: z.object({ signedIn: z.boolean(), who: z.string() }),
+  /** Whether Claude Code can run: its binary is here (release builds fetch it on first run), and
+   * it's signed in (and as whom). */
+  claude: z.object({ signedIn: z.boolean(), who: z.string(), binary: ClaudeBinary }),
   /** The sidebar's counts: awards from the last search worth a look (running past the intake,
    * on topic, PI not in the sheet), loops on, and the last day's spend outside any thread. */
   counts: z.object({ funding: z.number(), loops: z.number(), spendOutsideThreads: z.number() }),
@@ -260,6 +262,12 @@ export const Methods = {
   "mail.connect": { input: MailConnect, output: MailStatus },
   /** The provider's consent page; its callback connects the mailbox and returns to Settings. */
   "mail.signIn": { input: MailSignIn, output: z.object({ url: z.string() }) },
+  /** Fetch Claude Code again after a failed download. */
+  "claude.fetch": { input: z.object({}), output: ok },
+  /** Start Claude Code's own sign-in; it opens the browser, and `url` is the page to open by hand. */
+  "claude.login": { input: z.object({}), output: z.object({ url: z.string() }) },
+  /** The code the sign-in page shows, when it asks for one to be pasted back. */
+  "claude.loginCode": { input: z.object({ code: z.string().min(1) }), output: ok },
   "mail.disconnect": { input: z.object({}), output: MailStatus },
   /** A new app password for the connected mailbox; its warm-up and queue stay. */
   "mail.repassword": { input: z.object({ password: z.string().min(1) }), output: MailStatus },

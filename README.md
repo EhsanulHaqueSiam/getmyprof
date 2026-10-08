@@ -13,12 +13,64 @@ Design and the full spec, three required pages: the main spec
 [journey](docs/mocks/journey.html), and the
 [Pipeline, Vault and Writer](docs/mocks/outreach-vault.html).
 
+## Install
+
+The first release, v0.1.0, isn't published yet: until it is, the commands and links below don't
+work, and gradcode runs from source ([Run it](#run-it)). Downloads will live in the public
+[gradcode-releases](https://github.com/EhsanulHaqueSiam/gradcode-releases) repo.
+
+gradcode runs the agent on your own Claude subscription. The first run downloads Claude Code
+(about 100 MB, straight from npm, checked against its published checksum) into `~/.gradcode`;
+then sign in from Setup's Connect step, or with `gradcode login`.
+
+### Command line
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/EhsanulHaqueSiam/gradcode-releases/main/install.sh | sh
+```
+
+Then run `gradcode` to start the server and open the app in your browser. `gradcode serve` keeps
+it running in the background, `gradcode update` moves to the newest release, and `gradcode --help`
+has the rest. It brings its own Node. Once the npm package is published, `npx gradcode@latest`
+(Node 24+) tries it once without installing.
+
+### Desktop app
+
+Install the latest version from
+[GitHub Releases](https://github.com/EhsanulHaqueSiam/gradcode-releases/releases/latest) (dmg for
+Apple Silicon `arm64` or Intel `x64`, AppImage, `.deb`), or from your package registry. The app
+tells you when there's a new version; the AppImage updates itself.
+
+#### macOS (Homebrew)
+
+```sh
+brew install --cask EhsanulHaqueSiam/tap/gradcode
+```
+
+The Mac app isn't notarized yet. Homebrew handles that; after dragging a downloaded dmg to
+Applications, run `xattr -dr com.apple.quarantine /Applications/gradcode.app` once.
+
+#### Debian, Ubuntu (`.deb`)
+
+Download the `.deb` from GitHub Releases, then:
+
+```sh
+sudo apt install ./gradcode_*.deb
+```
+
+#### Arch Linux, Omarchy (AUR)
+
+```sh
+yay -S gradcode-bin
+```
+
 ## Use it
 
-Start it (see [Run it](#run-it)) and open it in your browser. The first run opens Setup:
+Install it (see [Install](#install)) or start it from source (see [Run it](#run-it)), and
+open it. The first run opens Setup:
 
-1. **Connect.** gradcode runs on your own Claude Code login; Setup shows whose. Free sources are
-   on. Paid lookups (people search, email finding) are optional: connect treg by signing in, or
+1. **Connect.** gradcode runs on your own Claude Code login; Setup shows whose, or downloads
+   Claude Code on the first run and signs you in. Free sources are on. Paid lookups (people search, email finding) are optional: connect treg by signing in, or
    paste a key someone gave you.
 2. **You.** Paste your CV. It becomes facts, each with its source; tick the ones that are right.
    Anything it couldn't settle waits in Input as a question.
@@ -95,12 +147,13 @@ under `~/.gradcode`. How the pieces fit: [docs/internals/overview.md](docs/inter
 
 ## Run it
 
-Needs Node 24+, pnpm and tmux.
+Needs tmux, and [Vite+](https://viteplus.dev) (which brings Node and pnpm) or Node 24+ with pnpm.
 
 ```sh
-pnpm install
-scripts/dev-local.sh up      # server :4311 + web http://127.0.0.1:5174, in tmux
-scripts/dev-local.sh share   # open it from your phone over Tailscale
+curl -fsSL https://vite.plus | bash   # Vite+, once
+vp i                                  # or: pnpm install
+scripts/dev-local.sh up               # server :4311 + web http://127.0.0.1:5174, in tmux
+scripts/dev-local.sh share            # open it from your phone over Tailscale
 scripts/dev-local.sh down
 
 # tests: unit, then e2e on a fresh stack with the scripted agent (free, deterministic)
@@ -110,4 +163,14 @@ rm -rf /tmp/gc-e2e && GRADCODE_HOME=/tmp/gc-e2e GRADCODE_AGENT=fake scripts/dev-
 pnpm e2e
 ```
 
-Agents start at [AGENTS.md](AGENTS.md).
+The desktop app and the `gradcode` command build into `dist/release`:
+
+```sh
+pnpm dist runtime                       # web app, bundled server and CLI, Electron's main
+pnpm dist cli darwin-arm64              # the command line tarball (also darwin-x64, linux-x64, linux-arm64)
+pnpm dist desktop mac arm64             # dmg + zip, on a Mac; `desktop linux x64` builds the AppImage + .deb
+pnpm --filter @gradcode/desktop start   # or run the app from the checkout, after `pnpm dist runtime`
+```
+
+How releases are cut: [docs/internals/release.md](docs/internals/release.md). Agents start at
+[AGENTS.md](AGENTS.md).

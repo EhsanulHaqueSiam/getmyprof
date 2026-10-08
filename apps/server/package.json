@@ -2,6 +2,9 @@
   "name": "@gradcode/server",
   "private": true,
   "type": "module",
+  "exports": {
+    "./launch": "./src/launch.ts"
+  },
   "scripts": {
     "dev": "node --watch src/bin.ts",
     "start": "node src/bin.ts",

@@ -24,7 +24,7 @@ describe("health", () => {
   });
 
   it("reports every check as missing on an empty machine", () => {
-    const result = health({ PATH: "", GRADHUNT_DIR: tempDir() });
+    const result = health({ PATH: "", GRADHUNT_DIR: tempDir() }, () => null);
     expect(Object.keys(result.checks).toSorted()).toEqual([...CHECKS].toSorted());
     expect(Object.values(result.checks).every((found) => !found)).toBe(true);
   });

@@ -1,5 +1,6 @@
 {
   "name": "@gradcode/monorepo",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -11,7 +12,8 @@
     "fmt": "vp fmt",
     "fmt:check": "vp fmt --check",
     "test": "vp test run",
-    "e2e": "vp run --filter @gradcode/e2e test"
+    "e2e": "vp run --filter @gradcode/e2e test",
+    "dist": "node apps/desktop/scripts/dist.ts"
   },
   "devDependencies": {
     "@shadcn/lint": "0.1.5",

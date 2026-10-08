@@ -146,6 +146,10 @@ test("outreach: drafts wait for approval, a sent email's reply comes back as you
   await expect(page.getByText(/reply read as interested/)).toBeVisible();
   await expect(page.getByTestId("sequence")).toContainText("paused: they replied");
   await expect(page.getByLabel("Message")).toHaveValue(/Thank you/);
+  // Their attachment is filed in the Vault and shows on their message.
+  await expect(page.getByTestId("message-attachments")).toContainText(
+    "Kevin Lybarger: lab-projects.txt",
+  );
 
   await page.getByRole("button", { name: "Board" }).click();
   await expect(page.getByTestId("card").filter({ hasText: "Kevin Lybarger" })).toContainText(

@@ -45,6 +45,16 @@ export function ingest(db: Db, mail: Incoming): OutreachMessage | null {
   const record = key ? getRecord(db, key) : null;
   if (!key || !record) return null;
   const back = kind === "auto-reply" ? returnDate(mail.text, new Date(mail.date)) : null;
+  // What they attached (a paper, a form, an offer letter) goes to the Vault's documents.
+  const docs = (mail.attachments ?? []).map((f) =>
+    saveDocument(db, {
+      name: `${record.name}: ${f.filename}`,
+      kind: "other",
+      mime: f.mime,
+      expires: null,
+      base64: f.base64,
+    }),
+  );
   const message = putMessage(db, {
     id: newId("in"),
     recordKey: key,
@@ -55,7 +65,7 @@ export function ingest(db: Db, mail: Incoming): OutreachMessage | null {
     replyClass: null,
     status: "received",
     citations: {},
-    attachments: [],
+    attachments: docs.map((d) => d.id),
     from: mail.from,
     to: "",
     subject: mail.subject,
@@ -71,17 +81,6 @@ export function ingest(db: Db, mail: Incoming): OutreachMessage | null {
       : "",
     createdAt: now(),
   });
-  // What they attached (a paper, a form, an offer letter) goes to the Vault's documents.
-  const docs = (mail.attachments ?? []).map((f) =>
-    saveDocument(db, {
-      name: `${record.name}: ${f.filename}`,
-      kind: "other",
-      mime: f.mime,
-      expires: null,
-      base64: f.base64,
-    }),
-  );
-  if (docs.length) putMessage(db, { ...message, attachments: docs.map((d) => d.id) });
   if ((kind === "reply" || kind === "linkedin") && record.stage !== "replied")
     setStage(db, record, "replied");
   if (kind === "bounce")

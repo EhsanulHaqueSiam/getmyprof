@@ -175,7 +175,13 @@ export function fakeMailer() {
   // Replies get their Date when a sync first sees them, so they always land after the send.
   const inbox: (Omit<Incoming, "date"> & { uid: number; date: string | null })[] = [];
   let uid = 0;
-  const reply = (inReplyTo: string, from: string, subject: string, text: string) =>
+  const reply = (
+    inReplyTo: string,
+    from: string,
+    subject: string,
+    text: string,
+    attachments: Incoming["attachments"] = [],
+  ) =>
     inbox.push({
       uid: ++uid,
       messageId: `<fake-in-${uid}@example.edu>`,
@@ -184,6 +190,7 @@ export function fakeMailer() {
       from,
       subject,
       text,
+      attachments,
       date: null,
     });
 
@@ -198,7 +205,14 @@ export function fakeMailer() {
           messageId,
           m.to,
           `Re: ${m.subject}`,
-          "Thanks for reaching out. Could you send your CV and a short note on what you'd want to work on in clinical NLP?",
+          "Thanks for reaching out. Could you send your CV and a short note on what you'd want to work on in clinical NLP? Our current projects are attached.",
+          [
+            {
+              filename: "lab-projects.txt",
+              mime: "text/plain",
+              base64: Buffer.from("Clinical NLP projects, 2026-27").toString("base64"),
+            },
+          ],
         );
       if (m.to === "zalake@example.edu") {
         const back = new Date(Date.now() + 10 * 864e5).toLocaleDateString("en-US", {

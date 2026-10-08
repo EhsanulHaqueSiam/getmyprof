@@ -105,7 +105,8 @@ jobs:
         with:
           path: dist/release
           merge-multiple: true
-      - run: pnpm dist sums && pnpm dist manifests
+      # install.sh rides along, so `gradcode update` can check it against SHA256SUMS.
+      - run: cp packaging/install.sh dist/release/ && pnpm dist sums && pnpm dist manifests
 
       # gh uploads every asset to a draft and publishes it last, so no updater sees half a release.
       - name: Release on the public repo
@@ -114,7 +115,7 @@ jobs:
           gh release create "$GITHUB_REF_NAME" --repo "$GRADCODE_RELEASES" \
             --title "gradcode ${GITHUB_REF_NAME#v}" \
             --notes "Install: https://github.com/$GRADCODE_RELEASES#readme" \
-            ./*.tar.gz ./*.dmg ./*.zip ./*.blockmap ./*.AppImage ./*.deb ./latest-*.yml SHA256SUMS
+            ./*.tar.gz ./*.dmg ./*.zip ./*.blockmap ./*.AppImage ./*.deb ./latest-*.yml install.sh SHA256SUMS
 
       # The one-line install reads install.sh from the releases repo's main branch.
       - name: install.sh on the releases repo

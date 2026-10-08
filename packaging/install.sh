@@ -27,6 +27,8 @@ fail() {
   exit 1
 }
 command -v curl >/dev/null 2>&1 || fail "curl is required"
+# Give up on a server that won't connect in 10s, or a download that crawls under 1 KB/s for 30s.
+get() { curl -fL --connect-timeout 10 --speed-limit 1024 --speed-time 30 "$@"; }
 command -v tar >/dev/null 2>&1 || fail "tar is required"
 
 case "$(uname -s)" in
@@ -46,7 +48,7 @@ fi
 version="${GRADCODE_VERSION:-}"
 if [ -z "$version" ]; then
   # .../releases/latest redirects to .../releases/tag/v<version>.
-  latest="$(curl -fsSLI -o /dev/null -w '%{url_effective}' "$releases/latest")" ||
+  latest="$(get -sSI --max-time 30 -o /dev/null -w '%{url_effective}' "$releases/latest")" ||
     fail "can't reach $releases"
   version="${latest##*/v}"
 fi
@@ -60,10 +62,10 @@ trap 'rm -rf "$tmp"' EXIT
 
 # Downloads one asset of the release into $tmp and checks it against SHA256SUMS.
 fetch() {
-  [ -f "$tmp/SHA256SUMS" ] || curl -fsSL "$releases/download/v$version/SHA256SUMS" -o "$tmp/SHA256SUMS" ||
+  [ -f "$tmp/SHA256SUMS" ] || get -sS "$releases/download/v$version/SHA256SUMS" -o "$tmp/SHA256SUMS" ||
     fail "release v$version has no SHA256SUMS"
   printf 'Downloading %s\n' "$1" >&2
-  curl -fL --progress-bar "$releases/download/v$version/$1" -o "$tmp/$1" ||
+  get --progress-bar "$releases/download/v$version/$1" -o "$tmp/$1" ||
     fail "release v$version has no $1"
   expected="$(grep " $1\$" "$tmp/SHA256SUMS" | cut -d' ' -f1)"
   if command -v sha256sum >/dev/null 2>&1; then

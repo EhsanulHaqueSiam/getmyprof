@@ -293,7 +293,9 @@ function writeManifests() {
   for (const file of ["homebrew/getmyprof.rb", "aur/PKGBUILD"]) {
     const text = NodeFS.readFileSync(NodePath.join(root, "packaging", file), "utf8").replace(
       /\{\{(\w+)\}\}/g,
-      (_, key: string) => {
+      (token, key: string) => {
+        // Homebrew has templates of its own ({{appdir}}); they stay for brew to fill in.
+        if (!(key in values)) return token;
         const value = values[key];
         if (!value) throw new Error(`${file}: no ${key} in SHA256SUMS`);
         return value;

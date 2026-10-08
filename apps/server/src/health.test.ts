@@ -3,7 +3,7 @@ import * as NodeFS from "node:fs";
 import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
 import { describe, expect, it } from "vite-plus/test";
-import { health } from "./health.ts";
+import { claudeLogin, health } from "./health.ts";
 
 const tempDir = () => NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "gradcode-health-"));
 
@@ -22,5 +22,18 @@ describe("health", () => {
     const result = health({ PATH: "", GRADHUNT_DIR: tempDir() });
     expect(Object.keys(result.checks).toSorted()).toEqual([...CHECKS].toSorted());
     expect(Object.values(result.checks).every((found) => !found)).toBe(true);
+  });
+});
+
+describe("the agent's login", () => {
+  it("is an API key, or the account `claude` keeps in its config file", () => {
+    const home = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "gc-login-"));
+    expect(claudeLogin({}, home)).toEqual({ signedIn: false, who: "" });
+    NodeFS.writeFileSync(
+      NodePath.join(home, ".claude.json"),
+      JSON.stringify({ oauthAccount: { emailAddress: "ada@example.com" } }),
+    );
+    expect(claudeLogin({}, home)).toEqual({ signedIn: true, who: "ada@example.com" });
+    expect(claudeLogin({ ANTHROPIC_API_KEY: "sk-test" }, "/nowhere").signedIn).toBe(true);
   });
 });

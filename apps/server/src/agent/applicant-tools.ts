@@ -5,16 +5,41 @@ import { z } from "zod";
 import { classify } from "../outreach/inbox.ts";
 import { getMessage, issuesFor, saveDraft } from "../outreach/store.ts";
 import { recordKey } from "../records.ts";
-import { proposeFinding, saveWriting } from "../vault.ts";
+import { listOffers, proposeFinding, saveEdit, saveWriting } from "../vault.ts";
 import type { HuntTool } from "./tools.ts";
 
 const define = <S extends z.ZodRawShape>(t: HuntTool<S>) => t;
 
 export const APPLICANT_TOOLS = [
   define({
+    name: "set_offer_rent",
+    description:
+      "Record the local monthly rent (USD, a 1-bedroom near campus) on an offer in the Vault, from a page that states it, so offers compare after rent. Give the offer id and the page.",
+    shape: {
+      offerId: z.string(),
+      usdPerMonth: z.number().positive(),
+      source: z.string().describe("The page the figure is from"),
+    },
+    paid: false,
+    price: () => 0,
+    run: async ({ offerId, usdPerMonth, source }, ctx) => {
+      const offer = listOffers(ctx.db).find((o) => o.id === offerId);
+      if (!offer) return { summary: "no offer", text: `No offer ${offerId} in the Vault.` };
+      saveEdit(ctx.db, {
+        kind: "offer",
+        value: { ...offer, rentPerMonth: Math.round(usdPerMonth) },
+      });
+      ctx.vaultChanged();
+      return {
+        summary: `$${Math.round(usdPerMonth)} a month`,
+        text: `Saved on the offer at ${offer.university}, from ${source}. Say the source in your reply.`,
+      };
+    },
+  }),
+  define({
     name: "draft_email",
     description:
-      "Draft an email (or a LinkedIn note) to a professor in the sheet. It waits for the applicant to approve; nothing is sent by you. Email goes only to the address already in the sheet; apply-only professors get none. Plain text, one recipient, at most two links. Cite each claim about the applicant with [[fact-id]] right after it, as in the Writer; an uncited or unproven claim keeps the draft from being approved.",
+      "Draft an email (or a LinkedIn note) to a professor in the sheet. It waits for the applicant to approve; nothing is sent by you. Email goes only to the address already in the sheet; apply-only professors get none. Plain text, one recipient, at most two links. A first LinkedIn note stays under 200 characters, so it also fits a connection request. Cite each claim about the applicant with [[fact-id]] right after it, as in the Writer; an uncited or unproven claim keeps the draft from being approved.",
     shape: {
       name: z.string(),
       university: z.string(),

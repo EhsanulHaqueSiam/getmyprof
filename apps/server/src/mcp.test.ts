@@ -72,12 +72,13 @@ describe("gradcode as an MCP server", () => {
     await client.close();
   });
 
-  it("keeps your servers and its token when another setting changes", () => {
+  it("keeps your servers, its token and your free sources when another setting changes", () => {
     const db = openDb(":memory:");
     const before = updateSettings(db, {
       mcpServers: [
         { transport: "http", name: "papers", url: "https://example.com/mcp", trusted: false },
       ],
+      freeSources: ["NIH", "web"],
     });
     // Through the wire's own input schema, the way the Settings page sends it.
     updateSettings(db, Methods["settings.update"].input.parse({ detail: "brief" }));
@@ -85,6 +86,7 @@ describe("gradcode as an MCP server", () => {
       detail: "brief",
       mcpServers: before.mcpServers,
       mcpToken: before.mcpToken,
+      freeSources: ["NIH", "web"],
     });
   });
 

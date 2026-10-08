@@ -1,8 +1,10 @@
 import type { DetailLevel, HuntPrefs } from "@gradcode/contracts";
 import { ArrowDownIcon, ArrowUpIcon } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Chip, ListEditor, Row } from "~/components/FormParts";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
+import { call } from "~/rpc/client";
 
 const PRIORITY_LABEL = {
   money: "Money that lasts into my first year",
@@ -34,6 +36,19 @@ export function HuntStep({
   set: <K extends keyof HuntPrefs>(k: K, v: HuntPrefs[K]) => void;
   move: (i: number, d: -1 | 1) => void;
 }) {
+  // Domains next to your fields, from OpenAlex; the fixed list only when it can't be reached.
+  const [adjacent, setAdjacent] = useState<string[]>([]);
+  const fieldsKey = prefs.fields.join("|");
+  useEffect(() => {
+    const t = setTimeout(
+      () =>
+        void call("hunt.adjacent", { fields: fieldsKey.split("|").filter(Boolean) }).then(
+          setAdjacent,
+        ),
+      400,
+    );
+    return () => clearTimeout(t);
+  }, [fieldsKey]);
   return (
     <>
       <h1 className="font-semibold text-lg tracking-tight">Your hunt</h1>
@@ -107,7 +122,7 @@ export function HuntStep({
       <Row label="Adjacent domains">
         <ListEditor
           values={prefs.adjacent}
-          suggested={SUGGESTED_ADJACENT}
+          suggested={adjacent.length ? adjacent : SUGGESTED_ADJACENT}
           onChange={(v) => set("adjacent", v)}
         />
         <span className="mt-1.5 block text-muted-foreground text-xs">

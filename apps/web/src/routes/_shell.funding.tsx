@@ -1,11 +1,13 @@
 import { type Award, AwardSource } from "@gradcode/contracts";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ExternalLinkIcon, MessageSquareIcon, SearchIcon } from "lucide-react";
+import { ExternalLinkIcon, MessageSquareIcon, PlusIcon, SearchIcon } from "lucide-react";
 import { useState } from "react";
+import { FellowshipsTable, ProgramsTable } from "~/components/FundingLists";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
+import { plural } from "~/lib/format";
 
 export const Route = createFileRoute("/_shell/funding")({ component: Funding });
 
@@ -20,6 +22,8 @@ const SOURCE_NOTE: Record<AwardSource, string> = {
   UKRI: "UK",
   CORDIS: "EU, ERC",
   ARC: "Australia",
+  DFG: "Germany",
+  NSERC: "Canada",
 };
 
 /**
@@ -38,6 +42,15 @@ function Funding() {
   const [picked, setPicked] = useState<Award | null>(null);
   // null means "the hunt's places decide"; the server picks the same default.
   const [chosen, setChosen] = useState<AwardSource[] | null>(null);
+  const [tab, setTab] = useState<"awards" | "programs" | "fellowships">("awards");
+
+  /** One click: the PI goes into the sheet with this award as their grant. */
+  const addPi = async (a: Award) => {
+    await call("records.addFromAward", { award: a });
+    const added = { ...a, inSheet: true };
+    setAwards((all) => all?.map((x) => (x === a ? added : x)) ?? null);
+    setPicked((p) => (p === a ? added : p));
+  };
 
   const search = async () => {
     setBusy(true);
@@ -69,11 +82,30 @@ function Funding() {
   };
 
   return (
-    <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_340px]">
+    <div className="grid min-w-0 flex-1 grid-cols-1 overflow-y-auto md:grid-cols-[minmax(0,1fr)_340px] md:overflow-visible">
       <section className="flex min-w-0 flex-col">
-        <header className="flex h-12 shrink-0 items-center gap-2.5 px-4">
+        <header className="flex min-h-12 shrink-0 flex-wrap items-center gap-2.5 px-4 py-2">
           <h1 className="font-semibold text-sm">Funding</h1>
-          <span className="flex gap-1">
+          <div className="inline-flex rounded-lg border p-0.5 text-xs" role="tablist">
+            {(["awards", "programs", "fellowships"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                role="tab"
+                aria-selected={tab === t}
+                onClick={() => setTab(t)}
+                className={cn(
+                  "h-6 rounded-md px-2.5 capitalize transition-colors",
+                  tab === t
+                    ? "bg-accent text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+          <span className={cn("flex gap-1", tab !== "awards" && "hidden")}>
             {AwardSource.options.map((s) => {
               const on = chosen ? chosen.includes(s) : false;
               return (
@@ -100,11 +132,21 @@ function Funding() {
               );
             })}
           </span>
-          <span className="text-muted-foreground text-xs">
+          <span className={cn("text-muted-foreground text-xs", tab !== "awards" && "hidden")}>
             {chosen?.length ? "free" : "free · by your places"}
           </span>
         </header>
+        {tab === "programs" ? (
+          <div className="min-h-0 flex-1 overflow-auto border-t">
+            <ProgramsTable />
+          </div>
+        ) : tab === "fellowships" ? (
+          <div className="min-h-0 flex-1 overflow-auto border-t">
+            <FellowshipsTable />
+          </div>
+        ) : null}
         <form
+          hidden={tab !== "awards"}
           onSubmit={(e) => {
             e.preventDefault();
             void search();
@@ -131,7 +173,7 @@ function Funding() {
             {busy ? "Searching" : "Search"}
           </Button>
         </form>
-        <div className="min-h-0 flex-1 overflow-auto border-t">
+        <div className={cn("min-h-0 flex-1 overflow-auto border-t", tab !== "awards" && "hidden")}>
           <table className="w-full border-collapse text-[12.5px]">
             <thead>
               <tr>
@@ -154,19 +196,20 @@ function Funding() {
                   <tr
                     key={`${a.source}${a.id}`}
                     onClick={() => setPicked(a)}
+                    data-dimmed={a.fit === 0 || undefined}
                     className={cn(
                       "cursor-pointer transition-colors hover:bg-secondary",
                       picked === a && "bg-primary/7",
-                      m !== null && m < 0 && "opacity-50",
+                      ((m !== null && m < 0) || a.fit === 0) && "opacity-45",
                     )}
                   >
-                    <td className="h-9 max-w-[260px] truncate border-b px-3 text-secondary-label">
+                    <td className="h-9 max-w-[200px] truncate border-b px-3 text-secondary-label">
                       {a.title}
                     </td>
                     <td className="border-b px-3 font-medium whitespace-nowrap">
                       {a.pi || <span className="text-muted-foreground">not listed</span>}
                     </td>
-                    <td className="max-w-[160px] truncate border-b px-3 text-secondary-label">
+                    <td className="max-w-[120px] truncate border-b px-3 text-secondary-label">
                       {a.university}
                     </td>
                     <td className="border-b px-3 tabular-nums">{money(a)}</td>
@@ -195,11 +238,28 @@ function Funding() {
                     </td>
                     <td
                       className={cn(
-                        "border-b px-3",
+                        "border-b px-3 whitespace-nowrap",
                         a.inSheet ? "text-success-foreground" : "text-muted-foreground",
                       )}
                     >
-                      {a.inSheet ? "yes" : "no"}
+                      {a.inSheet ? (
+                        "yes"
+                      ) : a.fit === 0 ? (
+                        "off topic"
+                      ) : a.pi ? (
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void addPi(a);
+                          }}
+                        >
+                          <PlusIcon /> Add PI
+                        </Button>
+                      ) : (
+                        "no PI listed"
+                      )}
                     </td>
                   </tr>
                 );
@@ -217,6 +277,12 @@ function Funding() {
             </div>
           ) : null}
         </div>
+        {tab === "awards" && awards?.length ? (
+          <div className="flex h-9 shrink-0 items-center gap-2 border-t px-4 text-muted-foreground text-xs">
+            {plural(awards.length, "award")}
+            <span className="ml-auto">ranked by months left after your intake, then fit</span>
+          </div>
+        ) : null}
       </section>
       <aside className="flex flex-col gap-3 overflow-y-auto border-l p-4">
         {picked ? (
@@ -236,10 +302,22 @@ function Funding() {
             {picked.abstract ? (
               <p className="text-secondary-label text-xs leading-relaxed">{picked.abstract}</p>
             ) : null}
+            <p className="text-muted-foreground text-xs">
+              {picked.inSheet
+                ? "In the sheet."
+                : (picked.monthsAfterIntake ?? 0) > 0
+                  ? `Not in the sheet. It runs ${picked.monthsAfterIntake} months past your intake, so this PI may be hiring.`
+                  : "Not in the sheet, and it ends before you start."}
+            </p>
             <div className="flex flex-wrap gap-1.5">
               <Button size="xs" onClick={() => void vet(picked)}>
                 <MessageSquareIcon /> Vet in a thread
               </Button>
+              {!picked.inSheet && picked.pi ? (
+                <Button variant="outline" size="xs" onClick={() => void addPi(picked)}>
+                  <PlusIcon /> Add as candidate
+                </Button>
+              ) : null}
               <Button
                 variant="ghost-muted"
                 size="xs"
@@ -250,7 +328,11 @@ function Funding() {
             </div>
           </>
         ) : (
-          <p className="text-muted-foreground text-xs">Pick an award to see it here.</p>
+          <p className="text-muted-foreground text-xs">
+            {tab === "awards"
+              ? "Pick an award to see it here."
+              : "Programs and fellowships are kept in the Vault, with their notes and status."}
+          </p>
         )}
       </aside>
     </div>

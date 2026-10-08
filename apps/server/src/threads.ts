@@ -27,8 +27,17 @@ function summarize(db: Db, r: Row): ThreadSummary {
     spendDayUsd: daySpend(db, id),
     loopId: str(r.loop_id),
     pendingReview: pendingCount(db, id),
+    // The rows Results shows (records.threadRows): in the sheet, or still proposed here. A
+    // rejected new professor is neither.
     rows: Number(
-      db.prepare("SELECT COUNT(*) AS n FROM thread_rows WHERE thread_id = ?").get(id)?.n ?? 0,
+      db
+        .prepare(
+          `SELECT COUNT(*) AS n FROM thread_rows t WHERE t.thread_id = ? AND (
+             EXISTS (SELECT 1 FROM records r WHERE r.key = t.record_key) OR
+             EXISTS (SELECT 1 FROM proposals p WHERE p.thread_id = t.thread_id
+                       AND p.record_key = t.record_key AND p.status = 'pending'))`,
+        )
+        .get(id)?.n ?? 0,
     ),
     scope: r.scope ? z.array(ScopeItem).parse(JSON.parse(String(r.scope))) : [],
     detail: r.detail ? DetailLevel.parse(r.detail) : null,
@@ -214,6 +223,14 @@ export const threadSpend = (db: Db, threadId: string) =>
   );
 
 /** Spend in the last 24 hours, the window the day cap counts: all of it, or one thread's. */
+/** The last day's spend that belongs to no thread (a LinkedIn member-id lookup from the Pipeline). */
+export const daySpendOutsideThreads = (db: Db) =>
+  Number(
+    db
+      .prepare("SELECT COALESCE(SUM(usd), 0) AS s FROM spend WHERE at >= ? AND thread_id IS NULL")
+      .get(new Date(Date.now() - 864e5).toISOString())?.s ?? 0,
+  );
+
 export const daySpend = (db: Db, threadId?: string) =>
   Number(
     db

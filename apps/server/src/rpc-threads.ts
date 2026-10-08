@@ -1,6 +1,6 @@
 // The thread methods: start, send (queue, steer), scope, detail, fork, settle and the rest.
 // rpc.ts spreads these into its handlers.
-import type { ScopeItem } from "@gradcode/contracts";
+import { ROW_OPS, type ScopeItem } from "@gradcode/contracts";
 import { scopeNote, threadProposals, threadRows } from "./records.ts";
 import type { Handlers, Services } from "./rpc.ts";
 import {
@@ -18,6 +18,7 @@ import {
   settle,
   snooze,
 } from "./threads.ts";
+import { answerCvQuestion } from "./cv-questions.ts";
 import { readAttachments } from "./vault.ts";
 
 type ThreadMethods = Extract<keyof Handlers, `threads.${string}`>;
@@ -44,6 +45,14 @@ export function threadHandlers(svc: Services): Pick<Handlers, ThreadMethods> {
     attachments: string[],
     scope: ScopeItem[],
   ) {
+    // A reply in "Questions from your CV" answers its oldest question, without an agent turn.
+    const answered = answerCvQuestion(db, id, text);
+    if (answered) {
+      for (const event of answered) bus.push({ type: "event", threadId: id, event });
+      bus.push({ type: "changed", what: "state" });
+      pushThreads();
+      return;
+    }
     const note = scopeNote(db, addScope(db, id, scope));
     runner.send(
       id,
@@ -130,6 +139,14 @@ export function threadHandlers(svc: Services): Pick<Handlers, ThreadMethods> {
       rename(db, id, title.trim());
       pushThreads();
       return OK;
+    },
+    "threads.startRowAction": ({ op, keys }) => {
+      const t = createThread(
+        db,
+        `${ROW_OPS[op].label} · ${keys.length} professor${keys.length === 1 ? "" : "s"}`,
+      );
+      runner.rowAction(t.id, op, keys);
+      return thread(t.id);
     },
     "threads.rowAction": ({ id, op, keys }) => {
       thread(id);

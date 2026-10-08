@@ -9,10 +9,10 @@ test("first run: setup saves a hunt, confirmed facts and loops", async ({ page }
   await page.goto("/");
   await expect(page).toHaveURL(/\/setup$/);
   // Paid lookups: the scripted stack accepts any token without reaching treg.
-  await page.getByLabel("Customer id").fill("cust_e2e");
+  await page.getByRole("button", { name: "Paste a key" }).click();
   await page.getByLabel("treg token").fill("tok_e2e_fake");
   await page.getByTestId("treg-connect").getByRole("button", { name: "Connect" }).click();
-  await expect(page.getByTestId("treg-connected")).toContainText("cust_e2e");
+  await expect(page.getByTestId("treg-connected")).toContainText("paid by scripted");
   await page.getByRole("button", { name: "Continue" }).click();
 
   await page.getByRole("textbox", { name: "Add" }).fill("Bangladesh");
@@ -146,6 +146,10 @@ test("outreach: drafts wait for approval, a sent email's reply comes back as you
   await expect(page.getByText(/reply read as interested/)).toBeVisible();
   await expect(page.getByTestId("sequence")).toContainText("paused: they replied");
   await expect(page.getByLabel("Message")).toHaveValue(/Thank you/);
+  // Their attachment is filed in the Vault and shows on their message.
+  await expect(page.getByTestId("message-attachments")).toContainText(
+    "Kevin Lybarger: lab-projects.txt",
+  );
 
   await page.getByRole("button", { name: "Board" }).click();
   await expect(page.getByTestId("card").filter({ hasText: "Kevin Lybarger" })).toContainText(

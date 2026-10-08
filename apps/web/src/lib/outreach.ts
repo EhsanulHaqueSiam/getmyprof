@@ -80,6 +80,7 @@ export function cardLine(c: Conversation) {
   const first = out(c).find((m) => m.touch === "first" && m.status === "sent");
   switch (c.stage) {
     case "to-contact":
+      if (c.turn === "closed" && c.stopped !== "bounced") return "closed";
       return c.stopped === "bounced"
         ? "bounced · needs another address"
         : draft

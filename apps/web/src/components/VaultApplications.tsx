@@ -48,7 +48,7 @@ function Recommenders({ app, program }: { app: Application; program: Program | u
         <div
           key={`${r.email}-${r.name}`}
           data-testid="recommender"
-          className="grid grid-cols-[9rem_11rem_auto_auto_auto_auto] items-center gap-2"
+          className="flex flex-wrap items-center gap-2 md:grid md:grid-cols-[9rem_11rem_auto_auto_auto_auto]"
         >
           <span className="truncate text-foreground">{r.name}</span>
           <span className="truncate text-muted-foreground">{r.email}</span>
@@ -98,7 +98,7 @@ function Recommenders({ app, program }: { app: Application; program: Program | u
         </div>
       ))}
       <form
-        className="flex items-center gap-1.5"
+        className="flex flex-wrap items-center gap-1.5"
         onSubmit={(e) => {
           e.preventDefault();
           if (!name.trim()) return;
@@ -234,7 +234,7 @@ function ApplicationView({
         <Recommenders app={app} program={program} />
       </Row>
       <Row label="Portal">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {app.portal ? (
             <a
               href={app.portal}

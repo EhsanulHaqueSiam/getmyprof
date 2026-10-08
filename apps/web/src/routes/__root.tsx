@@ -1,4 +1,4 @@
-import { createRootRoute, Outlet, useNavigate } from "@tanstack/react-router";
+import { createRootRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { CommandPalette } from "~/components/CommandPalette";
 import { TooltipProvider } from "~/components/ui/tooltip";
@@ -49,4 +49,16 @@ function Root() {
   );
 }
 
-export const Route = createRootRoute({ component: Root });
+/** Any URL that isn't a page: say so, and a way back. */
+function NotFound() {
+  return (
+    <div className="m-auto flex flex-col items-center gap-2 py-24 text-muted-foreground text-xs">
+      Nothing lives at this address.
+      <Link to="/" className="text-foreground underline">
+        Back to gradcode
+      </Link>
+    </div>
+  );
+}
+
+export const Route = createRootRoute({ component: Root, notFoundComponent: NotFound });

@@ -17,6 +17,14 @@ function Shell() {
     if (!window.matchMedia("(min-width: 768px)").matches && useStore.getState().sidebarOpen)
       useStore.getState().toggleSidebar();
   }, [path]);
+  useEffect(() => {
+    const wide = window.matchMedia("(min-width: 768px)");
+    const reset = () => {
+      if (useStore.getState().sidebarOpen !== wide.matches) useStore.getState().toggleSidebar();
+    };
+    wide.addEventListener("change", reset);
+    return () => wide.removeEventListener("change", reset);
+  }, []);
   if (app && !app.settings.setupDone) return <Navigate to="/setup" />;
   return (
     <div

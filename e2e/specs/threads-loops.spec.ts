@@ -173,3 +173,44 @@ test("phone: the sidebar opens over the page and closes on the way somewhere", a
   const width = await page.locator("main").evaluate((m) => m.scrollWidth <= m.clientWidth + 1);
   expect(width).toBe(true);
 });
+
+test("treg team: its owner signs in, adds a customer with a key, sees what one spent on, blocks them", async ({
+  page,
+}) => {
+  await page.goto("/settings");
+  const row = page.getByTestId("treg-connected");
+  await row.getByRole("button", { name: "Disconnect" }).click();
+  // The scripted sign-in shows its code, then makes you the owner of the team "scripted".
+  await page.getByRole("button", { name: "Connect treg" }).click();
+  await expect(page.getByTestId("treg-waiting")).toContainText("TEST");
+  await expect(row).toContainText("team scripted");
+  await expect(row).toContainText("balance $18.40");
+  await row.getByRole("link", { name: "Manage" }).click();
+  await expect(page).toHaveURL(/\/customers$/);
+
+  const table = page.getByTestId("customers");
+  await expect(table.getByRole("row", { name: /^rafi/ })).toContainText("at limit");
+  await page.getByRole("button", { name: "Add customer" }).click();
+  await page.getByLabel("Customer id").fill("lena");
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(page.getByText("Key for lena, shown once:")).toBeVisible();
+  await expect(table.getByRole("row", { name: /^lena/ })).toContainText("$1.00 default");
+  // Someone who already has a key isn't re-added: that would cut their key off.
+  await page.getByRole("button", { name: "Add customer" }).click();
+  await page.getByLabel("Customer id").fill("maya");
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  await expect(page.getByText("maya already has a key")).toBeVisible();
+  await page.getByRole("button", { name: "Cancel" }).click();
+
+  // Auto top-up keeps the balance from running dry.
+  const auto = page.getByTestId("auto-top-up");
+  await auto.getByRole("button", { name: "Off" }).click();
+  await expect(auto.getByRole("button", { name: "On" })).toHaveAttribute("aria-pressed", "true");
+
+  await table.getByRole("row", { name: /^maya/ }).click();
+  const detail = page.getByTestId("customer-detail");
+  await expect(detail).toContainText("164 calls · Find and check emails $1.62 · hunts $0.30");
+  await detail.getByRole("button", { name: "Block" }).click();
+  await expect(table.getByRole("row", { name: /^maya/ })).toContainText("blocked");
+  await expect(page.getByRole("row", { name: /This month so far/ })).toContainText("adds up");
+});

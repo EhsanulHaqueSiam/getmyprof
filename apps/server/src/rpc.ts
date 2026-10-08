@@ -15,7 +15,9 @@ import { type Db, getKv, newId, now } from "./db.ts";
 import { claudeLogin, health, tailnetLink } from "./health.ts";
 import { listLoops, loopStats, saveLoop, STARTER_LOOPS } from "./loops.ts";
 import type { Outreach } from "./outreach/service.ts";
+import { linkedinOpen } from "./outreach/linkedin.ts";
 import { conversations } from "./outreach/pipeline.ts";
+import { getMessage } from "./outreach/store.ts";
 import {
   findsWaiting,
   listPrograms,
@@ -38,11 +40,13 @@ import {
   updateSettings,
 } from "./state.ts";
 import { recordHandlers } from "./rpc-records.ts";
+import { askCvQuestions } from "./cv-questions.ts";
 import { threadHandlers } from "./rpc-threads.ts";
-import { checkTregToken, readTregLogin, removeTregLogin, saveTregLogin } from "./treg.ts";
+import { tregHandlers, tregStatus } from "./rpc-treg.ts";
+import { readTregLogin } from "./treg.ts";
 import {
   createThread,
-  usageSince,
+  daySpendOutsideThreads,
   getThread,
   listThreads,
   putEvent,
@@ -75,17 +79,6 @@ export function createHandlers(svc: Services): Handlers {
     return t;
   };
 
-  /** This install's treg login (never the token) and what paid lookups cost this calendar month. */
-  const tregStatus = () => {
-    const login = readTregLogin();
-    const d = new Date();
-    return {
-      connected: login !== null,
-      customer: login?.customer ?? "",
-      month: usageSince(db, new Date(d.getFullYear(), d.getMonth(), 1).toISOString()),
-    };
-  };
-
   return {
     "state.get": () => {
       const settings = getSettings(db);
@@ -102,12 +95,13 @@ export function createHandlers(svc: Services): Handlers {
           treg: svc.fake || readTregLogin() !== null,
         },
         mail: outreach.status(),
-        treg: tregStatus(),
+        treg: tregStatus(db),
         tailnet: svc.fake ? null : tailnetLink(),
         claude: svc.fake ? { signedIn: true, who: "the scripted agent" } : claudeLogin(),
         counts: {
           funding: getKv(db, "funding.waiting", Number, 0),
           loops: listLoops(db).filter((l) => l.enabled).length,
+          spendOutsideThreads: daySpendOutsideThreads(db),
         },
       };
     },
@@ -132,6 +126,8 @@ export function createHandlers(svc: Services): Handlers {
       const saved = saveFacts(db, facts);
       // Every view of the facts (Lifeline, Facts, the Writer's checks) and the bundle follow.
       bus.push({ type: "changed", what: "state" });
+      // What the CV couldn't settle waits in Input as a question.
+      if (askCvQuestions(db)) pushThreads();
       return saved;
     },
     "facts.extract": async (input) =>
@@ -172,6 +168,8 @@ export function createHandlers(svc: Services): Handlers {
 
     ...recordHandlers(svc),
 
+    "hunt.adjacent": async ({ fields }) =>
+      fields.length ? await svc.sources.adjacent(fields).catch(() => []) : [],
     "loops.list": () => listLoops(db).map((l) => ({ ...l, ...loopStats(db, l.id) })),
     // Only where gradhunt sync is on: Siam's install. Read-only.
     "loops.scout": () => (getSettings(db).gradhunt ? scoutLoop() : null),
@@ -189,20 +187,7 @@ export function createHandlers(svc: Services): Handlers {
     "mail.disconnect": () => outreach.disconnect(),
     "mail.sync": () => outreach.sync(),
 
-    "treg.connect": async (login) => {
-      // The scripted stack never reaches treg; a real install proves the token first.
-      if (!svc.fake) await checkTregToken(login.token);
-      saveTregLogin(login);
-      updateSettings(db, { treg: true });
-      bus.push({ type: "changed", what: "state" });
-      return tregStatus();
-    },
-    "treg.disconnect": () => {
-      removeTregLogin();
-      updateSettings(db, { treg: false });
-      bus.push({ type: "changed", what: "state" });
-      return tregStatus();
-    },
+    ...tregHandlers(svc),
 
     "outreach.list": () => conversations(db),
     "outreach.approve": async ({ ids }) => {
@@ -220,6 +205,14 @@ export function createHandlers(svc: Services): Handlers {
     "outreach.cancel": ({ id }) => {
       outreach.cancel(id);
       return OK;
+    },
+    "outreach.linkedinOpen": async ({ id }) => {
+      const m = getMessage(db, id);
+      if (!m || m.channel !== "linkedin") throw new Error("No LinkedIn note to open.");
+      const opened = await linkedinOpen(db, svc.sources, m.recordKey, m.to);
+      // A lookup it paid for shows in today's spend.
+      bus.push({ type: "changed", what: "state" });
+      return opened;
     },
     "outreach.markSent": ({ id }) => {
       outreach.markSent(id);

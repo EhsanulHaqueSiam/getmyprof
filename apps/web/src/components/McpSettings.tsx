@@ -49,7 +49,7 @@ export function McpServers() {
         </div>
       ))}
       <form
-        className="flex items-center gap-1.5"
+        className="flex flex-wrap items-center gap-1.5"
         onSubmit={(e) => {
           e.preventDefault();
           if (!valid) return;

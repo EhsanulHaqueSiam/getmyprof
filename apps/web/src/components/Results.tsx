@@ -195,6 +195,8 @@ export function Results({
                     return (
                       <td
                         key={c.key}
+                        // The money tier's evidence is the money it names.
+                        title={c.key === "moneyTier" ? r.money : undefined}
                         className={cn(
                           "h-9 max-w-[180px] truncate whitespace-nowrap border-b px-2 text-secondary-label",
                           c.key === "name" && "max-w-[280px]",

@@ -5,20 +5,11 @@ import type { Award, OutreachMessage, Professor, Proposal } from "@gradcode/cont
 import type { Sources } from "./agent/tools.ts";
 import type { Db } from "./db.ts";
 import { listMessages } from "./outreach/store.ts";
-import { personKey } from "./records.ts";
+import { fieldSources, personKey } from "./records.ts";
+
+export { fieldSources };
 import { monthsAfter, sameSchool } from "./sources.ts";
 import { listPrograms } from "./vault.ts";
-
-/** Each field's current value: the sources and date of the latest accepted change to it. */
-export function fieldSources(proposals: Proposal[]) {
-  const out: Record<string, { sources: string[]; at: string }> = {};
-  const accepted = proposals
-    .filter((p) => p.status === "accepted")
-    .toSorted((a, b) => a.createdAt.localeCompare(b.createdAt));
-  for (const p of accepted)
-    for (const c of p.changes) out[c.field] = { sources: p.sources, at: p.createdAt };
-  return out;
-}
 
 const LABEL: Record<string, string> = { emailCheck: "email check", fitsBecause: "fits because" };
 

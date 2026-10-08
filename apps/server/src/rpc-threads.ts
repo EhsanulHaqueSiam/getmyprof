@@ -18,6 +18,7 @@ import {
   settle,
   snooze,
 } from "./threads.ts";
+import { answerCvQuestion } from "./cv-questions.ts";
 import { readAttachments } from "./vault.ts";
 
 type ThreadMethods = Extract<keyof Handlers, `threads.${string}`>;
@@ -44,6 +45,14 @@ export function threadHandlers(svc: Services): Pick<Handlers, ThreadMethods> {
     attachments: string[],
     scope: ScopeItem[],
   ) {
+    // A reply in "Questions from your CV" answers its oldest question, without an agent turn.
+    const answered = answerCvQuestion(db, id, text);
+    if (answered) {
+      for (const event of answered) bus.push({ type: "event", threadId: id, event });
+      bus.push({ type: "changed", what: "state" });
+      pushThreads();
+      return;
+    }
     const note = scopeNote(db, addScope(db, id, scope));
     runner.send(
       id,

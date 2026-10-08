@@ -35,7 +35,7 @@ const ROW_INSTRUCTIONS: Record<RowOp, string> = {
   taking:
     "For each professor below, read their homepage or lab page and record whether they're taking students for the intake (taking) and how they want to be reached (contact) with propose_professor.",
   draft:
-    "Draft a short first email for each professor below with draft_email (touch first). Skip apply-only professors and anyone without a reviewed address, and say so. The applicant approves each draft in Pipeline before anything is sent.",
+    "Draft a short first message for each professor below with draft_email (touch first). Email goes only to a reviewed address. Without one, if the sheet has their LinkedIn profile, draft a LinkedIn note instead (channel linkedin, to that URL, under 200 characters so it also fits a connection request). Skip apply-only professors and anyone with neither, and say so. The applicant approves each draft in Pipeline before anything is sent.",
 };
 
 /** A loop run in a line: "2 new, 1 change, 1 accepted", why it stopped, or "nothing new". */

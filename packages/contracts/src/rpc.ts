@@ -18,7 +18,9 @@ import {
   ScopeItem,
   ScoutLoop,
   Settings,
+  TagValue,
   TregConnect,
+  TregCustomers,
   TregStatus,
 } from "./domain.ts";
 import { Conversation, MailConnect, MailSignIn, MailStatus } from "./outreach.ts";
@@ -49,8 +51,8 @@ export const AppState = z.object({
   /** Whether Claude Code can run: signed in (and as whom), or not yet. */
   claude: z.object({ signedIn: z.boolean(), who: z.string() }),
   /** The sidebar's counts: awards from the last search worth a look (running past the intake,
-   * on topic, PI not in the sheet), and loops on. */
-  counts: z.object({ funding: z.number(), loops: z.number() }),
+   * on topic, PI not in the sheet), loops on, and the last day's spend outside any thread. */
+  counts: z.object({ funding: z.number(), loops: z.number(), spendOutsideThreads: z.number() }),
 });
 export type AppState = z.infer<typeof AppState>;
 
@@ -229,6 +231,11 @@ export const Methods = {
     output: z.array(Award),
   },
 
+  /** Topics next to the given fields, from OpenAlex; empty when it can't be reached. */
+  "hunt.adjacent": {
+    input: z.object({ fields: z.array(z.string()) }),
+    output: z.array(z.string()),
+  },
   "loops.list": { input: z.object({}), output: z.array(LoopRow) },
   /** Scout's nightly loop, read from gradhunt; null on any install without it. */
   "loops.scout": { input: z.object({}), output: ScoutLoop.nullable() },
@@ -256,9 +263,52 @@ export const Methods = {
   "mail.disconnect": { input: z.object({}), output: MailStatus },
   "mail.sync": { input: z.object({}), output: MailStatus },
 
-  /** Checks the pinned token with treg before saving it; switches paid lookups on. */
+  /** Checks the key with treg before saving it; switches paid lookups on. */
   "treg.connect": { input: TregConnect, output: TregStatus },
+  /** Opens treg's own sign-in; once approved there, the team's key connects by itself. */
+  "treg.signIn": { input: z.object({}), output: z.object({ url: z.string(), code: z.string() }) },
   "treg.disconnect": { input: z.object({}), output: TregStatus },
+  // A team owner or admin managing its customers. A new key is returned once, never stored.
+  "treg.customers": { input: z.object({}), output: TregCustomers },
+  "treg.addCustomer": {
+    input: z.object({ customer: TagValue, dailyUsd: z.number().positive().nullable() }),
+    output: z.object({ key: z.string() }),
+  },
+  "treg.newKey": { input: z.object({ customer: TagValue }), output: z.object({ key: z.string() }) },
+  "treg.setCustomer": {
+    input: z.object({
+      customer: TagValue,
+      dailyUsd: z.number().positive().nullable().optional(),
+      blocked: z.boolean().optional(),
+    }),
+    output: TregCustomers,
+  },
+  "treg.removeCustomer": { input: z.object({ customer: TagValue }), output: TregCustomers },
+  "treg.setDefaultLimit": {
+    input: z.object({ dailyUsd: z.number().positive() }),
+    output: TregCustomers,
+  },
+  "treg.invoice": {
+    input: z.object({ days: z.number().int().min(1).max(365) }),
+    output: z.object({
+      lines: z.array(z.object({ customer: z.string(), calls: z.number(), usd: z.number() })),
+      unattributedUsd: z.number(),
+    }),
+  },
+  "treg.topUp": {
+    input: z.object({ usd: z.number().positive() }),
+    output: z.object({ url: z.string() }),
+  },
+  /** Turns auto top-up on (consenting to these amounts) or off; url: treg's card page, or "". */
+  "treg.autoTopUp": {
+    input: z.object({
+      on: z.boolean(),
+      underUsd: z.number().positive(),
+      addUsd: z.number().positive(),
+      monthCapUsd: z.number().positive(),
+    }),
+    output: z.object({ url: z.string() }),
+  },
 
   "outreach.list": { input: z.object({}), output: z.array(Conversation) },
   /** Schedules drafts into send slots; replies and LinkedIn notes are ready at once. */
@@ -271,6 +321,11 @@ export const Methods = {
   "outreach.cancel": { input: id, output: ok },
   /** LinkedIn is assisted: the user sends it there, then marks it sent here. */
   "outreach.markSent": { input: id, output: ok },
+  /** Where a LinkedIn note opens: their message box, or their profile (with why, if it costs). */
+  "outreach.linkedinOpen": {
+    input: id,
+    output: z.object({ url: z.string(), note: z.string() }),
+  },
 
   "vault.get": { input: z.object({}), output: VaultState },
   "vault.save": { input: VaultEdit, output: ok },

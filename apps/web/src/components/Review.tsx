@@ -10,6 +10,7 @@ import { call } from "~/rpc/client";
 const FIELD_LABEL: Record<string, string> = {
   emailCheck: "email check",
   fitsBecause: "fits because",
+  linkedin: "LinkedIn",
 };
 
 /** Pending proposals as field diffs. Accept writes to the sheet; reject drops it (and the person, for an add). */
@@ -136,6 +137,14 @@ export function Review({
                       <div className="bg-success/8 px-2.5 text-success-foreground">
                         + {FIELD_LABEL[c.field] ?? c.field}: {c.to}
                       </div>
+                      {c.disagrees ? (
+                        <div
+                          className="bg-warning/8 px-2.5 text-warning-foreground"
+                          data-testid="disagrees"
+                        >
+                          ? {c.disagrees} said otherwise: accept if this source is more current
+                        </div>
+                      ) : null}
                     </div>
                   ))}
               </div>

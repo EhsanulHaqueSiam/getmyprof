@@ -2,6 +2,7 @@ import { type LoopRow, type Professor, ROW_OPS, type RowOp } from "@gradcode/con
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   CheckIcon,
+  ContactIcon,
   CornerDownLeftIcon,
   GraduationCapIcon,
   PlayIcon,
@@ -47,6 +48,7 @@ export function CommandPalette() {
   const views = useStore((s) => s.views);
   const drafts = conversations.flatMap((c) => c.messages).filter((m) => m.status === "draft");
   const mailbox = useStore((s) => s.app?.mail.connected ?? false);
+  const manage = useStore((s) => s.app?.treg.manage ?? false);
   const path = useRouterState({ select: (s) => s.location.pathname });
   const here = /^\/t\/([^/]+)$/.exec(path)?.[1];
   const hereRows = (here ? views[here]?.rows : undefined) ?? [];
@@ -196,6 +198,17 @@ export function CommandPalette() {
     { id: "pipe", icon: <SendIcon />, label: "Pipeline", hint: "view", run: go("/pipeline") },
     { id: "vault", icon: <ArchiveIcon />, label: "Vault", hint: "view", run: go("/vault") },
     { id: "loops", icon: <RepeatIcon />, label: "Loops", hint: "view", run: go("/loops") },
+    ...(manage
+      ? [
+          {
+            id: "customers",
+            icon: <ContactIcon />,
+            label: "Customers",
+            hint: "view",
+            run: go("/customers"),
+          },
+        ]
+      : []),
     { id: "review", icon: <InboxIcon />, label: "Review", hint: "view", run: go("/review") },
     {
       id: "settings",
@@ -204,13 +217,6 @@ export function CommandPalette() {
       hint: "view",
       run: go("/settings"),
     },
-    ...threads.map((t) => ({
-      id: t.id,
-      icon: <MessageSquareIcon />,
-      label: t.title,
-      hint: "thread",
-      run: go("/t/$threadId", { threadId: t.id }),
-    })),
     ...[...new Set(people.map((p) => p.university))].map((u) => ({
       id: `school-${u}`,
       icon: <GraduationCapIcon />,
@@ -220,6 +226,13 @@ export function CommandPalette() {
         setOpen(false);
         void navigate({ to: "/professors", search: { school: u } });
       },
+    })),
+    ...threads.map((t) => ({
+      id: t.id,
+      icon: <MessageSquareIcon />,
+      label: t.title,
+      hint: "thread",
+      run: go("/t/$threadId", { threadId: t.id }),
     })),
     ...people.map((p) => ({
       id: p.key,

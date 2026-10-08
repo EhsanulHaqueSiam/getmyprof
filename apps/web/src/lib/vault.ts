@@ -145,9 +145,17 @@ export function comingUp(
 }
 
 /** A year of stipend minus a year of rent, in the offer's currency; null until both are known. */
-export function leftAfterRent(o: Pick<Offer, "stipend" | "stipendPer" | "rentPerMonth">) {
+// ponytail: a family home as 1.4 times a 1-bedroom, the usual US ratio; per-city ratios if it misleads.
+const FAMILY_RENT = 1.4;
+
+/** A year's stipend minus a year's rent; with dependents, rent for a family home. */
+export function leftAfterRent(
+  o: Pick<Offer, "stipend" | "stipendPer" | "rentPerMonth">,
+  family = false,
+) {
   if (o.stipend == null || o.rentPerMonth == null) return null;
-  return (o.stipendPer === "month" ? o.stipend * 12 : o.stipend) - o.rentPerMonth * 12;
+  const rent = o.rentPerMonth * (family ? FAMILY_RENT : 1);
+  return (o.stipendPer === "month" ? o.stipend * 12 : o.stipend) - Math.round(rent * 12);
 }
 
 /** A calendar file for one interview: floating local time, 45 minutes. */

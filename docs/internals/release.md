@@ -66,8 +66,9 @@ The release itself needs none. Each secret below turns on one more channel.
 | `CSC_LINK`, `CSC_KEY_PASSWORD`                          | Developer ID Application certificate as base64 `.p12`, and its password       | ad-hoc signed Mac app              |
 | `APPLE_API_KEY`, `APPLE_API_KEY_ID`, `APPLE_API_ISSUER` | App Store Connect API key (`.p8` contents), its id and issuer, for notarizing | not notarized                      |
 
-A failed channel (say the AUR key isn't registered yet) can be rerun alone from the run's page
-once it's fixed: the release is already out.
+A channel that failed or was skipped (say the AUR key wasn't registered yet, or `NPM_TOKEN` was
+added later) comes back with "Re-run all jobs" on that release's run: the published release and
+an unchanged cask are left alone. A rerun uses the workflow as it was at the tag.
 
 ## Traps
 

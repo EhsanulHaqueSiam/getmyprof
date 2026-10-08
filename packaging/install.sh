@@ -1,7 +1,7 @@
 #!/bin/sh
 # Installs gradcode from its public releases. Needs only sh, curl, tar and shasum or sha256sum.
 #
-#   curl -fsSL https://raw.githubusercontent.com/EhsanulHaqueSiam/gradcode-releases/main/install.sh | sh
+#   curl -fsSL https://github.com/EhsanulHaqueSiam/gradcode/releases/latest/download/install.sh | sh
 #
 # The `gradcode` command by default: a tarball with its own Node, unpacked under
 # ~/.local/share/gradcode/<version> and linked from ~/.local/bin. `sh -s -- --desktop` installs the
@@ -14,7 +14,7 @@
 #   GRADCODE_RELEASE_URL  a mirror of the releases (https://github.com/<repo>/releases)
 set -eu
 
-repo="EhsanulHaqueSiam/gradcode-releases"
+repo="EhsanulHaqueSiam/gradcode"
 releases="${GRADCODE_RELEASE_URL:-https://github.com/$repo/releases}"
 install_dir="${GRADCODE_INSTALL_DIR:-$HOME/.local/share/gradcode}"
 bin_dir="${GRADCODE_BIN_DIR:-$HOME/.local/bin}"

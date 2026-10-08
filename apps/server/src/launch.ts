@@ -2,6 +2,7 @@
 // One server per GRADCODE_HOME. Two on the same store would each run the loops and the send
 // queue, so a launcher that finds one already running opens it instead of starting another.
 import * as NodeChild from "node:child_process";
+import * as NodeCrypto from "node:crypto";
 import * as NodeFS from "node:fs";
 import * as NodeNet from "node:net";
 import * as NodePath from "node:path";
@@ -166,4 +167,30 @@ export async function latestRelease(releases: string, timeoutMs = 3000) {
     signal: AbortSignal.timeout(timeoutMs),
   });
   return /\/tag\/v?([^/?#]+)$/.exec(r.url)?.[1] ?? null;
+}
+
+/** A release asset, or an error naming the URL and why; never a silent half-download. */
+async function releaseAsset(releases: string, version: string, name: string) {
+  const url = `${releases}/download/v${version}/${name}`;
+  const r = await fetch(url, { signal: AbortSignal.timeout(30_000) }).catch((error: unknown) => {
+    const cause = error instanceof Error && error.cause instanceof Error ? error.cause : error;
+    throw new Error(`Couldn't download ${url}: ${cause instanceof Error ? cause.message : cause}`);
+  });
+  if (!r.ok) throw new Error(`Couldn't download ${url}: HTTP ${r.status}`);
+  return Buffer.from(await r.arrayBuffer());
+}
+
+/**
+ * A release's own install.sh, checked against that release's SHA256SUMS. `gradcode update` runs
+ * it, and so does an unsigned Mac app (`--desktop`) to replace itself.
+ */
+export async function releaseInstaller(releases: string, version: string) {
+  const [sums, script] = await Promise.all([
+    releaseAsset(releases, version, "SHA256SUMS"),
+    releaseAsset(releases, version, "install.sh"),
+  ]);
+  const expected = /^([0-9a-f]{64}) {2}install\.sh$/m.exec(sums.toString())?.[1];
+  const actual = NodeCrypto.createHash("sha256").update(script).digest("hex");
+  if (expected !== actual) throw new Error("install.sh doesn't match the release's SHA256SUMS.");
+  return script;
 }

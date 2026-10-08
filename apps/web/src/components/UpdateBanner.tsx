@@ -41,7 +41,7 @@ export function UpdateBanner() {
               : `gradcode ${update.version} is out`}
           </span>
           <Button size="micro" variant="outline" onClick={() => window.gradcodeDesktop?.act()}>
-            {update.state === "ready" ? "Restart" : "Download"}
+            {update.state === "ready" ? "Restart" : update.inPlace ? "Update" : "Download"}
           </Button>
         </>
       )}

@@ -15,31 +15,34 @@ Design and the full spec, three required pages: the main spec
 
 ## Install
 
-The first release, v0.1.0, isn't published yet: until it is, the commands and links below don't
-work, and gradcode runs from source ([Run it](#run-it)). Downloads will live in the public
-[gradcode-releases](https://github.com/EhsanulHaqueSiam/gradcode-releases) repo.
-
-gradcode runs the agent on your own Claude subscription. The first run downloads Claude Code
-(about 100 MB, straight from npm, checked against its published checksum) into `~/.gradcode`;
-then sign in from Setup's Connect step, or with `gradcode login`.
+gradcode runs on macOS and Linux, with the agent on your own Claude subscription. The first run
+downloads Claude Code (about 100 MB, straight from npm, checked against its published checksum)
+into `~/.gradcode`; then sign in from Setup's Connect step, or with `gradcode login`.
 
 ### Command line
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/EhsanulHaqueSiam/gradcode-releases/main/install.sh | sh
+curl -fsSL https://github.com/EhsanulHaqueSiam/gradcode/releases/latest/download/install.sh | sh
 ```
 
 Then run `gradcode` to start the server and open the app in your browser. `gradcode serve` keeps
 it running in the background, `gradcode update` moves to the newest release, and `gradcode --help`
-has the rest. It brings its own Node. Once the npm package is published, `npx gradcode@latest`
-(Node 24+) tries it once without installing.
+has the rest. It brings its own Node and says when a new version is out. Once the npm package is
+published, `npx gradcode@latest` (Node 24+) tries it once without installing.
 
 ### Desktop app
 
 Install the latest version from
-[GitHub Releases](https://github.com/EhsanulHaqueSiam/gradcode-releases/releases/latest) (dmg for
-Apple Silicon `arm64` or Intel `x64`, AppImage, `.deb`), or from your package registry. The app
-tells you when there's a new version; the AppImage updates itself.
+[GitHub Releases](https://github.com/EhsanulHaqueSiam/gradcode/releases/latest) or with one of the
+commands below. The app tells you when there's a new version and installs it in one click (the
+Mac app and the AppImage); `.deb` and AUR installs update through their package manager.
+
+The one-liner with `--desktop` installs the app instead: `gradcode.app` in Applications on a Mac,
+or the AppImage with a menu entry on Linux.
+
+```sh
+curl -fsSL https://github.com/EhsanulHaqueSiam/gradcode/releases/latest/download/install.sh | sh -s -- --desktop
+```
 
 #### macOS (Homebrew)
 
@@ -47,8 +50,9 @@ tells you when there's a new version; the AppImage updates itself.
 brew install --cask EhsanulHaqueSiam/tap/gradcode
 ```
 
-The Mac app isn't notarized yet. Homebrew handles that; after dragging a downloaded dmg to
-Applications, run `xattr -dr com.apple.quarantine /Applications/gradcode.app` once.
+The Mac app isn't notarized yet. Homebrew and the one-liner handle that; after dragging a
+downloaded dmg (`arm64` for Apple Silicon, `x64` for Intel) to Applications, run
+`xattr -dr com.apple.quarantine /Applications/gradcode.app` once.
 
 #### Debian, Ubuntu (`.deb`)
 
@@ -63,6 +67,10 @@ sudo apt install ./gradcode_*.deb
 ```sh
 yay -S gradcode-bin
 ```
+
+#### Any Linux (AppImage)
+
+Download the `.AppImage` from GitHub Releases, `chmod +x` it and run it. It updates itself.
 
 ## Use it
 
@@ -147,7 +155,7 @@ under `~/.gradcode`. How the pieces fit: [docs/internals/overview.md](docs/inter
 
 ## Run it
 
-Needs tmux, and [Vite+](https://viteplus.dev) (which brings Node and pnpm) or Node 24+ with pnpm.
+From source, to change it or contribute. Needs tmux, and [Vite+](https://viteplus.dev) (which brings Node and pnpm) or Node 24+ with pnpm.
 
 ```sh
 curl -fsSL https://vite.plus | bash   # Vite+, once

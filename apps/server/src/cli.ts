@@ -4,7 +4,6 @@
 // build writes the version and the public releases repo into the package.json there.
 import type { ClaudeBinary } from "@gradcode/contracts";
 import * as NodeChild from "node:child_process";
-import * as NodeCrypto from "node:crypto";
 import * as NodeFS from "node:fs";
 import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
@@ -16,6 +15,7 @@ import {
   homeDir,
   latestRelease,
   newer,
+  releaseInstaller,
   orphaned,
   releasesUrl,
   type Running,
@@ -140,17 +140,6 @@ async function login() {
   process.exitCode = r.status ?? 1;
 }
 
-/** A release asset, or an error naming the URL and why; never a silent half-download. */
-async function asset(version: string, name: string) {
-  const url = `${releases}/download/v${version}/${name}`;
-  const r = await fetch(url, { signal: AbortSignal.timeout(30_000) }).catch((error: unknown) => {
-    const cause = error instanceof Error && error.cause instanceof Error ? error.cause : error;
-    throw new Error(`Couldn't download ${url}: ${cause instanceof Error ? cause.message : cause}`);
-  });
-  if (!r.ok) throw new Error(`Couldn't download ${url}: HTTP ${r.status}`);
-  return Buffer.from(await r.arrayBuffer());
-}
-
 /**
  * Installs the newest release with that release's own install.sh, after checking it against the
  * release's SHA256SUMS. Any failure says what and leaves the installed version in place.
@@ -162,13 +151,7 @@ async function update() {
   });
   if (!latest) throw new Error(`No gradcode release is published yet at ${releases}.`);
   if (!newer(latest, pkg.version)) return console.log(`gradcode ${pkg.version} is the newest.`);
-  const [sums, script] = await Promise.all([
-    asset(latest, "SHA256SUMS"),
-    asset(latest, "install.sh"),
-  ]);
-  const expected = /^([0-9a-f]{64}) {2}install\.sh$/m.exec(sums.toString())?.[1];
-  const actual = NodeCrypto.createHash("sha256").update(script).digest("hex");
-  if (expected !== actual) throw new Error("install.sh doesn't match the release's SHA256SUMS.");
+  const script = await releaseInstaller(releases, latest);
   const file = NodePath.join(NodeOS.tmpdir(), `gradcode-install-${process.pid}.sh`);
   NodeFS.writeFileSync(file, script);
   const r = NodeChild.spawnSync("sh", [file], {

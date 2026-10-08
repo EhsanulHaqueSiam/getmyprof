@@ -1,9 +1,10 @@
+import * as NodeCrypto from "node:crypto";
 import * as NodeFS from "node:fs";
 import * as NodeHttp from "node:http";
 import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
-import { adopt, findRunning, latestRelease, newer, orphaned } from "./launch.ts";
+import { adopt, findRunning, latestRelease, newer, orphaned, releaseInstaller } from "./launch.ts";
 
 const tempHome = () => NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "gc-launch-"));
 // No process has this pid on a test machine.
@@ -62,5 +63,20 @@ describe("the newest release", () => {
     expect(await latestRelease(releases)).toBeNull();
     vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new TypeError("fetch failed"));
     await expect(latestRelease(releases)).rejects.toThrow("fetch failed");
+  });
+
+  it("hands over install.sh only when it matches the release's SHA256SUMS", async () => {
+    const script = "#!/bin/sh\necho installed\n";
+    const sum = NodeCrypto.createHash("sha256").update(script).digest("hex");
+    const serve = (sums: string) =>
+      vi
+        .spyOn(globalThis, "fetch")
+        .mockImplementation(async (url) =>
+          String(url).endsWith("/SHA256SUMS") ? new Response(sums) : new Response(script),
+        );
+    serve(`${"0".repeat(64)}  gradcode.dmg\n${sum}  install.sh\n`);
+    expect(String(await releaseInstaller("https://x/releases", "0.2.0"))).toBe(script);
+    serve(`${"f".repeat(64)}  install.sh\n`);
+    await expect(releaseInstaller("https://x/releases", "0.2.0")).rejects.toThrow("SHA256SUMS");
   });
 });

@@ -112,9 +112,11 @@ jobs:
       - run: cp packaging/install.sh dist/release/ && pnpm dist sums && pnpm dist manifests
 
       # gh uploads every asset to a draft and publishes it last, so no updater sees half a release.
+      # A rerun (say after adding NPM_TOKEN) leaves a published release alone and goes on.
       - name: Release
         run: |
           cd dist/release
+          gh release view "$GITHUB_REF_NAME" --repo "$GETMYPROF_RELEASES" >/dev/null 2>&1 && exit 0
           gh release create "$GITHUB_REF_NAME" --repo "$GETMYPROF_RELEASES" \
             --title "getmyprof ${GITHUB_REF_NAME#v}" \
             --notes "Install: https://github.com/$GETMYPROF_RELEASES#install" \
@@ -134,6 +136,7 @@ jobs:
           cp dist/publish/getmyprof.rb "$RUNNER_TEMP/tap/Casks/getmyprof.rb"
           cd "$RUNNER_TEMP/tap"
           git add Casks/getmyprof.rb
+          git diff --cached --quiet && exit 0
           git -c user.name="getmyprof release" -c user.email="EhsanulHaqueSiam@users.noreply.github.com" \
             commit -m "getmyprof ${GITHUB_REF_NAME#v}"
           git push origin HEAD
@@ -170,9 +173,10 @@ jobs:
         run: |
           [ -n "$AUR_SSH_KEY" ] || { echo "No AUR_SSH_KEY: the PKGBUILD is in this run's publish artifact."; exit 0; }
           pacman -Sy --noconfirm --needed git openssh
-          install -Dm600 /dev/stdin ~/.ssh/aur <<<"$AUR_SSH_KEY"
-          printf 'Host aur.archlinux.org\n  User aur\n  IdentityFile ~/.ssh/aur\n' > ~/.ssh/config
-          ssh-keyscan aur.archlinux.org >> ~/.ssh/known_hosts
+          # ssh reads ~/.ssh from root's passwd home, not the container's $HOME, so name every file.
+          install -Dm600 /dev/stdin "$HOME/.ssh/aur" <<<"$AUR_SSH_KEY"
+          ssh-keyscan aur.archlinux.org > "$HOME/.ssh/known_hosts"
+          export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/aur -o IdentitiesOnly=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts"
           git clone ssh://aur@aur.archlinux.org/getmyprof-bin.git aur
           cp artifact/publish/PKGBUILD aur/PKGBUILD
           useradd -m builder && chown -R builder aur

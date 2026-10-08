@@ -1,0 +1,25 @@
+{
+  "name": "@gradcode/desktop",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Find professors who can fund your degree",
+  "author": "Ehsanul Haque Siam",
+  "type": "module",
+  "main": "dist/main.mjs",
+  "scripts": {
+    "start": "electron .",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@gradcode/contracts": "workspace:*",
+    "@gradcode/server": "workspace:*",
+    "@types/node": "catalog:",
+    "electron": "44.7.0",
+    "electron-builder": "26.15.3",
+    "electron-updater": "6.8.9",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:",
+    "zod": "catalog:"
+  },
+  "productName": "gradcode"
+}

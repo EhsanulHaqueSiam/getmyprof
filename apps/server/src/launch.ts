@@ -161,7 +161,7 @@ export async function latestRelease(releases: string, timeoutMs = 3000) {
       method: "HEAD",
       signal: AbortSignal.timeout(timeoutMs),
     });
-    return /\/releases\/tag\/v?([^/?#]+)$/.exec(r.url)?.[1] ?? null;
+    return /\/tag\/v?([^/?#]+)$/.exec(r.url)?.[1] ?? null;
   } catch {
     return null;
   }

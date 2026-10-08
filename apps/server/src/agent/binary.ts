@@ -44,9 +44,12 @@ function onPath() {
   return null;
 }
 
-/** The binary when it's already here: the SDK's own copy, or the pinned version fetched before. */
+/** The PATH binary this process fell back to when the fetch failed. */
+let viaPath: string | null = null;
+
+/** The binary when it's already here: the SDK's own copy, the pinned version, or the fallback. */
 export function findClaude() {
-  return sdkCopy() ?? (PINNED && isFile(fetched(PINNED)) ? fetched(PINNED) : null);
+  return sdkCopy() ?? (PINNED && isFile(fetched(PINNED)) ? fetched(PINNED) : viaPath);
 }
 
 const Meta = z.object({ dist: z.object({ tarball: z.string(), integrity: z.string() }) });
@@ -155,10 +158,10 @@ export function ensureClaude(onChange?: (s: ClaudeBinary) => void) {
       set({ state: "ready" });
       return path;
     } catch (error) {
-      const fallback = onPath();
-      if (fallback) {
+      viaPath = onPath();
+      if (viaPath) {
         set({ state: "ready" });
-        return fallback;
+        return viaPath;
       }
       const reason = error instanceof Error ? error.message : String(error);
       const message = `Couldn't download Claude Code (${reason}). Check the connection and try again.`;

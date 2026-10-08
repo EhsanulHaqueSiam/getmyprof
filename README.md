@@ -15,27 +15,52 @@ Design and the full spec, three required pages: the main spec
 
 ## Install
 
-getmyprof runs on macOS and Linux, with the agent on your own Claude subscription. The first run
-downloads Claude Code (about 100 MB, straight from npm, checked against its published checksum)
-into `~/.getmyprof`; then sign in from Setup's Connect step, or with `getmyprof login`.
+getmyprof runs on macOS and Linux. The agent is Claude Code on your own Claude subscription: sign
+in from Setup's Connect step, or with `getmyprof login`. Your data stays in `~/.getmyprof`.
 
-### Command line
+### npm
+
+With Node 24 or newer:
+
+```sh
+npx getmyprof@latest       # try it, nothing to install
+npm install -g getmyprof   # or keep the getmyprof command
+getmyprof
+```
+
+npm brings the Claude Code binary for your machine along with it. Update with
+`npm install -g getmyprof@latest`.
+
+### Without Node
 
 ```sh
 curl -fsSL https://github.com/EhsanulHaqueSiam/getmyprof/releases/latest/download/install.sh | sh
 ```
 
-Then run `getmyprof` to start the server and open the app in your browser. `getmyprof serve` keeps
-it running in the background, `getmyprof update` moves to the newest release, and `getmyprof --help`
-has the rest. It brings its own Node and says when a new version is out. Once the npm package is
-published, `npx getmyprof@latest` (Node 24+) tries it once without installing.
+It brings its own Node. The first run downloads Claude Code (about 100 MB, straight from npm,
+checked against its published checksum) into `~/.getmyprof`. `getmyprof update` moves to the newest
+release.
+
+### Commands
+
+| Command            | What it does                                                        |
+| ------------------ | ------------------------------------------------------------------- |
+| `getmyprof`        | starts it and opens it in your browser; Ctrl-C stops it             |
+| `getmyprof serve`  | keeps it running in the background                                  |
+| `getmyprof stop`   | stops the background server                                         |
+| `getmyprof login`  | signs in to Claude in the terminal                                  |
+| `getmyprof update` | installs the newest release (from npm: `npm i -g getmyprof@latest`) |
+
+With npx, the command goes after the package: `npx getmyprof@latest serve`. It opens at
+http://127.0.0.1:4350 when that port is free, and says when a new version is out. Set
+`GETMYPROF_HOME` to keep your data somewhere else.
 
 ### Desktop app
 
 Install the latest version from
 [GitHub Releases](https://github.com/EhsanulHaqueSiam/getmyprof/releases/latest) or with one of the
-commands below. The app tells you when there's a new version and installs it in one click (the
-Mac app and the AppImage); `.deb` and AUR installs update through their package manager.
+commands below. The app tells you when there's a new version. The Mac app and the AppImage install
+it in one click; a `.deb` install opens the release so you can download the new `.deb`.
 
 The one-liner with `--desktop` installs the app instead: `getmyprof.app` in Applications on a Mac,
 or the AppImage with a menu entry on Linux.
@@ -62,13 +87,7 @@ Download the `.deb` from GitHub Releases, then:
 sudo apt install ./getmyprof_*.deb
 ```
 
-#### Arch Linux, Omarchy (AUR)
-
-```sh
-yay -S getmyprof-bin
-```
-
-#### Any Linux (AppImage)
+#### Any Linux, Arch included (AppImage)
 
 Download the `.AppImage` from GitHub Releases, `chmod +x` it and run it. It updates itself.
 

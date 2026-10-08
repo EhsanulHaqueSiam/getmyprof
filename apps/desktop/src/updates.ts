@@ -16,8 +16,8 @@ const bundle = () => NodePath.resolve(process.execPath, "../../..");
 /**
  * How this install moves to a new version. `feed`: electron-updater downloads and swaps it (an
  * AppImage, or a Mac app with the Developer ID signature Squirrel.Mac requires). `script`: an
- * unsigned Mac app runs the release's install.sh over itself. `page`: a .deb or AUR package,
- * which its package manager updates, so the release opens to download.
+ * unsigned Mac app runs the release's install.sh over itself. `page`: a .deb, which only
+ * apt may replace, so the release opens to download the new one.
  */
 function updateWay() {
   if (process.platform === "linux") return process.env.APPIMAGE ? "feed" : "page";

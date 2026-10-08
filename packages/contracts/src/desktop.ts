@@ -3,7 +3,7 @@ import { z } from "zod";
 /**
  * The desktop app's update, pushed from Electron's main process through the preload bridge
  * (`window.getmyprofDesktop`). `available` waits for a click: with `inPlace` (an unsigned Mac app)
- * it installs the release over the app; without (a .deb or AUR package) it opens the release.
+ * it installs the release over the app; without (a .deb) it opens the release.
  */
 export const DesktopUpdate = z.discriminatedUnion("state", [
   z.object({ state: z.literal("none") }),

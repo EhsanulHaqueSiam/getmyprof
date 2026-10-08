@@ -51,19 +51,23 @@ describe("tregCall", () => {
     const req = seen[0]!;
     expect(req.url).toBe("https://treg.to/call/treg.people.email.find");
     expect(header(req.init, "X-Treg-Meta")).toBe(
-      "customer=cust_8123, thread=thr_1, feature=row-email, hunt=hunt_9",
+      "customer=cust_8123, thread=thr_1, feature=row-email, hunt=hunt_9, customer_feature=cust_8123.row-email",
     );
     expect(header(req.init, "X-Treg-Route-Max-Cost")).toBe("0.02");
     expect(header(req.init, "X-Treg-Token")).toBe("tok_secret_123");
   });
 
-  it("retries a lost answer with the same Idempotency-Key, so it is never paid twice", async () => {
+  it("retries a lost answer with the same Idempotency-Key, paying once and logging that charge", async () => {
     const { f, seen } = fakeFetch([
       () => {
         throw new TypeError("socket hang up");
       },
       () => new Response("{}", { status: 503, headers: { "Retry-After": "1" } }),
-      () => new Response("{}", { headers: { "X-Treg-Cost-Micro": "0" } }),
+      // The replay of the first attempt, whose charge comes back apart.
+      () =>
+        new Response("{}", {
+          headers: { "X-Treg-Cost-Micro": "0", "X-Treg-Original-Cost-Micro": "1780" },
+        }),
     ]);
     const out = await tregCall(
       {
@@ -76,7 +80,7 @@ describe("tregCall", () => {
       f,
       noWait,
     );
-    expect(out.ok).toBe(true);
+    expect(out).toMatchObject({ ok: true, costUsd: 0.00178 });
     expect(seen).toHaveLength(3);
     expect(new Set(seen.map((s) => header(s.init, "Idempotency-Key"))).size).toBe(1);
     // A GET endpoint takes its data as the query string.

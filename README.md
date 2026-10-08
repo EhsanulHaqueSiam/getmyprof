@@ -62,7 +62,61 @@ TypeScript 7, React 19 with the React Compiler, TanStack Router, Zustand, Base U
 server runs the agent sessions, loops and the send queue; everything lives in one SQLite file
 under `~/.gradcode`. How the pieces fit: [docs/internals/overview.md](docs/internals/overview.md).
 
-## Run it
+## Install
+
+gradcode runs the agent on your own Claude Code login: install
+[Claude Code](https://claude.com/product/claude-code) and run `claude auth login` first. Downloads
+live in the public [gradcode-releases](https://github.com/EhsanulHaqueSiam/gradcode-releases) repo.
+
+### Command line
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/EhsanulHaqueSiam/gradcode-releases/main/install.sh | sh
+```
+
+Then `gradcode` starts the server and opens the app in your browser. `gradcode serve` keeps it
+running in the background, `gradcode update` moves to the newest release, and `gradcode --help`
+lists the rest. It brings its own Node; to try it once with yours (24+), run `npx gradcode@latest`.
+
+### Desktop app
+
+The app tells you when there's a new version. On Linux the AppImage updates itself.
+
+#### macOS (Homebrew)
+
+```sh
+brew install --cask EhsanulHaqueSiam/tap/gradcode
+```
+
+#### Debian, Ubuntu (`.deb`)
+
+Download the `.deb` from the [latest release](https://github.com/EhsanulHaqueSiam/gradcode-releases/releases/latest), then:
+
+```sh
+sudo apt install ./gradcode_*.deb
+```
+
+#### Arch Linux, Omarchy (AUR)
+
+```sh
+yay -S gradcode-bin
+```
+
+#### Any Linux (AppImage)
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/EhsanulHaqueSiam/gradcode-releases/main/install.sh | sh -s -- --desktop
+```
+
+#### Direct downloads
+
+The dmg (Apple Silicon `arm64`, Intel `x64`), AppImage and `.deb` are on the
+[latest release](https://github.com/EhsanulHaqueSiam/gradcode-releases/releases/latest). The Mac
+app isn't notarized yet: after dragging it to Applications, run
+`xattr -dr com.apple.quarantine /Applications/gradcode.app` once (Homebrew and install.sh do this
+for you). How releases are cut: [docs/internals/release.md](docs/internals/release.md).
+
+## Run it from source
 
 Needs Node 24+, pnpm and tmux.
 

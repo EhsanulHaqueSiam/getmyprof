@@ -112,6 +112,13 @@ const TokenReply = z.object({
   expires_in: z.number().optional(),
 });
 
+/**
+ * The mailbox's login stopped working and only the user can fix it: the provider ended the
+ * sign-in (a password change, access removed, months unused) or the server refused an app
+ * password. Settings then offers to sign in again; the mailbox, its warm-up and its queue stay.
+ */
+export class SignedOut extends Error {}
+
 async function tokenRequest(
   provider: OAuthProvider,
   form: Record<string, string>,
@@ -128,6 +135,10 @@ async function tokenRequest(
       .object({ error: z.string().optional(), error_description: z.string().optional() })
       .safeParse(body);
     const why = e.success ? (e.data.error_description ?? e.data.error) : undefined;
+    if (form.grant_type === "refresh_token" && e.success && e.data.error === "invalid_grant")
+      throw new SignedOut(
+        `${OAUTH_PROVIDERS[provider].label} ended gradcode's sign-in to this mailbox (a password change, or access removed). Sign in again.`,
+      );
     throw new Error(`${OAUTH_PROVIDERS[provider].label} refused: ${why ?? `HTTP ${r.status}`}`);
   }
   return TokenReply.parse(body);

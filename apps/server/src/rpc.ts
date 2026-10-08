@@ -22,7 +22,6 @@ import { type Db, newId, now } from "./db.ts";
 import { health, tailnetLink } from "./health.ts";
 import { listLoops, saveLoop, STARTER_LOOPS } from "./loops.ts";
 import type { Outreach } from "./outreach/service.ts";
-import { conversations } from "./outreach/pipeline.ts";
 import {
   findsWaiting,
   listPrograms,
@@ -46,6 +45,7 @@ import {
   saveHunt,
   updateSettings,
 } from "./state.ts";
+import { mailHandlers } from "./rpc-mail.ts";
 import { checkTregToken, readTregLogin, removeTregLogin, saveTregLogin } from "./treg.ts";
 import {
   createThread,
@@ -65,7 +65,9 @@ import {
 } from "./threads.ts";
 
 type Input<M extends Method> = z.output<(typeof Methods)[M]["input"]>;
-type Handlers = { [M in Method]: (input: Input<M>) => MethodOutput<M> | Promise<MethodOutput<M>> };
+export type Handlers = {
+  [M in Method]: (input: Input<M>) => MethodOutput<M> | Promise<MethodOutput<M>>;
+};
 
 const OK = { ok: true } as const;
 /** "LYBARGER, KEVIN" and "Kevin Lybarger" are the same person. */
@@ -323,10 +325,7 @@ export function createHandlers(svc: Services): Handlers {
     },
     "loops.run": ({ id }) => svc.startLoop(id),
 
-    "mail.connect": (input) => outreach.connect(input),
-    "mail.signIn": (input) => outreach.startSignIn(input),
-    "mail.disconnect": () => outreach.disconnect(),
-    "mail.sync": () => outreach.sync(),
+    ...mailHandlers(svc),
 
     "treg.connect": async (login) => {
       // The scripted stack never reaches treg; a real install proves the token first.
@@ -341,28 +340,6 @@ export function createHandlers(svc: Services): Handlers {
       updateSettings(db, { treg: false });
       bus.push({ type: "changed", what: "state" });
       return tregStatus();
-    },
-
-    "outreach.list": () => conversations(db),
-    "outreach.approve": async ({ ids }) => {
-      await outreach.approve(ids);
-      return OK;
-    },
-    "outreach.sendNow": async ({ id }) => {
-      await outreach.sendNow(id);
-      return OK;
-    },
-    "outreach.edit": ({ id, subject, body }) => {
-      outreach.edit(id, subject, body);
-      return OK;
-    },
-    "outreach.cancel": ({ id }) => {
-      outreach.cancel(id);
-      return OK;
-    },
-    "outreach.markSent": ({ id }) => {
-      outreach.markSent(id);
-      return OK;
     },
 
     "vault.get": () => vaultState(db),

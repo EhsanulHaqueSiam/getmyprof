@@ -138,6 +138,8 @@ export const MailStatus = z.object({
   warmupStart: z.string().nullable(),
   lastSyncAt: z.string().nullable(),
   error: z.string(),
+  /** The login stopped working (sign-in ended, app password revoked): sign in again. */
+  signedOut: z.boolean(),
   /** How many first emails and follow-ups may go out today under the warm-up. */
   dailyCap: z.number(),
   /** Providers gradcode has its own OAuth client for: signing in needs no setup. */

@@ -32,6 +32,7 @@ import {
   OAUTH_PROVIDERS,
   redirectUri,
   SHARED_CLIENTS,
+  SignedOut,
   startSignIn,
 } from "./oauth.ts";
 import { ingest } from "./inbox.ts";
@@ -51,8 +52,10 @@ const SyncState = z.object({
   cursor: Cursor.nullable(),
   at: z.string().nullable(),
   error: z.string(),
+  /** The login stopped working (SignedOut): Settings asks to sign in again. */
+  signedOut: z.boolean().default(false),
 });
-const NEVER_SYNCED = { cursor: null, at: null, error: "" };
+const NEVER_SYNCED = { cursor: null, at: null, error: "", signedOut: false };
 
 /**
  * Where the browser may come back to after a sign-in: this app's own pages only (loopback or the
@@ -101,6 +104,11 @@ export function createOutreach(deps: {
     bus.push({ type: "changed", what: "outreach" });
     bus.push({ type: "changed", what: "records" });
   };
+  /** Remembers that the login stopped working, so Settings asks to sign in again. */
+  const signedOut = (e: SignedOut) => {
+    setKv(db, "mail.sync", { ...syncState(), error: errorText(e), signedOut: true });
+    bus.push({ type: "changed", what: "state" });
+  };
   const connected = () => {
     if (!config) throw new Error("Connect a mailbox in Settings first.");
     return config;
@@ -118,6 +126,7 @@ export function createOutreach(deps: {
       warmupStart: config?.warmupStart ?? null,
       lastSyncAt: s.at,
       error: s.error,
+      signedOut: s.signedOut,
       dailyCap: config ? dailyCap(new Date(config.warmupStart), new Date()) : 0,
       sharedClients: MailProvider.options.filter((p) => clients[p]),
     };
@@ -131,7 +140,7 @@ export function createOutreach(deps: {
     const sameBox = config?.address === input.address;
     config = { ...input, warmupStart: sameBox && config ? config.warmupStart : now() };
     saveMailConfig(config);
-    setKv(db, "mail.sync", { cursor, at: now(), error: "" });
+    setKv(db, "mail.sync", { cursor, at: now(), error: "", signedOut: false });
     bus.push({ type: "changed", what: "state" });
     return status();
   }
@@ -153,6 +162,7 @@ export function createOutreach(deps: {
       markSent(db, m.id, { messageId, from: c.address });
     } catch (e) {
       putMessage(db, { ...m, status: "failed", note: errorText(e) });
+      if (e instanceof SignedOut) signedOut(e);
     }
     changed();
   }
@@ -238,7 +248,18 @@ export function createOutreach(deps: {
     /** The provider's consent page. The scripted stack skips it and calls its own callback. */
     startSignIn(input: MailSignIn) {
       const port = deps.signIn?.port ?? 4311;
-      const url = startSignIn({ ...input, returnTo: safeReturn(input.returnTo) }, port, clients);
+      // Signing in again after a sign-out reuses the user's own client, which never left here.
+      const own =
+        !input.clientId &&
+        config?.oauth?.provider === input.provider &&
+        config.oauth.clientId !== clients[input.provider]?.id
+          ? { clientId: config.oauth.clientId, clientSecret: config.oauth.clientSecret }
+          : {};
+      const url = startSignIn(
+        { ...input, ...own, returnTo: safeReturn(input.returnTo) },
+        port,
+        clients,
+      );
       if (!deps.signIn?.scripted) return { url };
       const state = new URL(url).searchParams.get("state") ?? "";
       return { url: `${redirectUri(input.provider, port)}?state=${state}&code=scripted` };
@@ -261,6 +282,11 @@ export function createOutreach(deps: {
       return done.returnTo;
     },
 
+    /** A new app password for the connected box, after the old one was revoked. */
+    repassword(password: string) {
+      return connect({ ...connected(), password });
+    },
+
     disconnect() {
       removeMailConfig();
       config = null;
@@ -276,11 +302,15 @@ export function createOutreach(deps: {
       try {
         const { cursor, messages } = await mailerFor(config).fetchNew(before.cursor);
         const filed = messages.flatMap((m) => ingest(db, m) ?? []);
-        setKv(db, "mail.sync", { cursor, at: now(), error: "" });
+        setKv(db, "mail.sync", { cursor, at: now(), error: "", signedOut: false });
         for (const m of filed) if (m.kind === "reply" || m.kind === "linkedin") askAboutReply(m);
         if (filed.length) changed();
       } catch (e) {
-        setKv(db, "mail.sync", { ...before, error: errorText(e) });
+        setKv(db, "mail.sync", {
+          ...before,
+          error: errorText(e),
+          signedOut: e instanceof SignedOut,
+        });
       }
       bus.push({ type: "changed", what: "state" });
       return status();

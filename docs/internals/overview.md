@@ -134,6 +134,11 @@ mode 0600, and never crosses the wire.
   `http://127.0.0.1:<port>/api/oauth/callback` (Microsoft: `localhost`), on this server, with
   PKCE; it connects the mailbox and sends the browser back to Settings, only ever to the app's
   own pages. IMAP and SMTP log in with a fresh access token (XOAUTH2).
+- **A login that stops working says so.** Google ends a sign-in after a password change or
+  removed access, and a new Google password revokes app passwords. Either one is `SignedOut`:
+  Settings offers Sign in again (reusing the user's own client, if they brought one) or a new app
+  password, and the mailbox, its warm-up and its queue stay. Sends that failed meanwhile stay in
+  the Pipeline as failed, to send again.
 
 - **Nothing sends without approval.** The agent only drafts (`draft_email`). Approving gives each
   first email or follow-up a slot: 08:00 in the professor's zone, Tuesday to Thursday, within

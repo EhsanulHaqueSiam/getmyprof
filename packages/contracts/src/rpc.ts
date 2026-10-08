@@ -184,6 +184,8 @@ export const Methods = {
   /** The provider's consent page; its callback connects the mailbox and returns to Settings. */
   "mail.signIn": { input: MailSignIn, output: z.object({ url: z.string() }) },
   "mail.disconnect": { input: z.object({}), output: MailStatus },
+  /** A new app password for the connected mailbox; its warm-up and queue stay. */
+  "mail.repassword": { input: z.object({ password: z.string().min(1) }), output: MailStatus },
   "mail.sync": { input: z.object({}), output: MailStatus },
 
   /** Checks the pinned token with treg before saving it; switches paid lookups on. */

@@ -148,6 +148,7 @@ export function MailSettings() {
   const [hosts, setHosts] = useState({ imapHost: "", imapPort: 993, smtpHost: "", smtpPort: 465 });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
   if (!mail) return null;
 
   const run = async (work: () => Promise<unknown>) => {
@@ -162,6 +163,8 @@ export function MailSettings() {
     }
   };
 
+  // Who signed this box in, for "Sign in again"; null for an app password.
+  const signedInWith = mail.via === "password" ? null : mail.via;
   if (mail.connected)
     return (
       <div className="flex flex-wrap items-center gap-2" data-testid="mail-connected">
@@ -177,6 +180,56 @@ export function MailSettings() {
         {mail.error ? (
           <span className="text-destructive-foreground text-xs">{mail.error}</span>
         ) : null}
+        {/* Signed out: one step back in. The mailbox, its warm-up and its queue stay. */}
+        {mail.signedOut && signedInWith ? (
+          <Button
+            size="xs"
+            disabled={busy}
+            onClick={() =>
+              void run(async () => {
+                const { url } = await call("mail.signIn", {
+                  provider: signedInWith,
+                  name: mail.name,
+                  clientId: "",
+                  clientSecret: "",
+                  returnTo: window.location.href,
+                });
+                window.location.assign(url);
+              })
+            }
+          >
+            Sign in again
+          </Button>
+        ) : null}
+        {mail.signedOut && !signedInWith ? (
+          <form
+            className="flex items-center gap-1.5"
+            onSubmit={(e) => {
+              e.preventDefault();
+              // Google shows an app password in groups of four; the spaces aren't part of it.
+              const password = mail.imapHost.includes("gmail")
+                ? newPassword.replace(/\s/g, "")
+                : newPassword;
+              void run(async () => {
+                await call("mail.repassword", { password });
+                setNewPassword("");
+              });
+            }}
+          >
+            <Input
+              size="compact"
+              type="password"
+              aria-label="New app password"
+              placeholder="New app password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
+            <Button size="xs" type="submit" disabled={busy || !newPassword}>
+              Save
+            </Button>
+          </form>
+        ) : null}
+        {error ? <span className="text-destructive-foreground text-xs">{error}</span> : null}
         <Button
           size="xs"
           variant="ghost-muted"

@@ -7,7 +7,8 @@ import { openDb } from "../db.ts";
 import { blankProfessor, getRecord, putRecord } from "../records.ts";
 import { saveFacts } from "../state.ts";
 import { documentPath, saveDocument } from "../vault.ts";
-import { fakeMailer, fakeTokenEndpoint } from "./mail.ts";
+import { fakeMailer, fakeTokenEndpoint, type Mailer } from "./mail.ts";
+import { SignedOut } from "./oauth.ts";
 import { createOutreach } from "./service.ts";
 import { conversations } from "./pipeline.ts";
 import { listMessages, saveDraft } from "./store.ts";
@@ -248,5 +249,31 @@ describe("the test-score rule", () => {
     await outreach.approve([claim.id]);
     expect(listMessages(db, record.key).find((m) => m.id === claim.id)?.status).toBe("draft");
     await expect(outreach.sendNow(claim.id)).rejects.toThrow(/test score/);
+  });
+});
+
+describe("a mailbox that signs out", () => {
+  it("says so, keeps the box and its warm-up, and a new app password brings it back", async () => {
+    process.env.GRADCODE_HOME = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "gc-mail-"));
+    const db = openDb(":memory:");
+    let refused = false;
+    const box = fakeMailer();
+    const mailer: Mailer = {
+      ...box,
+      fetchNew: (cursor) =>
+        refused ? Promise.reject(new SignedOut("refused the app password")) : box.fetchNew(cursor),
+    };
+    const outreach = createOutreach({
+      db,
+      bus: createBus(),
+      runner: { send: () => {} },
+      mailerFor: () => mailer,
+    });
+    const before = await outreach.connect(LOGIN);
+    refused = true;
+    expect(await outreach.sync()).toMatchObject({ connected: true, signedOut: true });
+    refused = false;
+    const back = await outreach.repassword("new-app-password");
+    expect(back).toMatchObject({ signedOut: false, warmupStart: before.warmupStart });
   });
 });

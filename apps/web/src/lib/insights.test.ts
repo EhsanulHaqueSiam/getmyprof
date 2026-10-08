@@ -99,16 +99,15 @@ describe("reply insights", () => {
         { label: "Tue", sent: 1, replied: 0 },
         { label: "Wed", sent: 1, replied: 0 },
       ],
-      // The sheet doesn't record hooks or warm paths yet.
-      byHook: [],
+      byHook: [{ label: "Neither", sent: 3, replied: 1 }],
     });
   });
 
-  it("splits by hook or warm path once records carry them", () => {
+  it("splits by hook or warm path", () => {
     const sent = msg({ at: "2026-10-13T15:00:00Z" });
     const insights = replyInsights([
       convo(Object.assign(professor("A", 1), { hook: "cited their ACL paper" }), [sent, reply]),
-      convo(Object.assign(professor("B", 1), { hook: "", warmPath: "" }), [sent]),
+      convo(Object.assign(professor("B", 1), { warm: "none found" }), [sent]),
     ]);
     expect(insights.byHook).toEqual([
       { label: "Hook or warm path", sent: 1, replied: 1 },

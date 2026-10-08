@@ -311,7 +311,14 @@ export type Author = {
   recent: { title: string; date: string; link: string }[];
 };
 
-export async function openAlexAuthor(name: string, university?: string): Promise<Author | null> {
+/** Where OpenAlex last saw an author, e.g. "George Mason University". */
+export const lastInstitution = (a: Record<string, unknown>) =>
+  asArray(a.last_known_institutions)
+    .map((i) => text(asRecord(i).display_name))
+    .join(", ");
+
+/** The OpenAlex author record a name most likely is: the first match last seen at the university. */
+export async function openAlexMatch(name: string, university?: string) {
   const found = asArray(
     asRecord(
       await getJson(
@@ -319,18 +326,20 @@ export async function openAlexAuthor(name: string, university?: string): Promise
       ),
     ).results,
   ).map(asRecord);
-  const inst = (a: Record<string, unknown>) =>
-    asArray(a.last_known_institutions)
-      .map((i) => text(asRecord(i).display_name))
-      .join(", ");
   const want =
     university
       ?.toLowerCase()
       .split(/\W+/)
       .filter((w) => w.length > 3) ?? [];
-  const pick =
-    found.find((a) => want.length === 0 || want.some((w) => inst(a).toLowerCase().includes(w))) ??
-    null;
+  return (
+    found.find(
+      (a) => want.length === 0 || want.some((w) => lastInstitution(a).toLowerCase().includes(w)),
+    ) ?? null
+  );
+}
+
+export async function openAlexAuthor(name: string, university?: string): Promise<Author | null> {
+  const pick = await openAlexMatch(name, university);
   if (!pick) return null;
   const authorId = text(pick.id).split("/").pop();
   const works = asArray(
@@ -342,7 +351,7 @@ export async function openAlexAuthor(name: string, university?: string): Promise
   ).map(asRecord);
   return {
     name: text(pick.display_name),
-    institution: inst(pick),
+    institution: lastInstitution(pick),
     works: Number(pick.works_count ?? 0),
     citations: Number(pick.cited_by_count ?? 0),
     topics: asArray(pick.topics)

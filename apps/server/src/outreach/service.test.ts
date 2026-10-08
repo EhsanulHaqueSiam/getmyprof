@@ -23,6 +23,11 @@ const LOGIN = {
   smtpPort: 465,
 };
 
+// A first email personal enough to pass the draft checks: it names his paper and a detail.
+const SUBJECT = "PhD 2027: clinical RAG";
+const OPENING =
+  "Dear Dr. Lybarger, your DF-RAG paper's query-aware diversity is what I'd build on.";
+
 /** A connected-ready store with one professor and a first-email draft to them. */
 function setup(email = "lybarger@example.edu") {
   process.env.GETMYPROF_HOME = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "gc-mail-"));
@@ -31,6 +36,7 @@ function setup(email = "lybarger@example.edu") {
     ...blankProfessor("Kevin Lybarger", "George Mason University"),
     email,
     emailCheck: "ok, on the lab page",
+    recent: "2026 DF-RAG: Query-Aware Diversity for Retrieval-Augmented Generation (ACL)",
   };
   putRecord(db, record);
   const mailer = fakeMailer();
@@ -46,8 +52,8 @@ function setup(email = "lybarger@example.edu") {
     channel: "email",
     touch: "first",
     to: record.email,
-    subject: "PhD 2027",
-    body: "Dear Dr. Lybarger, ...",
+    subject: SUBJECT,
+    body: `${OPENING} Are you taking a PhD student for Fall 2027?`,
     timeZone: "America/New_York",
     threadId: null,
   });
@@ -144,8 +150,8 @@ describe("an attachment", () => {
         channel,
         touch: "first",
         to: channel === "email" ? record.email : "https://www.linkedin.com/in/lybarger",
-        subject: "PhD 2027",
-        body: "Are you taking students?",
+        subject: SUBJECT,
+        body: `${OPENING} Are you taking students?`,
         timeZone: "America/New_York",
         threadId: null,
         attach,
@@ -219,15 +225,17 @@ describe("a draft that cites facts", () => {
       channel: "email",
       touch: "first",
       to: record.email,
-      subject: "PhD 2027",
-      body: "I led a team of five [[f_team]]. Are you taking students?",
+      subject: SUBJECT,
+      body: `${OPENING} I led a team of five [[f_team]]. Are you taking students?`,
       timeZone: "America/New_York",
       threadId: null,
     });
     if ("problem" in cited) throw new Error(cited.problem);
-    expect(cited.body).toBe("I led a team of five [1]. Are you taking students?");
+    expect(cited.body).toBe(`${OPENING} I led a team of five [1]. Are you taking students?`);
     await outreach.sendNow(cited.id);
-    expect(mailer.sent.at(-1)?.text).toBe("I led a team of five. Are you taking students?");
+    expect(mailer.sent.at(-1)?.text).toBe(
+      `${OPENING} I led a team of five. Are you taking students?`,
+    );
   });
 });
 
@@ -240,8 +248,8 @@ describe("the test-score rule", () => {
       channel: "email",
       touch: "first",
       to: record.email,
-      subject: "PhD 2027",
-      body: "I scored IELTS 7.5 last month.",
+      subject: SUBJECT,
+      body: `${OPENING} I scored IELTS 7.5 last month.`,
       timeZone: "America/New_York",
       threadId: null,
     });

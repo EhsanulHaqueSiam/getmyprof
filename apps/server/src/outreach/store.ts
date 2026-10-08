@@ -179,7 +179,7 @@ export const issuesFor = (db: Db, m: OutreachMessage) =>
   draftIssues(m, {
     facts: profileFacts(db),
     applicant: getApplicant(db),
-    emailCheck: getRecord(db, m.recordKey)?.emailCheck ?? "",
+    record: getRecord(db, m.recordKey) ?? undefined,
   });
 
 /**

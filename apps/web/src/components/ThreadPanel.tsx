@@ -69,6 +69,9 @@ function ProfessorTab({
     ["Taking", p.taking],
     ["Looking for", p.seeking],
     ["Recent work", p.recent],
+    ["Warm path", p.warm],
+    ["Hook", p.hook],
+    ["Lab", p.lab],
     ["Contact", p.contact],
     ["Fits because", p.fitsBecause],
   ];

@@ -159,14 +159,107 @@ export const MailConnect = z.object({
 });
 export type MailConnect = z.infer<typeof MailConnect>;
 
+// What makes a first message read as mass mail: faculty get dozens a day and skip these.
+const GENERIC_SALUTATION =
+  /\bdear\s+(?:sir|madam)s?\b|\bsir\s*\/\s*madam|\brespected\s+(?:sir|madam|professor)\b|\bto whom it may concern|\bdear\s+(?:professor|prof\.?|dr\.?)\s*(?:,|$)/im;
+const GENERIC_LINES = [
+  /\bI find your (?:research|work) (?:fascinating|interesting|inspiring)/i,
+  /\byour esteemed \w+/i,
+  /\bI came across your (?:profile|website|page)/i,
+  /\bI am writing to express my (?:keen |strong )?interest/i,
+  /\bI hope this (?:e-?mail|message) finds you well/i,
+  /\bgreetings of the day/i,
+  /\bI humbly request/i,
+  /\bkindly consider/i,
+  /\bhighly motivated/i,
+  /\bhard[- ]?working/i,
+  /\bit would be an hono(?:u)?r/i,
+];
+// Subject words that say nothing on their own: "PhD inquiry", "Prospective student, Fall 2027".
+const BARE_SUBJECT =
+  /^(?:ph|d|phd|doctoral|inquiry|enquiry|query|position|positions|opening|request|for|a|an|the|admission|admissions|application|prospective|student|students|opportunity|regarding|re|in|your|lab|group|research|fall|spring|autumn|winter|summer|intake|funded|\d+)$/;
+const STOP = new Set(
+  "a an the of for and or in on with to by from at via using as is are its into toward towards".split(
+    " ",
+  ),
+);
+/** Lowercased words with punctuation and filler dropped: "Query-Aware RAG" reads "query aware rag". */
+const significant = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/['’]/g, "")
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((w) => w && !STOP.has(w));
+/** The titles in a record's recent line: "2026-08 Title (Venue); 2025 Other" as two titles. */
+export const recentTitles = (recent: string) =>
+  recent
+    .split(";")
+    .map((t) =>
+      t
+        .trim()
+        .replace(/^\d{4}(?:-\d{2}){0,2}\s+/, "")
+        .replace(/\s*\([^)]*\)$/, ""),
+    )
+    .filter(Boolean);
+/** Whether a body names one of these works: 3 of a title's words in a row, or a quoted 4+ words. */
+function namesWork(body: string, works: string[]) {
+  if (/["“]\s*(?:[^"”\s]+\s+){3,}[^"”\s]+\s*["”]/.test(body)) return true;
+  const said = ` ${significant(body).join(" ")} `;
+  return works.some((t) => {
+    const w = significant(t);
+    const n = Math.min(3, w.length);
+    return w.some((_, i) => i + n <= w.length && said.includes(` ${w.slice(i, i + n).join(" ")} `));
+  });
+}
+
+/**
+ * What keeps a first message from reading as written for this one professor: a generic
+ * salutation or line, and for email a long body, a vague subject, or no paper of theirs named.
+ * Their `recent` titles and their `hook` are what a body may name.
+ */
+function personalIssues(
+  m: Pick<OutreachMessage, "channel" | "subject" | "body">,
+  record: Pick<Professor, "recent" | "hook"> | undefined,
+) {
+  const issues: string[] = [];
+  const body = stripCitations(m.body);
+  if (GENERIC_SALUTATION.test(body))
+    issues.push('generic salutation: write "Dear Professor <Surname>" or "Dr. <Surname>"');
+  for (const line of GENERIC_LINES) {
+    const found = line.exec(body)?.[0];
+    if (found) issues.push(`generic: "${found}": say what in their work, specifically`);
+  }
+  if (m.channel !== "email") return issues;
+  const words = body.split(/\s+/).filter(Boolean).length;
+  if (words > 180) issues.push(`${words} words: a first email reads best under 150`);
+  const subject = m.subject.split(/\s+/).filter(Boolean).length;
+  const bare = significant(m.subject).every((w) => BARE_SUBJECT.test(w));
+  if (!subject || subject > 12 || bare)
+    issues.push(
+      `${!subject ? "no subject" : subject > 12 ? `a ${subject}-word subject` : "a generic subject"}: name the topic and intake in 3 to 7 words`,
+    );
+  const works = [...recentTitles(record?.recent ?? ""), record?.hook ?? ""].filter(Boolean);
+  if (!works.length)
+    issues.push("nothing of theirs on file to name: run Recent work and focus first");
+  else if (!namesWork(body, works))
+    issues.push("doesn't name a paper of theirs: cite one recent work by title");
+  return issues;
+}
+
 /**
  * Why an outgoing message can't be approved or sent yet, in words; empty when it may go. The same
  * rules as the Writer: every claim cites a proven fact, no test score without a taken test, at
- * most two links, and cold mail only to a checked address.
+ * most two links, and cold mail only to a checked address. A first message must also read as
+ * written for this professor (see personalIssues).
  */
 export function draftIssues(
   m: Pick<OutreachMessage, "channel" | "touch" | "subject" | "body" | "citations">,
-  ctx: { facts: ProfileFact[]; applicant: Applicant | undefined; emailCheck: string },
+  ctx: {
+    facts: ProfileFact[];
+    applicant: Applicant | undefined;
+    /** The professor it goes to; a message to no one in the sheet has no checked address. */
+    record: Pick<Professor, "emailCheck" | "recent" | "hook"> | undefined;
+  },
 ) {
   const issues: string[] = [];
   if (unbackedScore(`${m.subject}\n${m.body}`, ctx.applicant))
@@ -183,7 +276,8 @@ export function draftIssues(
   if (m.channel === "linkedin" && m.touch === "first" && stripCitations(m.body).trim().length > 200)
     issues.push("a first LinkedIn note over 200 characters won't fit a connection request");
   const cold = m.touch !== "reply" && m.touch !== "thank-you";
-  if (m.channel === "email" && cold && !addressChecked(ctx.emailCheck))
+  if (m.channel === "email" && cold && !addressChecked(ctx.record?.emailCheck ?? ""))
     issues.push("the address isn't checked yet: run Find and check emails");
+  if (m.touch === "first") issues.push(...personalIssues(m, ctx.record));
   return issues;
 }

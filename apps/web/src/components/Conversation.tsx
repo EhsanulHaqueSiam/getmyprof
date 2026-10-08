@@ -2,6 +2,7 @@ import {
   type Conversation,
   draftIssues,
   type OutreachMessage,
+  type Professor,
   stripCitations,
 } from "@getmyprof/contracts";
 import { Link } from "@tanstack/react-router";
@@ -88,12 +89,12 @@ function Divider({ children }: { children: string }) {
 function Composer({
   draft,
   connected,
-  emailCheck,
+  record,
 }: {
   draft: OutreachMessage;
   connected: boolean;
-  /** The professor's address check, e.g. "ok, on the lab page". */
-  emailCheck: string;
+  /** The professor it goes to: their address check, and the work a first email must name. */
+  record: Professor;
 }) {
   const [subject, setSubject] = useState(draft.subject);
   const [body, setBody] = useState(draft.body);
@@ -101,7 +102,7 @@ function Composer({
   const app = useStore((s) => s.app);
   const issues = draftIssues(
     { ...draft, subject, body },
-    { facts: app?.facts ?? [], applicant: app?.applicant, emailCheck },
+    { facts: app?.facts ?? [], applicant: app?.applicant, record },
   );
   const blocked = issues.length > 0;
   const docs = useStore((s) => s.vault?.documents) ?? [];
@@ -259,7 +260,7 @@ export function ConversationView({ c, connected }: { c: Conversation; connected:
     ? draftIssues(draft, {
         facts: app?.facts ?? [],
         applicant: app?.applicant,
-        emailCheck: r.emailCheck,
+        record: r,
       })
     : [];
   const zone = zoneOf(c) ?? "";
@@ -316,7 +317,7 @@ export function ConversationView({ c, connected }: { c: Conversation; connected:
             key={`${draft.id}:${draft.subject}:${draft.body}`}
             draft={draft}
             connected={connected}
-            emailCheck={r.emailCheck}
+            record={r}
           />
         ) : null}
       </div>

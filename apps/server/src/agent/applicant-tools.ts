@@ -69,7 +69,7 @@ export const APPLICANT_TOOLS = [
   define({
     name: "draft_email",
     description:
-      "Draft an email (or a LinkedIn note) to a professor in the sheet. It waits for the applicant to approve; nothing is sent by you. Email goes only to the address already in the sheet; apply-only professors get none. Plain text, one recipient, at most two links. A first LinkedIn note stays under 200 characters, so it also fits a connection request. Cite each claim about the applicant with [[fact-id]] right after it, as in the Writer; an uncited or unproven claim keeps the draft from being approved.",
+      "Draft an email (or a LinkedIn note) to a professor in the sheet. It waits for the applicant to approve; nothing is sent by you. Email goes only to the address already in the sheet; apply-only professors get none. Plain text, one recipient, at most two links. A first LinkedIn note stays under 200 characters, so it also fits a connection request. Cite each claim about the applicant with [[fact-id]] right after it, as in the Writer; an uncited or unproven claim keeps the draft from being approved. A first message follows the first email playbook: their name, one recent paper of theirs by title and a detail of it, a specific subject, under 150 words, no generic praise; the checks block one that misses.",
     shape: {
       name: z.string(),
       university: z.string(),
@@ -92,7 +92,9 @@ export const APPLICANT_TOOLS = [
       attach: z
         .array(z.string())
         .optional()
-        .describe("Vault document ids to attach (email only), only when they asked, e.g. the CV"),
+        .describe(
+          "Vault document ids to attach (email only): the CV on a first email, or what they asked for",
+        ),
     },
     paid: false,
     price: () => 0,

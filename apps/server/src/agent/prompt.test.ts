@@ -65,6 +65,9 @@ describe("the hunt's shape", () => {
     expect(prompt).toContain("EURAXESS");
     // Professors who never post an opening still get found by what they work on.
     expect(prompt).toContain("propose everyone whose current work fits");
+    // A first email is written for one professor: their paper, a short body, no generic praise.
+    expect(prompt).toContain("name one recent paper of theirs by title and one concrete detail");
+    expect(prompt).toContain("Under 150 words");
   });
 });
 

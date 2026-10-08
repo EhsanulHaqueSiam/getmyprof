@@ -1,18 +1,11 @@
 // What gets a reply: of the first emails sent, how many were answered, overall and by money
-// tier, length, the weekday they landed and, once the sheet carries them, a hook or a warm path.
+// tier, length, the weekday they landed and whether the record had a hook or a warm path.
 // For the reply insights panel. The counts are small, so they inform and never rank anyone.
 import { type Conversation, stripCitations } from "@getmyprof/contracts";
 
 export type Bucket = { label: string; sent: number; replied: number };
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-/** A record field the sheet may not carry yet: filled or not, or undefined while it doesn't exist. */
-const filled = (record: object, key: string) => {
-  const entry = Object.entries(record).find(([k]) => k === key);
-  if (!entry) return undefined;
-  return typeof entry[1] === "string" ? entry[1].trim() !== "" : Boolean(entry[1]);
-};
 
 export function replyInsights(conversations: Conversation[]) {
   const firsts = conversations.flatMap((c) => {
@@ -40,11 +33,10 @@ export function replyInsights(conversations: Conversation[]) {
       })
       .filter((b) => b.sent > 0);
   const words = (r: Row) => stripCitations(r.first.body).split(/\s+/).filter(Boolean).length;
-  const hook = (r: Row) => {
-    const [hooked, warm] = [filled(r.record, "hook"), filled(r.record, "warmPath")];
-    if (hooked === undefined && warm === undefined) return null;
-    return hooked || warm ? "Hook or warm path" : "Neither";
-  };
+  // "none found" is what Warm path and hook records when nothing connects.
+  const warm = (v: string) => v.trim() !== "" && !/^none\b/i.test(v.trim());
+  const hook = (r: Row) =>
+    warm(r.record.hook) || warm(r.record.warm) ? "Hook or warm path" : "Neither";
   return {
     sent: firsts.length,
     replied: firsts.filter((r) => r.replied).length,
@@ -64,7 +56,7 @@ export function replyInsights(conversations: Conversation[]) {
           })
         : null,
     ),
-    // Empty until the sheet records a hook or a warm path; it reads the record as it is now.
+    // The record as it is now, not as it was when the email went out.
     byHook: by(["Hook or warm path", "Neither"], hook),
   };
 }

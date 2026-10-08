@@ -12,6 +12,7 @@ import { TREG_ENDPOINTS } from "../treg.ts";
 import { daySpend, getThread, recordSpend, threadSpend } from "../threads.ts";
 import { APPLICANT_TOOLS } from "./applicant-tools.ts";
 import { DISCOVERY_TOOLS } from "./discovery-tools.ts";
+import { PEOPLE_TOOLS } from "./people-tools.ts";
 import { TREG_TOOL_NAMES, tregJobs } from "./treg-jobs.ts";
 
 export { realSources, type Sources, sourceKey } from "./sourcing.ts";
@@ -51,6 +52,8 @@ export const READ_ONLY = new Set([
   "vault_search",
   "csrankings_faculty",
   "openalex_by_topic",
+  "lab_members",
+  "warm_paths",
 ]);
 
 /** Why a tool can't run in this turn, or null: an Ask changes nothing and spends nothing. */
@@ -161,6 +164,15 @@ const professorFields = {
   scholar: z.string().optional().describe("Their Google Scholar profile URL"),
   recent: z.string().optional().describe("Latest 2 or 3 papers or projects, newest first, dated"),
   seeking: z.string().optional().describe("What they want in a student, in their words"),
+  lab: z
+    .string()
+    .optional()
+    .describe("Who is in the lab now, recent graduates and where they went, who to ask"),
+  warm: z
+    .string()
+    .optional()
+    .describe('A true path to them with its paper or event, or "none found"'),
+  hook: z.string().optional().describe("One line tying the applicant's work to one of theirs"),
 };
 
 export const HUNT_TOOLS = [
@@ -312,6 +324,7 @@ export const HUNT_TOOLS = [
   }),
   ...APPLICANT_TOOLS,
   ...DISCOVERY_TOOLS,
+  ...PEOPLE_TOOLS,
   define({
     name: "treg",
     description: `Paid data lookups through treg, for when free sources fail. Allowed endpoints with their data fields, usual USD per call and the most one call may cost:\n${Object.entries(
@@ -416,5 +429,7 @@ const NEEDS: Record<string, FreeSource> = {
   nih_awards: "NIH",
   openalex_author: "OpenAlex",
   openalex_by_topic: "OpenAlex",
+  lab_members: "OpenAlex",
+  warm_paths: "OpenAlex",
   csrankings_faculty: "CSRankings",
 };

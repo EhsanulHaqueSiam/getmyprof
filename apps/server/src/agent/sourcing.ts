@@ -1,5 +1,6 @@
-// Every free and paid source the agent reads, by key: the grant databases, OpenAlex, CSRankings
-// and treg. The fake provider swaps in fixtures (fixtures.ts).
+// Every free and paid source the agent reads, by key: the grant databases, OpenAlex (people,
+// topics, labs, warm paths), CSRankings and treg. The fake provider swaps in fixtures
+// (fixtures.ts).
 import type { AwardSource } from "@getmyprof/contracts";
 import {
   type AwardQuery,
@@ -21,6 +22,7 @@ import {
   openAlexByTopic,
   type TopicAuthor,
 } from "../sources-more.ts";
+import { type Lab, openAlexLab, openAlexWarm, type Warm } from "../sources-people.ts";
 import { tregCall, type TregOutcome, type TregRequest } from "../treg.ts";
 
 type AwardFetch = (q: AwardQuery) => Promise<RawAward[]>;
@@ -41,6 +43,10 @@ export type Sources = {
   byTopic: (topic: string, university: string) => Promise<TopicAuthor[]>;
   /** Topics next to the applicant's fields. */
   adjacent: (fields: string[]) => Promise<string[]>;
+  /** Who wrote with a professor lately: their lab, by OpenAlex. */
+  lab: (name: string, university: string) => Promise<Lab | null>;
+  /** What links the applicant's papers (fact texts) to a professor, by OpenAlex. */
+  warm: (name: string, university: string, papers: string[]) => Promise<Warm | null>;
   treg: (req: TregRequest) => Promise<TregOutcome>;
 };
 
@@ -56,6 +62,8 @@ export const realSources: Sources = {
   csrankings: csrankingsFaculty,
   byTopic: openAlexByTopic,
   adjacent: adjacentTopics,
+  lab: openAlexLab,
+  warm: openAlexWarm,
   treg: (req) => tregCall(req),
 };
 

@@ -55,9 +55,10 @@ function Line({ children, source }: { children: ReactNode; source?: ReactNode })
 }
 
 /**
- * A professor: every fact with the page it came from and when, what they look for in students,
- * their grants, recent work and interests (live from NSF, NIH and OpenAlex), and beside it what
- * happened, their threads, the program at their school and where the email to them stands.
+ * A professor: every fact with the page it came from and when, the way in (a warm path and the
+ * hook a first email opens on), what they look for in students, their lab, their grants, recent
+ * work and interests (live from NSF, NIH and OpenAlex), and beside it what happened, their
+ * threads, the program at their school and where the email to them stands.
  */
 function ProfessorPage() {
   const { key } = Route.useParams();
@@ -92,6 +93,9 @@ function ProfessorPage() {
       | "emailCheck"
       | "niche"
       | "recent"
+      | "lab"
+      | "warm"
+      | "hook"
       | "fitsBecause",
   ) => data.fieldSources[field] ?? (p[field] ? own : undefined);
   const last = p.name.split(" ").at(-1) ?? p.name;
@@ -203,6 +207,15 @@ function ProfessorPage() {
           </Button>
         </div>
 
+        <Section title="Way in">
+          <Line source={<Source of={sourceOf("warm")} />}>
+            {p.warm || <span className="text-placeholder">no warm path checked</span>}
+          </Line>
+          <Line source={<Source of={sourceOf("hook")} />}>
+            {p.hook || <span className="text-placeholder">no hook yet</span>}
+          </Line>
+        </Section>
+
         <Section title="Money">
           <Line source={<Source of={sourceOf("money")} />}>
             {p.money || <span className="text-placeholder">not found</span>}
@@ -251,6 +264,12 @@ function ProfessorPage() {
         <Section title="Looking for">
           <Line source={<Source of={sourceOf("seeking")} />}>
             {p.seeking || <span className="text-placeholder">not found</span>}
+          </Line>
+        </Section>
+
+        <Section title="Lab">
+          <Line source={<Source of={sourceOf("lab")} />}>
+            {p.lab || <span className="text-placeholder">not checked</span>}
           </Line>
         </Section>
 

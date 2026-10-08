@@ -245,6 +245,9 @@ const CSV_FIELDS = [
   "scholar",
   "recent",
   "seeking",
+  "lab",
+  "warm",
+  "hook",
   "sources",
 ] as const;
 
@@ -324,6 +327,9 @@ export function importCsv(db: Db, text: string) {
         scholar: col(r, "scholar"),
         recent: col(r, "recent"),
         seeking: col(r, "seeking"),
+        lab: col(r, "lab"),
+        warm: col(r, "warm"),
+        hook: col(r, "hook"),
         sources: col(r, "sources").split(/\s+/).filter(Boolean),
         grants: [],
         origin: "app",

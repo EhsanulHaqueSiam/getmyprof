@@ -1,6 +1,6 @@
 # gradcode
 
-A T3 Code-shaped app for anyone hunting a funded degree. Every thread is a Claude Code session
+An app for anyone hunting a funded degree. Every thread is a Claude Code session
 on your own subscription, with free sources (NSF and NIH awards, UKRI, CORDIS and ARC grants,
 OpenAlex, web search and faculty pages) and optional paid lookups through treg. It finds
 professors who can fund you and the money behind them, then carries you through outreach,
@@ -46,7 +46,7 @@ Taken from the running app on the scripted agent (`GRADCODE_AGENT=fake`), so the
 | **After applying.** Interview prep packs, calendar files and thank-yous; offers compared after rent; negotiation letters; visa steps; reminders and thanks for recommenders.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Two offers side by side: the one leaving more after a year of rent is marked best.               |
 | **MCP both ways.** Other agents drive gradcode at `/api/mcp` with a token. Your own MCP servers join every session and ask before each call unless you trust them.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Paste the config from Settings into another agent and search the sheet.                          |
 | **Your data stays yours.** One local SQLite file. A full backup of every table and Vault file downloads and restores in one click; professors also export and import as CSV. gradcode sends no telemetry.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Download a backup, wipe, restore: nothing lost.                                                  |
-| **Polish bar.** T3 Code's feel: ⌘K jumps to any view, thread, professor or school, runs actions (answer an approval, accept Review, approve drafts, run a loop) and searches what was said; j/k through threads, proposals and rows, a/r/⇧A, ↵/esc on approvals, ⌘↵ steer, ⌘. stop, ⌘1 to 3 panel tabs; one-shot motion, nothing animates forever. On a phone, open the tailnet link or scan its QR code in Settings: the sidebar and panel open over the page to read and approve.                                                                                                                                                                                                                | Triage the thread list without the mouse.                                                        |
+| **Polish bar.** ⌘K jumps to any view, thread, professor or school, runs actions (answer an approval, accept Review, approve drafts, run a loop) and searches what was said; j/k through threads, proposals and rows, a/r/⇧A, ↵/esc on approvals, ⌘↵ steer, ⌘. stop, ⌘1 to 3 panel tabs; one-shot motion, nothing animates forever. On a phone, open the tailnet link or scan its QR code in Settings: the sidebar and panel open over the page to read and approve.                                                                                                                                                                                                                                | Triage the thread list without the mouse.                                                        |
 
 **Not yet**, against the original spec: `scout.py add` and `exclude` on Siam's install; schools
 per sweep, which is stored but unused; a dated "added" line for a PI added from Funding.
@@ -56,8 +56,8 @@ hunts. On Siam's install, gradhunt's own rows stay with its cloud outreach routi
 
 ## Shape
 
-Built like T3 Code: a pnpm monorepo on Vite+ (`vp` for lint, format, test and staged hooks),
-TypeScript 7, React 19 with the React Compiler, TanStack Router, Zustand, Base UI with T3 Code's
+A pnpm monorepo on Vite+ (`vp` for lint, format, test and staged hooks),
+TypeScript 7, React 19 with the React Compiler, TanStack Router, Zustand, Base UI with a vendored
 `components/ui` kit (MIT, notice kept), Tailwind v4, lucide icons and zod contracts. A local Node
 server runs the agent sessions, loops and the send queue; everything lives in one SQLite file
 under `~/.gradcode`. How the pieces fit: [docs/internals/overview.md](docs/internals/overview.md).

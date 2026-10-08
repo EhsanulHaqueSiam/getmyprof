@@ -1,17 +1,17 @@
 # Design
 
 The approved direction is [docs/mocks/phase1.html](../mocks/phase1.html), with the Pipeline,
-Vault and Writer screens in [outreach-vault.html](../mocks/outreach-vault.html). It follows T3 Code:
-clean, keyboard-first, and powerful through the palette and the inbox sidebar rather than more
+Vault and Writer screens in [outreach-vault.html](../mocks/outreach-vault.html): clean,
+keyboard-first, and powerful through the palette and the inbox sidebar rather than more
 panes.
 
 ## Tokens
 
-`apps/web/src/index.css` uses T3 Code's token names (`background`, `foreground`, `primary`,
+`apps/web/src/index.css` uses the vendored kit's token names (`background`, `foreground`, `primary`,
 `muted-foreground`, `accent`, `border`, `input`, `popover`, `success`, `warning`, `info`,
 `destructive`) with its true-black values: `#000` canvas, `#f1f3f7` text, `#191a1d` hover, 8%
 white hairlines, an indigo primary. Dark only. `components/ui` reads these names, which is why it
-renders unchanged. The glass utilities (`surface-glass`, `dropdown-glass`) come from T3 Code
+renders unchanged. The glass utilities (`surface-glass`, `dropdown-glass`) come from the kit
 verbatim.
 
 Thread status hues mean the same thing everywhere a thread shows up: `status-approval` (amber),
@@ -19,18 +19,18 @@ Thread status hues mean the same thing everywhere a thread shows up: `status-app
 
 ## Type
 
-As in T3 Code, the root stays at the browser's 16px: `text-sm` is 14px, `text-xs` 12px,
+The root stays at the browser's 16px: `text-sm` is 14px, `text-xs` 12px,
 `text-2xs` 11px, and body copy 13px. Nothing reads below 10px, so a 1080p screen at 1x (no
 font smoothing on macOS) stays legible. Pixel sizes like the tables' 12.5px come from the mocks.
 `apps/web/src/design.test.ts` keeps `font-size` off `html`.
 
 ## Components
 
-`apps/web/src/components/ui` is T3 Code's coss ui kit on Base UI, copied with its MIT license
-(`LICENSE.t3code`). Pick a `variant` or `size`; layout classes are fine, restyling is not. To add
-a primitive, copy it from T3 Code's `apps/web/src/components/ui` (or `pnpm dlx shadcn add
-@coss/<name>` with `components.json`), then add any custom utility it needs to `index.css`
-(lint flags unknown classes). `spinner` is left out on purpose: see Motion.
+`apps/web/src/components/ui` is the coss ui kit on Base UI, copied with its MIT license
+(`components/ui/LICENSE`). Pick a `variant` or `size`; layout classes are fine, restyling is not. To add
+a primitive, `pnpm dlx shadcn add @coss/<name>` (with `components.json`), then add any custom
+utility it needs to `index.css` (lint flags unknown classes). `spinner` is left out on purpose:
+see Motion.
 
 ## Motion
 

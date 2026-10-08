@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* T3 Code's token names and true-black values, so components/ui (copied from T3 Code)
+/* The vendored components/ui kit's token names, with true-black values, so components/ui
    renders unchanged. Dark only. docs/internals/design.md says when to use what. */
 @custom-variant dark (&:is(.dark, .dark *));
 
@@ -71,7 +71,7 @@
   --color-paper: #fff;
   --color-ink: #111;
 
-  /* Thread status hues, the same everywhere a thread shows up (T3 Code's convention). */
+  /* Thread status hues, the same everywhere a thread shows up. */
   --color-status-approval: var(--color-amber-400);
   --color-status-input: var(--color-indigo-300);
   --color-status-working: var(--color-blue-400);
@@ -111,7 +111,7 @@
   --info-foreground: var(--color-blue-400);
 }
 
-/* Glass surfaces and the scroll-area edge fade, verbatim from T3 Code. */
+/* Glass surfaces and the scroll-area edge fade, verbatim from the vendored kit. */
 @utility surface-glass {
   background: color-mix(in srgb, var(--background) var(--glass-opacity), transparent);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
@@ -172,7 +172,7 @@
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
-  /* The root stays at the browser's 16px, as in T3 Code, so text-xs is 12px and text-sm 14px on
+  /* The root stays at the browser's 16px, so text-xs is 12px and text-sm 14px on
      every screen; a smaller root shrank them below what reads on a 1x display. Body copy is 13px. */
   body {
     font-size: 13px;

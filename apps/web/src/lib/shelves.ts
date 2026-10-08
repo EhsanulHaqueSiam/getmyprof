@@ -11,7 +11,7 @@ const needsYou = (t: ThreadSummary) =>
   t.status === "approval" || t.status === "input" || t.status === "failed" || t.unread;
 
 /**
- * Sorts threads into the sidebar's shelves, T3 Code style: what needs you first, working
+ * Sorts threads into the sidebar's shelves: what needs you first, working
  * threads on their own shelf (they recede), then snoozed and settled, both collapsed by default.
  */
 export function shelves(threads: ThreadSummary[], nowMs = Date.now()): Shelves {

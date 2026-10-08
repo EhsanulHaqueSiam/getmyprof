@@ -296,7 +296,17 @@ export const Methods = {
     }),
   },
   "treg.topUp": {
-    input: z.object({ usd: z.number().min(5) }),
+    input: z.object({ usd: z.number().positive() }),
+    output: z.object({ url: z.string() }),
+  },
+  /** Turns auto top-up on (consenting to these amounts) or off; url: treg's card page, or "". */
+  "treg.autoTopUp": {
+    input: z.object({
+      on: z.boolean(),
+      underUsd: z.number().positive(),
+      addUsd: z.number().positive(),
+      monthCapUsd: z.number().positive(),
+    }),
     output: z.object({ url: z.string() }),
   },
 

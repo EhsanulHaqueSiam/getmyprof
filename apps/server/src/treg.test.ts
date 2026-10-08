@@ -51,7 +51,7 @@ describe("tregCall", () => {
     const req = seen[0]!;
     expect(req.url).toBe("https://treg.to/call/treg.people.email.find");
     expect(header(req.init, "X-Treg-Meta")).toBe(
-      "customer=cust_8123, thread=thr_1, feature=row-email, hunt=hunt_9",
+      "customer=cust_8123, thread=thr_1, feature=row-email, hunt=hunt_9, customer_feature=cust_8123.row-email",
     );
     expect(header(req.init, "X-Treg-Route-Max-Cost")).toBe("0.02");
     expect(header(req.init, "X-Treg-Token")).toBe("tok_secret_123");

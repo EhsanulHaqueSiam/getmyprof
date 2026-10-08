@@ -9,6 +9,7 @@ test("first run: setup saves a hunt, confirmed facts and loops", async ({ page }
   await page.goto("/");
   await expect(page).toHaveURL(/\/setup$/);
   // Paid lookups: the scripted stack accepts any token without reaching treg.
+  await page.getByRole("button", { name: "Paste a key" }).click();
   await page.getByLabel("treg token").fill("tok_e2e_fake");
   await page.getByTestId("treg-connect").getByRole("button", { name: "Connect" }).click();
   await expect(page.getByTestId("treg-connected")).toContainText("paid by scripted");

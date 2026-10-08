@@ -5,6 +5,7 @@ import type { Handlers, Services } from "./rpc.ts";
 import { updateSettings } from "./state.ts";
 import { usageSince } from "./threads.ts";
 import { readTregLogin, removeTregLogin, saveTregLogin } from "./treg.ts";
+import { FAKE_OWNER_KEY, fakeTregTeam } from "./treg-fake.ts";
 import * as org from "./treg-org.ts";
 
 type TregMethods = Extract<keyof Handlers, `treg.${string}`>;
@@ -26,17 +27,22 @@ export function tregStatus(db: Db) {
 
 export function tregHandlers(svc: Services): Pick<Handlers, TregMethods> {
   const { db, bus } = svc;
+  // The scripted stack never reaches treg: it talks to a team in memory.
+  const f = svc.fake ? fakeTregTeam() : fetch;
   // The sign-in being waited on; a newer one replaces it.
   let waiting: string | null = null;
   const status = () => tregStatus(db);
 
   /** Asks treg who the key is, saves it, and switches paid lookups on. */
   async function connect(token: string) {
-    // The scripted stack never reaches treg.
-    const who = svc.fake
-      ? { org: "scripted", role: "member", issued: true }
-      : await org.whoIs(token);
-    saveTregLogin({ token, org: who.org, role: who.role, issued: who.issued });
+    const who = await org.whoIs(token, f);
+    saveTregLogin({
+      token,
+      org: who.org,
+      role: who.role,
+      issued: who.issued,
+      ...(who.customer ? { customer: who.customer } : {}),
+    });
     updateSettings(db, { treg: true });
     bus.push({ type: "changed", what: "state" });
     return status();
@@ -55,7 +61,14 @@ export function tregHandlers(svc: Services): Pick<Handlers, TregMethods> {
 
     "treg.signIn": async () => {
       if (svc.fake) {
-        setTimeout(() => void connect("scripted-key"), 300);
+        // Long enough to see the code; then you are the scripted team's owner, unless cancelled.
+        const id = `scripted-${Date.now()}`;
+        waiting = id;
+        setTimeout(() => {
+          if (waiting !== id) return;
+          waiting = null;
+          void connect(FAKE_OWNER_KEY);
+        }, 1500);
         return { url: "", code: "TEST" };
       }
       const login = await org.startLogin();
@@ -81,24 +94,25 @@ export function tregHandlers(svc: Services): Pick<Handlers, TregMethods> {
       return status();
     },
 
-    "treg.customers": () => org.customers(admin()),
+    "treg.customers": () => org.customers(admin(), f),
     "treg.addCustomer": async ({ customer, dailyUsd }) => ({
-      key: await org.addCustomer(admin(), customer, dailyUsd),
+      key: await org.addCustomer(admin(), customer, dailyUsd, f),
     }),
-    "treg.newKey": async ({ customer }) => ({ key: await org.newKey(admin(), customer) }),
+    "treg.newKey": async ({ customer }) => ({ key: await org.newKey(admin(), customer, f) }),
     "treg.setCustomer": async ({ customer, ...patch }) => {
-      await org.setCustomer(admin(), customer, patch);
-      return org.customers(admin());
+      await org.setCustomer(admin(), customer, patch, f);
+      return org.customers(admin(), f);
     },
     "treg.removeCustomer": async ({ customer }) => {
-      await org.removeCustomer(admin(), customer);
-      return org.customers(admin());
+      await org.removeCustomer(admin(), customer, f);
+      return org.customers(admin(), f);
     },
     "treg.setDefaultLimit": async ({ dailyUsd }) => {
-      await org.setDefaultLimit(admin(), dailyUsd);
-      return org.customers(admin());
+      await org.setDefaultLimit(admin(), dailyUsd, f);
+      return org.customers(admin(), f);
     },
-    "treg.invoice": ({ days }) => org.invoice(admin(), days),
-    "treg.topUp": async ({ usd }) => ({ url: await org.topUp(admin(), usd) }),
+    "treg.invoice": ({ days }) => org.invoice(admin(), days, f),
+    "treg.topUp": async ({ usd }) => ({ url: await org.topUp(admin(), usd, f) }),
+    "treg.autoTopUp": async (policy) => ({ url: await org.setAutoTopUp(admin(), policy, f) }),
   };
 }

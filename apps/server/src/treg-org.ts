@@ -39,15 +39,24 @@ const safeJson = (text: string): unknown => {
 
 const Me = z.object({ org_id: z.number(), org: z.string(), role: z.string(), email: z.string() });
 
-/** Who a key is: its team, its role there, and whether it was issued to someone (an agent). */
+/**
+ * Who a key is: its team, its role there, whether it was issued to someone (an agent), and for a
+ * key minted here for a customer, which one.
+ */
 export async function whoIs(token: string, fetchFn: Fetch = fetch) {
   const me = Me.parse(await tregApi(token, "GET", "/auth/me", undefined, fetchFn));
+  // Keys minted for a machine sign in as agent-<team>-<name>@agents.treg.local; a customer's
+  // name is gradcode-<customer> (agentName).
+  const issued = me.email.endsWith("@agents.treg.local");
+  const local = me.email.split("@")[0] ?? "";
+  const prefix = `agent-${me.org}-gradcode-`;
+  const customer = TagValue.safeParse(local.slice(prefix.length));
   return {
     orgId: me.org_id,
     org: me.org,
     role: me.role,
-    // Keys minted for a machine, like a customer's, sign in as <name>@agents.treg.local.
-    issued: me.email.endsWith("@agents.treg.local"),
+    issued,
+    customer: issued && local.startsWith(prefix) && customer.success ? customer.data : undefined,
   };
 }
 
@@ -119,12 +128,16 @@ export async function customers(token: string, fetchFn: Fetch = fetch) {
   const org = `/orgs/${orgId}`;
   const get = (path: string) => tregApi(token, "GET", `${org}${path}`, undefined, fetchFn);
   // by-tag counts whole UTC days back from today, so the day of the month is this month so far.
-  const [agents, budgets, month, today, wallet] = await Promise.all([
+  const days = new Date().getUTCDate();
+  const [agents, budgets, month, today, wallet, spentOn, pay] = await Promise.all([
     get("/agents").then(z.array(Agent).parse),
     get("/budgets").then(z.array(Budget).parse),
-    get(`/usage/by-tag?key=customer&days=${new Date().getUTCDate()}`).then(ByTag.parse),
+    get(`/usage/by-tag?key=customer&days=${days}`).then(ByTag.parse),
     get("/usage/by-tag?key=customer&days=1").then(ByTag.parse),
     get("/balance?limit=0").then(Balance.parse),
+    get(`/usage/by-tag?key=customer_feature&days=${days}`).then(ByTag.parse),
+    // A deployment without top-ups has no billing to show; the rest still works.
+    billing(token, fetchFn).catch(() => null),
   ]);
   const fallback = budgets.find((b) => b.is_default);
   const list = agents.flatMap((a) => {
@@ -143,6 +156,14 @@ export async function customers(token: string, fetchFn: Fetch = fetch) {
         todayUsd: usd(todayMicro) ?? 0,
         dailyUsd: usd(cap),
         ownLimit: own?.daily_cap_micro != null,
+        // tregCall tags each call customer_feature=<customer>.<feature>; features have no dot.
+        byFeature: spentOn.rows
+          .filter((r) => r.value.slice(0, r.value.lastIndexOf(".")) === id)
+          .map((r) => ({
+            feature: r.value.slice(r.value.lastIndexOf(".") + 1),
+            usd: r.charged_micro / 1e6,
+          }))
+          .toSorted((x, y) => y.usd - x.usd),
         status:
           own?.status === "blocked"
             ? ("blocked" as const)
@@ -158,7 +179,75 @@ export async function customers(token: string, fetchFn: Fetch = fetch) {
     billedUsd: list.reduce((n, c) => n + c.monthUsd, 0),
     ownUseUsd: usd(month.unattributed_micro) ?? 0,
     customers: list,
+    billing: pay,
   };
+}
+
+const BillingState = z.object({
+  card_on_file: z.boolean(),
+  topup: z.object({
+    min_usd: z.number(),
+    presets: z.array(z.number()),
+    bonus_tiers: z.record(z.string(), z.number()),
+  }),
+  autotopup: z.object({
+    enabled: z.boolean(),
+    threshold_usd: z.number(),
+    amount_usd: z.number(),
+    monthly_cap_usd: z.number(),
+    disabled_reason: z.string().nullish(),
+  }),
+});
+
+/**
+ * How the team pays: the top-up amounts treg offers (with its bonus on bigger ones), and its
+ * auto top-up, which adds money whenever the balance runs low so customers' lookups never stop.
+ */
+export async function billing(token: string, fetchFn: Fetch = fetch) {
+  const b = BillingState.parse(await tregApi(token, "GET", "/billing", undefined, fetchFn));
+  return {
+    minTopUpUsd: b.topup.min_usd,
+    topUps: b.topup.presets.map((dollars) => ({
+      usd: dollars,
+      bonusUsd: b.topup.bonus_tiers[String(dollars)] ?? 0,
+    })),
+    auto: {
+      on: b.autotopup.enabled,
+      underUsd: b.autotopup.threshold_usd,
+      addUsd: b.autotopup.amount_usd,
+      monthCapUsd: b.autotopup.monthly_cap_usd,
+      cardOnFile: b.card_on_file,
+      problem: b.autotopup.disabled_reason ?? "",
+    },
+  };
+}
+
+/**
+ * Turns auto top-up on (recording the owner's consent to the amounts they saw) or off. On with
+ * no card saved yet: treg's card page, where finishing arms it; otherwise "".
+ */
+export async function setAutoTopUp(
+  token: string,
+  p: { on: boolean; underUsd: number; addUsd: number; monthCapUsd: number },
+  fetchFn: Fetch = fetch,
+) {
+  const r = z.object({ setup_url: z.string().nullish() }).parse(
+    await tregApi(
+      token,
+      "POST",
+      "/billing/autotopup",
+      {
+        enabled: p.on,
+        threshold_usd: p.underUsd,
+        amount_usd: p.addUsd,
+        monthly_cap_usd: p.monthCapUsd,
+        consent: p.on,
+        setup_url: true,
+      },
+      fetchFn,
+    ),
+  );
+  return r.setup_url ?? "";
 }
 
 /**
@@ -173,6 +262,13 @@ export async function addCustomer(
   fetchFn: Fetch = fetch,
 ) {
   const { orgId } = await whoIs(token, fetchFn);
+  // Minting under a name that exists replaces that key: refuse, so a typo never cuts someone off.
+  // "Maya" and "maya" read as one person, so case doesn't make a new one.
+  const agents = z
+    .array(Agent)
+    .parse(await tregApi(token, "GET", `/orgs/${orgId}/agents`, undefined, fetchFn));
+  if (agents.some((a) => a.name.toLowerCase() === agentName(customer).toLowerCase()))
+    throw new Error(`${customer} already has a key. Open them and use New key to replace it.`);
   const own = z
     .array(z.object({ name: z.string() }))
     .parse(await tregApi(token, "GET", "/tools", undefined, fetchFn));

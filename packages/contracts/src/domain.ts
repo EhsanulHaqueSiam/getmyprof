@@ -101,6 +101,8 @@ export const TregCustomer = z.object({
   dailyUsd: z.number().nullable(),
   ownLimit: z.boolean(),
   status: z.enum(["active", "at-limit", "blocked"]),
+  /** This month's spend by gradcode feature (hunt, loop, row-email...), from their calls' tags. */
+  byFeature: z.array(z.object({ feature: z.string(), usd: z.number() })),
 });
 export type TregCustomer = z.infer<typeof TregCustomer>;
 
@@ -111,6 +113,24 @@ export const TregCustomers = z.object({
   billedUsd: z.number(),
   ownUseUsd: z.number(),
   customers: z.array(TregCustomer),
+  /** How the team pays; null where treg offers no top-ups. */
+  billing: z
+    .object({
+      minTopUpUsd: z.number(),
+      /** treg's top-up amounts, with the bonus it adds to bigger ones. */
+      topUps: z.array(z.object({ usd: z.number(), bonusUsd: z.number() })),
+      /** Adds `addUsd` whenever the balance drops under `underUsd`, at most `monthCapUsd` a month. */
+      auto: z.object({
+        on: z.boolean(),
+        underUsd: z.number(),
+        addUsd: z.number(),
+        monthCapUsd: z.number(),
+        cardOnFile: z.boolean(),
+        /** Why treg switched it off (a card declined...); empty when nothing is wrong. */
+        problem: z.string(),
+      }),
+    })
+    .nullable(),
 });
 export type TregCustomers = z.infer<typeof TregCustomers>;
 

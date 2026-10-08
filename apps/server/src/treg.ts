@@ -135,8 +135,8 @@ export const TREG_ENDPOINTS: Record<
 };
 
 /**
- * The saved login: the key, and who treg said it is when it connected. `customer` is only in
- * logins saved before treg's pin carried it, and still goes out as a tag.
+ * The saved login: the key, and who treg said it is when it connected. `customer` is the
+ * customer a team's key was issued to (typed by hand in logins saved before treg's pin carried it).
  */
 export const TregLogin = z.object({
   token: z.string(),
@@ -250,7 +250,12 @@ export async function tregCall(
       stop: true,
     };
 
-  const tags = { customer: login.customer, ...req.tags };
+  // customer_feature lets the team's Customers page split each customer's spend by feature.
+  const tags = {
+    customer: login.customer,
+    ...req.tags,
+    customer_feature: login.customer && `${login.customer}.${req.tags.feature}`,
+  };
   const meta = Object.entries(tags)
     .filter(([, v]) => v && TagValue.safeParse(v).success)
     .map(([k, v]) => `${k}=${v}`)

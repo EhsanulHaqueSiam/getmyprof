@@ -68,7 +68,10 @@ that customer from treg's ledger.
 
 - **Tags come from the server.** Each call carries `hunt`, `thread` and `feature` (hunt, loop,
   row-email...) from context, never from the model, which would drop them. treg adds `customer`
-  from an issued key's pin; the key holder can't change it.
+  from an issued key's pin; the key holder can't change it. An issued key also sends
+  `customer_feature=<customer>.<feature>` (its customer read from the key's identity when it
+  connects), since treg's usage report splits by one tag only: that is what the Customers page's
+  spend by feature reads.
 - **treg holds the line.** The budget left goes out as `X-Treg-Route-Max-Cost`, so treg refuses
   rather than overspend. Routed endpoints try providers in turn and can cost more than their usual
   price; `TREG_ENDPOINTS` keeps each one's ceiling.
@@ -76,9 +79,13 @@ that customer from treg's ledger.
   with the feature and the sheet row (`about`), so Results cells and Settings show what was spent.
 - **Some refusals stay private.** Running out of balance names the issuer's balance and top-up
   link; the applicant and the model only hear "unavailable right now".
-- **Issuing keys.** An owner or admin of a team manages its customers in Settings or with
-  `apps/server/scripts/treg-admin.ts`, both over `treg-org.ts`: mint a key, set a daily limit or
-  the team default, block, revoke, top up and invoice. Siam's customers live in the treg team
+- **Issuing keys.** An owner or admin of a team manages its customers on the Customers page
+  (Settings links it) or with `apps/server/scripts/treg-admin.ts`, both over `treg-org.ts`: mint a
+  key, set a daily limit or the team default, block, revoke, top up, switch on treg's auto top-up
+  (it refills the balance under a floor, up to a monthly cap, so no customer's lookups stop on an
+  empty balance) and invoice. Adding an id that already has a key is refused: minting under the
+  same name replaces the key. The scripted stack talks to a team in memory instead
+  (`treg-fake.ts`): signing in makes you its owner. Siam's customers live in the treg team
   `gradcode`. treg's tool list can't name catalog endpoints, so a customer key gets every tool;
   the team must hold no tools of its own (an X or Google connection would be every customer's),
   and minting refuses in one that does. `TREG_ENDPOINTS` is the vendor list gradcode lets the

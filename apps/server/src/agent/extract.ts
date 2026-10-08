@@ -2,6 +2,7 @@ import { query, type SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
 import { FactKind, type ProfileFact } from "@gradcode/contracts";
 import { z } from "zod";
 import { newId } from "../db.ts";
+import { ensureClaude } from "./binary.ts";
 
 const Extracted = z.object({
   facts: z.array(
@@ -72,6 +73,7 @@ export async function extractFacts(
       yield message;
     })(),
     options: {
+      pathToClaudeCodeExecutable: await ensureClaude(),
       model,
       systemPrompt: INSTRUCTIONS,
       settingSources: [],

@@ -4,6 +4,7 @@ import * as NodeHttp from "node:http";
 import { WebSocketServer } from "ws";
 import { z } from "zod";
 import { importGradhunt, profileFacts } from "./adapters.ts";
+import { ensureClaude } from "./agent/binary.ts";
 import { claudeProvider } from "./agent/claude.ts";
 import { fakeProvider } from "./agent/fake.ts";
 import { fixtureSources } from "./agent/fixtures.ts";
@@ -135,6 +136,9 @@ bus.add((m) => {
 refreshSoon();
 
 const handlers = createHandlers({ db, bus, runner, sources, fake, startLoop, outreach });
+// A release build fetches the agent's binary on first run; Setup follows the download.
+if (!fake)
+  void ensureClaude(() => bus.push({ type: "changed", what: "state" })).catch(() => undefined);
 // Turns the last process was running when it stopped pick up where they left off.
 runner.resumeAfterRestart();
 

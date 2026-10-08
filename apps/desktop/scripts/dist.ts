@@ -4,7 +4,7 @@
 //   cli <os-arch>...             self-contained `gradcode` tarballs, each with its own Node
 //   desktop <mac|linux> <arch>...  dmg + zip, or AppImage + deb, with latest*.yml for the updater
 //   npm                          the `gradcode` npm package, packed (never published from here)
-//   sums                         SHA256SUMS over everything in dist/release
+//   sums                         SHA256SUMS over the release assets in dist/release
 //   manifests                    the Homebrew cask and AUR PKGBUILD for this release, in dist/publish
 //
 // The version is the root package.json's. GRADCODE_RELEASES (owner/name) moves the public update
@@ -29,7 +29,9 @@ const version = String(readJson(NodePath.join(root, "package.json")).version);
 const releases = process.env.GRADCODE_RELEASES ?? "EhsanulHaqueSiam/gradcode-releases";
 // The CLI's Node: the LTS line Electron 44 runs the server on, so both run the same runtime.
 const NODE = "24.21.0";
-// The Agent SDK's native Claude binary ships as one npm package per platform, at the SDK's version.
+// The Agent SDK's native binary is one npm package per platform at the SDK's version. Its license
+// reserves redistribution, so no download carries it: the runtime pins this version and the
+// user's machine fetches it (apps/server/src/agent/binary.ts); the npm package depends on it.
 const sdk = String(
   readJson(
     NodePath.join(root, "apps/server/node_modules/@anthropic-ai/claude-agent-sdk/package.json"),
@@ -75,6 +77,7 @@ async function buildRuntime() {
     format: "esm",
     fixedExtension: true,
     deps: { onlyBundle: false },
+    define: { "process.env.GRADCODE_CLAUDE_SDK": JSON.stringify(sdk) },
   });
   NodeFS.cpSync(NodePath.join(root, "apps/web/dist"), NodePath.join(runtime, "web"), {
     recursive: true,
@@ -103,17 +106,6 @@ async function buildRuntime() {
   });
 }
 
-/** The Claude binary package for one os-arch, unpacked under dist/claude/<sdk>/<os-arch>/ once. */
-async function claudeFor(target: string) {
-  const dir = NodePath.join(root, "dist/claude", sdk, target);
-  const name = `claude-agent-sdk-${target}`;
-  if (NodeFS.existsSync(NodePath.join(dir, name, "claude"))) return dir;
-  const tgz = await cached(`https://registry.npmjs.org/@anthropic-ai/${name}/-/${name}-${sdk}.tgz`);
-  NodeFS.mkdirSync(NodePath.join(dir, name), { recursive: true });
-  run("tar", ["-xzf", tgz, "-C", NodePath.join(dir, name), "--strip-components=1"]);
-  return dir;
-}
-
 /** Official Node for one os-arch, checked against nodejs.org's SHASUMS256.txt. */
 async function nodeFor(target: string) {
   const name = `node-v${NODE}-${target}.tar.gz`;
@@ -128,7 +120,7 @@ async function nodeFor(target: string) {
   return { tgz, binary: `node-v${NODE}-${target}/bin/node` };
 }
 
-/** gradcode-<v>-<os>-<arch>.tar.gz: the runtime, Node, the Claude binary and the `gradcode` script. */
+/** gradcode-<v>-<os>-<arch>.tar.gz: the runtime, its Node and the `gradcode` script. */
 async function buildCli(targets: string[]) {
   for (const target of targets) {
     if (!CLI_TARGETS.includes(target)) throw new Error(`cli targets: ${CLI_TARGETS.join(", ")}`);
@@ -138,9 +130,6 @@ async function buildCli(targets: string[]) {
     NodeFS.cpSync(runtime, dir, { recursive: true });
     const node = await nodeFor(target);
     run("tar", ["-xzf", node.tgz, "-C", dir, "--strip-components=2", node.binary]);
-    NodeFS.cpSync(await claudeFor(target), NodePath.join(dir, "node_modules/@anthropic-ai"), {
-      recursive: true,
-    });
     NodeFS.copyFileSync(
       NodePath.join(root, "packaging/gradcode.sh"),
       NodePath.join(dir, "gradcode"),
@@ -175,14 +164,7 @@ function desktopConfig(): Configuration {
     },
     directories: { output: release, buildResources: "build" },
     files: ["package.json", "dist/*.mjs", "dist/*.cjs"],
-    extraResources: [
-      { from: "dist/runtime", to: "runtime" },
-      // ${platform}-${arch} is darwin-arm64, linux-x64...: the SDK's own package names.
-      {
-        from: `${root}/dist/claude/${sdk}/\${platform}-\${arch}`,
-        to: "runtime/node_modules/@anthropic-ai",
-      },
-    ],
+    extraResources: [{ from: "dist/runtime", to: "runtime" }],
     electronLanguages: ["en", "en-US"],
     publish: process.env.GRADCODE_UPDATE_URL
       ? { provider: "generic", url: process.env.GRADCODE_UPDATE_URL }
@@ -229,8 +211,6 @@ function desktopConfig(): Configuration {
 async function buildDesktop([os, ...archs]: string[]) {
   if ((os !== "mac" && os !== "linux") || archs.length === 0)
     throw new Error("desktop <mac|linux> <x64|arm64>...");
-  const platform = os === "mac" ? "darwin" : "linux";
-  for (const arch of archs) await claudeFor(`${platform}-${arch}`);
   await build({
     projectDir: desktop,
     config: desktopConfig(),
@@ -277,11 +257,12 @@ function buildNpm() {
   run("npm", ["pack", "--pack-destination", out], dir);
 }
 
-/** SHA256SUMS for every file in dist/release, as install.sh and the AUR package check them. */
+/** What a release publishes; electron-builder's debug files and folders stay out. */
+const RELEASE_ASSET = /\.(tar\.gz|dmg|zip|blockmap|AppImage|deb)$|^latest-.*\.yml$|^install\.sh$/;
+
+/** SHA256SUMS over the release's assets, as install.sh and `gradcode update` check them. */
 function writeSums() {
-  const files = NodeFS.readdirSync(release).filter(
-    (f) => f !== "SHA256SUMS" && NodeFS.statSync(NodePath.join(release, f)).isFile(),
-  );
+  const files = NodeFS.readdirSync(release).filter((f) => RELEASE_ASSET.test(f));
   const lines = files.toSorted().map((f) => `${sha256(NodePath.join(release, f))}  ${f}`);
   NodeFS.writeFileSync(NodePath.join(release, "SHA256SUMS"), `${lines.join("\n")}\n`);
 }

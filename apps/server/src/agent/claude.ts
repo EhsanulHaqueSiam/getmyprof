@@ -9,6 +9,7 @@ import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
 import { z } from "zod";
 import { homeDir, now } from "../db.ts";
+import { ensureClaude, findClaude } from "./binary.ts";
 import type { AgentProvider, Attachment, SessionStart } from "./provider.ts";
 import { askBlocked, capProblem, type HuntTool } from "./tools.ts";
 
@@ -166,9 +167,13 @@ export const claudeProvider: AgentProvider = {
 
     // The agent's own web search and page reading, unless setup switched "web" off.
     const web = s.toolContext.settings.freeSources.includes("web") ? BUILTIN : [];
+    // Release builds fetch the binary on first run (binary.ts); until it lands a turn can't start.
+    const binary = findClaude();
+    if (!binary) void ensureClaude().catch(() => undefined);
     const q = query({
       prompt: input,
       options: {
+        ...(binary ? { pathToClaudeCodeExecutable: binary } : {}),
         model: s.model,
         cwd,
         systemPrompt: s.systemPrompt,
@@ -305,7 +310,9 @@ export const claudeProvider: AgentProvider = {
           id: `err-${Date.now()}`,
           at: now(),
           type: "system",
-          text: `The agent stopped: ${String(error).slice(0, 300)}`,
+          text: binary
+            ? `The agent stopped: ${String(error).slice(0, 300)}`
+            : "The agent isn't downloaded yet; Setup's Connect step shows how far it got. Send this again once it's there.",
         });
         if (busy) hooks.turnEnded({ durationMs: 0, error: "failed" });
       } finally {

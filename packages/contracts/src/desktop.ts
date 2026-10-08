@@ -12,3 +12,14 @@ export const DesktopUpdate = z.discriminatedUnion("state", [
   z.object({ state: z.literal("ready"), version: z.string() }),
 ]);
 export type DesktopUpdate = z.infer<typeof DesktopUpdate>;
+
+/**
+ * The Claude Code binary the agent runs. Release builds fetch it on first run (its license keeps
+ * it out of our downloads), so Setup shows how far that got, or why it failed.
+ */
+export const ClaudeBinary = z.discriminatedUnion("state", [
+  z.object({ state: z.literal("ready") }),
+  z.object({ state: z.literal("downloading"), percent: z.number() }),
+  z.object({ state: z.literal("missing"), error: z.string() }),
+]);
+export type ClaudeBinary = z.infer<typeof ClaudeBinary>;

@@ -22,6 +22,7 @@ import { createHandlers, dispatch } from "./rpc.ts";
 import { getSettings } from "./state.ts";
 import { dueReminders, markReminded } from "./reminders.ts";
 import { scopeNote } from "./records.ts";
+import { staticSite } from "./static.ts";
 import { addScope, createThread, getThread, settleStale } from "./threads.ts";
 import { documentPath, listDocuments, writingBrief } from "./vault.ts";
 
@@ -167,6 +168,9 @@ function remindRecommenders() {
 setInterval(() => void outreach.sync(), 180_000);
 setInterval(() => settleStale(db), 3_600_000);
 
+// The desktop app and the `gradcode` command serve the built web app from here too; in dev Vite does.
+const site = process.env.GRADCODE_WEB_DIR ? staticSite(process.env.GRADCODE_WEB_DIR) : null;
+
 // Loopback only. Vite proxies /api and /ws here, and `scripts/dev-local.sh share` puts Vite on
 // the tailnet, so every client sees one origin (docs/internals/overview.md).
 const server = NodeHttp.createServer((req, res) => {
@@ -273,6 +277,7 @@ const server = NodeHttp.createServer((req, res) => {
     else NodeFS.createReadStream(documentPath(doc.id)).pipe(res);
     return;
   }
+  if (site?.(req, res)) return;
   res.writeHead(404).end();
 });
 

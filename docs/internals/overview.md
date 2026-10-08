@@ -62,12 +62,18 @@ call) or `now` (steered). A session closes after a minute idle.
 
 ## Paid lookups
 
-Every treg call goes through `treg.ts` over HTTP, with a token pinned to this install's customer
-(`GRADCODE_HOME/treg.json`, mode 0600, never on the wire or in a backup). The issuer pays treg and
-bills each customer from treg's ledger.
+Every treg call goes through `treg.ts` over HTTP with one key (`GRADCODE_HOME/treg.json`, mode
+0600, never on the wire or in a backup). It is the user's own team key, which they connect by
+signing in at treg.to (`treg login`'s handshake, `treg-org.ts`) or by pasting it, or a key a
+team issued to them. treg pins an issued key to its customer, so its team is billed and invoices
+that customer from treg's ledger.
 
-- **Tags come from the server.** Each call carries `customer`, `hunt`, `thread` and `feature`
-  (hunt, loop, row-email...) from context, never from the model, which would drop them.
+- **Tags come from the server.** Each call carries `hunt`, `thread` and `feature` (hunt, loop,
+  row-email...) from context, never from the model, which would drop them. treg adds `customer`
+  from an issued key's pin; the key holder can't change it. An issued key also sends
+  `customer_feature=<customer>.<feature>` (its customer read from the key's identity when it
+  connects), since treg's usage report splits by one tag only: that is what the Customers page's
+  spend by feature reads.
 - **treg holds the line.** The budget left goes out as `X-Treg-Route-Max-Cost`, so treg refuses
   rather than overspend. Routed endpoints try providers in turn and can cost more than their usual
   price; `TREG_ENDPOINTS` keeps each one's ceiling.
@@ -75,8 +81,17 @@ bills each customer from treg's ledger.
   with the feature and the sheet row (`about`), so Results cells and Settings show what was spent.
 - **Some refusals stay private.** Running out of balance names the issuer's balance and top-up
   link; the applicant and the model only hear "unavailable right now".
-- **Issuing tokens.** `apps/server/scripts/treg-admin.ts` mints, caps, blocks and invoices. It mints
-  through the HTTP API with no team tools: the CLI, run without a terminal, grants every one.
+- **Issuing keys.** An owner or admin of a team manages its customers on the Customers page
+  (Settings links it) or with `apps/server/scripts/treg-admin.ts`, both over `treg-org.ts`: mint a
+  key, set a daily limit or the team default, block, revoke, top up, switch on treg's auto top-up
+  (it refills the balance under a floor, up to a monthly cap, so no customer's lookups stop on an
+  empty balance) and invoice. Adding an id that already has a key is refused: minting under the
+  same name replaces the key. The scripted stack talks to a team in memory instead
+  (`treg-fake.ts`): signing in makes you its owner. Siam's customers live in the treg team
+  `gradcode`. treg's tool list can't name catalog endpoints, so a customer key gets every tool;
+  the team must hold no tools of its own (an X or Google connection would be every customer's),
+  and minting refuses in one that does. `TREG_ENDPOINTS` is the vendor list gradcode lets the
+  agent call.
 
 ## Your data
 
@@ -126,17 +141,31 @@ mailbox with an app password, or signs in with Google (Gmail) or Microsoft (Outl
 dropped app passwords). The login, password or refresh token, sits in `GRADCODE_HOME/mail.json`,
 mode 0600, and never crosses the wire.
 
-- **Each install brings its own OAuth client.** Gmail's mail scope is restricted: a client shared
-  by everyone needs Google's review and a yearly security assessment. A Desktop client the user
-  makes in Google Cloud (or a public app in Azure) needs neither. Its consent screen must be
-  published, or Google expires the sign-in every 7 days. The callback is
+- **Signing in takes no setup.** gradcode ships its own OAuth clients (`SHARED_CLIENTS` in
+  `outreach/oauth.ts`): a Desktop app in Google Cloud and a public client in Azure. Neither can
+  keep a secret, so they live in the source; a user brings their own only by choice. Gmail's
+  scope is restricted: until Google verifies the app (a review plus a yearly paid security
+  assessment, CASA), users see an "unverified app" screen and the Google project serves 100
+  users, ever. Its consent screen must be In production, or Google expires sign-ins every 7
+  days. An app password has neither limit, so Gmail opens on it and offers signing in as the
+  other choice. The callback is
   `http://127.0.0.1:<port>/api/oauth/callback` (Microsoft: `localhost`), on this server, with
   PKCE; it connects the mailbox and sends the browser back to Settings, only ever to the app's
   own pages. IMAP and SMTP log in with a fresh access token (XOAUTH2).
+- **A login that stops working says so.** Google ends a sign-in after a password change or
+  removed access, and a new Google password revokes app passwords. Either one is `SignedOut`:
+  Settings offers Sign in again (reusing the user's own client, if they brought one) or a new app
+  password, and the mailbox, its warm-up and its queue stay. Sends that failed meanwhile stay in
+  the Pipeline as failed, to send again.
 
 - **Nothing sends without approval.** The agent only drafts (`draft_email`). Approving gives each
   first email or follow-up a slot: 08:00 in the professor's zone, Tuesday to Thursday, within
-  warm-up caps (5, 10, then 15 a day; 2 per university). Replies go at once.
+  warm-up caps (5, 10, then 15 a day; 2 per university). Answers and thank-yous skip the caps
+  and go in the professor's working hours: Monday to Friday, 08:00 to 18:00 their time.
+- **Mail that reads as one person's.** It leaves the user's own mailbox, so SPF and DKIM pass
+  as theirs; plain text, one recipient, at most two links, a CV only when asked. Everything
+  after the first email answers the latest real one (`In-Reply-To`), so it threads on both
+  sides; a "Re:" that answers nothing is a spam signal.
 - **One send path.** Every send runs through `outreach.tick`, one message at a time, so a message
   can't go out twice. "Send now" just makes a message due and ticks.
 - **One rule for every claim.** Drafts cite facts as `[[fact-id]]`, numbered `[n]` like the

@@ -146,6 +146,7 @@ export function importGradhunt(db: Db, dir = gradhuntDir()) {
         stage: contact === "apply-only" ? "apply-only" : (STAGE[s(r.status)] ?? "new"),
         fitsBecause: s(r.notes).slice(0, 200),
         website: s(r.website),
+        linkedin: s(r.linkedin),
         sources: (Array.isArray(r.sources) ? r.sources.map(s) : s(r.sources).split(/;\s*/)).filter(
           Boolean,
         ),
@@ -211,6 +212,7 @@ const CSV_FIELDS = [
   "stage",
   "fitsBecause",
   "website",
+  "linkedin",
   "sources",
 ] as const;
 
@@ -286,6 +288,7 @@ export function importCsv(db: Db, text: string) {
         stage: stage.success ? stage.data : "new",
         fitsBecause: col(r, "fitsBecause"),
         website: col(r, "website"),
+        linkedin: col(r, "linkedin"),
         sources: col(r, "sources").split(/\s+/).filter(Boolean),
         grants: [],
         origin: "app",

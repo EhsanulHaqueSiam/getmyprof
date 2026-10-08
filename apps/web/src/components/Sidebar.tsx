@@ -2,6 +2,7 @@ import type { ThreadSummary } from "@gradcode/contracts";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import {
+  ContactIcon,
   CheckIcon,
   ChevronDownIcon,
   CircleAlertIcon,
@@ -20,9 +21,10 @@ import {
   SquarePenIcon,
   UsersIcon,
 } from "lucide-react";
-import { type ReactNode, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Kbd } from "~/components/ui/kbd";
+import { NavLink } from "~/components/NavLink";
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from "~/components/ui/menu";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "~/components/ui/tooltip";
 import { ago, duration, usd } from "~/lib/format";
@@ -214,44 +216,6 @@ function Shelf({
   );
 }
 
-function NavLink({
-  to,
-  icon,
-  label,
-  count,
-  kbd,
-  accent,
-}: {
-  to: string;
-  icon: ReactNode;
-  label: string;
-  count?: number | undefined;
-  kbd?: string;
-  accent?: boolean;
-}) {
-  return (
-    <Link
-      to={to}
-      className="flex h-8 items-center gap-2.5 rounded-lg px-2 text-secondary-label transition-colors duration-150 hover:bg-accent hover:text-foreground [&.active]:bg-secondary [&.active]:text-foreground [&_svg]:size-4 [&_svg]:text-muted-foreground"
-      activeOptions={{ exact: to === "/" }}
-    >
-      {icon}
-      {label}
-      {kbd ? <Kbd className="ml-auto bg-transparent">{kbd}</Kbd> : null}
-      {count ? (
-        <span
-          className={cn(
-            "ml-auto text-xs tabular-nums",
-            accent ? "text-info-foreground" : "text-muted-foreground",
-          )}
-        >
-          {count}
-        </span>
-      ) : null}
-    </Link>
-  );
-}
-
 export function Sidebar() {
   const threads = useStore((s) => s.threads);
   const app = useStore((s) => s.app);
@@ -351,6 +315,9 @@ export function Sidebar() {
         <NavLink to="/pipeline" icon={<SendIcon />} label="Pipeline" count={outreach} accent />
         <NavLink to="/vault" icon={<ArchiveIcon />} label="Vault" count={toFile} accent />
         <NavLink to="/loops" icon={<RepeatIcon />} label="Loops" count={counts?.loops} />
+        {app?.treg.manage ? (
+          <NavLink to="/customers" icon={<ContactIcon />} label="Customers" />
+        ) : null}
         <NavLink to="/review" icon={<InboxIcon />} label="Review" count={review} accent />
       </nav>
       <div className="mt-3 flex h-7 items-center gap-1.5 px-2 font-medium text-muted-foreground text-xs">

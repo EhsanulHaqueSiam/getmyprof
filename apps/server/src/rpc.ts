@@ -16,9 +16,6 @@ import { type Db, getKv, newId, now } from "./db.ts";
 import { claudeLogin, health, tailnetLink } from "./health.ts";
 import { listLoops, loopStats, saveLoop, STARTER_LOOPS } from "./loops.ts";
 import type { Outreach } from "./outreach/service.ts";
-import { linkedinOpen } from "./outreach/linkedin.ts";
-import { conversations } from "./outreach/pipeline.ts";
-import { getMessage } from "./outreach/store.ts";
 import {
   findsWaiting,
   listPrograms,
@@ -42,16 +39,17 @@ import {
 } from "./state.ts";
 import { recordHandlers } from "./rpc-records.ts";
 import { askCvQuestions } from "./cv-questions.ts";
+import { mailHandlers } from "./rpc-mail.ts";
 import { threadHandlers } from "./rpc-threads.ts";
-import { checkTregToken, readTregLogin, removeTregLogin, saveTregLogin } from "./treg.ts";
+import { tregHandlers, tregStatus } from "./rpc-treg.ts";
+import { readTregLogin } from "./treg.ts";
 import {
   createThread,
-  usageSince,
+  daySpendOutsideThreads,
   getThread,
   listThreads,
   putEvent,
   settleIfDone,
-  daySpendOutsideThreads,
 } from "./threads.ts";
 
 type Input<M extends Method> = z.output<(typeof Methods)[M]["input"]>;
@@ -81,17 +79,6 @@ export function createHandlers(svc: Services): Handlers {
     return t;
   };
 
-  /** This install's treg login (never the token) and what paid lookups cost this calendar month. */
-  const tregStatus = () => {
-    const login = readTregLogin();
-    const d = new Date();
-    return {
-      connected: login !== null,
-      customer: login?.customer ?? "",
-      month: usageSince(db, new Date(d.getFullYear(), d.getMonth(), 1).toISOString()),
-    };
-  };
-
   return {
     "state.get": () => {
       const settings = getSettings(db);
@@ -108,7 +95,7 @@ export function createHandlers(svc: Services): Handlers {
           treg: svc.fake || readTregLogin() !== null,
         },
         mail: outreach.status(),
-        treg: tregStatus(),
+        treg: tregStatus(db),
         tailnet: svc.fake ? null : tailnetLink(),
         claude: svc.fake
           ? { signedIn: true, who: "the scripted agent", binary: { state: "ready" } }
@@ -197,8 +184,7 @@ export function createHandlers(svc: Services): Handlers {
     },
     "loops.run": ({ id }) => svc.startLoop(id),
 
-    "mail.connect": (input) => outreach.connect(input),
-    "mail.signIn": (input) => outreach.startSignIn(input),
+    ...mailHandlers(svc),
     "claude.fetch": () => {
       void ensureClaude(changedState).catch(() => undefined);
       return { ok: true as const };
@@ -211,53 +197,8 @@ export function createHandlers(svc: Services): Handlers {
       loginCode(code);
       return { ok: true as const };
     },
-    "mail.disconnect": () => outreach.disconnect(),
-    "mail.sync": () => outreach.sync(),
 
-    "treg.connect": async (login) => {
-      // The scripted stack never reaches treg; a real install proves the token first.
-      if (!svc.fake) await checkTregToken(login.token);
-      saveTregLogin(login);
-      updateSettings(db, { treg: true });
-      bus.push({ type: "changed", what: "state" });
-      return tregStatus();
-    },
-    "treg.disconnect": () => {
-      removeTregLogin();
-      updateSettings(db, { treg: false });
-      bus.push({ type: "changed", what: "state" });
-      return tregStatus();
-    },
-
-    "outreach.list": () => conversations(db),
-    "outreach.approve": async ({ ids }) => {
-      await outreach.approve(ids);
-      return OK;
-    },
-    "outreach.sendNow": async ({ id }) => {
-      await outreach.sendNow(id);
-      return OK;
-    },
-    "outreach.edit": ({ id, subject, body }) => {
-      outreach.edit(id, subject, body);
-      return OK;
-    },
-    "outreach.cancel": ({ id }) => {
-      outreach.cancel(id);
-      return OK;
-    },
-    "outreach.linkedinOpen": async ({ id }) => {
-      const m = getMessage(db, id);
-      if (!m || m.channel !== "linkedin") throw new Error("No LinkedIn note to open.");
-      const opened = await linkedinOpen(db, svc.sources, m.recordKey, m.to);
-      // A lookup it paid for shows in today's spend.
-      bus.push({ type: "changed", what: "state" });
-      return opened;
-    },
-    "outreach.markSent": ({ id }) => {
-      outreach.markSent(id);
-      return OK;
-    },
+    ...tregHandlers(svc),
 
     "vault.get": () => vaultState(db),
     "vault.save": (edit) => {

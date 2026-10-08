@@ -28,6 +28,7 @@ export const FIXTURE_PROFESSORS = [
     lasts: "not posted",
     email: "zalake@example.edu",
     contact: "follow the join-us page",
+    linkedin: "https://www.linkedin.com/in/mohan-zalake",
     sources: ["https://vare.ahs.uic.edu/"],
   },
   {

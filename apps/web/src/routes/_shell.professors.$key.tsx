@@ -1,6 +1,6 @@
 import type { MethodOutput } from "@gradcode/contracts";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { BookOpenIcon, FileTextIcon, GlobeIcon, MessageSquareIcon } from "lucide-react";
+import { BookOpenIcon, FileTextIcon, GlobeIcon, LinkIcon, MessageSquareIcon } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { TIER_LABEL } from "~/lib/columns";
@@ -153,6 +153,15 @@ function ProfessorPage() {
               render={<a href={p.website} target="_blank" rel="noreferrer" />}
             >
               <GlobeIcon /> Website
+            </Button>
+          ) : null}
+          {p.linkedin ? (
+            <Button
+              variant="ghost-muted"
+              size="xs"
+              render={<a href={p.linkedin} target="_blank" rel="noreferrer" />}
+            >
+              <LinkIcon /> LinkedIn
             </Button>
           ) : null}
           <Button

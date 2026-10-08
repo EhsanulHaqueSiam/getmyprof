@@ -18,7 +18,9 @@ import {
   ScopeItem,
   ScoutLoop,
   Settings,
+  TagValue,
   TregConnect,
+  TregCustomers,
   TregStatus,
 } from "./domain.ts";
 import { ClaudeBinary } from "./desktop.ts";
@@ -267,11 +269,56 @@ export const Methods = {
   /** The code the sign-in page shows, when it asks for one to be pasted back. */
   "claude.loginCode": { input: z.object({ code: z.string().min(1) }), output: ok },
   "mail.disconnect": { input: z.object({}), output: MailStatus },
+  /** A new app password for the connected mailbox; its warm-up and queue stay. */
+  "mail.repassword": { input: z.object({ password: z.string().min(1) }), output: MailStatus },
   "mail.sync": { input: z.object({}), output: MailStatus },
 
-  /** Checks the pinned token with treg before saving it; switches paid lookups on. */
+  /** Checks the key with treg before saving it; switches paid lookups on. */
   "treg.connect": { input: TregConnect, output: TregStatus },
+  /** Opens treg's own sign-in; once approved there, the team's key connects by itself. */
+  "treg.signIn": { input: z.object({}), output: z.object({ url: z.string(), code: z.string() }) },
   "treg.disconnect": { input: z.object({}), output: TregStatus },
+  // A team owner or admin managing its customers. A new key is returned once, never stored.
+  "treg.customers": { input: z.object({}), output: TregCustomers },
+  "treg.addCustomer": {
+    input: z.object({ customer: TagValue, dailyUsd: z.number().positive().nullable() }),
+    output: z.object({ key: z.string() }),
+  },
+  "treg.newKey": { input: z.object({ customer: TagValue }), output: z.object({ key: z.string() }) },
+  "treg.setCustomer": {
+    input: z.object({
+      customer: TagValue,
+      dailyUsd: z.number().positive().nullable().optional(),
+      blocked: z.boolean().optional(),
+    }),
+    output: TregCustomers,
+  },
+  "treg.removeCustomer": { input: z.object({ customer: TagValue }), output: TregCustomers },
+  "treg.setDefaultLimit": {
+    input: z.object({ dailyUsd: z.number().positive() }),
+    output: TregCustomers,
+  },
+  "treg.invoice": {
+    input: z.object({ days: z.number().int().min(1).max(365) }),
+    output: z.object({
+      lines: z.array(z.object({ customer: z.string(), calls: z.number(), usd: z.number() })),
+      unattributedUsd: z.number(),
+    }),
+  },
+  "treg.topUp": {
+    input: z.object({ usd: z.number().positive() }),
+    output: z.object({ url: z.string() }),
+  },
+  /** Turns auto top-up on (consenting to these amounts) or off; url: treg's card page, or "". */
+  "treg.autoTopUp": {
+    input: z.object({
+      on: z.boolean(),
+      underUsd: z.number().positive(),
+      addUsd: z.number().positive(),
+      monthCapUsd: z.number().positive(),
+    }),
+    output: z.object({ url: z.string() }),
+  },
 
   "outreach.list": { input: z.object({}), output: z.array(Conversation) },
   /** Schedules drafts into send slots; replies and LinkedIn notes are ready at once. */

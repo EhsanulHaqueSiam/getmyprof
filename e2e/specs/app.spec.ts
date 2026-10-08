@@ -9,10 +9,10 @@ test("first run: setup saves a hunt, confirmed facts and loops", async ({ page }
   await page.goto("/");
   await expect(page).toHaveURL(/\/setup$/);
   // Paid lookups: the scripted stack accepts any token without reaching treg.
-  await page.getByLabel("Customer id").fill("cust_e2e");
+  await page.getByRole("button", { name: "Paste a key" }).click();
   await page.getByLabel("treg token").fill("tok_e2e_fake");
   await page.getByTestId("treg-connect").getByRole("button", { name: "Connect" }).click();
-  await expect(page.getByTestId("treg-connected")).toContainText("cust_e2e");
+  await expect(page.getByTestId("treg-connected")).toContainText("paid by scripted");
   await page.getByRole("button", { name: "Continue" }).click();
 
   await page.getByRole("textbox", { name: "Add" }).fill("Bangladesh");
@@ -105,6 +105,7 @@ test("outreach: drafts wait for approval, a sent email's reply comes back as you
 }) => {
   // The fake stack's mailbox never touches the network; Lybarger answers on the next sync.
   await page.goto("/settings");
+  await page.getByRole("button", { name: "App password", exact: true }).click();
   await page.getByLabel("Your name").fill("Test Applicant");
   await page.getByLabel("Address").fill("me@example.com");
   await page.getByLabel("App password").fill("app-password");
@@ -397,16 +398,21 @@ test("your data: a backup holds everything and restores", async ({ request }) =>
   expect((await request.post("/api/backup", { data: { tables: {} } })).status()).toBe(400);
 });
 
-test("mailbox: sign in with Google through your own OAuth client", async ({ page }) => {
-  // The scripted stack skips Google's page and calls its own callback, which sends the browser
-  // back to Settings with the mailbox connected.
+test("mailbox: sign in with Google with nothing to set up", async ({ page }) => {
+  // The scripted stack has a Google client of its own, skips Google's page and calls its own
+  // callback, which sends the browser back to Settings with the mailbox connected.
   await page.goto("/settings");
   await page.getByTestId("mail-connected").getByRole("button", { name: "Disconnect" }).click();
-  await page.getByRole("button", { name: "Sign in with Google" }).click();
+  // Gmail opens on the app password; signing in is the other choice.
+  await expect(page.getByLabel("App password")).toBeVisible();
+  await page.getByRole("button", { name: "Sign in with Google", pressed: false }).click();
   const form = page.getByTestId("mail-signin");
+  await expect(form.getByLabel("Client ID")).toHaveCount(0);
+  // A user can still bring their own client.
+  await form.getByRole("button", { name: "Use my own client" }).click();
+  await expect(form.getByLabel("Client ID")).toBeVisible();
+  await form.getByRole("button", { name: "Use gradcode's client" }).click();
   await form.getByLabel("Your name").fill("Test Applicant");
-  await form.getByLabel("Client ID").fill("cid.apps.googleusercontent.com");
-  await form.getByLabel("Client secret").fill("client-secret");
   await form.getByRole("button", { name: "Sign in with Google" }).click();
   await expect(page).toHaveURL(/\/settings$/);
   await expect(page.getByTestId("mail-connected")).toContainText("applicant@example.com");

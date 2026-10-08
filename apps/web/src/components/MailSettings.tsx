@@ -9,7 +9,8 @@ import { useStore } from "~/state/store";
 
 // Providers that take an app password over IMAP and SMTP; "Other" covers any host that still
 // allows them. Gmail can also sign in with Google; Outlook.com dropped app passwords, so it only
-// signs in with Microsoft. Both sign-ins use the install's own OAuth client.
+// signs in with Microsoft. Sign-in uses gradcode's own OAuth client when it has one, or the
+// user's.
 const PRESETS = {
   gmail: { label: "Gmail", imap: ["imap.gmail.com", 993], smtp: ["smtp.gmail.com", 465] },
   outlook: {
@@ -32,22 +33,32 @@ const PROVIDER_LABEL = { google: "Google", microsoft: "Microsoft" } as const sat
   MailProvider,
   string
 >;
-const SIGN_IN_HELP = {
+const OWN_CLIENT_HELP = {
   google:
-    "Uses your own Google OAuth client: a Desktop app in Google Cloud with the Gmail scope (https://mail.google.com/). Publish its consent screen so the sign-in doesn't expire every 7 days.",
+    "Your own Google OAuth client: a Desktop app in Google Cloud with the Gmail scope (https://mail.google.com/). Publish its consent screen so the sign-in doesn't expire every 7 days.",
   microsoft:
-    "Uses your own Azure app: allow personal accounts, and add the Mobile and desktop platform with redirect http://localhost.",
+    "Your own Azure app: allow personal accounts, and add the Mobile and desktop platform with redirect http://localhost.",
+} as const satisfies Record<MailProvider, string>;
+// What the provider shows before gradcode's own client is verified.
+const SHARED_CLIENT_HELP = {
+  google: "Google will say gradcode isn't verified yet. Choose Advanced, then Go to gradcode.",
+  microsoft: "",
 } as const satisfies Record<MailProvider, string>;
 
+const textLink = "text-foreground underline underline-offset-2";
+
 /**
- * Sign in with Google or Microsoft through this install's own OAuth client. The provider's page
- * opens in this tab and sends it back to Settings with the mailbox connected.
+ * Sign in with Google or Microsoft. With gradcode's own client (`shared`) it takes only a name;
+ * otherwise, or on request, the user's own client. The provider's page opens in this tab and
+ * sends it back to Settings with the mailbox connected.
  */
-function SignInForm({ provider }: { provider: MailProvider }) {
+function SignInForm({ provider, shared }: { provider: MailProvider; shared: boolean }) {
   const [form, setForm] = useState({ name: "", clientId: "", clientSecret: "" });
+  const [ownClient, setOwnClient] = useState(!shared);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const google = provider === "google";
+  const client = ownClient ? form : { clientId: "", clientSecret: "" };
   return (
     <form
       data-testid="mail-signin"
@@ -59,7 +70,8 @@ function SignInForm({ provider }: { provider: MailProvider }) {
         try {
           const { url } = await call("mail.signIn", {
             provider,
-            ...form,
+            name: form.name,
+            ...client,
             returnTo: window.location.href,
           });
           window.location.assign(url);
@@ -76,33 +88,51 @@ function SignInForm({ provider }: { provider: MailProvider }) {
         value={form.name}
         onChange={(e) => setForm({ ...form, name: e.target.value })}
       />
-      <Input
-        size="compact"
-        aria-label="Client ID"
-        placeholder={google ? "OAuth client ID" : "Application (client) ID"}
-        value={form.clientId}
-        onChange={(e) => setForm({ ...form, clientId: e.target.value.trim() })}
-      />
-      {google ? (
-        <Input
-          size="compact"
-          type="password"
-          aria-label="Client secret"
-          placeholder="OAuth client secret"
-          value={form.clientSecret}
-          onChange={(e) => setForm({ ...form, clientSecret: e.target.value.trim() })}
-        />
+      {ownClient ? (
+        <>
+          <Input
+            size="compact"
+            aria-label="Client ID"
+            placeholder={google ? "OAuth client ID" : "Application (client) ID"}
+            value={form.clientId}
+            onChange={(e) => setForm({ ...form, clientId: e.target.value.trim() })}
+          />
+          {google ? (
+            <Input
+              size="compact"
+              type="password"
+              aria-label="Client secret"
+              placeholder="OAuth client secret"
+              value={form.clientSecret}
+              onChange={(e) => setForm({ ...form, clientSecret: e.target.value.trim() })}
+            />
+          ) : null}
+          <span className="text-muted-foreground text-xs">{OWN_CLIENT_HELP[provider]}</span>
+        </>
+      ) : SHARED_CLIENT_HELP[provider] ? (
+        <span className="text-muted-foreground text-xs">{SHARED_CLIENT_HELP[provider]}</span>
       ) : null}
-      <span className="text-muted-foreground text-xs">{SIGN_IN_HELP[provider]}</span>
       {error ? <span className="text-destructive-foreground text-xs">{error}</span> : null}
-      <div>
+      <div className="flex flex-wrap items-center gap-2">
         <Button
           type="submit"
           size="xs"
-          disabled={busy || !form.name || !form.clientId || (google && !form.clientSecret)}
+          disabled={
+            busy || !form.name || (ownClient && (!form.clientId || (google && !form.clientSecret)))
+          }
         >
           {busy ? "Opening" : `Sign in with ${PROVIDER_LABEL[provider]}`}
         </Button>
+        {shared ? (
+          <Button
+            type="button"
+            size="xs"
+            variant="ghost-muted"
+            onClick={() => setOwnClient(!ownClient)}
+          >
+            {ownClient ? "Use gradcode's client" : "Use my own client"}
+          </Button>
+        ) : null}
       </div>
     </form>
   );
@@ -112,11 +142,14 @@ function SignInForm({ provider }: { provider: MailProvider }) {
 export function MailSettings() {
   const mail = useStore((s) => s.app?.mail);
   const [preset, setPreset] = useState<Preset>("gmail");
+  // Gmail opens on the app password: free, no user cap, no warning screen. Signing in with
+  // Google is one click away (a shared client serves 100 users, ever, until Google verifies it).
   const [signIn, setSignIn] = useState(false);
   const [form, setForm] = useState({ name: "", address: "", password: "" });
   const [hosts, setHosts] = useState({ imapHost: "", imapPort: 993, smtpHost: "", smtpPort: 465 });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
   if (!mail) return null;
 
   const run = async (work: () => Promise<unknown>) => {
@@ -131,6 +164,8 @@ export function MailSettings() {
     }
   };
 
+  // Who signed this box in, for "Sign in again"; null for an app password.
+  const signedInWith = mail.via === "password" ? null : mail.via;
   if (mail.connected)
     return (
       <div className="flex flex-wrap items-center gap-2" data-testid="mail-connected">
@@ -146,6 +181,56 @@ export function MailSettings() {
         {mail.error ? (
           <span className="text-destructive-foreground text-xs">{mail.error}</span>
         ) : null}
+        {/* Signed out: one step back in. The mailbox, its warm-up and its queue stay. */}
+        {mail.signedOut && signedInWith ? (
+          <Button
+            size="xs"
+            disabled={busy}
+            onClick={() =>
+              void run(async () => {
+                const { url } = await call("mail.signIn", {
+                  provider: signedInWith,
+                  name: mail.name,
+                  clientId: "",
+                  clientSecret: "",
+                  returnTo: window.location.href,
+                });
+                window.location.assign(url);
+              })
+            }
+          >
+            Sign in again
+          </Button>
+        ) : null}
+        {mail.signedOut && !signedInWith ? (
+          <form
+            className="flex items-center gap-1.5"
+            onSubmit={(e) => {
+              e.preventDefault();
+              // Google shows an app password in groups of four; the spaces aren't part of it.
+              const password = mail.imapHost.includes("gmail")
+                ? newPassword.replace(/\s/g, "")
+                : newPassword;
+              void run(async () => {
+                await call("mail.repassword", { password });
+                setNewPassword("");
+              });
+            }}
+          >
+            <Input
+              size="compact"
+              type="password"
+              aria-label="New app password"
+              placeholder="New app password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
+            <Button size="xs" type="submit" disabled={busy || !newPassword}>
+              Save
+            </Button>
+          </form>
+        ) : null}
+        {error ? <span className="text-destructive-foreground text-xs">{error}</span> : null}
         <Button
           size="xs"
           variant="ghost-muted"
@@ -166,11 +251,14 @@ export function MailSettings() {
     );
 
   const p = PRESETS[preset];
+  // Google shows an app password in groups of four; the spaces aren't part of it.
+  const password = preset === "gmail" ? form.password.replace(/\s/g, "") : form.password;
   const login: MailConnect =
     preset === "other"
-      ? { ...form, ...hosts }
+      ? { ...form, password, ...hosts }
       : {
           ...form,
+          password,
           imapHost: p.imap[0],
           imapPort: p.imap[1],
           smtpHost: p.smtp[0],
@@ -201,13 +289,21 @@ export function MailSettings() {
         </div>
       ) : null}
       {signingIn ? (
-        <SignInForm key={provider} provider={provider} />
+        <SignInForm
+          key={provider}
+          provider={provider}
+          shared={mail.sharedClients.includes(provider)}
+        />
       ) : (
         <form
           className="flex flex-col gap-2"
           onSubmit={(e) => {
             e.preventDefault();
-            void run(() => call("mail.connect", login));
+            void run(async () => {
+              await call("mail.connect", login);
+              // The server keeps the password; the page doesn't hold on to it.
+              setForm({ ...form, password: "" });
+            });
           }}
         >
           <Input
@@ -264,6 +360,28 @@ export function MailSettings() {
                 onChange={(e) => setHosts({ ...hosts, smtpPort: Number(e.target.value) })}
               />
             </div>
+          ) : preset === "gmail" ? (
+            <span className="text-muted-foreground text-xs">
+              Needs{" "}
+              <a
+                className={textLink}
+                href="https://myaccount.google.com/signinoptions/twosv"
+                target="_blank"
+                rel="noreferrer"
+              >
+                2-Step Verification
+              </a>
+              . Then{" "}
+              <a
+                className={textLink}
+                href="https://myaccount.google.com/apppasswords"
+                target="_blank"
+                rel="noreferrer"
+              >
+                create an app password
+              </a>{" "}
+              named gradcode and paste it here.
+            </span>
           ) : (
             <span className="text-muted-foreground text-xs">
               {p.imap[0]} · {p.smtp[0]}

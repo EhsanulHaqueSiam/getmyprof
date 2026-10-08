@@ -152,6 +152,12 @@ const professorFields = {
     .describe("Why they fit this applicant, citing a confirmed fact"),
   website: z.string().optional(),
   sources: z.array(z.string()).min(1).describe("URLs backing every value you set"),
+  linkedin: z
+    .string()
+    .optional()
+    .describe(
+      "Their LinkedIn profile URL (https://www.linkedin.com/in/...), only when their own page links it or a search shows it is them",
+    ),
 };
 
 export const HUNT_TOOLS = [
@@ -305,11 +311,11 @@ export const HUNT_TOOLS = [
   ...DISCOVERY_TOOLS,
   define({
     name: "treg",
-    description: `Paid data lookups through treg, for when free sources fail. Allowed endpoints, usual USD per call and the most one call may cost: ${Object.entries(
+    description: `Paid data lookups through treg, for when free sources fail. Allowed endpoints with their data fields, usual USD per call and the most one call may cost:\n${Object.entries(
       TREG_ENDPOINTS,
     )
-      .map(([e, p]) => `${e} $${p.usd}${p.max > p.usd ? ` (up to $${p.max})` : ""}`)
-      .join(", ")}. Calls over the applicant's limit wait for approval.`,
+      .map(([e, p]) => `- ${e} {${p.args}} $${p.usd}${p.max > p.usd ? ` (up to $${p.max})` : ""}`)
+      .join("\n")}\nCalls over the applicant's limit wait for approval.`,
     shape: {
       endpoint: z.string(),
       data: z

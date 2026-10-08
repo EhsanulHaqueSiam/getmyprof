@@ -1,10 +1,11 @@
-// The one place gradcode talks to treg. Every paid lookup goes through tregCall: it tags the call
-// with this install's customer (from the saved login, never from the model), caps it at the
-// budget left, and returns what it really cost under treg's call id for the spend ledger.
-// The login is a token pinned to customer=<id>, minted by scripts/treg-admin.ts.
+// The one place gradcode makes paid lookups. Every one goes through tregCall: it tags the call
+// with its hunt, thread and feature (from context, never from the model), caps it at the budget
+// left, and returns what it really cost under treg's call id for the spend ledger. The login is
+// the user's own team key, or a key a team issued to them, pinned by treg to their customer id
+// (treg-org.ts mints them). Account and team management lives in treg-org.ts.
 import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
-import { TagValue, TregConnect } from "@gradcode/contracts";
+import { TagValue } from "@gradcode/contracts";
 import { z } from "zod";
 import { homeDir } from "./db.ts";
 import { asRecord } from "./sources.ts";
@@ -12,44 +13,145 @@ import { asRecord } from "./sources.ts";
 export const TREG_BASE = "https://treg.to";
 
 /**
- * treg endpoints gradcode may call: method, usual price and the most one call may cost (USD).
+ * The vendor list: treg endpoints gradcode may call, with method, usual price, the most one call
+ * may cost (USD) and the arguments the agent sends (from treg's catalog, checked 2026-10-07).
  * Routed endpoints try providers in turn, so a call can cost more than the usual price; `max`
  * goes out as X-Treg-Route-Max-Cost, and treg refuses rather than charge more.
  */
-export const TREG_ENDPOINTS: Record<string, { method: "GET" | "POST"; usd: number; max: number }> =
-  {
-    "treg.people.email.verify": { method: "POST", usd: 0, max: 0.014 },
-    "treg.people.search": { method: "POST", usd: 0, max: 0.05 },
-    "apollo.people.search": { method: "POST", usd: 0, max: 0 },
-    "getleadsio.people.enrich.from_linkedin": { method: "POST", usd: 0, max: 0.01 },
-    "tinyfish.web.search": { method: "GET", usd: 0, max: 0 },
-    "litescrape.web.fetch.post": { method: "POST", usd: 0.00015, max: 0.00015 },
-    // The member id LinkedIn's message box needs (outreach/linkedin.ts).
-    "fetchinio.linkedin.user.profile": { method: "GET", usd: 0.0015, max: 0.0015 },
-    "anyapi.linkedin.search.jobs": { method: "POST", usd: 0.0005, max: 0.0005 },
-    "treg.x.search.posts": { method: "POST", usd: 0.00075, max: 0.015 },
-    "anyapi.x.search.posts": { method: "POST", usd: 0.00075, max: 0.00075 },
-    "treg.google.serp.organic": { method: "POST", usd: 0.0009, max: 0.015 },
-    "serper.google.serp.scholar": { method: "POST", usd: 0.001, max: 0.001 },
-    "anyapi.google.scholar": { method: "POST", usd: 0.001, max: 0.001 },
-    "tikhub.x.reddit-app-fetch-dynamic-search": { method: "GET", usd: 0.001, max: 0.001 },
-    "millionverifier.people.email.verify": { method: "GET", usd: 0.0018, max: 0.0018 },
-    "bounceban.people.email.verify": { method: "GET", usd: 0.004, max: 0.004 },
-    "treg.people.email.find": { method: "POST", usd: 0.0048, max: 0.05 },
-    "exa.web.answer": { method: "POST", usd: 0.005, max: 0.005 },
-    "exa.web.search.publications": { method: "POST", usd: 0.007, max: 0.007 },
-    "exa.people.search": { method: "POST", usd: 0.007, max: 0.007 },
-    "treg.web.extract.structured": { method: "POST", usd: 0.01, max: 0.011 },
-    "prospeo.people.email.find": { method: "POST", usd: 0.0245, max: 0.0245 },
-  };
+export const TREG_ENDPOINTS: Record<
+  string,
+  { method: "GET" | "POST"; usd: number; max: number; args: string }
+> = {
+  "treg.people.email.verify": { method: "POST", usd: 0, max: 0.014, args: "email" },
+  "treg.people.search": {
+    method: "POST",
+    usd: 0,
+    max: 0.05,
+    args: "full_name or title, company_domain, keywords[], country, limit",
+  },
+  "apollo.people.search": {
+    method: "POST",
+    usd: 0,
+    max: 0,
+    args: "person_titles[], q_organization_domains_list[], person_locations[], per_page",
+  },
+  "getleadsio.people.enrich.from_linkedin": {
+    method: "POST",
+    usd: 0,
+    max: 0.01,
+    args: "items: [{linkedin_url}]",
+  },
+  "tinyfish.web.search": {
+    method: "GET",
+    usd: 0,
+    max: 0,
+    args: 'query, domain_type: "web", location',
+  },
+  "tinyfish.web.fetch": {
+    method: "POST",
+    usd: 0,
+    max: 0,
+    args: 'urls[] (up to 10), format: "markdown", links',
+  },
+  // The member id LinkedIn's message box needs (outreach/linkedin.ts).
+  "fetchinio.linkedin.user.profile": {
+    method: "GET",
+    usd: 0.0015,
+    max: 0.0015,
+    args: "profileUrlOrUrn (a profile URL)",
+  },
+  "litescrape.web.fetch.post": {
+    method: "POST",
+    usd: 0.00015,
+    max: 0.00015,
+    args: 'url, respond_with: "markdown" (renders JavaScript)',
+  },
+  "crawl4ai.web.scrape": {
+    method: "POST",
+    usd: 0.00015,
+    max: 0.001,
+    args: 'url, format: "md" (PDFs too)',
+  },
+  "anyapi.linkedin.search.jobs": {
+    method: "POST",
+    usd: 0.0005,
+    max: 0.0005,
+    args: "query, location, limit",
+  },
+  "treg.x.search.posts": { method: "POST", usd: 0.00075, max: 0.015, args: "q" },
+  "anyapi.x.search.posts": { method: "POST", usd: 0.00075, max: 0.00075, args: "query, limit" },
+  "treg.google.serp.organic": {
+    method: "POST",
+    usd: 0.0009,
+    max: 0.015,
+    args: "q, country, limit",
+  },
+  "serper.google.serp.scholar": { method: "POST", usd: 0.001, max: 0.001, args: "q" },
+  "anyapi.google.scholar": { method: "POST", usd: 0.001, max: 0.001, args: "query" },
+  "tikhub.x.reddit-app-fetch-dynamic-search": {
+    method: "GET",
+    usd: 0.001,
+    max: 0.001,
+    args: 'query, search_type: "post"',
+  },
+  "millionverifier.people.email.verify": {
+    method: "GET",
+    usd: 0.0018,
+    max: 0.0018,
+    args: "email",
+  },
+  "bounceban.people.email.verify": { method: "GET", usd: 0.004, max: 0.004, args: "email" },
+  "treg.people.email.find": {
+    method: "POST",
+    usd: 0.0048,
+    max: 0.05,
+    args: "full_name and domain, or linkedin_url",
+  },
+  "exa.web.answer": { method: "POST", usd: 0.005, max: 0.005, args: "query" },
+  "exa.web.search.publications": {
+    method: "POST",
+    usd: 0.007,
+    max: 0.007,
+    args: 'query, category: "publication", numResults',
+  },
+  "exa.people.search": {
+    method: "POST",
+    usd: 0.007,
+    max: 0.007,
+    args: 'query, category: "people", numResults',
+  },
+  "treg.web.extract.structured": {
+    method: "POST",
+    usd: 0.01,
+    max: 0.011,
+    args: "url, instruction, schema (JSON Schema)",
+  },
+  "prospeo.people.email.find": {
+    method: "POST",
+    usd: 0.0245,
+    max: 0.0245,
+    args: "only_verified_email: true, enrich_mobile: false, only_verified_mobile: false, data: {full_name, company_website}",
+  },
+};
 
-export type TregLogin = TregConnect;
+/**
+ * The saved login: the key, and who treg said it is when it connected. `customer` is the
+ * customer a team's key was issued to (typed by hand in logins saved before treg's pin carried it).
+ */
+export const TregLogin = z.object({
+  token: z.string(),
+  customer: TagValue.optional(),
+  org: z.string().default(""),
+  role: z.string().default("member"),
+  issued: z.boolean().default(true),
+});
+export type TregLogin = z.input<typeof TregLogin>;
 
 const loginPath = () => NodePath.join(homeDir(), "treg.json");
 
-export function readTregLogin(): TregLogin | null {
+export function readTregLogin() {
   try {
-    return TregConnect.parse(JSON.parse(NodeFS.readFileSync(loginPath(), "utf8")));
+    return TregLogin.parse(JSON.parse(NodeFS.readFileSync(loginPath(), "utf8")));
   } catch {
     return null;
   }
@@ -64,19 +166,12 @@ export function saveTregLogin(login: TregLogin) {
 
 export const removeTregLogin = () => NodeFS.rmSync(loginPath(), { force: true });
 
-/** Whether treg accepts this token: a free, authenticated read that reaches no provider. */
-export async function checkTregToken(token: string, fetchFn: typeof fetch = fetch) {
-  const r = await fetchFn(`${TREG_BASE}/tools`, { headers: { "X-Treg-Token": token } });
-  if (r.status === 401 || r.status === 403) throw new Error("treg refused this token");
-  if (!r.ok) throw new Error(`treg answered ${r.status}; try again`);
-}
-
 export type TregRequest = {
   endpoint: string;
   data: Record<string, unknown>;
   /** The most this call may cost, in USD: the endpoint's max or the budget left, whichever is lower. */
   maxUsd: number;
-  /** What the call is for. The customer is added from the login. */
+  /** What the call is for. treg adds the customer an issued key is pinned to. */
   tags: { thread: string; feature: string; hunt?: string | undefined };
 };
 
@@ -155,7 +250,12 @@ export async function tregCall(
       stop: true,
     };
 
-  const tags = { customer: login.customer, ...req.tags };
+  // customer_feature lets the team's Customers page split each customer's spend by feature.
+  const tags = {
+    customer: login.customer,
+    ...req.tags,
+    customer_feature: login.customer && `${login.customer}.${req.tags.feature}`,
+  };
   const meta = Object.entries(tags)
     .filter(([, v]) => v && TagValue.safeParse(v).success)
     .map(([k, v]) => `${k}=${v}`)
@@ -195,7 +295,9 @@ export async function tregCall(
       };
     }
     const callId = r.headers.get("x-treg-call-id");
-    const costUsd = Number(r.headers.get("x-treg-cost-micro") ?? 0) / 1e6;
+    // A replay of an attempt whose answer was lost reports 0 and carries the first charge apart.
+    const micro = r.headers.get("x-treg-original-cost-micro") ?? r.headers.get("x-treg-cost-micro");
+    const costUsd = Number(micro ?? 0) / 1e6;
     const raw = await r.text();
     let body: unknown = raw;
     try {

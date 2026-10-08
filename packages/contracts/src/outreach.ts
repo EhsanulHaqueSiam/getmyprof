@@ -9,6 +9,7 @@ import {
   Professor,
   uncitedClaims,
   unbackedScore,
+  stripCitations,
 } from "./domain.ts";
 import { AppStatus, Offer } from "./vault.ts";
 
@@ -108,14 +109,17 @@ export const Conversation = z.object({
 });
 export type Conversation = z.infer<typeof Conversation>;
 
-/** Mailboxes that sign in with OAuth, each install with its own client, instead of an app password. */
+/** Mailboxes that sign in with OAuth instead of an app password. */
 export const MailProvider = z.enum(["google", "microsoft"]);
 export type MailProvider = z.infer<typeof MailProvider>;
 
-/** Starts a mailbox sign-in. `returnTo` is the Settings page the browser comes back to. */
+/**
+ * Starts a mailbox sign-in. An empty `clientId` uses gradcode's own client for the provider;
+ * a user can bring theirs instead. `returnTo` is the Settings page the browser comes back to.
+ */
 export const MailSignIn = z.object({
   provider: MailProvider,
-  clientId: z.string().min(1),
+  clientId: z.string(),
   clientSecret: z.string(),
   name: z.string().min(1),
   returnTo: z.string(),
@@ -135,8 +139,12 @@ export const MailStatus = z.object({
   warmupStart: z.string().nullable(),
   lastSyncAt: z.string().nullable(),
   error: z.string(),
+  /** The login stopped working (sign-in ended, app password revoked): sign in again. */
+  signedOut: z.boolean(),
   /** How many first emails and follow-ups may go out today under the warm-up. */
   dailyCap: z.number(),
+  /** Providers gradcode has its own OAuth client for: signing in needs no setup. */
+  sharedClients: z.array(MailProvider),
 });
 export type MailStatus = z.infer<typeof MailStatus>;
 
@@ -171,6 +179,9 @@ export function draftIssues(
   for (const claim of uncitedClaims(m.body))
     issues.push(`"${claim.length > 60 ? `${claim.slice(0, 57)}...` : claim}" cites no fact`);
   if ((m.body.match(/https?:\/\/\S+/g) ?? []).length > 2) issues.push("more than two links");
+  // Not connected yet, it goes as a connection request's note: 200 characters on a free account.
+  if (m.channel === "linkedin" && m.touch === "first" && stripCitations(m.body).trim().length > 200)
+    issues.push("a first LinkedIn note over 200 characters won't fit a connection request");
   const cold = m.touch !== "reply" && m.touch !== "thank-you";
   if (m.channel === "email" && cold && !addressChecked(ctx.emailCheck))
     issues.push("the address isn't checked yet: run Find and check emails");

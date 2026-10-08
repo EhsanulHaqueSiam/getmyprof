@@ -1,16 +1,16 @@
 import * as NodeCrypto from "node:crypto";
 import { describe, expect, it } from "vite-plus/test";
-import { accessToken, finishSignIn, startSignIn } from "./oauth.ts";
+import { accessToken, finishSignIn, SignedOut, startSignIn } from "./oauth.ts";
 
 const idToken = (claims: object) =>
   `x.${Buffer.from(JSON.stringify(claims)).toString("base64url")}.y`;
 
 /** A token endpoint that records each form it got and answers from a list. */
-function tokenEndpoint(answers: object[]) {
+function tokenEndpoint(answers: object[], status = 200) {
   const forms: URLSearchParams[] = [];
   const f = async (_url: string | URL | Request, init?: RequestInit) => {
     forms.push(new URLSearchParams(String(init?.body)));
-    return Response.json(answers.shift());
+    return Response.json(answers.shift(), { status });
   };
   return { f: f as typeof fetch, forms };
 }
@@ -54,6 +54,24 @@ describe("mailbox sign-in", () => {
     await expect(finishSignIn(q.get("state")!, "code-1", f)).rejects.toThrow(/expired/);
   });
 
+  it("signs in through gradcode's own client unless the user brings one", () => {
+    const start = (
+      clientId: string,
+      shared: Parameters<typeof startSignIn>[2] = {
+        google: { id: "shared.apps", secret: "s" },
+        microsoft: null,
+      },
+    ) =>
+      startSignIn(
+        { provider: "google", clientId, clientSecret: "", name: "Ada", returnTo: "" },
+        4311,
+        shared,
+      );
+    expect(new URL(start("")).searchParams.get("client_id")).toBe("shared.apps");
+    expect(new URL(start("mine.apps")).searchParams.get("client_id")).toBe("mine.apps");
+    expect(() => start("", { google: null, microsoft: null })).toThrow(/client ID/);
+  });
+
   it("refreshes the access token once and reuses it until it nearly expires", async () => {
     const { f, forms } = tokenEndpoint([{ access_token: "a1", expires_in: 3600 }]);
     const login = {
@@ -67,5 +85,19 @@ describe("mailbox sign-in", () => {
     expect(forms).toHaveLength(1);
     // A public Azure client sends no secret.
     expect(forms[0]!.has("client_secret")).toBe(false);
+  });
+
+  it("calls an ended sign-in signed out, so Settings can offer to sign in again", async () => {
+    const { f } = tokenEndpoint(
+      [{ error: "invalid_grant", error_description: "Token has been expired or revoked." }],
+      400,
+    );
+    const login = {
+      provider: "google" as const,
+      clientId: "c",
+      clientSecret: "s",
+      refreshToken: "gone",
+    };
+    await expect(accessToken(login, f)).rejects.toBeInstanceOf(SignedOut);
   });
 });

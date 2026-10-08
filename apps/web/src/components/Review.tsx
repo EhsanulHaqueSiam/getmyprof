@@ -10,6 +10,7 @@ import { call } from "~/rpc/client";
 const FIELD_LABEL: Record<string, string> = {
   emailCheck: "email check",
   fitsBecause: "fits because",
+  linkedin: "LinkedIn",
 };
 
 /** Pending proposals as field diffs. Accept writes to the sheet; reject drops it (and the person, for an add). */

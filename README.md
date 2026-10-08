@@ -1,180 +1,138 @@
 # getmyprof
 
-An app for anyone hunting a funded degree. Every thread is a Claude Code session
-on your own subscription, with free sources (NSF and NIH awards, UKRI, CORDIS, ARC, DFG and
-NSERC grants, OpenAlex, CSRankings, web search and faculty pages) and optional paid lookups
-through treg. It finds
-professors who can fund you and the money behind them, then carries you through outreach,
-applications and offers. Siam's install also reads hq and `~/Personal/gradhunt`, so Scout and the
-cloud outreach routine keep working.
+Find professors who can fund your degree, and the money behind them. Then reach out, apply and
+compare offers. It runs on your machine, on your own Claude subscription.
 
-Design and the full spec, three required pages: the main spec
-[docs/mocks/phase1.html](docs/mocks/phase1.html), the applicant's
-[journey](docs/mocks/journey.html), and the
-[Pipeline, Vault and Writer](docs/mocks/outreach-vault.html).
+[![npm](https://img.shields.io/npm/v/getmyprof?style=flat-square&color=000&label=npm)](https://www.npmjs.com/package/getmyprof)
+[![release](https://img.shields.io/github/v/release/EhsanulHaqueSiam/getmyprof?style=flat-square&color=000)](https://github.com/EhsanulHaqueSiam/getmyprof/releases/latest)
+![macOS and Linux](https://img.shields.io/badge/macOS%20%7C%20Linux-000?style=flat-square)
+
+![A hunt: ask, allow a paid lookup, review what it found, see the grid](docs/screenshots/hunt.gif)
 
 ## Install
 
-getmyprof runs on macOS and Linux. The agent is Claude Code on your own Claude subscription: sign
-in from Setup's Connect step, or with `getmyprof login`. Your data stays in `~/.getmyprof`.
-
-### npm
-
-With Node 24 or newer:
+macOS or Linux, with Node 24 or newer:
 
 ```sh
-npx getmyprof@latest       # try it, nothing to install
-npm install -g getmyprof   # or keep the getmyprof command
+npx getmyprof@latest
+```
+
+Keep the command:
+
+```sh
+npm install -g getmyprof
 getmyprof
 ```
 
-npm brings the Claude Code binary for your machine along with it. Update with
-`npm install -g getmyprof@latest`.
-
-### Without Node
+No Node? This one brings its own:
 
 ```sh
 curl -fsSL https://github.com/EhsanulHaqueSiam/getmyprof/releases/latest/download/install.sh | sh
 ```
 
-It brings its own Node. The first run downloads Claude Code (about 100 MB, straight from npm,
-checked against its published checksum) into `~/.getmyprof`. `getmyprof update` moves to the newest
-release.
-
-### Commands
-
-| Command            | What it does                                                        |
-| ------------------ | ------------------------------------------------------------------- |
-| `getmyprof`        | starts it and opens it in your browser; Ctrl-C stops it             |
-| `getmyprof serve`  | keeps it running in the background                                  |
-| `getmyprof stop`   | stops the background server                                         |
-| `getmyprof login`  | signs in to Claude in the terminal                                  |
-| `getmyprof update` | installs the newest release (from npm: `npm i -g getmyprof@latest`) |
-
-With npx, the command goes after the package: `npx getmyprof@latest serve`. It opens at
-http://127.0.0.1:4350 when that port is free, and says when a new version is out. Set
-`GETMYPROF_HOME` to keep your data somewhere else.
-
 ### Desktop app
 
-Install the latest version from
-[GitHub Releases](https://github.com/EhsanulHaqueSiam/getmyprof/releases/latest) or with one of the
-commands below. The app tells you when there's a new version. The Mac app and the AppImage install
-it in one click; a `.deb` install opens the release so you can download the new `.deb`.
-
-The one-liner with `--desktop` installs the app instead: `getmyprof.app` in Applications on a Mac,
-or the AppImage with a menu entry on Linux.
-
 ```sh
+# the Mac app, or the Linux AppImage with a menu entry
 curl -fsSL https://github.com/EhsanulHaqueSiam/getmyprof/releases/latest/download/install.sh | sh -s -- --desktop
-```
 
-#### macOS (Homebrew)
-
-```sh
+# Mac, with Homebrew
 brew install --cask EhsanulHaqueSiam/tap/getmyprof
-```
 
-The Mac app isn't notarized yet. Homebrew and the one-liner handle that; after dragging a
-downloaded dmg (`arm64` for Apple Silicon, `x64` for Intel) to Applications, run
-`xattr -dr com.apple.quarantine /Applications/getmyprof.app` once.
-
-#### Debian, Ubuntu (`.deb`)
-
-Download the `.deb` from GitHub Releases, then:
-
-```sh
+# Debian, Ubuntu: download the .deb from Releases, then
 sudo apt install ./getmyprof_*.deb
 ```
 
-#### Any Linux, Arch included (AppImage)
+Any other Linux, Arch included: download the `.AppImage` from
+[Releases](https://github.com/EhsanulHaqueSiam/getmyprof/releases/latest), `chmod +x` it and run it.
+The Mac app isn't notarized yet. Homebrew and the one-liner handle that; a dmg dragged in from the
+browser needs `xattr -dr com.apple.quarantine /Applications/getmyprof.app` once.
 
-Download the `.AppImage` from GitHub Releases, `chmod +x` it and run it. It updates itself.
+### Update
 
-## Use it
+| Installed with              | Update                                                 |
+| --------------------------- | ------------------------------------------------------ |
+| npm                         | `npm install -g getmyprof@latest`                      |
+| the one-liner               | `getmyprof update`                                     |
+| Mac app, Homebrew, AppImage | Update, in the app                                     |
+| `.deb`                      | the app opens the release; `sudo apt install` that one |
 
-Install it (see [Install](#install)) or start it from source (see [Run it](#run-it)), and
-open it. The first run opens Setup:
+## Commands
 
-1. **Connect.** getmyprof runs on your own Claude Code login; Setup shows whose, or downloads
-   Claude Code on the first run and signs you in. Free sources are on. Paid lookups (people search, email finding) are optional: connect treg by signing in, or
-   paste a key someone gave you.
-2. **You.** Paste your CV. It becomes facts, each with its source; tick the ones that are right.
-   Anything it couldn't settle waits in Input as a question.
-3. **Your hunt.** Degree, intake, places, fields, the least funding you'd take, and what matters
-   most. Every hunt and loop reads these.
-4. **Detail and budget.** How much evidence to gather, and the most a thread, a loop run and a day
-   may spend. Anything over the ask line asks you first.
+| Command                         | What it does                                      |
+| ------------------------------- | ------------------------------------------------- |
+| `getmyprof`                     | starts it and opens your browser; Ctrl-C stops it |
+| `getmyprof serve`               | keeps it running in the background                |
+| `getmyprof stop`                | stops the background server                       |
+| `getmyprof login`               | signs in to Claude in the terminal                |
+| `getmyprof update`              | installs the newest release                       |
+| `getmyprof --version`, `--help` |                                                   |
 
-Then:
+With npx: `npx getmyprof@latest serve`. It opens at http://127.0.0.1:4350. Your data lives in
+`~/.getmyprof`; `GETMYPROF_HOME=/somewhere/else getmyprof` keeps it elsewhere.
 
-- **Hunt.** On New thread, say what to find ("funded NLP professors at UIC") or press 1 to 5 for a
-  starter. The agent searches grants, faculty pages and papers, and asks before paying.
-- **Review.** Every professor it finds waits in Review with its sources; Accept writes them to your
-  sheet. In a thread's Results, select rows and run Find and check emails, Check money, Taking
-  students? or Draft first emails.
-- **Reach out.** In Settings, connect your mailbox: a Gmail app password is free and takes two
-  minutes (Google's page is linked there). Drafts wait in Pipeline until you approve them. They go
-  at 08:00 the professor's time, Tuesday to Thursday, with follow-ups 7 and 14 business days later,
-  and replies come back as your turn. Without a checked address the agent drafts a short LinkedIn
-  note: Copy and open LinkedIn, send it there, then Mark sent.
-- **Apply.** The Vault keeps your facts, documents, programs and applications. The Writer drafts
-  statements and CVs that cite only facts you've proven; offers compare after rent.
-- **Keep it going.** Loops run hunts on a schedule. ⌘K jumps anywhere or runs an action. Settings
-  has a link and QR code to open it on your phone over Tailscale.
+## First run
 
-## Screenshots
+![Setup: your hunt](docs/screenshots/setup.png)
 
-Taken from the running app on the scripted agent (`GETMYPROF_AGENT=fake`), so the data is fixtures.
+1. **Connect.** Sign in to Claude. Paid lookups through treg are optional.
+2. **You.** Paste your CV and tick the facts that are right.
+3. **Your hunt.** Degree, intake, places, fields, the least funding you'd take.
+4. **Detail and budget.** How deep to dig, and the most it may spend.
 
-![A thread: the agent's work log, findings and Review](docs/screenshots/thread.png)
+## How it works
 
-| Pipeline inbox, by whose turn it is              | Pipeline board, by stage                      |
-| ------------------------------------------------ | --------------------------------------------- |
-| ![Pipeline inbox](docs/screenshots/pipeline.png) | ![Pipeline board](docs/screenshots/board.png) |
-| **Writer: every claim cites a fact**             | **Offers, compared after rent**               |
-| ![Writer](docs/screenshots/writer.png)           | ![Offers](docs/screenshots/offers.png)        |
+```mermaid
+flowchart LR
+  you(["You"]) -->|what to find| app["getmyprof<br/>on your machine"]
+  app <--> agent["Claude Code<br/>your subscription"]
+  agent --> free["Free sources<br/>NSF, NIH, UKRI, CORDIS, ARC,<br/>DFG, NSERC, OpenAlex,<br/>CSRankings, faculty pages"]
+  agent -.->|optional, asks first| treg["treg<br/>paid lookups"]
+  app --> db[("~/.getmyprof<br/>one SQLite file")]
+  app -->|you approve each send| mail["Your mailbox"]
+```
 
-![Loops on intervals, weekdays or webhooks](docs/screenshots/loops.png)
+Free sources cost nothing. A paid lookup costs cents, asks first above $0.01, and never passes your
+caps per thread, loop run and day.
 
-## What it does
+```mermaid
+flowchart LR
+  find["Find<br/>professors, money"] --> review["Review<br/>what it found"] --> reach["Reach out<br/>from your mailbox"] --> apply["Apply<br/>Vault, Writer"] --> decide["Decide<br/>offers after rent"]
+```
 
-| What                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Check                                                                                            |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| **First run.** Setup walks the hunt, your profile, eligibility and loops. The agent uses the Claude Code login already on the machine. Free sources need no keys; a treg key is optional.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | A fresh install with no keys finishes setup and starts a hunt.                                   |
-| **Profile from a CV.** The agent reads a CV and your profile links into facts, each with its source, and you confirm them. The agent, drafts and the Writer use only confirmed facts with proof. Siam's install reads hq.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | A confirmed fact without proof never reaches the agent or an export.                             |
-| **Hunt preferences.** Degree types, intake and fallback, places, fields and adjacent domains, funding floor, test waivers, what matters most, and your eligibility: citizenship, tests, GPA, fee budget, minimum stipend. Every turn and loop reads them.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Set the funding floor to full: every turn is told partly funded programs don't count.            |
-| **Detail level.** Brief, Standard or Deep for the install: 6, 10 or 12 Results columns, and how much evidence the agent gathers.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Brief shows 6 columns; Deep adds Fits because and Sources.                                       |
-| **Threads and the inbox sidebar.** Stream, stop, resume, fork, search; settle, snooze, auto-settle after 3 days; queue and steer; attach files. The agent asks you in Input when only you know. Ask mode answers from what it can read and changes and spends nothing. Runs on the host, so closing the laptop never stops a hunt.                                                                                                                                                                                                                                                                                                                                                                                                                                                     | End of day: every thread is settled, snoozed or working.                                         |
-| **Results and row actions.** Every thread has a Results grid. Select rows, or all of them, and run Find and check emails, Check money, Taking students? or Draft first emails from the dock; cells fill in place with what they cost.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Select 3 rows, Find and check emails: it asks first, and three Email cells fill with their cost. |
-| **Records and Review.** Field diffs, and nothing is accepted without you. Accepting writes the local store; on Siam's install, changes to gradhunt's rows also go through `scout.py set`. A rejected new professor never comes back.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Reject a professor; the next sweep doesn't propose them again.                                   |
-| **Finders and pages.** Professor finder with tier and school filters and row actions; funding finder over NSF, NIH, UKRI, CORDIS, ARC, DFG and NSERC, ranked by the months left after your intake and fit, with one-click Add PI, and the Vault's programs and fellowships beside it; professor pages where every fact shows its source and date, with grants, recent work and interests.                                                                                                                                                                                                                                                                                                                                                                                              | Every award in Funding shows how long it lasts after your intake.                                |
-| **Loops.** Every N hours, at a time on chosen weekdays, or on a webhook whose JSON fills the instructions. Each run gets a fresh thread or goes back to one; run now or pause. A loop's budget caps each run. Scope it to schools; propose only, or auto-accept what passes your rules (verified email, official source, fit 4+); each row says what its last run found and what 7 days found and cost.                                                                                                                                                                                                                                                                                                                                                                                | A nightly sweep runs with the laptop closed and waits in the morning.                            |
-| **Spend you control.** Every paid call is priced and logged at what it really cost; calls over $0.01 ask; caps per thread, per loop run and per day, which treg enforces per call. A thread over a cap carries on with free sources; a loop run stops and says why.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | A loop run at its cap ends with "Stopped: This would pass the $0.5 cap for this loop run."       |
-| **Paid lookups, billed per customer.** Connect treg by signing in, or paste a key someone issued you. Every call is tagged with the customer, hunt and feature by the server; Settings shows this month's spend. A team's owner runs its customers on the Customers page: keys, daily limits, blocks, auto top-up and invoices from treg's ledger.                                                                                                                                                                                                                                                                                                                                                                                                                                     | Connect a token: a lookup's cost shows in Settings and on treg's invoice for that customer.      |
-| **Pipeline.** Your own mailbox (a Gmail app password by default, free; or sign in with Google or Microsoft) or your mail app. Drafts cite your facts and fit the professor's money tier; one with an unproven or uncited claim, a third link or an unchecked address waits for a fix. Sends go Tuesday to Thursday at 08:00 the professor's time within warm-up caps; approve one, a day's worth, or all. Follow-ups at +7 and +14 business days, or your own timing; replies come back to the thread, update the record, and can attach your CV. Professors move through To contact, Contacted, Replied, Call, Applied and Offer; accepting an offer ends the hunt. LinkedIn is assisted: a short note opens their message box, and their answer comes back through LinkedIn's email. | Add "I led a team of five." to a draft: it can't be sent until you cite a fact or cut it.        |
-| **Vault and Writer.** Your Lifeline: add a CV, a link or a sentence and it becomes dated facts with proof; the panel shows a fact's note, your facts as a CV, or the file itself. Everything is also an OKF bundle on disk (like hq, openable in Obsidian) that the agent searches before it writes. Documents with expiry, scholarships, programs, applications and a To file inbox. The Writer drafts statements, CVs and essays citing your facts; an unproven claim, or one that cites nothing, blocks export to text, PDF or Word.                                                                                                                                                                                                                                                | Unconfirm a cited fact: export turns off until it has proof.                                     |
-| **After applying.** Interview prep packs, calendar files and thank-yous; offers compared after rent; negotiation letters; visa steps; reminders and thanks for recommenders.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Two offers side by side: the one leaving more after a year of rent is marked best.               |
-| **MCP both ways.** Other agents drive getmyprof at `/api/mcp` with a token. Your own MCP servers join every session and ask before each call unless you trust them.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Paste the config from Settings into another agent and search the sheet.                          |
-| **Your data stays yours.** One local SQLite file. A full backup of every table and Vault file downloads and restores in one click; professors also export and import as CSV. getmyprof sends no telemetry.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Download a backup, wipe, restore: nothing lost.                                                  |
-| **Polish bar.** ⌘K jumps to any view, thread, professor or school, runs actions (answer an approval, accept Review, approve drafts, run a loop) and searches what was said; j/k through threads, proposals and rows, a/r/⇧A, ↵/esc on approvals, ⌘↵ steer, ⌘. stop, ⌘1 to 3 panel tabs; one-shot motion, nothing animates forever. On a phone, open the tailnet link or scan its QR code in Settings: the sidebar and panel open over the page to read and approve.                                                                                                                                                                                                                                                                                                                    | Triage the thread list without the mouse.                                                        |
+| **Hunt**: ask in plain words; it searches grants, faculty pages, papers | **Results**: one grid per thread; act on the rows you pick |
+| ----------------------------------------------------------------------- | ---------------------------------------------------------- |
+| ![A thread](docs/screenshots/thread.png)                                | ![Results](docs/screenshots/results.png)                   |
+| **Funding**: awards from 7 funders, by months left after your intake    | **Professors**: your sheet, by fit, money and students     |
+| ![Funding](docs/screenshots/funding.png)                                | ![Professors](docs/screenshots/professors.png)             |
+| **Review**: nothing lands in your sheet without you                     | **Professor**: every fact with its source and date         |
+| ![Review](docs/screenshots/review.png)                                  | ![A professor](docs/screenshots/professor.png)             |
+| **Pipeline**: drafts wait for you; sends go at 08:00 their time         | **Board**: every professor by stage                        |
+| ![Pipeline](docs/screenshots/pipeline.png)                              | ![Board](docs/screenshots/board.png)                       |
+| **Vault**: your life as dated facts, with proof                         | **Writer**: statements and CVs citing only proven facts    |
+| ![Vault](docs/screenshots/vault.png)                                    | ![Writer](docs/screenshots/writer.png)                     |
+| **Offers**: compared after rent                                         | **Loops**: hunts on a schedule or a webhook                |
+| ![Offers](docs/screenshots/offers.png)                                  | ![Loops](docs/screenshots/loops.png)                       |
+| **⌘K**: jump anywhere, run any action                                   | **Settings**: detail, budget, treg, mailbox, MCP           |
+| ![Command menu](docs/screenshots/palette.png)                           | ![Settings](docs/screenshots/settings.png)                 |
 
-**Not yet**, against the original spec: `scout.py add` and `exclude` on Siam's install.
+<img src="docs/screenshots/phone.png" width="260" alt="On a phone" align="right">
 
-**By design:** no hosted service, no native phone app, no providers other than Claude, no shared
-hunts. On Siam's install, gradhunt's own rows stay with its cloud outreach routine.
+**On your phone.** Settings has a link and a QR code that open it over Tailscale.
 
-## Shape
+**Your data stays yours.** One SQLite file, backed up and restored in one click; professors export as
+CSV. No telemetry and no getmyprof server; mail goes from your own mailbox.
 
-A pnpm monorepo on Vite+ (`vp` for lint, format, test and staged hooks),
-TypeScript 7, React 19 with the React Compiler, TanStack Router, Zustand, Base UI with a vendored
-`components/ui` kit (MIT, notice kept), Tailwind v4, lucide icons and zod contracts. A local Node
-server runs the agent sessions, loops and the send queue; everything lives in one SQLite file
-under `~/.getmyprof`. How the pieces fit: [docs/internals/overview.md](docs/internals/overview.md).
+**Other agents** drive it over MCP at `/api/mcp`, with the config Settings gives you.
 
-## Run it
+Every feature, with the check that proves it: [docs/features.md](docs/features.md).
 
-From source, to change it or contribute. Needs tmux, and [Vite+](https://viteplus.dev) (which brings Node and pnpm) or Node 24+ with pnpm.
+<br clear="right">
+
+## Develop
+
+Needs tmux, and [Vite+](https://viteplus.dev) or Node 24+ with pnpm. React 19, TanStack Router,
+Zustand, Tailwind v4 and zod; a Node server runs the agent sessions, loops and the send queue.
 
 ```sh
 curl -fsSL https://vite.plus | bash   # Vite+, once
@@ -183,21 +141,29 @@ scripts/dev-local.sh up               # server :4311 + web http://127.0.0.1:5174
 scripts/dev-local.sh share            # open it from your phone over Tailscale
 scripts/dev-local.sh down
 
-# tests: unit, then e2e on a fresh stack with the scripted agent (free, deterministic)
-pnpm test
-scripts/dev-local.sh down
+pnpm lint && pnpm typecheck && pnpm test
+
+# e2e, on a fresh stack with the scripted agent (free, deterministic)
 rm -rf /tmp/gc-e2e && GETMYPROF_HOME=/tmp/gc-e2e GETMYPROF_AGENT=fake scripts/dev-local.sh up
 pnpm e2e
 ```
 
-The desktop app and the `getmyprof` command build into `dist/release`:
+Build what a release ships, into `dist/release`:
 
 ```sh
-pnpm dist runtime                       # web app, bundled server and CLI, Electron's main
+pnpm dist runtime                       # web app, bundled server and CLI
 pnpm dist cli darwin-arm64              # the command line tarball (also darwin-x64, linux-x64, linux-arm64)
-pnpm dist desktop mac arm64             # dmg + zip, on a Mac; `desktop linux x64` builds the AppImage + .deb
-pnpm --filter @getmyprof/desktop start   # or run the app from the checkout, after `pnpm dist runtime`
+pnpm dist desktop mac arm64             # dmg + zip; `desktop linux x64` builds the AppImage + .deb
+pnpm dist npm                           # the npm package
+pnpm --filter @getmyprof/desktop start  # run the app from the checkout
 ```
 
-How releases are cut: [docs/internals/release.md](docs/internals/release.md). Agents start at
-[AGENTS.md](AGENTS.md).
+Cut a release: bump `version` in `package.json`, merge it, then
+`git tag vX.Y.Z && git push origin vX.Y.Z`.
+
+| Read                                                     | For                        |
+| -------------------------------------------------------- | -------------------------- |
+| [AGENTS.md](AGENTS.md)                                   | working on it, start here  |
+| [docs/internals/overview.md](docs/internals/overview.md) | how the pieces fit         |
+| [docs/internals/release.md](docs/internals/release.md)   | releases and every channel |
+| [docs/mocks/](docs/mocks/)                               | the approved design        |

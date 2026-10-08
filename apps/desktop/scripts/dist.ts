@@ -211,6 +211,9 @@ function desktopConfig(): Configuration {
 async function buildDesktop([os, ...archs]: string[]) {
   if ((os !== "mac" && os !== "linux") || archs.length === 0)
     throw new Error("desktop <mac|linux> <x64|arm64>...");
+  // CI passes an unset secret as "", which electron-builder reads as a certificate path.
+  for (const name of ["CSC_LINK", "CSC_KEY_PASSWORD"])
+    if (!process.env[name]) delete process.env[name];
   await build({
     projectDir: desktop,
     config: desktopConfig(),

@@ -20,13 +20,13 @@ cask "getmyprof" do
 
   # The app updates itself (apps/desktop/src/updates.ts).
   auto_updates true
-  depends_on macos: ">= :monterey"
+  depends_on macos: :monterey
 
   app "getmyprof.app"
 
   # Ad-hoc signed until there is a Developer ID: without this Gatekeeper won't open it.
-  postflight do
-    system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{appdir}/getmyprof.app"]
+  postflight_steps do
+    run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{appdir}}/getmyprof.app"]
   end
 
   # The hunt and the app's profile live in ~/.getmyprof and stay.

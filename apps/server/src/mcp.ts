@@ -1,4 +1,4 @@
-// gradcode as an MCP server, so T3 Code or any agent can drive a hunt: search the sheet, start
+// gradcode as an MCP server, so any agent can drive a hunt: search the sheet, start
 // a hunt, read threads, and work Review. Each tool is a thin wrapper over an RPC handler. bin.ts
 // serves it at /api/mcp (streamable HTTP, stateless) behind the bearer token in Settings.
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";

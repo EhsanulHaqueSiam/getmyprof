@@ -1,6 +1,6 @@
 # gradcode
 
-gradcode is a T3 Code-shaped app for anyone hunting a funded degree. A Node WebSocket server runs
+gradcode is an app for anyone hunting a funded degree. A Node WebSocket server runs
 Claude Code sessions (Claude Agent SDK, on the user's own subscription) that use free grant APIs,
 the web and optional paid treg lookups to find professors who can fund a student and the money
 behind them. A React client shows threads, Results, Review, Funding, Pipeline, Vault and Loops.
@@ -44,7 +44,7 @@ Channel "measure twice, cut once" and "yagni". Simple systems, no machinery for 
    container, never a real inbox.
 4. **Claiming facts about Siam.** Facts live once, in hq (`~/Personal/hq/CLAUDE.md`). Read them;
    never copy them into this repo or invent one. A missing fact becomes a question.
-5. **Killing by pattern.** This Mac runs T3 Code, Scout and other agents. Never `pkill -f` or kill a
+5. **Killing by pattern.** This Mac runs other agent apps, Scout and more. Never `pkill -f` or kill a
    PID found by name. Stop what you started: `scripts/dev-local.sh down`.
 6. **Baking in origins.** Dev is single-origin: Vite proxies `/api` and `/ws`. Never put a server
    URL in the web bundle; it breaks every non-localhost client.
@@ -59,7 +59,7 @@ apps/server               Node WebSocket + HTTP server. rpc.ts maps contract met
                           vault (documents, scholarships, programs, applications, To file),
                           okf (the Vault as an OKF bundle on disk, and vault_search), treg
 apps/web                  React 19 + Vite+. src/routes (TanStack file routes), src/state (Zustand),
-                          src/components/ui (T3 Code's Base UI kit, vendored), src/lib
+                          src/components/ui (a vendored Base UI kit), src/lib
 packages/contracts        zod schemas for everything on the wire. Decode untrusted input with .parse.
 apps/desktop              Electron app (main, preload, updates) and scripts/dist.ts, every release build
 packaging                 install.sh, the gradcode launcher, Homebrew cask and AUR PKGBUILD templates
@@ -80,7 +80,7 @@ docs/internals            decisions and constraints the code can't carry
 
 - Complexity belongs at the boundary (agent adapter, treg, scout.py). The UI stays dumb.
 - `components/ui` exports own their look. Pick a `variant` or `size`; don't restyle with
-  `className`. It is vendored from T3 Code: keep it identical to upstream (LICENSE.t3code).
+  `className`. It is vendored under MIT: keep it identical to upstream (its license: components/ui/LICENSE).
 - Colors come from theme tokens in `apps/web/src/index.css`, never raw values (lint enforces).
 - Inferred types over annotations. `any` is the enemy. zod at trust boundaries, no casts.
 - No continuously repainting animations: no spinners, pulses or shimmer. Working shows as a

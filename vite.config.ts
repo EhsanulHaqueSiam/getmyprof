@@ -36,7 +36,7 @@ export default defineConfig({
     include: ["**/*.test.ts"],
     exclude: ["**/node_modules/**", "**/dist/**", "e2e/**"],
   },
-  // Formatter only on commit, like T3 Code. Lint, typecheck, tests and e2e run in /verify.
+  // Formatter only on commit. Lint, typecheck, tests and e2e run in /verify.
   staged: {
     "*": "vp fmt --no-error-on-unmatched-pattern",
   },
@@ -76,7 +76,7 @@ export default defineConfig({
         },
       },
       {
-        // Vendored from T3 Code (see LICENSE.t3code there). Keep it identical to upstream.
+        // Vendored under MIT (see components/ui/LICENSE there). Keep it identical to upstream.
         files: ["apps/web/src/components/ui/**"],
         rules: { "react/immutability": "off" },
       },

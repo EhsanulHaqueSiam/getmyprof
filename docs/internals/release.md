@@ -78,5 +78,5 @@ The variable `GRADCODE_RELEASES` (owner/name) moves the whole feed to another pu
   Offline with no `claude` on PATH, the app and the CLI still start and say why the agent can't.
 - **Ubuntu 24.04 and AppImages.** Its AppArmor blocks Chromium's sandbox in any AppImage; the
   `.deb` ships a setuid sandbox and works. Arch is fine.
-- **`ELECTRON_RUN_AS_NODE` in your shell** (any terminal inside an Electron app, T3 Code's
-  included) makes the packaged app start as plain Node. Unset it to launch from there.
+- **`ELECTRON_RUN_AS_NODE` in your shell** (some terminals inside Electron apps set it) makes
+  the packaged app start as plain Node. Unset it to launch from there.

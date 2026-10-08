@@ -47,7 +47,9 @@ preflight() {
 start_window() {  # idempotent: leaves an existing window alone
   local name="$1" cmd="$2"
   if tmux list-windows -t "$SESSION" -F '#{window_name}' 2>/dev/null | grep -qx "$name"; then
-    warn "window '$name' already running, leaving it alone"; return
+    # Another checkout's stack (maybe a real install) can own this session: say whose it is.
+    local from; from=$(tmux display-message -p -t "$SESSION:$name" '#{pane_current_path}' 2>/dev/null)
+    warn "window '$name' already running from ${from:-?}, leaving it alone"; return
   fi
   tmux new-window -t "$SESSION" -n "$name" -c "$ROOT"
   tmux send-keys -t "$SESSION:$name" "$cmd" C-m

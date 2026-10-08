@@ -16,6 +16,11 @@ describe("health", () => {
 
     const result = Health.parse(health({ PATH: bin, GRADHUNT_DIR: gradhunt }));
     expect(result.checks).toEqual({ claude: true, scout: true, treg: true });
+    // Only the scripted agent says it's safe for e2e.
+    expect(result.scripted).toBe(false);
+    expect(health({ PATH: "", GRADHUNT_DIR: gradhunt, GRADCODE_AGENT: "fake" }).scripted).toBe(
+      true,
+    );
   });
 
   it("reports every check as missing on an empty machine", () => {

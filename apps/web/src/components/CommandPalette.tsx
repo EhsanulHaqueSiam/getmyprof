@@ -176,7 +176,7 @@ export function CommandPalette() {
             ? (Object.keys(ROW_OPS) as RowOp[]).map((op) => ({
                 id: `row-${op}`,
                 icon: <TableIcon />,
-                label: `${ROW_OPS[op].label} on this thread's ${hereRows.length} rows`,
+                label: `${ROW_OPS[op].label} on this thread's ${hereRows.length === 1 ? "row" : `${hereRows.length} rows`}`,
                 hint: "row action",
                 run: act(() =>
                   call("threads.rowAction", {

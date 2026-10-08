@@ -23,7 +23,7 @@ export function health(env: Env = process.env): Health {
     scout: NodeFS.existsSync(NodePath.join(gradhuntDir(env), "scout.py")),
     treg: onPath(env, "treg"),
   } satisfies Record<Check, boolean>;
-  return { host: NodeOS.hostname(), checks };
+  return { host: NodeOS.hostname(), checks, scripted: env.GRADCODE_AGENT === "fake" };
 }
 
 const ClaudeConfig = z.object({

@@ -89,7 +89,7 @@ function Loops() {
   return (
     <div className="grid min-w-0 flex-1 grid-cols-1 overflow-y-auto md:grid-cols-[minmax(0,1fr)_380px] md:overflow-visible">
       <section className="flex min-w-0 flex-col">
-        <header className="flex h-12 shrink-0 items-center gap-2.5 px-4">
+        <header className="flex min-h-12 shrink-0 flex-wrap items-center gap-2.5 px-4 py-2">
           <h1 className="font-semibold text-sm">Loops</h1>
           <span className="text-muted-foreground text-xs">
             {accepted

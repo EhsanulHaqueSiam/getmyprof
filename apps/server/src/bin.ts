@@ -48,7 +48,13 @@ const outreach = createOutreach({
   bus,
   runner,
   mailerFor: fake ? () => sandboxMail : imapMailer,
-  signIn: { port: PORT, tokenFetch: fake ? fakeTokenEndpoint : fetch, scripted: fake },
+  signIn: {
+    port: PORT,
+    tokenFetch: fake ? fakeTokenEndpoint : fetch,
+    scripted: fake,
+    // The scripted stack has a Google client of its own, so e2e signs in with no setup.
+    ...(fake ? { clients: { google: { id: "scripted", secret: "" }, microsoft: null } } : {}),
+  },
 });
 
 /** A one-line page for the end of a mailbox sign-in that has nowhere to send the browser back. */

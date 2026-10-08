@@ -15,9 +15,6 @@ import { type Db, getKv, newId, now } from "./db.ts";
 import { claudeLogin, health, tailnetLink } from "./health.ts";
 import { listLoops, loopStats, saveLoop, STARTER_LOOPS } from "./loops.ts";
 import type { Outreach } from "./outreach/service.ts";
-import { linkedinOpen } from "./outreach/linkedin.ts";
-import { conversations } from "./outreach/pipeline.ts";
-import { getMessage } from "./outreach/store.ts";
 import {
   findsWaiting,
   listPrograms,
@@ -41,6 +38,7 @@ import {
 } from "./state.ts";
 import { recordHandlers } from "./rpc-records.ts";
 import { askCvQuestions } from "./cv-questions.ts";
+import { mailHandlers } from "./rpc-mail.ts";
 import { threadHandlers } from "./rpc-threads.ts";
 import { tregHandlers, tregStatus } from "./rpc-treg.ts";
 import { readTregLogin } from "./treg.ts";
@@ -182,42 +180,9 @@ export function createHandlers(svc: Services): Handlers {
     },
     "loops.run": ({ id }) => svc.startLoop(id),
 
-    "mail.connect": (input) => outreach.connect(input),
-    "mail.signIn": (input) => outreach.startSignIn(input),
-    "mail.disconnect": () => outreach.disconnect(),
-    "mail.sync": () => outreach.sync(),
+    ...mailHandlers(svc),
 
     ...tregHandlers(svc),
-
-    "outreach.list": () => conversations(db),
-    "outreach.approve": async ({ ids }) => {
-      await outreach.approve(ids);
-      return OK;
-    },
-    "outreach.sendNow": async ({ id }) => {
-      await outreach.sendNow(id);
-      return OK;
-    },
-    "outreach.edit": ({ id, subject, body }) => {
-      outreach.edit(id, subject, body);
-      return OK;
-    },
-    "outreach.cancel": ({ id }) => {
-      outreach.cancel(id);
-      return OK;
-    },
-    "outreach.linkedinOpen": async ({ id }) => {
-      const m = getMessage(db, id);
-      if (!m || m.channel !== "linkedin") throw new Error("No LinkedIn note to open.");
-      const opened = await linkedinOpen(db, svc.sources, m.recordKey, m.to);
-      // A lookup it paid for shows in today's spend.
-      bus.push({ type: "changed", what: "state" });
-      return opened;
-    },
-    "outreach.markSent": ({ id }) => {
-      outreach.markSent(id);
-      return OK;
-    },
 
     "vault.get": () => vaultState(db),
     "vault.save": (edit) => {

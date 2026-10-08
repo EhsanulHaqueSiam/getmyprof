@@ -14,7 +14,7 @@ import { type Db, newId, now } from "../db.ts";
 import { getRecord, putRecord } from "../records.ts";
 import { getApplicant } from "../state.ts";
 import { acceptedOffer, listDocuments, numberCitations } from "../vault.ts";
-import { followUpDue, nextSlot, returnDate } from "./plan.ts";
+import { followUpDue, nextSlot, returnDate, workingTime } from "./plan.ts";
 
 const parse = (r: Record<string, unknown>) => OutreachMessage.parse(JSON.parse(String(r.body)));
 export const when = (m: OutreachMessage) => m.at ?? m.scheduledAt ?? m.createdAt;
@@ -120,6 +120,14 @@ export function saveDraft(db: Db, d: DraftInput): OutreachMessage | { problem: s
   const unknown = attach.filter((id) => !docs.some((doc) => doc.id === id));
   if (unknown.length) return { problem: `no document ${unknown.join(", ")} in the vault` };
   const lastIn = messages.findLast(isReply);
+  // Everything after the first email answers the latest real one (theirs or ours, never an
+  // auto-reply), so both sides see one thread; a bare "Re:" that answers nothing looks like spam.
+  const parent = messages.findLast(
+    (m) =>
+      m.channel === "email" &&
+      m.messageId !== null &&
+      (isReply(m) || (m.direction === "out" && m.status === "sent")),
+  );
   const existing = messages.find(
     (m) => m.direction === "out" && m.status === "draft" && m.touch === d.touch,
   );
@@ -141,7 +149,7 @@ export function saveDraft(db: Db, d: DraftInput): OutreachMessage | { problem: s
     scheduledAt: null,
     at: null,
     messageId: null,
-    inReplyTo: d.touch === "reply" ? (lastIn?.messageId ?? null) : null,
+    inReplyTo: d.channel === "email" && d.touch !== "first" ? (parent?.messageId ?? null) : null,
     threadId: d.threadId,
     note: "",
     createdAt: existing?.createdAt ?? now(),
@@ -151,7 +159,7 @@ export function saveDraft(db: Db, d: DraftInput): OutreachMessage | { problem: s
   return message;
 }
 
-/** Mail to someone who hasn't written takes a send slot; answers and thank-yous go at once. */
+/** Mail to someone who hasn't written takes a send slot; answers and thank-yous skip the caps. */
 const usesSlot = (m: OutreachMessage) =>
   m.channel === "email" && m.touch !== "reply" && m.touch !== "thank-you";
 
@@ -194,7 +202,9 @@ export function approve(db: Db, ids: string[], at: Date, warmupStart: Date) {
           scheduled: takenSlots(db),
           warmupStart,
         })
-      : at;
+      : m.channel === "email"
+        ? workingTime(at, m.timeZone)
+        : at;
     putMessage(db, { ...m, status: "scheduled", scheduledAt: scheduledAt.toISOString(), note: "" });
     n++;
   }

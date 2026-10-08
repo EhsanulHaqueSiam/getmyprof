@@ -73,8 +73,11 @@ bills each customer from treg's ledger.
   with the feature and the sheet row (`about`), so Results cells and Settings show what was spent.
 - **Some refusals stay private.** Running out of balance names the issuer's balance and top-up
   link; the applicant and the model only hear "unavailable right now".
-- **Issuing tokens.** `apps/server/scripts/treg-admin.ts` mints, caps, blocks and invoices. It mints
-  through the HTTP API with no team tools: the CLI, run without a terminal, grants every one.
+- **Issuing tokens.** `apps/server/scripts/treg-admin.ts` mints, caps, blocks, checks the balance
+  and invoices, in a treg org kept for gradcode's customers (`gradcode`). treg's tool list can't
+  name catalog endpoints, so a customer token gets every tool; that org must hold no tools of its
+  own (an X or Google connection would be every customer's), and `add` refuses in one that does.
+  `TREG_ENDPOINTS` is the vendor list gradcode lets the agent call.
 
 ## Your data
 

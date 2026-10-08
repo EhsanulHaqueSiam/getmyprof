@@ -86,7 +86,9 @@ export const ROW_OPS = {
   lasts: { label: "Check money (NSF, NIH)", priceUsd: 0, field: "lasts" },
   taking: { label: "Taking students?", priceUsd: 0, field: "taking" },
   work: { label: "Recent work and focus", priceUsd: 0, field: "niche" },
+  lab: { label: "Lab check", priceUsd: 0, field: "taking" },
+  personalize: { label: "Warm path and hook", priceUsd: 0, field: "hook" },
   draft: { label: "Draft first emails", priceUsd: 0, field: "stage" },
 } as const;
-export const RowOp = z.enum(["email", "lasts", "taking", "work", "draft"]);
+export const RowOp = z.enum(["email", "lasts", "taking", "work", "lab", "personalize", "draft"]);
 export type RowOp = z.infer<typeof RowOp>;

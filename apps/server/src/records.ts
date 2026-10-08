@@ -44,6 +44,9 @@ export function blankProfessor(name: string, university: string): Professor {
     scholar: "",
     recent: "",
     seeking: "",
+    lab: "",
+    warm: "",
+    hook: "",
     sources: [],
     grants: [],
     origin: "app",
@@ -280,6 +283,9 @@ export const recordLine = (r: Professor) =>
     ...(r.niche ? [`niche ${r.niche}`] : []),
     ...(r.seeking ? [`seeking ${r.seeking}`] : []),
     ...(r.recent ? [`recent ${r.recent}`] : []),
+    ...(r.lab ? [`lab ${r.lab}`] : []),
+    ...(r.warm ? [`warm ${r.warm}`] : []),
+    ...(r.hook ? [`hook ${r.hook}`] : []),
     ...(r.sources.length ? [`sources ${r.sources.join(" ")}`] : []),
   ].join(" | ");
 

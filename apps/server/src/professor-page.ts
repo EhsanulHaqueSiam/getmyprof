@@ -23,6 +23,7 @@ const LABEL: Record<string, string> = {
   scholar: "Scholar",
   recent: "recent work",
   seeking: "looking for",
+  warm: "warm path",
 };
 
 /** The record's history, newest first: what was decided, and what went out or came back. */

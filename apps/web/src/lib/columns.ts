@@ -22,6 +22,7 @@ export const COLUMNS: Col[] = [
   { key: "contact", label: "Contact rule", source: "page · free", level: "std" },
   { key: "stage", label: "Stage", level: "std" },
   { key: "recent", label: "Recent work", source: "OpenAlex, Scholar · free", level: "deep" },
+  { key: "hook", label: "Way in", source: "OpenAlex, your profile", level: "deep" },
   { key: "fitsBecause", label: "Fits because", source: "your profile", level: "deep" },
   { key: "sources", label: "Sources", level: "deep" },
 ];
@@ -33,6 +34,7 @@ export const TIER_LABEL = ["?", "1 clear", "2 strong", "3 indirect", "4 none"];
 export const haystack = (r: Professor) =>
   [r.name, r.university, r.department, r.niche, r.money, r.lasts, r.taking, r.email, r.emailCheck]
     .concat([r.contact, r.stage, r.fitsBecause, r.eligibility, r.seeking, r.recent])
+    .concat([r.lab, r.warm, r.hook])
     .concat(TIER_LABEL[r.moneyTier] ?? "")
     .join(" ")
     .toLowerCase();

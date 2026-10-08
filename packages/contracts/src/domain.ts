@@ -273,6 +273,12 @@ export const Professor = z.object({
   recent: z.string().default(""),
   /** What they want students to work on or bring, in their words. */
   seeking: z.string().default(""),
+  /** Who is in their lab now, recent graduates and where they went, and who to ask about it. */
+  lab: z.string().default(""),
+  /** A real path to them, e.g. a co-author of the applicant who wrote with them, and the paper. */
+  warm: z.string().default(""),
+  /** One line tying the applicant's work to theirs: what a first email opens on. */
+  hook: z.string().default(""),
   sources: z.array(z.string()),
   grants: z.array(Grant),
   origin: z.enum(["app", "gradhunt"]),
@@ -302,6 +308,9 @@ export const PROFESSOR_FIELDS = [
   "scholar",
   "recent",
   "seeking",
+  "lab",
+  "warm",
+  "hook",
 ] as const;
 export type ProfessorField = (typeof PROFESSOR_FIELDS)[number];
 

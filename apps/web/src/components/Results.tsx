@@ -5,11 +5,13 @@ import {
   BookOpenIcon,
   CheckIcon,
   CircleAlertIcon,
+  HandshakeIcon,
   LoaderIcon,
   MailIcon,
   PenLineIcon,
   TableIcon,
   UserIcon,
+  UsersIcon,
 } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
@@ -26,6 +28,8 @@ const OP_ICON: Record<RowOp, ReactNode> = {
   lasts: <BanknoteIcon />,
   taking: <UserIcon />,
   work: <BookOpenIcon />,
+  lab: <UsersIcon />,
+  personalize: <HandshakeIcon />,
   draft: <PenLineIcon />,
 };
 const OPS = Object.keys(ROW_OPS) as RowOp[];

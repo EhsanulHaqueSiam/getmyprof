@@ -74,7 +74,7 @@ export function InboxList({
       draftIssues(d, {
         facts: app?.facts ?? [],
         applicant: app?.applicant,
-        emailCheck: c.record.emailCheck,
+        record: c.record,
       }).length > 0
     );
   };

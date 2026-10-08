@@ -20,4 +20,5 @@ export * from "./threads.ts";
 export * from "./rpc.ts";
 export * from "./outreach.ts";
 export * from "./vault.ts";
+export * from "./deadlines.ts";
 export * from "./desktop.ts";

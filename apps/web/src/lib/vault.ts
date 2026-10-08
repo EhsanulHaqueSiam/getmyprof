@@ -1,5 +1,12 @@
 // What the Vault shows: which scholarships fit, and what's coming up.
-import type { Applicant, Degree, Offer, Scholarship, VaultState } from "@getmyprof/contracts";
+import {
+  type Applicant,
+  type Degree,
+  LETTERS,
+  type Offer,
+  type Scholarship,
+  type VaultState,
+} from "@getmyprof/contracts";
 
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
@@ -37,9 +44,6 @@ export type Upcoming = { id: string; text: string; urgent: boolean; days: number
  * The right panel's "Coming up": documents running out within a year, and deadlines within 45
  * days for applications with work left and scholarships the applicant is applying to.
  */
-// ponytail: most programs ask for three letters; store a per-program count if one asks otherwise.
-const LETTERS = 3;
-
 export function comingUp(
   v: VaultState,
   now = new Date(),

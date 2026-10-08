@@ -113,6 +113,8 @@ Both ways. getmyprof serves its own tools at `/api/mcp` (stateless streamable HT
 search the sheet, start a hunt, read threads, list and resolve Review. Each wraps an RPC handler.
 It answers only to the bearer token in Settings, made once and compared in constant time; the
 token is what keeps another process on this machine or the tailnet from starting paid hunts.
+The calendar feed, `GET /api/calendar.ics?token=<that token>`, takes it in the query string
+because calendar apps can't send a header; the feed only reads every dated step of the hunt.
 The user's own MCP servers (a URL, or a command run over stdio) go into every Claude session;
 their tool calls raise an approval unless the server is marked trusted. The fake provider
 ignores them.

@@ -11,6 +11,7 @@ import { fixtureSources } from "./agent/fixtures.ts";
 import { createRunner } from "./agent/runner.ts";
 import { realSources } from "./agent/tools.ts";
 import { createBus } from "./bus.ts";
+import { calendarFeed } from "./calendar.ts";
 import { openDb } from "./db.ts";
 import { health } from "./health.ts";
 import { dueLoops, fillPlaceholders, hookLoop, listLoops, markRan } from "./loops.ts";
@@ -207,6 +208,19 @@ const server = NodeHttp.createServer((req, res) => {
       .catch((error: unknown) =>
         page(400, `Sign-in failed: ${error instanceof Error ? error.message : String(error)}`),
       );
+    return;
+  }
+  // Every deadline as a calendar feed, behind the MCP token in the query string.
+  if (req.method === "GET" && /^\/api\/calendar\.ics(?:\?|$)/.test(req.url ?? "")) {
+    const ics = calendarFeed(db, req.url ?? "");
+    if (ics === null) res.writeHead(401).end();
+    else
+      res
+        .writeHead(200, {
+          "content-type": "text/calendar; charset=utf-8",
+          "cache-control": "no-store",
+        })
+        .end(ics);
     return;
   }
   // A webhook loop's trigger: POST JSON to /api/hooks/<token>; the body fills its placeholders.

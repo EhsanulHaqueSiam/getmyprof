@@ -169,9 +169,13 @@
     background: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
-    font-size: 13px;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+  }
+  /* The root stays at the browser's 16px, as in T3 Code, so text-xs is 12px and text-sm 14px on
+     every screen; a smaller root shrank them below what reads on a 1x display. Body copy is 13px. */
+  body {
+    font-size: 13px;
   }
 }
 

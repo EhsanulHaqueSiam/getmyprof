@@ -79,7 +79,7 @@ function Professors() {
 
   return (
     <div className="flex min-w-0 flex-1 flex-col">
-      <header className="flex h-12 shrink-0 items-center gap-2.5 px-4">
+      <header className="flex min-h-12 shrink-0 flex-wrap items-center gap-2.5 px-4 py-2">
         <h1 className="font-semibold text-sm">Professors</h1>
         <span className="text-muted-foreground text-xs tabular-nums">{rows.length}</span>
         <label className="ml-auto flex h-7 w-64 items-center gap-2 rounded-lg border border-input px-2.5 text-xs text-muted-foreground">

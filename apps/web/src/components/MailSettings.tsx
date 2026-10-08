@@ -142,8 +142,9 @@ function SignInForm({ provider, shared }: { provider: MailProvider; shared: bool
 export function MailSettings() {
   const mail = useStore((s) => s.app?.mail);
   const [preset, setPreset] = useState<Preset>("gmail");
-  // Until the user picks, Gmail signs in when gradcode has a Google client: the fewest steps.
-  const [picked, setSignIn] = useState<boolean | null>(null);
+  // Gmail opens on the app password: free, no user cap, no warning screen. Signing in with
+  // Google is one click away (a shared client serves 100 users, ever, until Google verifies it).
+  const [signIn, setSignIn] = useState(false);
   const [form, setForm] = useState({ name: "", address: "", password: "" });
   const [hosts, setHosts] = useState({ imapHost: "", imapPort: 993, smtpHost: "", smtpPort: 465 });
   const [error, setError] = useState("");
@@ -265,7 +266,6 @@ export function MailSettings() {
         };
 
   const provider = SIGN_IN[preset];
-  const signIn = picked ?? mail.sharedClients.includes("google");
   // Outlook only signs in; Gmail takes an app password or a sign-in.
   const signingIn = provider && (signIn || preset === "outlook");
 

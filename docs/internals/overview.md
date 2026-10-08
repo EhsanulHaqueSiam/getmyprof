@@ -130,7 +130,8 @@ mode 0600, and never crosses the wire.
   scope is restricted: until Google verifies the app (a review plus a yearly paid security
   assessment, CASA), users see an "unverified app" screen and the Google project serves 100
   users, ever. Its consent screen must be In production, or Google expires sign-ins every 7
-  days. An app password has neither limit, so Gmail offers both. The callback is
+  days. An app password has neither limit, so Gmail opens on it and offers signing in as the
+  other choice. The callback is
   `http://127.0.0.1:<port>/api/oauth/callback` (Microsoft: `localhost`), on this server, with
   PKCE; it connects the mailbox and sends the browser back to Settings, only ever to the app's
   own pages. IMAP and SMTP log in with a fresh access token (XOAUTH2).

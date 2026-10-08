@@ -399,6 +399,9 @@ test("mailbox: sign in with Google with nothing to set up", async ({ page }) => 
   // callback, which sends the browser back to Settings with the mailbox connected.
   await page.goto("/settings");
   await page.getByTestId("mail-connected").getByRole("button", { name: "Disconnect" }).click();
+  // Gmail opens on the app password; signing in is the other choice.
+  await expect(page.getByLabel("App password")).toBeVisible();
+  await page.getByRole("button", { name: "Sign in with Google", pressed: false }).click();
   const form = page.getByTestId("mail-signin");
   await expect(form.getByLabel("Client ID")).toHaveCount(0);
   // A user can still bring their own client.

@@ -1,5 +1,6 @@
 // The vault's store: one table of typed items (documents, scholarships, programs, applications,
-// and the agent's finds waiting in To file), plus document bytes under GETMYPROF_HOME/files.
+// the school shortlist, and the agent's finds waiting in To file), plus document bytes under
+// GETMYPROF_HOME/files.
 import {
   Application,
   factStatus,
@@ -7,6 +8,7 @@ import {
   type ProfileFact,
   Program,
   Scholarship,
+  School,
   VaultDocument,
   type VaultEdit,
   type VaultKind,
@@ -46,6 +48,7 @@ export const listPrograms = (db: Db) => items(db, "program", Program);
 export const listApplications = (db: Db) => items(db, "application", Application);
 export const listWriting = (db: Db) => items(db, "writing", Writing);
 export const listOffers = (db: Db) => items(db, "offer", Offer);
+export const listSchools = (db: Db) => items(db, "school", School);
 
 /** The offer the applicant accepted, if any: the hunt is over, so loops and cold mail stop. */
 export const acceptedOffer = (db: Db) =>
@@ -60,6 +63,7 @@ export function vaultState(db: Db): VaultState {
     offers: listOffers(db),
     writing: listWriting(db),
     toFile: items(db, "toFile", FileItem),
+    schools: listSchools(db),
   };
 }
 
@@ -141,6 +145,22 @@ export function proposeFinding(db: Db, f: NewFinding): FileItem | { skipped: str
   const finding = FileItem.parse({ ...f, id: newId("find"), createdAt: now() });
   putItem(db, "toFile", finding);
   return finding;
+}
+
+/**
+ * Puts a school the agent suggests on the shortlist, waiting for keep or drop. One still waiting
+ * takes the newer details; a kept or dropped one stays as the applicant left it.
+ */
+export function proposeSchool(
+  db: Db,
+  s: Omit<School, "id" | "status">,
+): School | { skipped: string } {
+  const same = listSchools(db).find((x) => norm(x.name) === norm(s.name));
+  if (same?.status === "dropped") return { skipped: "dropped earlier" };
+  if (same?.status === "kept") return { skipped: `on the shortlist already, as ${same.tier}` };
+  const school = School.parse({ ...s, id: same?.id ?? newId("school"), status: "suggested" });
+  putItem(db, "school", school);
+  return school;
 }
 
 /** Files a find into the vault, or drops it so it never comes back. Returns the find. */

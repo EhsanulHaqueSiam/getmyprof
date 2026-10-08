@@ -194,6 +194,13 @@ export function CommandPalette() {
   const all: Item[] = [
     { id: "new", icon: <PlusIcon />, label: "New thread", hint: "⌘N", run: go("/") },
     { id: "prof", icon: <UsersIcon />, label: "Professors", hint: "view", run: go("/professors") },
+    {
+      id: "schools",
+      icon: <GraduationCapIcon />,
+      label: "Schools",
+      hint: "view",
+      run: go("/schools"),
+    },
     { id: "fund", icon: <LandmarkIcon />, label: "Funding", hint: "view", run: go("/funding") },
     { id: "pipe", icon: <SendIcon />, label: "Pipeline", hint: "view", run: go("/pipeline") },
     { id: "vault", icon: <ArchiveIcon />, label: "Vault", hint: "view", run: go("/vault") },

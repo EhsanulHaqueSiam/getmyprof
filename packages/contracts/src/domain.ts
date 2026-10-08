@@ -409,6 +409,34 @@ export const ScoutLoop = z.object({
 });
 export type ScoutLoop = z.infer<typeof ScoutLoop>;
 
+const schoolWords = (s: string) =>
+  s
+    .toLowerCase()
+    .split(/[^a-z]+/)
+    .filter(
+      (w) =>
+        w.length > 3 &&
+        !["university", "college", "state", "institute", "school", "campus", "the"].includes(w),
+    );
+
+/** "UNIVERSITY OF READING" and "University of Reading" are the same school. */
+export const sameSchool = (a: string, b: string) => {
+  const wa = schoolWords(a);
+  return schoolWords(b).some((w) => wa.includes(w));
+};
+
+/**
+ * The school on a list that a university belongs to: the same name first, then a loose match,
+ * so "University of Illinois Chicago" doesn't land on "University of Chicago" when both are listed.
+ */
+export const schoolFor = <T extends { name: string }>(list: T[], university: string) => {
+  const exact = schoolWords(university).join(" ");
+  return (
+    list.find((s) => schoolWords(s.name).join(" ") === exact) ??
+    list.find((s) => sameSchool(s.name, university))
+  );
+};
+
 /** Free grant databases: NSF and NIH (US), UKRI (UK), CORDIS (EU, ERC), ARC (Australia), DFG (Germany), NSERC (Canada). */
 export const AwardSource = z.enum(["NSF", "NIH", "UKRI", "CORDIS", "ARC", "DFG", "NSERC"]);
 export type AwardSource = z.infer<typeof AwardSource>;

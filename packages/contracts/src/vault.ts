@@ -171,6 +171,29 @@ export const Writing = z.object({
 });
 export type Writing = z.infer<typeof Writing>;
 
+export const SchoolTier = z.enum(["reach", "match", "safety"]);
+export type SchoolTier = z.infer<typeof SchoolTier>;
+
+/**
+ * A school on the shortlist, in a tier for this applicant. The agent suggests it with
+ * propose_school; the applicant keeps or drops it. Programs and professors join it by name.
+ */
+export const School = z.object({
+  id: z.string(),
+  name: z.string(),
+  country: z.string(),
+  tier: SchoolTier,
+  /** Its rank in the applicant's field and where that comes from, e.g. "CSRankings #52, NLP". */
+  rank: z.string(),
+  /** Who admits PhD students: a committee, or each advisor hiring for their own lab. */
+  admits: z.enum(["committee", "advisor", "unknown"]),
+  /** One line: why this tier for this applicant. */
+  why: z.string(),
+  sources,
+  status: z.enum(["suggested", "kept", "dropped"]),
+});
+export type School = z.infer<typeof School>;
+
 const finding = {
   id: z.string(),
   why: z.string(),
@@ -201,6 +224,7 @@ export const VaultState = z.object({
   offers: z.array(Offer),
   writing: z.array(Writing),
   toFile: z.array(FileItem),
+  schools: z.array(School),
 });
 export type VaultState = z.infer<typeof VaultState>;
 
@@ -212,6 +236,7 @@ export const VaultEdit = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("application"), value: Application }),
   z.object({ kind: z.literal("writing"), value: Writing }),
   z.object({ kind: z.literal("offer"), value: Offer }),
+  z.object({ kind: z.literal("school"), value: School }),
 ]);
 export type VaultEdit = z.infer<typeof VaultEdit>;
 export type VaultKind = VaultEdit["kind"];

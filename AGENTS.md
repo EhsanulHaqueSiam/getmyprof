@@ -56,7 +56,8 @@ apps/server               Node WebSocket + HTTP server. rpc.ts maps contract met
                           db/state/threads/records/loops (SQLite), sources (NSF, NIH, OpenAlex, treg),
                           adapters (gradhunt, hq, CSV), agent/ (runner, claude, fake, tools, prompt),
                           outreach/ (mail, store, service, plan: drafts, send queue, reply sync),
-                          vault (documents, scholarships, programs, applications, To file),
+                          vault (documents, scholarships, programs, applications, the school
+                          shortlist, To file),
                           okf (the Vault as an OKF bundle on disk, and vault_search), treg
 apps/web                  React 19 + Vite+. src/routes (TanStack file routes), src/state (Zustand),
                           src/components/ui (a vendored Base UI kit), src/lib

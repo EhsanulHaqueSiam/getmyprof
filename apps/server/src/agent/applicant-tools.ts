@@ -1,11 +1,19 @@
 // Tools that act on the applicant's side of the hunt: drafting mail, reading replies, filing
 // finds into the vault, and writing statements. tools.ts lists them with the research tools.
-import { Channel, Degree, ReplyClass, Touch, WritingKind } from "@getmyprof/contracts";
+import {
+  Channel,
+  Degree,
+  ReplyClass,
+  School,
+  SchoolTier,
+  Touch,
+  WritingKind,
+} from "@getmyprof/contracts";
 import { z } from "zod";
 import { classify } from "../outreach/inbox.ts";
 import { getMessage, issuesFor, saveDraft } from "../outreach/store.ts";
 import { recordKey } from "../records.ts";
-import { listOffers, proposeFinding, saveEdit, saveWriting } from "../vault.ts";
+import { listOffers, proposeFinding, proposeSchool, saveEdit, saveWriting } from "../vault.ts";
 import type { HuntTool } from "./tools.ts";
 
 const define = <S extends z.ZodRawShape>(t: HuntTool<S>) => t;
@@ -149,6 +157,30 @@ export const APPLICANT_TOOLS = [
       if ("skipped" in r) return { summary: r.skipped, text: `Not filed: ${r.skipped}.` };
       ctx.vaultChanged();
       return { summary: "to file", text: "Waiting in the applicant's To file." };
+    },
+  }),
+  define({
+    name: "propose_school",
+    description:
+      "Suggest a school for the applicant's shortlist, in a tier for them. It waits on the Schools page until they keep or drop it; a dropped school can't come back. One call per school, with sources.",
+    shape: {
+      name: z.string().describe("The university's own name, as professors' pages write it"),
+      country: z.string(),
+      tier: SchoolTier,
+      rank: z.string().describe("Its rank in the field and the source, e.g. 'CSRankings #52, NLP'"),
+      admits: School.shape.admits.describe(
+        "committee: a program admits; advisor: professors hire for their labs",
+      ),
+      why: z.string().describe("One line: why this tier for this applicant"),
+      sources: z.array(z.string()).min(1),
+    },
+    paid: false,
+    price: () => 0,
+    run: async (args, ctx) => {
+      const r = proposeSchool(ctx.db, args);
+      if ("skipped" in r) return { summary: r.skipped, text: `Not suggested: ${r.skipped}.` };
+      ctx.vaultChanged();
+      return { summary: `suggested · ${r.tier}`, text: "Waiting on the Schools page." };
     },
   }),
   define({

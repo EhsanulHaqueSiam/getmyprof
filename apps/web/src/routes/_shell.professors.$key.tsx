@@ -143,6 +143,11 @@ function ProfessorPage() {
           <span>
             stage <b className="text-foreground">{p.stage}</b>
           </span>
+          {data.school ? (
+            <Link to="/schools" className="hover:text-secondary-label">
+              school <b className="text-foreground">{data.school.tier}</b>
+            </Link>
+          ) : null}
           {lastPaper ? (
             <span>
               last paper <b className="text-foreground">{lastPaper}</b>

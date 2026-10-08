@@ -5,6 +5,7 @@ import { getRecord, recordLine, threadProposals } from "../records.ts";
 import { profileFacts } from "../adapters.ts";
 import { getApplicant, getHunt, getSettings } from "../state.ts";
 import { allowLoopUnder, listLoops, noteRun } from "../loops.ts";
+import { listSchools } from "../vault.ts";
 import {
   allowUnder,
   setAllowUnder,
@@ -223,6 +224,7 @@ export function createRunner(deps: {
         settings,
         getApplicant(db),
         deps.signAs?.() ?? "",
+        listSchools(db),
       ),
       model: settings.model,
       tools: toolsFor(settings),

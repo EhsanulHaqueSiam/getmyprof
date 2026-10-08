@@ -96,6 +96,7 @@ describe("the Vault", () => {
       offers: [],
       writing: [],
       toFile: [],
+      schools: [],
     };
     expect(comingUp(v, now).map((u) => u.text)).toEqual([
       // Six weeks out with no recommender asked yet: ask now.

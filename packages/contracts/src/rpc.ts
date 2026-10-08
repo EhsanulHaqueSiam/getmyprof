@@ -29,6 +29,7 @@ import { RowOp, ThreadEvent, ThreadSummary } from "./threads.ts";
 import {
   Application,
   DocKind,
+  School,
   VaultDocument,
   VaultEdit,
   VaultState,
@@ -201,6 +202,8 @@ export const Methods = {
       programs: z.array(
         z.object({ name: z.string(), deadline: z.string().nullable(), funding: z.string() }),
       ),
+      /** Their school on the shortlist, with its tier for this applicant. */
+      school: School.nullable(),
     }),
   },
   /** Their grants (NSF, NIH), recent work and interests (OpenAlex), live from free APIs. */

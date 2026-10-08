@@ -5,6 +5,7 @@ import {
   type Hunt,
   type HuntPrefs,
   type ProfileFact,
+  type School,
   type Settings,
 } from "@getmyprof/contracts";
 
@@ -28,7 +29,6 @@ const DETAIL: Record<DetailLevel, string> = {
   deep: "Detail: deep. Fill every field, including recent, scholar and fitsBecause tied to a confirmed fact, and cite every source you used.",
 };
 
-/** The system prompt for one thread, built from the applicant's preferences and confirmed facts. */
 /** How each track changes the hunt (journey: who the student is changes the search). */
 const TRACK = {
   phd: "Direct PhD: advisor money matters most. Where professors hire (most of Europe, the UK, Australia), their funded opening is the application. Where a committee admits (most US and Canadian programs), the move is to apply and name the professor; their email answer still tells you if they take students.",
@@ -38,6 +38,22 @@ const TRACK = {
     "Funded master's: scholarships and program funding matter more than advisors. Look for government and program scholarships the applicant's citizenship qualifies for (propose_scholarship) and programs that fund the whole master's (propose_program) before professors.",
 } as const satisfies Record<HuntPrefs["degrees"][number], string>;
 
+/** The shortlist as the agent reads it: what's kept, what waits, what must never come back. */
+function shortlist(schools: School[]) {
+  const named = (status: School["status"], lead: string) => {
+    const list = schools.filter((s) => s.status === status);
+    return list.length ? `${lead}: ${list.map((s) => `${s.name} (${s.tier})`).join(", ")}.` : "";
+  };
+  return [
+    named("kept", "Kept"),
+    named("suggested", "Waiting for the applicant"),
+    named("dropped", "Dropped, never suggest again"),
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+/** The system prompt for one thread, built from the applicant's preferences and confirmed facts. */
 export function systemPrompt(
   hunt: Hunt | null,
   facts: ProfileFact[],
@@ -45,6 +61,7 @@ export function systemPrompt(
   applicant: Applicant | null = null,
   /** The connected mailbox's display name; drafts are signed with it. */
   signAs = "",
+  schools: School[] = [],
   today = new Date(),
 ) {
   const a = applicant;
@@ -84,12 +101,13 @@ export function systemPrompt(
             : "",
           `Weigh fit by, in order: ${p.priorities.map((x) => PRIORITY[x]).join(", ")}.`,
           ...p.degrees.map((d) => TRACK[d]),
-          `Each sweep, propose about ${p.sweep.reach} reach, ${p.sweep.match} match and ${p.sweep.safety} safety schools for this applicant, and say which is which in fitsBecause.`,
+          `Keep a shortlist of about ${p.sweep.reach} reach, ${p.sweep.match} match and ${p.sweep.safety} safety schools for this applicant with propose_school. A tier is your call for this applicant, not a raw rank: weigh the field's rank (CSRankings for CS, subject rankings otherwise), how selective the program is, whether admits are funded, and the confirmed facts; cite the pages and say why in one line. Sweep kept schools for professors before others.`,
         ].join("\n")
       : "The applicant hasn't set preferences yet: ask what they're hunting for.",
     confirmed.length
       ? `Confirmed facts about the applicant (claim nothing beyond these; cite each claim with its [[id]]):\n${confirmed.map((f) => `- [[${f.id}]] ${f.text}`).join("\n")}`
       : "No confirmed facts about the applicant yet. Don't claim anything about them.",
+    schools.length ? `School shortlist. ${shortlist(schools)}` : "",
     eligibility,
     DETAIL[settings.detail],
     [

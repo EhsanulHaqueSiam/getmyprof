@@ -1,6 +1,8 @@
 // Data sources the agent and the Funding view use: free public APIs (NSF, NIH RePORTER, UKRI,
 // CORDIS, ARC, OpenAlex). Paid lookups go through treg.ts.
-import type { Award } from "@getmyprof/contracts";
+import { type Award, sameSchool } from "@getmyprof/contracts";
+
+export { sameSchool };
 
 const TIMEOUT_MS = 20_000;
 
@@ -49,22 +51,6 @@ export type AwardQuery = {
   activeAfter?: string;
 };
 export type RawAward = Omit<Award, "monthsAfterIntake" | "inSheet" | "fit">;
-
-const schoolWords = (s: string) =>
-  s
-    .toLowerCase()
-    .split(/[^a-z]+/)
-    .filter(
-      (w) =>
-        w.length > 3 &&
-        !["university", "college", "state", "institute", "school", "campus", "the"].includes(w),
-    );
-
-/** "UNIVERSITY OF READING" and "University of Reading" are the same school. */
-export const sameSchool = (a: string, b: string) => {
-  const wa = schoolWords(a);
-  return schoolWords(b).some((w) => wa.includes(w));
-};
 
 /** Keeps awards that match the query's school, PI and end date, for APIs that can't filter. */
 const narrow = (q: AwardQuery, awards: RawAward[]) =>

@@ -66,6 +66,46 @@ export const FIXTURE_WORK: Record<string, { recent: string; seeking: string; sch
   },
 };
 
+/** Schools the scripted agent suggests for the shortlist, one or two per tier. */
+export const FIXTURE_SCHOOLS = [
+  {
+    name: "University of Maryland",
+    country: "USA",
+    tier: "reach",
+    rank: "CSRankings #9, NLP",
+    admits: "committee",
+    why: "Top 10 in NLP and very selective; every PhD admit is funded.",
+    sources: ["https://csrankings.org/#/index?nlp&us"],
+  },
+  {
+    name: "George Mason University",
+    country: "USA",
+    tier: "match",
+    rank: "CSRankings #52",
+    admits: "committee",
+    why: "Mid-ranked in NLP with three health NLP groups that fit your fields; admits funded 5 years.",
+    sources: ["https://csrankings.org/#/index?nlp&us"],
+  },
+  {
+    name: "University of Illinois Chicago",
+    country: "USA",
+    tier: "match",
+    rank: "CSRankings #48",
+    admits: "committee",
+    why: "Health NLP and LLM agent labs with active grants past 2028.",
+    sources: ["https://csrankings.org/#/index?nlp&us"],
+  },
+  {
+    name: "Kansas State University",
+    country: "USA",
+    tier: "safety",
+    rank: "CSRankings #120",
+    admits: "committee",
+    why: "Funds every PhD admit and waives the fee with a medium-of-instruction certificate.",
+    sources: ["https://www.k-state.edu/grad/"],
+  },
+] as const;
+
 export const FIXTURE_SCHOLARSHIPS = [
   {
     name: "Fulbright Foreign Student Program",

@@ -1,7 +1,13 @@
 // What a professor's page shows beyond the record: where each field's value came from and when,
-// a dated timeline, the latest email's state and their school's programs (records.get), and
-// their grants, recent work and interests from free APIs (records.scholarly).
-import type { Award, OutreachMessage, Professor, Proposal } from "@getmyprof/contracts";
+// a dated timeline, the latest email's state, their school's programs and shortlist tier
+// (records.get), and their grants, recent work and interests from free APIs (records.scholarly).
+import {
+  type Award,
+  type OutreachMessage,
+  type Professor,
+  type Proposal,
+  schoolFor,
+} from "@getmyprof/contracts";
 import type { Sources } from "./agent/tools.ts";
 import type { Db } from "./db.ts";
 import { listMessages } from "./outreach/store.ts";
@@ -9,7 +15,7 @@ import { fieldSources, personKey } from "./records.ts";
 
 export { fieldSources };
 import { monthsAfter, sameSchool } from "./sources.ts";
-import { listPrograms } from "./vault.ts";
+import { listPrograms, listSchools } from "./vault.ts";
 
 const LABEL: Record<string, string> = {
   emailCheck: "email check",
@@ -67,6 +73,11 @@ export function pageExtras(db: Db, record: Professor, proposals: Proposal[]) {
     programs: listPrograms(db)
       .filter((p) => sameSchool(p.university, record.university))
       .map((p) => ({ name: p.name, deadline: p.deadline, funding: p.funding })),
+    school:
+      schoolFor(
+        listSchools(db).filter((s) => s.status !== "dropped"),
+        record.university,
+      ) ?? null,
   };
 }
 

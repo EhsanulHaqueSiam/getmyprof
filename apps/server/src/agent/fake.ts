@@ -9,6 +9,7 @@ import {
   FIXTURE_PROFESSORS,
   FIXTURE_PROGRAMS,
   FIXTURE_SCHOLARSHIPS,
+  FIXTURE_SCHOOLS,
   FIXTURE_WORK,
 } from "./fixtures.ts";
 import type { AgentProvider, SessionStart } from "./provider.ts";
@@ -201,6 +202,20 @@ export const fakeProvider = (
       );
     }
 
+    /** Fills the shortlist from fixtures; schools already listed or dropped are refused. */
+    async function suggestSchools() {
+      let added = 0;
+      for (const school of FIXTURE_SCHOOLS) {
+        await call("propose_school", `${school.name} · ${school.tier}`, school);
+        if (result.startsWith("suggested")) added++;
+      }
+      say(
+        added
+          ? `${added} school${added === 1 ? "" : "s"} wait on the Schools page.`
+          : "Nothing new: every school I found is already on your list.",
+      );
+    }
+
     /** Writes from the brief's facts: two confirmed ones, and one unproven one if there is any. */
     async function write(text: string) {
       const [, kind = "sop", program, scholarship, revise] = WRITE.exec(text) ?? [];
@@ -363,6 +378,7 @@ export const fakeProvider = (
         });
         say("I'll wait for your answer.");
       } else if (/^Find (scholarships|programs)/i.test(text)) await vaultFinds(text);
+      else if (/^Suggest schools/i.test(text)) await suggestSchools();
       else if (/Ask mode/.test(text) && text.includes("\nScope: ")) {
         // A scoped Ask answers from the record the message carries, fetching nothing.
         await pause();

@@ -97,8 +97,8 @@ export const Settings = z.object({
   mcpServers: z.array(McpServer),
   /** Bearer token other agents use to reach gradcode's own MCP endpoint, /api/mcp. */
   mcpToken: z.string(),
-  /** Free sources the agent may use; switching one off removes its tools. */
-  freeSources: z.array(FreeSource).default([...FREE_SOURCES]),
+  /** Free sources the agent may use; switching one off removes its tools. No default, as above. */
+  freeSources: z.array(FreeSource),
 });
 export type Settings = z.infer<typeof Settings>;
 

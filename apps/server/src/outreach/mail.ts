@@ -9,7 +9,7 @@ import * as NodePath from "node:path";
 import nodemailer from "nodemailer";
 import { z } from "zod";
 import { homeDir } from "../db.ts";
-import { accessToken, OAuthLogin } from "./oauth.ts";
+import { accessToken, OAUTH_PROVIDERS, OAuthLogin, SignedOut } from "./oauth.ts";
 
 /** A mailbox login: an app password, or an OAuth sign-in (then the password is empty). */
 export const MailLogin = MailConnect.extend({ password: z.string(), oauth: OAuthLogin.optional() });
@@ -92,9 +92,34 @@ const imap = async (c: MailLogin) =>
     logger: false,
   });
 
+/** A login the mail server refused becomes SignedOut, so Settings can ask for a new one. */
+function refusedLogin(e: unknown, c: MailLogin): never {
+  if (e instanceof SignedOut) throw e;
+  const refused =
+    typeof e === "object" &&
+    e !== null &&
+    (("authenticationFailed" in e && e.authenticationFailed === true) ||
+      ("code" in e && e.code === "EAUTH"));
+  if (!refused) throw e;
+  throw new SignedOut(
+    c.oauth
+      ? `${OAUTH_PROVIDERS[c.oauth.provider].label} ended gradcode's sign-in to this mailbox. Sign in again.`
+      : "The mail server refused the app password (a new Google password revokes old ones). Enter a new one.",
+  );
+}
+
 const ids = (v: string | string[] | undefined) => (Array.isArray(v) ? v : v ? v.split(/\s+/) : []);
 
 export function imapMailer(c: MailLogin): Mailer {
+  const m = imapMailerRaw(c);
+  return {
+    verify: () => m.verify().catch((e: unknown) => refusedLogin(e, c)),
+    send: (out) => m.send(out).catch((e: unknown) => refusedLogin(e, c)),
+    fetchNew: (cursor) => m.fetchNew(cursor).catch((e: unknown) => refusedLogin(e, c)),
+  };
+}
+
+function imapMailerRaw(c: MailLogin): Mailer {
   return {
     async verify() {
       await (await smtp(c)).verify();

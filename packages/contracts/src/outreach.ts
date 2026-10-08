@@ -108,14 +108,17 @@ export const Conversation = z.object({
 });
 export type Conversation = z.infer<typeof Conversation>;
 
-/** Mailboxes that sign in with OAuth, each install with its own client, instead of an app password. */
+/** Mailboxes that sign in with OAuth instead of an app password. */
 export const MailProvider = z.enum(["google", "microsoft"]);
 export type MailProvider = z.infer<typeof MailProvider>;
 
-/** Starts a mailbox sign-in. `returnTo` is the Settings page the browser comes back to. */
+/**
+ * Starts a mailbox sign-in. An empty `clientId` uses gradcode's own client for the provider;
+ * a user can bring theirs instead. `returnTo` is the Settings page the browser comes back to.
+ */
 export const MailSignIn = z.object({
   provider: MailProvider,
-  clientId: z.string().min(1),
+  clientId: z.string(),
   clientSecret: z.string(),
   name: z.string().min(1),
   returnTo: z.string(),
@@ -135,8 +138,12 @@ export const MailStatus = z.object({
   warmupStart: z.string().nullable(),
   lastSyncAt: z.string().nullable(),
   error: z.string(),
+  /** The login stopped working (sign-in ended, app password revoked): sign in again. */
+  signedOut: z.boolean(),
   /** How many first emails and follow-ups may go out today under the warm-up. */
   dailyCap: z.number(),
+  /** Providers gradcode has its own OAuth client for: signing in needs no setup. */
+  sharedClients: z.array(MailProvider),
 });
 export type MailStatus = z.infer<typeof MailStatus>;
 

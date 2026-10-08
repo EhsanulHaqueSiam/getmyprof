@@ -5,7 +5,7 @@
 //   desktop <mac|linux> <arch>...  dmg + zip, or AppImage + deb, with latest*.yml for the updater
 //   npm                          the `getmyprof` npm package, packed (never published from here)
 //   sums                         SHA256SUMS over the release assets in dist/release
-//   manifests                    the Homebrew cask and AUR PKGBUILD for this release, in dist/publish
+//   manifests                    the Homebrew cask for this release, in dist/publish
 //
 // The version is the root package.json's. GETMYPROF_RELEASES (owner/name) moves the public update
 // feed; GETMYPROF_UPDATE_URL points the desktop app at any static folder instead, for testing.
@@ -241,6 +241,8 @@ function buildNpm() {
     name: "getmyprof",
     version,
     description: "Find professors who can fund your degree. Runs on your own Claude Code login.",
+    homepage: `https://github.com/${releases}#readme`,
+    repository: { type: "git", url: `git+https://github.com/${releases}.git` },
     type: "module",
     bin: { getmyprof: "cli.mjs" },
     engines: { node: ">=24" },
@@ -251,9 +253,9 @@ function buildNpm() {
     getmyprof: { releases },
   };
   NodeFS.writeFileSync(NodePath.join(dir, "package.json"), `${JSON.stringify(pkg, null, 2)}\n`);
-  NodeFS.writeFileSync(
+  NodeFS.copyFileSync(
+    NodePath.join(root, "packaging/npm/README.md"),
     NodePath.join(dir, "README.md"),
-    "# getmyprof\n\nFinds professors who can fund your degree, on your own Claude Code login.\n\n```sh\nnpx getmyprof@latest\n```\n",
   );
   const out = NodePath.join(release, "npm");
   NodeFS.mkdirSync(out, { recursive: true });
@@ -271,8 +273,8 @@ function writeSums() {
 }
 
 /**
- * The Homebrew cask and AUR PKGBUILD for this release, from packaging/ with the version and
- * SHA256SUMS filled in, into dist/publish for release.yml to push to the tap and the AUR.
+ * The Homebrew cask for this release, from packaging/ with the version and SHA256SUMS filled in,
+ * into dist/publish for release.yml to push to the tap.
  */
 function writeManifests() {
   const sums = new Map(
@@ -285,24 +287,18 @@ function writeManifests() {
     version,
     sha256_dmg_arm64: sums.get(`getmyprof-${version}-arm64.dmg`),
     sha256_dmg_x64: sums.get(`getmyprof-${version}-x64.dmg`),
-    sha256_deb_amd64: sums.get(`getmyprof_${version}_amd64.deb`),
-    sha256_deb_arm64: sums.get(`getmyprof_${version}_arm64.deb`),
   };
+  const cask = NodeFS.readFileSync(NodePath.join(root, "packaging/homebrew/getmyprof.rb"), "utf8");
+  const text = cask.replace(/\{\{(\w+)\}\}/g, (token, key: string) => {
+    // Homebrew has templates of its own ({{appdir}}); they stay for brew to fill in.
+    if (!(key in values)) return token;
+    const value = values[key];
+    if (!value) throw new Error(`getmyprof.rb: no ${key} in SHA256SUMS`);
+    return value;
+  });
   const out = NodePath.join(root, "dist/publish");
   NodeFS.mkdirSync(out, { recursive: true });
-  for (const file of ["homebrew/getmyprof.rb", "aur/PKGBUILD"]) {
-    const text = NodeFS.readFileSync(NodePath.join(root, "packaging", file), "utf8").replace(
-      /\{\{(\w+)\}\}/g,
-      (token, key: string) => {
-        // Homebrew has templates of its own ({{appdir}}); they stay for brew to fill in.
-        if (!(key in values)) return token;
-        const value = values[key];
-        if (!value) throw new Error(`${file}: no ${key} in SHA256SUMS`);
-        return value;
-      },
-    );
-    NodeFS.writeFileSync(NodePath.join(out, NodePath.basename(file)), text);
-  }
+  NodeFS.writeFileSync(NodePath.join(out, "getmyprof.rb"), text);
 }
 
 const [step, ...args] = process.argv.slice(2);

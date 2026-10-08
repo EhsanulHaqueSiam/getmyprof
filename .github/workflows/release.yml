@@ -155,35 +155,3 @@ jobs:
           path: |
             dist/publish
             dist/release/npm/*.tgz
-
-  # The AUR wants a .SRCINFO, which only makepkg writes, so this runs on Arch.
-  aur:
-    needs: publish
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    container: archlinux:base-devel
-    env:
-      AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
-    steps:
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: publish
-          path: artifact
-      - name: getmyprof-bin on the AUR
-        run: |
-          [ -n "$AUR_SSH_KEY" ] || { echo "No AUR_SSH_KEY: the PKGBUILD is in this run's publish artifact."; exit 0; }
-          pacman -Sy --noconfirm --needed git openssh
-          # ssh reads ~/.ssh from root's passwd home, not the container's $HOME, so name every file.
-          install -Dm600 /dev/stdin "$HOME/.ssh/aur" <<<"$AUR_SSH_KEY"
-          ssh-keyscan aur.archlinux.org > "$HOME/.ssh/known_hosts"
-          export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/aur -o IdentitiesOnly=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts"
-          git clone ssh://aur@aur.archlinux.org/getmyprof-bin.git aur
-          cp artifact/publish/PKGBUILD aur/PKGBUILD
-          useradd -m builder && chown -R builder aur
-          su builder -c "cd aur && makepkg --printsrcinfo > .SRCINFO"
-          cd aur
-          git config --global --add safe.directory "$PWD"
-          git add PKGBUILD .SRCINFO
-          git -c user.name="getmyprof release" -c user.email="EhsanulHaqueSiam@users.noreply.github.com" \
-            commit -m "${GITHUB_REF_NAME#v}"
-          git push origin HEAD:master

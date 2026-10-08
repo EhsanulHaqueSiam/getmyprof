@@ -11,13 +11,14 @@ token. Installed apps and `getmyprof update` look there.
 | `getmyprof-X.Y.Z-{darwin,linux}-{arm64,x64}.tar.gz`            | `install.sh`: the `getmyprof` command, with its own Node 24                                          | `getmyprof update` runs the release's install.sh |
 | `getmyprof-X.Y.Z-{arm64,x64}.dmg` and `.zip`                   | the Mac app; the cask; the zip is Squirrel's                                                         | Update runs the release's install.sh over it     |
 | `getmyprof-X.Y.Z-{x86_64,arm64}.AppImage`                      | `install.sh --desktop` on Linux                                                                      | downloads and replaces itself                    |
-| `getmyprof_X.Y.Z_{amd64,arm64}.deb`                            | `apt install`, and the AUR package `getmyprof-bin`                                                   | a notice; the package manager installs           |
+| `getmyprof_X.Y.Z_{amd64,arm64}.deb`                            | `apt install`                                                                                        | a notice; the package manager installs           |
 | `latest-mac.yml`, `latest-linux.yml`, `latest-linux-arm64.yml` | electron-updater's feed                                                                              |                                                  |
 | `SHA256SUMS`                                                   | install.sh and `getmyprof update` check every download against it                                    |                                                  |
 | `install.sh`                                                   | `curl -fsSL https://github.com/EhsanulHaqueSiam/getmyprof/releases/latest/download/install.sh \| sh` | always the latest release's                      |
 
-The npm package `getmyprof` (`npx getmyprof@latest`), the Homebrew cask and the AUR `PKGBUILD`
-are built every release and published only when their secret is set.
+The npm package `getmyprof` (`npx getmyprof@latest`, its page's README is `packaging/npm/README.md`)
+and the Homebrew cask are built every release and published only when their secret is set. There
+is no AUR package; Arch runs the AppImage.
 
 ## How the pieces run
 
@@ -61,13 +62,11 @@ The release itself needs none. Each secret below turns on one more channel.
 | Secret                                                  | What                                                                          | Without it                         |
 | ------------------------------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------- |
 | `HOMEBREW_TAP_KEY`                                      | private half of a write deploy key on `EhsanulHaqueSiam/homebrew-tap`         | the cask stays in the run artifact |
-| `AUR_SSH_KEY`                                           | private key registered on the AUR account that owns `getmyprof-bin`           | the PKGBUILD stays in the artifact |
 | `NPM_TOKEN`                                             | npm token that can publish `getmyprof`                                        | the package stays in the artifact  |
 | `CSC_LINK`, `CSC_KEY_PASSWORD`                          | Developer ID Application certificate as base64 `.p12`, and its password       | ad-hoc signed Mac app              |
 | `APPLE_API_KEY`, `APPLE_API_KEY_ID`, `APPLE_API_ISSUER` | App Store Connect API key (`.p8` contents), its id and issuer, for notarizing | not notarized                      |
 
-A channel that failed or was skipped (say the AUR key wasn't registered yet, or `NPM_TOKEN` was
-added later) comes back with "Re-run all jobs" on that release's run: the published release and
+A channel that failed or was skipped (say `NPM_TOKEN` was added after the tag) comes back with "Re-run all jobs" on that release's run: the published release and
 an unchanged cask are left alone. A rerun uses the workflow as it was at the tag.
 
 ## Traps

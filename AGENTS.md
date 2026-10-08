@@ -62,7 +62,7 @@ apps/web                  React 19 + Vite+. src/routes (TanStack file routes), s
                           src/components/ui (a vendored Base UI kit), src/lib
 packages/contracts        zod schemas for everything on the wire. Decode untrusted input with .parse.
 apps/desktop              Electron app (main, preload, updates) and scripts/dist.ts, every release build
-packaging                 install.sh, the getmyprof launcher, Homebrew cask and AUR PKGBUILD templates
+packaging                 install.sh, the getmyprof launcher, the npm README, the Homebrew cask template
 oxlint-plugin-getmyprof    golden rules as lint rules, each tested against real oxlint
 e2e                       Playwright specs against the running stack
 scripts/dev-local.sh      one-command stack in tmux (see /dev-local)

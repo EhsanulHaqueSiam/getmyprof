@@ -230,7 +230,8 @@ export function VaultOffers() {
                   </Cell>
                 ))}
               </Field>
-              <Field label="Left a year">
+              {/* With dependents the rent typed is a 1-bedroom's; say it was raised for a family home. */}
+              <Field label={family ? "Left a year (family rent, 1.4×)" : "Left a year"}>
                 {offers.map((o, i) => (
                   <Cell
                     key={o.id}

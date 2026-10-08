@@ -143,7 +143,7 @@ function VaultPage() {
     <div
       className={cn(
         // On a phone the sections, the content and the side stack in one scrolling column.
-        "grid min-w-0 flex-1 grid-cols-1 max-md:overflow-y-auto",
+        "grid min-w-0 flex-1 grid-cols-1 max-md:auto-rows-max max-md:overflow-y-auto",
         wide ? "md:grid-cols-[200px_minmax(0,1fr)]" : "md:grid-cols-[200px_minmax(0,1fr)_300px]",
       )}
     >

@@ -167,7 +167,7 @@ export function Board({
           const at = new Date(i.at).toLocaleString("en-US", {
             month: "short",
             day: "numeric",
-            hour: "2-digit",
+            hour: "numeric",
             minute: "2-digit",
           });
           return `Call ${at} · ${prep ? "prep pack ready" : "no prep pack yet"}`;
@@ -306,7 +306,7 @@ export function MailLabel() {
       onClick={() => act(call("mail.sync", {}))}
       className={cn(
         "text-xs transition-colors hover:text-foreground",
-        mail.error ? "text-destructive-foreground" : "text-muted-foreground",
+        mail.error ? "text-destructive-foreground" : "whitespace-nowrap text-muted-foreground",
       )}
     >
       {mail.error

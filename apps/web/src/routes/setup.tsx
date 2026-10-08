@@ -136,9 +136,10 @@ function Setup() {
   const hqFacts = profileSource === "hq" ? (app?.facts ?? []) : [];
 
   return (
-    <div className="grid h-dvh grid-cols-[230px_minmax(0,1fr)]">
-      <nav className="flex flex-col gap-0.5 border-r px-2.5 py-3.5">
-        <div className="px-2.5 pb-3 font-semibold text-sm">gradcode</div>
+    <div className="grid h-dvh grid-rows-[auto_minmax(0,1fr)] md:grid-cols-[230px_minmax(0,1fr)] md:grid-rows-1">
+      {/* On a phone the steps run across the top and scroll sideways. */}
+      <nav className="flex gap-0.5 overflow-x-auto border-b px-2.5 py-2 md:flex-col md:overflow-visible md:border-r md:border-b-0 md:py-3.5">
+        <div className="hidden px-2.5 pb-3 font-semibold text-sm md:block">gradcode</div>
         {STEPS.map((s, i) => (
           <button
             key={s}
@@ -146,7 +147,7 @@ function Setup() {
             onClick={() => setStep(i)}
             aria-label={`Step ${i + 1}: ${s}`}
             className={cn(
-              "flex h-8.5 items-center gap-2.5 rounded-lg px-2.5 text-left text-sm transition-colors",
+              "flex h-8.5 shrink-0 items-center gap-2.5 rounded-lg px-2.5 text-left text-sm whitespace-nowrap transition-colors",
               i === step
                 ? "bg-secondary text-foreground"
                 : "text-muted-foreground hover:bg-accent hover:text-foreground",
@@ -167,7 +168,7 @@ function Setup() {
         ))}
       </nav>
       <section className="overflow-y-auto">
-        <div key={step} className="max-w-[820px] animate-fade-up px-7 py-6">
+        <div key={step} className="max-w-[820px] animate-fade-up px-4 py-6 md:px-7">
           {step === 0 ? (
             <>
               <h1 className="font-semibold text-lg tracking-tight">Connect</h1>

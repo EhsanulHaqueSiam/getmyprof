@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ago } from "~/lib/format";
+import { ago, plural } from "~/lib/format";
 import { useStore } from "~/state/store";
 
 export const Route = createFileRoute("/_shell/review")({ component: ReviewInbox });
@@ -12,7 +12,10 @@ function ReviewInbox() {
       <header className="flex h-12 shrink-0 items-center gap-2.5 px-4">
         <h1 className="font-semibold text-sm">Review</h1>
         <span className="text-muted-foreground text-xs">
-          {threads.reduce((n, t) => n + t.pendingReview, 0)} changes
+          {plural(
+            threads.reduce((n, t) => n + t.pendingReview, 0),
+            "change",
+          )}
         </span>
       </header>
       <div className="border-t">

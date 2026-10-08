@@ -94,8 +94,9 @@ if "$desktop"; then
   mkdir -p "$install_dir" "$data/applications"
   mv "$tmp/$name" "$install_dir/gradcode.AppImage"
   chmod +x "$install_dir/gradcode.AppImage"
-  (cd "$tmp" && "$install_dir/gradcode.AppImage" --appimage-extract gradcode-desktop.png >/dev/null 2>&1) &&
-    cp "$tmp/squashfs-root/gradcode-desktop.png" "$install_dir/gradcode.png" || true
+  (cd "$tmp" && "$install_dir/gradcode.AppImage" --appimage-extract 'usr/share/icons/*' >/dev/null 2>&1) || true
+  icon="$(find "$tmp/squashfs-root" -name '*.png' -type f 2>/dev/null | head -n 1)"
+  [ -n "$icon" ] && cp "$icon" "$install_dir/gradcode.png"
   cat >"$data/applications/gradcode-desktop.desktop" <<EOF
 [Desktop Entry]
 Name=gradcode

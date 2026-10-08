@@ -6,7 +6,14 @@ import { SchoolDock } from "~/components/SchoolDock";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { plural } from "~/lib/format";
-import { type SchoolRow, schoolRows, suggestPrompt, TIER_TONE, TIERS } from "~/lib/schools";
+import {
+  afterRent,
+  type SchoolRow,
+  schoolRows,
+  suggestPrompt,
+  TIER_TONE,
+  TIERS,
+} from "~/lib/schools";
 import { cn } from "~/lib/utils";
 import { daysLeft, due } from "~/lib/vault";
 import { call } from "~/rpc/client";
@@ -205,6 +212,8 @@ function Row({
 }) {
   const cell = "h-9 max-w-[130px] truncate whitespace-nowrap border-b px-2 text-secondary-label";
   const deadline = program?.deadline;
+  const family = useStore((st) => st.app?.applicant.dependents ?? false);
+  const money = afterRent(s, family);
   return (
     <tr
       data-testid="school-row"
@@ -270,8 +279,9 @@ function Row({
           <span className="text-placeholder">?</span>
         )}
       </td>
-      <td className={cell} title={program?.funding}>
-        {program?.funding || <span className="text-placeholder">?</span>}
+      {/* What the stipend leaves after rent once both are known, else how the program funds. */}
+      <td className={cell} title={money?.title ?? program?.funding}>
+        {money?.text || program?.funding || <span className="text-placeholder">?</span>}
       </td>
       <td className={cn(cell, "tabular-nums")}>
         {professors.length} · {funded} · {emailed}

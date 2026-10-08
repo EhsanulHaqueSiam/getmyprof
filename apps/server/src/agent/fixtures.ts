@@ -106,6 +106,20 @@ export const FIXTURE_SCHOOLS = [
   },
 ] as const;
 
+/** What the scripted agent finds George Mason pays and costs when it checks programs there. */
+export const FIXTURE_SCHOOL_MONEY = {
+  name: "George Mason University",
+  stipendUsd: 32000,
+  rentUsd: 1100,
+  source: "https://cec.gmu.edu/academics/doctoral-programs/phd-information-technology",
+};
+
+/** Last cycle's timing the scripted agent notes on every Vault program. */
+export const FIXTURE_DECISIONS = {
+  decisions: "interviews late Jan; decisions Feb 10 to Mar 5 (14 reports, 4 international)",
+  source: "https://www.thegradcafe.com/survey",
+};
+
 export const FIXTURE_SCHOLARSHIPS = [
   {
     name: "Fulbright Foreign Student Program",

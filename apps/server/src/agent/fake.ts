@@ -4,11 +4,13 @@
 import { addressChecked, type RowOp, type ThreadEvent } from "@getmyprof/contracts";
 import { now } from "../db.ts";
 import { getRecord, pendingCount } from "../records.ts";
-import { listDocuments } from "../vault.ts";
+import { listDocuments, listPrograms } from "../vault.ts";
 import {
+  FIXTURE_DECISIONS,
   FIXTURE_PROFESSORS,
   FIXTURE_PROGRAMS,
   FIXTURE_SCHOLARSHIPS,
+  FIXTURE_SCHOOL_MONEY,
   FIXTURE_SCHOOLS,
   FIXTURE_WORK,
 } from "./fixtures.ts";
@@ -195,6 +197,9 @@ export const fakeProvider = (
         await call(scholarships ? "propose_scholarship" : "propose_program", f.name, f);
         if (result === "to file") filed++;
       }
+      // Checking programs at shortlisted schools also records George Mason's stipend and rent.
+      if (/^Find programs at/i.test(text))
+        await call("set_school_money", FIXTURE_SCHOOL_MONEY.name, FIXTURE_SCHOOL_MONEY);
       say(
         filed
           ? `${filed} ${filed === 1 ? "waits" : "wait"} in your To file.`
@@ -213,6 +218,16 @@ export const fakeProvider = (
         added
           ? `${added} school${added === 1 ? "" : "s"} wait on the Schools page.`
           : "Nothing new: every school I found is already on your list.",
+      );
+    }
+
+    /** Notes last cycle's decision timing on every Vault program, from one fixture line. */
+    async function decisionTiming() {
+      const programs = listPrograms(s.toolContext.db);
+      for (const p of programs)
+        await call("note_program", p.name, { programId: p.id, ...FIXTURE_DECISIONS });
+      say(
+        `Noted decision timing on ${programs.length} program${programs.length === 1 ? "" : "s"}.`,
       );
     }
 
@@ -379,6 +394,8 @@ export const fakeProvider = (
         say("I'll wait for your answer.");
       } else if (/^Find (scholarships|programs)/i.test(text)) await vaultFinds(text);
       else if (/^Suggest schools/i.test(text)) await suggestSchools();
+      else if (/^For each program in my Vault, read last cycle's results/i.test(text))
+        await decisionTiming();
       else if (/Ask mode/.test(text) && text.includes("\nScope: ")) {
         // A scoped Ask answers from the record the message carries, fetching nothing.
         await pause();

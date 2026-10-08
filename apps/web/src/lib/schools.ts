@@ -1,5 +1,6 @@
 // The Schools page's rows: each school on the shortlist with the program closing first, the
-// professors found there and who was emailed, joined by name; and the prompt that fills each tier.
+// professors found there and who was emailed, joined by name; what its stipend leaves after rent;
+// and the prompt that fills each tier.
 import {
   type HuntPrefs,
   type Professor,
@@ -8,6 +9,7 @@ import {
   type SchoolTier,
   schoolFor,
 } from "@getmyprof/contracts";
+import { leftAfterRent } from "./vault";
 
 export const TIERS = ["reach", "match", "safety"] as const satisfies readonly SchoolTier[];
 
@@ -52,6 +54,22 @@ export function schoolRows<
 
 /** One school as the page shows it, with the full records and programs behind it. */
 export type SchoolRow = ReturnType<typeof schoolRows<Professor, Program>>[number];
+
+const usd = (n: number) => `$${n.toLocaleString("en-US")}`;
+
+/**
+ * "$18.8k after rent", from a school's yearly stipend and monthly rent, with the figures behind it
+ * for a tooltip; null until both are known. With dependents, rent is for a family home.
+ */
+export function afterRent(s: Pick<School, "stipendUsd" | "rentUsd">, family = false) {
+  const { stipendUsd: stipend, rentUsd: rent } = s;
+  const left = leftAfterRent({ stipend, stipendPer: "year", rentPerMonth: rent }, family);
+  if (left === null || stipend === null || rent === null) return null;
+  return {
+    text: `${left < 0 ? "-" : ""}$${(Math.abs(left) / 1000).toFixed(1)}k after rent`,
+    title: `stipend ${usd(stipend)} a year, rent ${usd(rent)} a month${family ? ", 1.4× for a family home" : ""}`,
+  };
+}
 
 /** Asks the agent for schools to bring each tier up to the hunt's mix, at least one each. */
 export function suggestPrompt(schools: School[], sweep: HuntPrefs["sweep"]) {

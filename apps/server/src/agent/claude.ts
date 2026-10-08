@@ -96,6 +96,7 @@ export function describeTool(name: string, input: Record<string, unknown>) {
     return { name: short, detail: `${s(input.name)} · ${s(input.university)}` };
   if (short === "propose_school")
     return { name: short, detail: `${s(input.name)} · ${s(input.tier)}` };
+  if (short === "set_school_money") return { name: short, detail: s(input.name) };
   if (short === "propose_scholarship")
     return { name: short, detail: `${s(input.name)} · ${s(input.sponsor)}` };
   if (short === "treg") return { name: `treg ${s(input.endpoint)}`, detail: s(input.purpose) };

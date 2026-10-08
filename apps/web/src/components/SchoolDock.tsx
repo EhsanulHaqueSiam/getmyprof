@@ -94,7 +94,7 @@ export function SchoolDock({
           onClick={() =>
             void start(
               `Programs at ${plural(picked.length, "school")}`,
-              `Find programs at ${names}: deadline for my intake, fee and waiver, English rules, and how admits are funded.`,
+              `Find programs at ${names}: deadline for my intake, fee and waiver, English rules, and how admits are funded. Then record each school's yearly PhD stipend and the median monthly rent for a one-bedroom near campus, in USD from pages that state them, with set_school_money.`,
             )
           }
         />

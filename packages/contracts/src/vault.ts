@@ -67,6 +67,13 @@ export const Program = z.object({
   limit: z.string().default(""),
   /** "ok", or "no: <why>" when this applicant can't be admitted or funded here. */
   eligibility: z.string().default(""),
+  /** Where two official pages disagree (department and graduate school): both values, both pages. */
+  conflicts: z.string().default(""),
+  /**
+   * Last cycle's interview and decision dates from GradCafe reports, e.g. "interviews late Jan;
+   * decisions Feb 10 to Mar 5 (14 reports, 4 international)". Self-reported, so never odds.
+   */
+  decisions: z.string().default(""),
   url: z.string(),
   sources,
   note: z.string(),
@@ -91,6 +98,8 @@ export const Application = z.object({
   programId: z.string(),
   status: AppStatus,
   waiver: z.enum(["none", "requested", "granted", "denied"]),
+  /** Apply only if the fee is waived: until a waiver is granted, its fee isn't counted as paid. */
+  onlyIfWaived: z.boolean().default(false),
   documents: z.array(
     z.object({ name: z.string(), docId: z.string().nullable(), done: z.boolean() }),
   ),
@@ -189,6 +198,10 @@ export const School = z.object({
   admits: z.enum(["committee", "advisor", "unknown"]),
   /** One line: why this tier for this applicant. */
   why: z.string(),
+  /** The yearly PhD stipend in USD, from a page that states it; null until found. */
+  stipendUsd: z.number().nullable().default(null),
+  /** Monthly rent for a one-bedroom near campus in USD; null until found. */
+  rentUsd: z.number().nullable().default(null),
   sources,
   status: z.enum(["suggested", "kept", "dropped"]),
 });

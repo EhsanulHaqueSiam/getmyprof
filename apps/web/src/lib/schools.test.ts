@@ -1,6 +1,6 @@
 import type { Professor, School } from "@getmyprof/contracts";
 import { describe, expect, it } from "vite-plus/test";
-import { schoolRows, suggestPrompt } from "./schools";
+import { afterRent, schoolRows, suggestPrompt } from "./schools";
 
 const school = (id: string, name: string, over: Partial<School> = {}): School => ({
   id,
@@ -10,6 +10,8 @@ const school = (id: string, name: string, over: Partial<School> = {}): School =>
   rank: "",
   admits: "committee",
   why: "",
+  stipendUsd: null,
+  rentUsd: null,
   sources: [],
   status: "kept",
   ...over,
@@ -59,5 +61,15 @@ describe("the shortlist", () => {
     expect(suggestPrompt(schools, { reach: 3, match: 3, safety: 2 })).toBe(
       "Suggest schools for my shortlist: 1 reach, 1 match, 2 safety.",
     );
+  });
+
+  it("says what a stipend leaves after a year of rent, once both are known", () => {
+    expect(afterRent({ stipendUsd: 32000, rentUsd: 1100 })).toEqual({
+      text: "$18.8k after rent",
+      title: "stipend $32,000 a year, rent $1,100 a month",
+    });
+    // With dependents, a family home: 1.4 times the rent.
+    expect(afterRent({ stipendUsd: 20000, rentUsd: 1500 }, true)?.text).toBe("-$5.2k after rent");
+    expect(afterRent({ stipendUsd: 32000, rentUsd: null })).toBeNull();
   });
 });

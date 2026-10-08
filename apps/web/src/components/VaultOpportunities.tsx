@@ -1,4 +1,4 @@
-import { Scholarship } from "@getmyprof/contracts";
+import { Scholarship, scoreGaps } from "@getmyprof/contracts";
 import { useNavigate } from "@tanstack/react-router";
 import { ExternalLinkIcon } from "lucide-react";
 import { useState } from "react";
@@ -9,19 +9,19 @@ import { daysLeft, due, fitsMe } from "~/lib/vault";
 import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
 
-/** Asks the agent to look, in a new thread. Its finds wait in To file. */
-function FindButton({ what, prompt }: { what: string; prompt: string }) {
+/** Asks the agent to look, in a new thread named for the button. Its finds wait in To file. */
+function FindButton({ label, prompt }: { label: string; prompt: string }) {
   const navigate = useNavigate();
   return (
     <Button
       size="xs"
       variant="outline"
       onClick={async () => {
-        const t = await call("threads.create", { text: prompt, title: `Find ${what}` });
+        const t = await call("threads.create", { text: prompt, title: label });
         void navigate({ to: "/t/$threadId", params: { threadId: t.id } });
       }}
     >
-      Find {what}
+      {label}
     </Button>
   );
 }
@@ -55,8 +55,15 @@ const Title = ({ text, url }: { text: string; url: string }) => (
   </div>
 );
 
-const Detail = ({ text }: { text: string }) => (
-  <div className="truncate font-normal text-muted-foreground text-xs" title={text}>
+/** A row's second line; `warn` for what needs the applicant's eye. */
+const Detail = ({ text, warn = false }: { text: string; warn?: boolean }) => (
+  <div
+    className={cn(
+      "truncate font-normal text-xs",
+      warn ? "text-warning-foreground" : "text-muted-foreground",
+    )}
+    title={text}
+  >
     {text}
   </div>
 );
@@ -87,7 +94,7 @@ export function VaultScholarships() {
           {shown.length} of {list.length}
         </span>
         <FindButton
-          what="scholarships"
+          label="Find scholarships"
           prompt="Find scholarships I qualify for: open to my citizenship, for the degrees I'm hunting, with a round I can still make. File each with propose_scholarship."
         />
       </header>
@@ -130,12 +137,17 @@ export function VaultScholarships() {
 export function VaultPrograms({ onOpenApplication }: { onOpenApplication: () => void }) {
   const programs = useStore((s) => s.vault)?.programs ?? [];
   const apps = useStore((s) => s.vault)?.applications ?? [];
+  const applicant = useStore((s) => s.app?.applicant);
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="flex min-h-12 shrink-0 flex-wrap items-center gap-2 px-4 py-2">
         <h1 className="mr-auto font-semibold text-sm">Programs</h1>
         <FindButton
-          what="programs"
+          label="Decision timing"
+          prompt="For each program in my Vault, read last cycle's results on GradCafe (thegradcafe.com/survey) with WebFetch and record when interviews and decisions came, how many reports and how many international, with note_program. These are self-reported: never turn them into odds."
+        />
+        <FindButton
+          label="Find programs"
           prompt="Find programs that fit my preferences at schools in my sheet: deadline for my intake, fee and waiver, English rules, and how admits are funded. File each with propose_program."
         />
       </header>
@@ -147,6 +159,10 @@ export function VaultPrograms({ onOpenApplication }: { onOpenApplication: () => 
       >
         {programs.map((p) => {
           const app = apps.find((a) => a.programId === p.id);
+          // Scores the applicant lacks, and official pages that disagree: both need a look.
+          const warn = [...(applicant ? scoreGaps(p.english, applicant) : []), p.conflicts]
+            .filter(Boolean)
+            .join(" · ");
           return (
             <tr key={p.id} className="transition-colors hover:bg-secondary">
               <Td strong className="h-auto max-w-none py-1.5">
@@ -160,10 +176,12 @@ export function VaultPrograms({ onOpenApplication }: { onOpenApplication: () => 
                     p.limit && `statement ${p.limit}`,
                     // Whether this applicant can be admitted and funded here, as the agent read it.
                     p.eligibility && (p.eligibility === "ok" ? "eligible" : p.eligibility),
+                    p.decisions && `last cycle ${p.decisions}`,
                   ]
                     .filter(Boolean)
                     .join(" · ")}
                 />
+                {warn ? <Detail warn text={warn} /> : null}
               </Td>
               <Td>
                 <Deadline date={p.deadline} />

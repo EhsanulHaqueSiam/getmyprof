@@ -21,4 +21,5 @@ export * from "./rpc.ts";
 export * from "./outreach.ts";
 export * from "./vault.ts";
 export * from "./deadlines.ts";
+export * from "./applying.ts";
 export * from "./desktop.ts";

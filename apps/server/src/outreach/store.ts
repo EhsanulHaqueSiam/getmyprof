@@ -56,6 +56,8 @@ export type DraftInput = {
   threadId: string | null;
   /** Vault document ids to send with it (email only), e.g. the CV they asked for. */
   attach?: string[] | undefined;
+  /** The applicant asked to write though the sheet says they aren't taking students. */
+  anyway?: boolean | undefined;
 };
 
 const validZone = (timeZone: string) => {
@@ -77,7 +79,7 @@ export const isReply = (m: OutreachMessage) =>
 export function draftProblem(
   record: Professor | null,
   messages: OutreachMessage[],
-  d: Pick<DraftInput, "channel" | "touch" | "to" | "body">,
+  d: Pick<DraftInput, "channel" | "touch" | "to" | "body" | "anyway">,
 ): string | null {
   if (!record)
     return "they aren't in the sheet yet: propose them and wait for the applicant to accept";
@@ -88,6 +90,8 @@ export function draftProblem(
   if (cold && (record.stage === "apply-only" || /^apply-only/i.test(record.contact)))
     return "apply-only: they want an application, not an email";
   if (record.stage === "skip") return "marked skip";
+  if (d.touch === "first" && !d.anyway && /^no\b/i.test(record.taking))
+    return `not taking students (${record.taking}): write anyway only if the applicant asks`;
   if (!d.body.trim()) return "the body is empty";
   if (d.channel === "email") {
     if (!record.email)

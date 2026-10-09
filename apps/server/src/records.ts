@@ -1,6 +1,7 @@
 import {
   type Award,
   type Change,
+  type Position,
   PROFESSOR_FIELDS,
   Professor,
   type ProfessorField,
@@ -37,6 +38,7 @@ export function blankProfessor(name: string, university: string): Professor {
     email: "",
     emailCheck: "",
     contact: "",
+    subjectRule: "",
     stage: "new",
     fitsBecause: "",
     website: "",
@@ -276,6 +278,7 @@ export const recordLine = (r: Professor) =>
     `taking ${r.taking || "?"}`,
     `email ${r.email || "?"} (${r.emailCheck || "unchecked"})`,
     `contact ${r.contact || "?"}`,
+    ...(r.subjectRule ? [`subject must carry "${r.subjectRule}"`] : []),
     `stage ${r.stage}`,
     `site ${r.website || "?"}`,
     `linkedin ${r.linkedin || "?"}`,
@@ -325,6 +328,27 @@ export const personKey = (name: string) => {
  * The sheet row for an award's PI, from one click in Funding: the award becomes their grant and
  * its page their source. A PI already in the sheet just gains the grant.
  */
+/**
+ * A professor from a posting that names them: money tier 1 (a posted, funded opening), the
+ * posting as their source and their "taking" line. One already in the sheet gains the posting.
+ */
+export function professorFromPosition(existing: Professor | null, p: Position): Professor {
+  const note = `${p.source} posting${p.deadline ? `, closes ${p.deadline}` : ""}: ${p.title}`;
+  const base = existing ?? {
+    ...blankProfessor(p.professor, p.university),
+    moneyTier: 1,
+    money: p.funding ? `${note} (${p.funding})` : note,
+    taking: `yes: ${note}`,
+    lasts: p.deadline ? `apply by ${p.deadline}` : "",
+  };
+  return {
+    ...base,
+    moneyTier: 1,
+    sources: base.sources.includes(p.url) ? base.sources : [...base.sources, p.url],
+    updatedAt: now(),
+  };
+}
+
 export function professorFromAward(existing: Professor | null, a: Award): Professor {
   const grant = {
     source: a.source,

@@ -91,6 +91,14 @@ test("professors, funding and loops show the hunt's data", async ({ page }) => {
   await page.goto("/funding");
   await page.getByRole("main").getByRole("button", { name: "Search" }).click();
   await expect(page.getByText("Antonios Anastasopoulos").first()).toBeVisible();
+  // Advertised positions: the posting's contact goes into the sheet in one click.
+  await page.getByRole("tab", { name: "positions" }).click();
+  await page.getByRole("button", { name: "jobs.ac.uk" }).click();
+  await page.getByLabel("Topics").fill("language models");
+  await page.getByRole("main").getByRole("button", { name: "Search" }).click();
+  const posting = page.getByRole("row", { name: /Language models for health records/ });
+  await posting.getByRole("button", { name: "Add PI" }).click();
+  await expect(posting.getByRole("cell", { name: "yes", exact: true })).toBeVisible();
 
   await page.goto("/loops");
   await expect(page.getByRole("cell", { name: "Nightly sweep" })).toBeVisible();
@@ -156,6 +164,28 @@ test("outreach: drafts wait for approval, a sent email's reply comes back as you
   await expect(page.getByTestId("card").filter({ hasText: "Kevin Lybarger" })).toContainText(
     "your turn",
   );
+});
+
+test("taking students: their page's words land dated, and a professor not taking gets no first email", async ({
+  page,
+}) => {
+  // Outreach left the thread with drafts in Pipeline, so it is in the main list, not Settled.
+  await page.goto("/");
+  await page.getByRole("link", { name: "Find professors" }).click();
+  await page.getByRole("tab", { name: /Results/ }).click();
+  await page.getByLabel("Select Mohan Zalake").check();
+  await page.getByRole("button", { name: /Taking students\?/ }).click();
+  const row = page.getByTestId("result-row").filter({ hasText: "Mohan Zalake" });
+  await expect(row).toContainText(
+    'no: "I am not taking new PhD students until Fall 2028." (their page, ',
+  );
+  await page.getByRole("button", { name: "Accept", exact: true }).click();
+  await expect(page.getByText("0 proposed cells")).toBeVisible();
+
+  await page.getByLabel("Select Mohan Zalake").check();
+  await page.getByRole("button", { name: /Draft first emails/ }).click();
+  await page.getByRole("tab", { name: "Chat" }).click();
+  await expect(page.getByText(/Mohan Zalake: Not drafted: not taking students/)).toBeVisible();
 });
 
 test("vault: the agent's finds wait in To file, and submitting an application drafts the notes", async ({

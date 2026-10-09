@@ -1,6 +1,9 @@
-// Faculty discovery beyond names: who CSRankings lists at a school, and who at a school works
-// on a topic by OpenAlex. Free and read-only; tools.ts spreads them into the hunt tools.
+// Faculty discovery beyond names: who CSRankings lists at a school, who at a school works on a
+// topic by OpenAlex, and who has a PhD position advertised. Free and read-only; tools.ts spreads
+// them into the hunt tools.
+import { PositionSource } from "@getmyprof/contracts";
 import { z } from "zod";
+import { positionKey } from "./sourcing.ts";
 import type { HuntTool } from "./tools.ts";
 
 const define = <S extends z.ZodRawShape>(t: HuntTool<S>) => t;
@@ -45,6 +48,32 @@ export const DISCOVERY_TOOLS = [
               )
               .join("\n")
           : `OpenAlex has no one at ${university} on "${topic}".`,
+      };
+    },
+  }),
+  define({
+    name: "phd_positions",
+    description:
+      "Search advertised PhD positions by topic terms, optionally at one university: jobs.ac.uk (UK studentships), INSPIRE (physics worldwide; names the contact). A posted, funded opening is money tier 1. Free.",
+    shape: {
+      source: PositionSource,
+      terms: z.array(z.string()),
+      university: z.string().optional(),
+    },
+    paid: false,
+    price: () => 0,
+    run: async ({ source, terms, university }, ctx) => {
+      const found = await ctx.sources[positionKey(source)]({
+        terms,
+        ...(university ? { university } : {}),
+      });
+      const lines = found.map(
+        (p) =>
+          `${p.source} ${p.id} | ${p.professor || "no contact named"} | ${p.university}, ${p.country} | closes ${p.deadline ?? "?"} | ${p.funding || "funding not stated"} | ${p.title} | ${p.url}`,
+      );
+      return {
+        summary: `${found.length} position${found.length === 1 ? "" : "s"} · free`,
+        text: lines.join("\n") || "No open positions found.",
       };
     },
   }),

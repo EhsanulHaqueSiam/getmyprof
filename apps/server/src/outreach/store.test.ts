@@ -128,4 +128,17 @@ describe("a draft", () => {
       /stopped: they replied/,
     );
   });
+
+  it("holds a first email to someone not taking students until the applicant asks anyway", () => {
+    const full = {
+      ...fresh,
+      taking: 'no: "not taking new PhD students until Fall 2028" (their page, 2026-10-09)',
+    };
+    expect(draftProblem(full, [], email)).toMatch(/^not taking students \(no: "not taking new PhD/);
+    expect(draftProblem(full, [], { ...email, anyway: true })).toBeNull();
+    // "not stated" is not a no.
+    expect(
+      draftProblem({ ...fresh, taking: "not stated (their page, 2026-10-09)" }, [], email),
+    ).toBeNull();
+  });
 });

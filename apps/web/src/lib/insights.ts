@@ -5,6 +5,13 @@ import { type Conversation, stripCitations } from "@getmyprof/contracts";
 
 export type Bucket = { label: string; sent: number; replied: number };
 
+/** Groups smaller than this show counts only: a rate from a handful of emails reads as a promise. */
+export const MIN_FOR_RATE = 10;
+
+/** " · 29%" for a group of 10 or more, else "", to follow "9 of 31". */
+export const rate = ({ sent, replied }: Omit<Bucket, "label">) =>
+  sent >= MIN_FOR_RATE ? ` · ${Math.round((replied / sent) * 100)}%` : "";
+
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export function replyInsights(conversations: Conversation[]) {

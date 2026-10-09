@@ -1,6 +1,6 @@
 import { DropToFile } from "~/components/DropToFile";
 import type { FileItem } from "@getmyprof/contracts";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "~/components/ui/button";
 import { VaultApplications } from "~/components/VaultApplications";
 import { VaultDocuments } from "~/components/VaultDocuments";
@@ -115,7 +115,12 @@ function Side() {
           </div>
         </div>
       ))}
-      <div className="mt-4 mb-1 text-muted-foreground">Coming up</div>
+      <div className="mt-4 mb-1 flex text-muted-foreground">
+        Coming up
+        <Link to="/calendar" className="ml-auto underline hover:text-foreground">
+          All dates in Calendar
+        </Link>
+      </div>
       {upcoming.length === 0 ? (
         <p className="text-muted-foreground">
           No deadlines or expiring documents in the next weeks.

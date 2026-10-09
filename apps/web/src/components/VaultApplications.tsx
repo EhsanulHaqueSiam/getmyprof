@@ -321,6 +321,35 @@ function ApplicationView({
   );
 }
 
+/**
+ * "Fees $225 of $300 · 2 waivers pending", in the warning tone once over budget; nothing until
+ * there's an application. The Applications header and the Calendar show it.
+ */
+export function FeeLine({ className }: { className?: string }) {
+  const vault = useStore((s) => s.vault);
+  const applicant = useStore((s) => s.app?.applicant);
+  if (!vault?.applications.length || !applicant) return null;
+  const fees = feeBudget(vault, applicant);
+  return (
+    <span
+      title={fees.unknown.join("\n") || undefined}
+      className={cn(
+        "text-xs tabular-nums",
+        fees.over ? "text-warning-foreground" : "text-muted-foreground",
+        className,
+      )}
+    >
+      {[
+        `Fees ${dollars(fees.spent)}${fees.budget === null ? "" : ` of ${dollars(fees.budget)}`}`,
+        fees.pending ? `${plural(fees.pending, "waiver")} pending` : "",
+        fees.unknown.length ? `${plural(fees.unknown.length, "fee")} unknown` : "",
+      ]
+        .filter(Boolean)
+        .join(" · ")}
+    </span>
+  );
+}
+
 /** Every application: checklist, recommenders, portal, and who to name. */
 export function VaultApplications() {
   const vault = useStore((s) => s.vault);
@@ -329,31 +358,13 @@ export function VaultApplications() {
   useEffect(() => {
     void call("records.list", {}).then(setPeople);
   }, [recordsVersion]);
-  const applicant = useStore((s) => s.app?.applicant);
   const apps = vault?.applications ?? [];
-  const fees = vault && applicant ? feeBudget(vault, applicant) : null;
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="flex min-h-12 shrink-0 flex-wrap items-center gap-2 px-4 py-2">
         <h1 className="font-semibold text-sm">Applications</h1>
         <span className="text-muted-foreground text-xs tabular-nums">{apps.length}</span>
-        {fees && apps.length ? (
-          <span
-            title={fees.unknown.join("\n") || undefined}
-            className={cn(
-              "ml-auto text-xs tabular-nums",
-              fees.over ? "text-warning-foreground" : "text-muted-foreground",
-            )}
-          >
-            {[
-              `Fees ${dollars(fees.spent)}${fees.budget === null ? "" : ` of ${dollars(fees.budget)}`}`,
-              fees.pending ? `${plural(fees.pending, "waiver")} pending` : "",
-              fees.unknown.length ? `${plural(fees.unknown.length, "fee")} unknown` : "",
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </span>
-        ) : null}
+        <FeeLine className="ml-auto" />
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto border-t">
         {apps.map((a) => (

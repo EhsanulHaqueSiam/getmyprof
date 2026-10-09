@@ -1,9 +1,11 @@
 import { type LoopRow, type Professor, ROW_OPS, type RowOp } from "@getmyprof/contracts";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import {
+  CalendarIcon,
   CheckIcon,
   ContactIcon,
   CornerDownLeftIcon,
+  FileTextIcon,
   GraduationCapIcon,
   PlayIcon,
   ZapIcon,
@@ -201,8 +203,16 @@ export function CommandPalette() {
       hint: "view",
       run: go("/schools"),
     },
+    { id: "cal", icon: <CalendarIcon />, label: "Calendar", hint: "view", run: go("/calendar") },
     { id: "fund", icon: <LandmarkIcon />, label: "Funding", hint: "view", run: go("/funding") },
     { id: "pipe", icon: <SendIcon />, label: "Pipeline", hint: "view", run: go("/pipeline") },
+    {
+      id: "report",
+      icon: <FileTextIcon />,
+      label: "Progress report",
+      hint: "view",
+      run: go("/report"),
+    },
     { id: "vault", icon: <ArchiveIcon />, label: "Vault", hint: "view", run: go("/vault") },
     { id: "loops", icon: <RepeatIcon />, label: "Loops", hint: "view", run: go("/loops") },
     ...(manage

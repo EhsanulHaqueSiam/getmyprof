@@ -1,6 +1,6 @@
 import { type Conversation, type OutreachMessage, Professor } from "@getmyprof/contracts";
 import { describe, expect, it } from "vite-plus/test";
-import { replyInsights } from "./insights";
+import { rate, replyInsights } from "./insights";
 
 const professor = (name: string, moneyTier: number) =>
   Professor.parse({
@@ -113,5 +113,11 @@ describe("reply insights", () => {
       { label: "Hook or warm path", sent: 1, replied: 1 },
       { label: "Neither", sent: 1, replied: 0 },
     ]);
+  });
+
+  it("gives a rate only for groups of 10 or more", () => {
+    expect(rate({ sent: 9, replied: 4 })).toBe("");
+    expect(rate({ sent: 10, replied: 0 })).toBe(" · 0%");
+    expect(rate({ sent: 31, replied: 9 })).toBe(" · 29%");
   });
 });

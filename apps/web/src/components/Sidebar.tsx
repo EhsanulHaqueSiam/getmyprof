@@ -2,6 +2,7 @@ import type { ThreadSummary } from "@getmyprof/contracts";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import {
+  CalendarIcon,
   ContactIcon,
   CheckIcon,
   ChevronDownIcon,
@@ -323,6 +324,7 @@ export function Sidebar() {
           count={schoolsWaiting}
           accent
         />
+        <NavLink to="/calendar" icon={<CalendarIcon />} label="Calendar" />
         <NavLink to="/funding" icon={<LandmarkIcon />} label="Funding" count={counts?.funding} />
         <NavLink to="/pipeline" icon={<SendIcon />} label="Pipeline" count={outreach} accent />
         <NavLink to="/vault" icon={<ArchiveIcon />} label="Vault" count={toFile} accent />

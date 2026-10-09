@@ -21,6 +21,7 @@ import {
   SettingsIcon,
   SquarePenIcon,
   UsersIcon,
+  UsersRoundIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
@@ -315,6 +316,14 @@ export function Sidebar() {
       </div>
       <nav className="flex flex-col gap-px">
         <NavLink to="/" icon={<PlusIcon />} label="New thread" kbd="⌘N" />
+        {counts?.students ? (
+          <NavLink
+            to="/students"
+            icon={<UsersRoundIcon />}
+            label="Students"
+            count={counts.students}
+          />
+        ) : null}
         <NavLink to="/professors" icon={<UsersIcon />} label="Professors" count={professors} />
         <NavLink
           to="/schools"

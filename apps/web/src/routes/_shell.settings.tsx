@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { modelLabel } from "~/components/Composer";
 import { BackupSettings } from "~/components/BackupSettings";
+import { HubSettings } from "~/components/HubSettings";
 import { MailSettings } from "~/components/MailSettings";
 import { McpEndpoint, McpServers } from "~/components/McpSettings";
 import { NotifySettings } from "~/components/NotifySettings";
@@ -182,6 +183,9 @@ function SettingsPage() {
         </Row>
         <Row label="Your data">
           <BackupSettings />
+        </Row>
+        <Row label="Counselor and shared catalog">
+          <HubSettings />
         </Row>
         <Row label="Open on your phone">
           <PairSettings />

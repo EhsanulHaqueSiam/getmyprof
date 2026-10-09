@@ -74,6 +74,7 @@ function safeReturn(returnTo: string) {
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e)).slice(0, 300);
 
 export const FOLLOW_UP_TAG = "[follow-up]";
+export const OWN_WORDS_TAG = "[own-words]";
 export const AFTER_APPLYING_TAG = "[after-applying]";
 export const THANK_TAG = "[thank-you]";
 export const REPLY_TAG = "[reply:";
@@ -388,6 +389,38 @@ export function createOutreach(deps: {
       if (!m || !["draft", "scheduled", "failed"].includes(m.status))
         throw new Error("Only a message that hasn't gone out can change.");
       putMessage(db, { ...m, subject, body });
+      changed();
+    },
+
+    /**
+     * The applicant's own lines for a first email: kept on the draft, and the agent that drafted
+     * it rewrites the draft around them, fixing only facts and citations.
+     */
+    ownWords(id: string, text: string) {
+      const m = getMessage(db, id);
+      const record = m && getRecord(db, m.recordKey);
+      if (!m || !record || m.status !== "draft" || m.touch !== "first")
+        throw new Error("Only a first email waiting for approval takes your own words.");
+      putMessage(db, { ...m, ownWords: text });
+      changed();
+      const thread =
+        m.threadId && getThread(db, m.threadId)
+          ? m.threadId
+          : createThread(db, `Your words · ${record.name}`).id;
+      runner.send(
+        thread,
+        `${OWN_WORDS_TAG} message=${m.id}\nThe applicant wrote these lines for their first ${m.channel === "linkedin" ? "LinkedIn note" : "email"} to ${record.name} (${record.university}), in their own words:\n"""\n${text}\n"""\nRewrite the waiting draft with draft_email (touch first, channel ${m.channel}, to ${m.to}, subject "${m.subject}", zone ${m.timeZone}) around these lines. Keep their words, order and voice: fix only capitals, spelling and punctuation, cite each claim about them with a confirmed fact [[id]] (vault_search), and drop a claim no fact backs, saying so in its why. Add only the greeting (Dear Dr. ${record.name.split(" ").at(-1)},), the one question (are you taking a PhD student for the intake) and the sign-off. Pass fixes: every line you changed, as from, to and why.`,
+        "send",
+        `Your words · ${record.name}`,
+      );
+      return { threadId: thread };
+    },
+
+    /** The applicant takes the agent's first email as it is (full assist for this one). */
+    useAgentVersion(id: string) {
+      const m = getMessage(db, id);
+      if (!m || m.status !== "draft") throw new Error("Only a waiting draft can change.");
+      putMessage(db, { ...m, voice: "agent" });
       changed();
     },
 

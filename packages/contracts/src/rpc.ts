@@ -341,6 +341,13 @@ export const Methods = {
     output: ok,
   },
   "outreach.cancel": { input: id, output: ok },
+  /** The applicant's own lines for a first email: the agent rewrites the draft around them. */
+  "outreach.ownWords": {
+    input: z.object({ id: z.string(), text: z.string().trim().min(1) }),
+    output: z.object({ threadId: z.string() }),
+  },
+  /** Take the agent's first email as it is. */
+  "outreach.useAgentVersion": { input: id, output: ok },
   /** LinkedIn is assisted: the user sends it there, then marks it sent here. */
   "outreach.markSent": { input: id, output: ok },
   /** Where a LinkedIn note opens: their message box, or their profile (with why, if it costs). */

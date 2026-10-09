@@ -125,6 +125,15 @@ test("outreach: drafts wait for approval, a sent email's reply comes back as you
   const approve = page.getByTestId("turn-approve");
   await expect(approve).toContainText("To approve · 2");
   await approve.getByText("Kevin Lybarger").click();
+  // A first email waits for the applicant's own lines; the agent fixes only facts and capitals.
+  await expect(page.getByTestId("next-step")).toContainText("write why them in your own words");
+  await page
+    .getByLabel("Your words")
+    .fill(
+      "i read DF-RAG: Query-Aware Diversity for Retrieval-Augmented Generation. i want to try the diversity step on discharge notes.",
+    );
+  await page.getByRole("button", { name: "Fix facts only" }).click();
+  await expect(page.getByTestId("fixes")).toContainText("2 changes by the agent");
   await expect(page.getByTestId("next-step")).toContainText("Approve the draft");
 
   // A claim with no fact behind it holds the draft back until it's cited or cut.

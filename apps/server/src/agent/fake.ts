@@ -5,7 +5,7 @@ import { RowOp, type ThreadEvent } from "@getmyprof/contracts";
 import { now } from "../db.ts";
 import { pendingCount } from "../records.ts";
 import { listDocuments, listPrograms } from "../vault.ts";
-import { firstDraft, ZONE } from "./fake-mail.ts";
+import { firstDraft, ownWordsDraft, ZONE } from "./fake-mail.ts";
 import {
   FIXTURE_DECISIONS,
   FIXTURE_PROFESSORS,
@@ -364,7 +364,16 @@ export const fakeProvider = (
       if (row?.[1] && row[2]) await rowAction(RowOp.parse(row[1]), row[2].split(","));
       else if (reply?.[1] && reply[2] && reply[3]) await answerReply(reply[1], reply[2], reply[3]);
       else if (text.startsWith("[follow-up]")) await followUps(text);
-      else if (text.startsWith("[after-applying]")) await afterApplying(text);
+      else if (text.startsWith("[own-words]")) {
+        const args = ownWordsDraft(s.toolContext.db, text);
+        if (args) await call("draft_email", `first · ${args.name} · your words`, args);
+        const fixed = args?.fixes.length ?? 0;
+        say(
+          args
+            ? `Rewrote it around your lines: ${fixed} ${fixed === 1 ? "fix" : "fixes"}.`
+            : "That draft is gone.",
+        );
+      } else if (text.startsWith("[after-applying]")) await afterApplying(text);
       else if (text.startsWith("[thank-you]")) await thankYou(text);
       else if (text.startsWith("[write]")) await write(text);
       else if (/\bask me\b/i.test(text)) {

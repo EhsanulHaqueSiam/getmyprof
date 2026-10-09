@@ -151,6 +151,11 @@ export const Settings = z.object({
   mcpToken: z.string(),
   /** Free sources the agent may use; switching one off removes its tools. No default, as above. */
   freeSources: z.array(FreeSource),
+  /**
+   * Who writes a first email's middle: "own", the applicant in their words with the agent fixing
+   * only facts and citations; or "agent", the agent writes it all (full assist). No default.
+   */
+  firstEmails: z.enum(["own", "agent"]),
 });
 export type Settings = z.infer<typeof Settings>;
 

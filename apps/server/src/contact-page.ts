@@ -56,7 +56,7 @@ export function sentences(html: string): string[] {
 
 const STUDENTS = /\b(students?|ph\.?\s?d|doctoral|graduate|applicants?|positions?|openings?)\b/i;
 const RECRUITING =
-  /\b(prospective|recruit(?:ing|s)?|accept(?:ing|s)?|taking|looking for|hiring|openings?|positions? (?:is|are) available|join (?:my|our|the) (?:lab|group))\b/i;
+  /\b(recruit(?:ing|s)?|accept(?:ing|s)?|taking|looking for|hiring|openings?|positions? (?:is|are) available|join (?:my|our|the) (?:lab|group))\b/i;
 const NOT_TAKING =
   /\b(not|no longer|n[o']t)\s+(?:currently\s+|be\s+|actively\s+)?(?:taking|accepting|recruiting|looking for|hiring|admitting)\b|\bno (?:open )?(?:positions|openings|funding)\b|\b(?:lab|group) is (?:currently )?full\b/i;
 // Their words for the subject line, quoted after "subject" or before it.
@@ -107,14 +107,15 @@ export function prospectivePage(html: string, base: string): string | null {
 export function readContactRule(pages: { url: string; html: string }[], today: Date): ContactRead {
   const all = pages.flatMap((p) => sentences(p.html));
   const first = (re: RegExp) => all.find((s) => re.test(s)) ?? null;
-  // A sentence, not a heading: "Prospective students" alone says nothing.
+  // A sentence, not a heading ("Prospective students" alone says nothing). A contact rule ("please
+  // do not email me") is noEmail, not a yes; a no counts even inside one.
   const statements = [
     ...new Set(
       all.filter(
         (s) =>
           s.split(" ").length >= 5 &&
           STUDENTS.test(s) &&
-          (RECRUITING.test(s) || NOT_TAKING.test(s)),
+          (NOT_TAKING.test(s) || (RECRUITING.test(s) && !NO_EMAIL.test(s) && !APPLY_FIRST.test(s))),
       ),
     ),
   ].slice(0, 3);

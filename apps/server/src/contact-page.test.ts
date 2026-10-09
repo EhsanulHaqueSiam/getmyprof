@@ -33,9 +33,19 @@ describe("a professor's page about prospective students", () => {
       <p>Prospective students: please do not email me about admissions.
       Apply to the PhD program first and mention my name in your statement.</p>
       <p>Fill out <a href="https://forms.gle/abc123">this form</a> instead.</p>`);
+    // A contact rule is not a taking statement.
+    expect(r.taking).toBeNull();
     expect(r.form).toBe("https://forms.gle/abc123");
     expect(r.noEmail).toContain("please do not email me");
     expect(r.applyFirst).toContain("Apply to the PhD program first");
+  });
+
+  it("hears a no inside a don't-email line", () => {
+    const r = read(
+      "<p>I am not accepting new students, so please do not email me about openings.</p>",
+    );
+    expect(r.taking).toBe("no");
+    expect(r.noEmail).toContain("please do not email me");
   });
 
   it("says nothing when the page says nothing", () => {

@@ -25,8 +25,8 @@ export function duration(ms: number) {
 
 export const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
-/** "just now" or "12m ago": for labels that read "synced …". */
+/** "just now", "12m ago", or a date past a week: for labels that read "synced …". */
 export function since(iso: string | null, nowMs = Date.now()) {
   const a = ago(iso, nowMs);
-  return a === "now" ? "just now" : `${a} ago`;
+  return a === "now" ? "just now" : /^\d/.test(a) ? `${a} ago` : a;
 }

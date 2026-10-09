@@ -19,6 +19,8 @@ const TABLES = [
   "spend",
   "messages",
   "vault",
+  "students",
+  "catalog",
 ] as const;
 
 const Row = z.record(z.string(), z.union([z.string(), z.number(), z.null()]));

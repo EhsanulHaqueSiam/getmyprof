@@ -21,11 +21,13 @@ import { Route as ShellReportRouteImport } from './routes/_shell.report'
 import { Route as ShellReviewRouteImport } from './routes/_shell.review'
 import { Route as ShellSchoolsRouteImport } from './routes/_shell.schools'
 import { Route as ShellSettingsRouteImport } from './routes/_shell.settings'
+import { Route as ShellStudentsRouteImport } from './routes/_shell.students'
 import { Route as ShellVaultRouteImport } from './routes/_shell.vault'
 import { Route as PrintIdRouteImport } from './routes/print.$id'
 import { Route as PrintReportRouteImport } from './routes/print.report'
 import { Route as ShellProfessorsIndexRouteImport } from './routes/_shell.professors.index'
 import { Route as ShellProfessorsKeyRouteImport } from './routes/_shell.professors.$key'
+import { Route as ShellStudentsIdRouteImport } from './routes/_shell.students_.$id'
 import { Route as ShellTThreadIdRouteImport } from './routes/_shell.t.$threadId'
 import { Route as ShellVaultWritingIdRouteImport } from './routes/_shell.vault_.writing.$id'
 
@@ -88,6 +90,11 @@ const ShellSettingsRoute = ShellSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => ShellRoute,
 } as any)
+const ShellStudentsRoute = ShellStudentsRouteImport.update({
+  id: '/students',
+  path: '/students',
+  getParentRoute: () => ShellRoute,
+} as any)
 const ShellVaultRoute = ShellVaultRouteImport.update({
   id: '/vault',
   path: '/vault',
@@ -113,6 +120,11 @@ const ShellProfessorsKeyRoute = ShellProfessorsKeyRouteImport.update({
   path: '/professors/$key',
   getParentRoute: () => ShellRoute,
 } as any)
+const ShellStudentsIdRoute = ShellStudentsIdRouteImport.update({
+  id: '/students_/$id',
+  path: '/students/$id',
+  getParentRoute: () => ShellRoute,
+} as any)
 const ShellTThreadIdRoute = ShellTThreadIdRouteImport.update({
   id: '/t/$threadId',
   path: '/t/$threadId',
@@ -136,10 +148,12 @@ export interface FileRoutesByFullPath {
   '/review': typeof ShellReviewRoute
   '/schools': typeof ShellSchoolsRoute
   '/settings': typeof ShellSettingsRoute
+  '/students': typeof ShellStudentsRoute
   '/vault': typeof ShellVaultRoute
   '/print/$id': typeof PrintIdRoute
   '/print/report': typeof PrintReportRoute
   '/professors/$key': typeof ShellProfessorsKeyRoute
+  '/students/$id': typeof ShellStudentsIdRoute
   '/t/$threadId': typeof ShellTThreadIdRoute
   '/professors/': typeof ShellProfessorsIndexRoute
   '/vault/writing/$id': typeof ShellVaultWritingIdRoute
@@ -155,11 +169,13 @@ export interface FileRoutesByTo {
   '/review': typeof ShellReviewRoute
   '/schools': typeof ShellSchoolsRoute
   '/settings': typeof ShellSettingsRoute
+  '/students': typeof ShellStudentsRoute
   '/vault': typeof ShellVaultRoute
   '/print/$id': typeof PrintIdRoute
   '/print/report': typeof PrintReportRoute
   '/': typeof ShellIndexRoute
   '/professors/$key': typeof ShellProfessorsKeyRoute
+  '/students/$id': typeof ShellStudentsIdRoute
   '/t/$threadId': typeof ShellTThreadIdRoute
   '/professors': typeof ShellProfessorsIndexRoute
   '/vault/writing/$id': typeof ShellVaultWritingIdRoute
@@ -177,11 +193,13 @@ export interface FileRoutesById {
   '/_shell/review': typeof ShellReviewRoute
   '/_shell/schools': typeof ShellSchoolsRoute
   '/_shell/settings': typeof ShellSettingsRoute
+  '/_shell/students': typeof ShellStudentsRoute
   '/_shell/vault': typeof ShellVaultRoute
   '/print/$id': typeof PrintIdRoute
   '/print/report': typeof PrintReportRoute
   '/_shell/': typeof ShellIndexRoute
   '/_shell/professors/$key': typeof ShellProfessorsKeyRoute
+  '/_shell/students_/$id': typeof ShellStudentsIdRoute
   '/_shell/t/$threadId': typeof ShellTThreadIdRoute
   '/_shell/professors/': typeof ShellProfessorsIndexRoute
   '/_shell/vault_/writing/$id': typeof ShellVaultWritingIdRoute
@@ -200,10 +218,12 @@ export interface FileRouteTypes {
     | '/review'
     | '/schools'
     | '/settings'
+    | '/students'
     | '/vault'
     | '/print/$id'
     | '/print/report'
     | '/professors/$key'
+    | '/students/$id'
     | '/t/$threadId'
     | '/professors/'
     | '/vault/writing/$id'
@@ -219,11 +239,13 @@ export interface FileRouteTypes {
     | '/review'
     | '/schools'
     | '/settings'
+    | '/students'
     | '/vault'
     | '/print/$id'
     | '/print/report'
     | '/'
     | '/professors/$key'
+    | '/students/$id'
     | '/t/$threadId'
     | '/professors'
     | '/vault/writing/$id'
@@ -240,11 +262,13 @@ export interface FileRouteTypes {
     | '/_shell/review'
     | '/_shell/schools'
     | '/_shell/settings'
+    | '/_shell/students'
     | '/_shell/vault'
     | '/print/$id'
     | '/print/report'
     | '/_shell/'
     | '/_shell/professors/$key'
+    | '/_shell/students_/$id'
     | '/_shell/t/$threadId'
     | '/_shell/professors/'
     | '/_shell/vault_/writing/$id'
@@ -343,6 +367,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellSettingsRouteImport
       parentRoute: typeof ShellRoute
     }
+    '/_shell/students': {
+      id: '/_shell/students'
+      path: '/students'
+      fullPath: '/students'
+      preLoaderRoute: typeof ShellStudentsRouteImport
+      parentRoute: typeof ShellRoute
+    }
     '/_shell/vault': {
       id: '/_shell/vault'
       path: '/vault'
@@ -378,6 +409,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellProfessorsKeyRouteImport
       parentRoute: typeof ShellRoute
     }
+    '/_shell/students_/$id': {
+      id: '/_shell/students_/$id'
+      path: '/students/$id'
+      fullPath: '/students/$id'
+      preLoaderRoute: typeof ShellStudentsIdRouteImport
+      parentRoute: typeof ShellRoute
+    }
     '/_shell/t/$threadId': {
       id: '/_shell/t/$threadId'
       path: '/t/$threadId'
@@ -405,9 +443,11 @@ interface ShellRouteChildren {
   ShellReviewRoute: typeof ShellReviewRoute
   ShellSchoolsRoute: typeof ShellSchoolsRoute
   ShellSettingsRoute: typeof ShellSettingsRoute
+  ShellStudentsRoute: typeof ShellStudentsRoute
   ShellVaultRoute: typeof ShellVaultRoute
   ShellIndexRoute: typeof ShellIndexRoute
   ShellProfessorsKeyRoute: typeof ShellProfessorsKeyRoute
+  ShellStudentsIdRoute: typeof ShellStudentsIdRoute
   ShellTThreadIdRoute: typeof ShellTThreadIdRoute
   ShellProfessorsIndexRoute: typeof ShellProfessorsIndexRoute
   ShellVaultWritingIdRoute: typeof ShellVaultWritingIdRoute
@@ -423,9 +463,11 @@ const ShellRouteChildren: ShellRouteChildren = {
   ShellReviewRoute: ShellReviewRoute,
   ShellSchoolsRoute: ShellSchoolsRoute,
   ShellSettingsRoute: ShellSettingsRoute,
+  ShellStudentsRoute: ShellStudentsRoute,
   ShellVaultRoute: ShellVaultRoute,
   ShellIndexRoute: ShellIndexRoute,
   ShellProfessorsKeyRoute: ShellProfessorsKeyRoute,
+  ShellStudentsIdRoute: ShellStudentsIdRoute,
   ShellTThreadIdRoute: ShellTThreadIdRoute,
   ShellProfessorsIndexRoute: ShellProfessorsIndexRoute,
   ShellVaultWritingIdRoute: ShellVaultWritingIdRoute,

@@ -21,6 +21,7 @@ import {
   TextSearchIcon,
   UserIcon,
   UsersIcon,
+  UsersRoundIcon,
 } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { Dialog, DialogPopup } from "~/components/ui/dialog";
@@ -195,6 +196,13 @@ export function CommandPalette() {
 
   const all: Item[] = [
     { id: "new", icon: <PlusIcon />, label: "New thread", hint: "⌘N", run: go("/") },
+    {
+      id: "students",
+      icon: <UsersRoundIcon />,
+      label: "Students",
+      hint: "view",
+      run: go("/students"),
+    },
     { id: "prof", icon: <UsersIcon />, label: "Professors", hint: "view", run: go("/professors") },
     {
       id: "schools",

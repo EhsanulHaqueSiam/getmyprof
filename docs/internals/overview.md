@@ -119,6 +119,25 @@ The user's own MCP servers (a URL, or a command run over stdio) go into every Cl
 their tool calls raise an approval unless the server is marked trusted. The fake provider
 ignores them.
 
+## Counselor hub
+
+Any install can be a hub: a counselor's, or one for friends, reached on a tailnet or a tunnel.
+getmyprof runs no service. The owner invites a student on the Students page; the invite code is
+base64url JSON of the hub's URL, a token (only its sha256 is kept) and a name. The student
+pastes it in Settings and their install then syncs on connect, on Sync now and hourly
+(`hub-member.ts`).
+
+- **What moves.** Student to hub: the progress report, and with "Give back" on (off until the
+  student turns it on) public facts: Vault programs and scholarships, and the sheet's public
+  details with their pages (`publicFacts`). Hub to student: the shared catalog, the facts given
+  back plus the hub's own. Never profile facts, CV, drafts, messages, fit, stage, eligibility or
+  notes; parsing through `CatalogFact` drops whatever it doesn't name.
+- **Nothing lands without a click.** New programs and scholarships go to To file; changes to
+  professors already in the sheet go to Review in one thread, "From the shared catalog". A
+  value proposed there once is never proposed again, and an email comes only with a passing check.
+- **Its own door.** `/api/hub/*` is server to server: no Origin check, a student's bearer token
+  instead, 1 MB bodies (`hub.ts`). Merging keeps the newer `checkedAt` and counts contributors.
+
 ## Input
 
 `ask_applicant` puts a question in the thread and returns at once; the turn ends and the thread

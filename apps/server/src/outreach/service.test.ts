@@ -133,7 +133,7 @@ describe("outreach on a mailbox", () => {
     await outreach.connect(LOGIN);
     await outreach.sendNow(draft.id);
     await outreach.tick(new Date(Date.now() + 20 * 864e5));
-    const [line] = asked.filter((t) => t.startsWith("[follow-up]"));
+    const line = asked.find((t) => t.startsWith("[follow-up]"));
     expect(line).toContain(
       `sent ${day(0)} | your new facts since: [[f_new]] 4 points on MedQA with the diversity step (${day(3)})`,
     );

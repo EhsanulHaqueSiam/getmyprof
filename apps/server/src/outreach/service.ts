@@ -7,12 +7,14 @@ import {
   MailStatus,
   OutreachMessage,
   addressChecked,
+  factStatus,
   Program,
   stripCitations,
 } from "@getmyprof/contracts";
 import { z } from "zod";
 import type { Runner } from "../agent/runner.ts";
 import type { Bus } from "../bus.ts";
+import { profileFacts } from "../adapters.ts";
 import { type Db, getKv, now, setKv } from "../db.ts";
 import { getRecord, listRecords } from "../records.ts";
 import { sameSchool } from "../sources.ts";
@@ -209,17 +211,25 @@ export function createOutreach(deps: {
       db,
       `Follow-ups · ${at.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
     );
+    const facts = profileFacts(db).filter((f) => factStatus(f) === "confirmed" && f.date);
     const lines = due.map((f) => {
+      // What the applicant did since the last message: a follow-up's honest new angle. A fact
+      // dated only "2026" can't be placed after a day, so it doesn't count.
+      const sent = (f.last?.at ?? f.last?.createdAt ?? "").slice(0, 10);
+      const fresh = facts.filter((x) => x.date.length >= 10 && x.date > sent);
+      const yours = fresh.length
+        ? fresh.map((x) => `[[${x.id}]] ${x.text} (${x.date})`).join("; ")
+        : "none";
       // A LinkedIn note that got no answer follows up by email when the sheet has a checked address.
       const byEmail =
         f.last?.channel === "linkedin" && !!f.record.email && addressChecked(f.record.emailCheck);
       const channel = byEmail ? "email" : (f.last?.channel ?? "email");
       const to = byEmail ? f.record.email : (f.last?.to ?? f.record.email);
-      return `- ${f.record.name} | ${f.record.university} | key ${f.record.key} | ${f.touch} | channel ${channel} | to ${to} | zone ${f.last?.timeZone ?? "America/New_York"} | last message "${f.last?.subject ?? ""}": ${(f.last?.body ?? "").slice(0, 300)}`;
+      return `- ${f.record.name} | ${f.record.university} | key ${f.record.key} | ${f.touch} | channel ${channel} | to ${to} | zone ${f.last?.timeZone ?? "America/New_York"} | sent ${sent} | your new facts since: ${yours} | last message "${f.last?.subject ?? ""}": ${(f.last?.body ?? "").slice(0, 300)}`;
     });
     runner.send(
       t.id,
-      `${FOLLOW_UP_TAG} keys=${due.map((f) => f.record.key).join(",")}\nNo reply yet from the professors below. Draft the follow-up named on each line with draft_email. Follow-up 1 is a short bump with a new angle (their latest paper); follow-up 2 is a last note offering a CV or a call. Keep the same subject with "Re: ". Use the channel on each line: a LinkedIn note with no reply moves to email.\n${lines.join("\n")}`,
+      `${FOLLOW_UP_TAG} keys=${due.map((f) => f.record.key).join(",")}\nNo reply yet from the professors below. Draft the follow-up named on each line with draft_email, keeping the subject with "Re: ". Each one brings one thing that is new since the last message was sent, and says where it is from: their work dated after it (check openalex_author), or one of the applicant's new facts on the line (cite it). Never restate the last message. With nothing new, follow-up 1 is two plain sentences asking only whether they are taking a student for the intake, and follow-up 2 offers a 15-minute call or the CV and says it is the last note. Use the channel on each line: a LinkedIn note with no reply moves to email.\n${lines.join("\n")}`,
       "send",
       `Draft ${due.length} follow-up${due.length === 1 ? "" : "s"}`,
     );

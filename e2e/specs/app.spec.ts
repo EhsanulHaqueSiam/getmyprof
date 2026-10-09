@@ -100,6 +100,12 @@ test("professors, funding and loops show the hunt's data", async ({ page }) => {
   await posting.getByRole("button", { name: "Add PI" }).click();
   await expect(posting.getByRole("cell", { name: "yes", exact: true })).toBeVisible();
 
+  // Next moves: the professors with money nobody has written to yet, with where to do it.
+  await page.goto("/moves");
+  await expect(
+    page.getByTestId("move").filter({ hasText: "Email 2 professors who can fund you" }),
+  ).toBeVisible();
+
   await page.goto("/loops");
   await expect(page.getByRole("cell", { name: "Nightly sweep" })).toBeVisible();
   await page.getByRole("cell", { name: "New awards" }).click();

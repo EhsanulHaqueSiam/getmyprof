@@ -22,4 +22,5 @@ export * from "./outreach.ts";
 export * from "./vault.ts";
 export * from "./deadlines.ts";
 export * from "./applying.ts";
+export * from "./report.ts";
 export * from "./desktop.ts";

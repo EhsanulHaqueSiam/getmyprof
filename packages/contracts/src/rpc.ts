@@ -24,6 +24,7 @@ import {
   TregStatus,
 } from "./domain.ts";
 import { ClaudeBinary } from "./desktop.ts";
+import { ProgressReport } from "./report.ts";
 import { Conversation, MailConnect, MailSignIn, MailStatus } from "./outreach.ts";
 import { RowOp, ThreadEvent, ThreadSummary } from "./threads.ts";
 import {
@@ -342,6 +343,8 @@ export const Methods = {
   },
 
   "vault.get": { input: z.object({}), output: VaultState },
+  /** The progress report: counts, shortlist, replies and the next 30 days. */
+  "report.get": { input: z.object({}), output: ProgressReport },
   "vault.save": { input: VaultEdit, output: ok },
   "vault.remove": {
     input: z.object({

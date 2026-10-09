@@ -37,6 +37,7 @@ import {
   saveHunt,
   updateSettings,
 } from "./state.ts";
+import { progressReport } from "./report.ts";
 import { recordHandlers } from "./rpc-records.ts";
 import { askCvQuestions } from "./cv-questions.ts";
 import { mailHandlers } from "./rpc-mail.ts";
@@ -201,6 +202,7 @@ export function createHandlers(svc: Services): Handlers {
     ...tregHandlers(svc),
 
     "vault.get": () => vaultState(db),
+    "report.get": () => progressReport(db),
     "vault.save": (edit) => {
       const before = saveEdit(db, edit);
       if (

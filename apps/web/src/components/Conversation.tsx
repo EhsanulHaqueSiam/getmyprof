@@ -7,6 +7,7 @@ import {
 } from "@getmyprof/contracts";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { Fixes, OwnWords, VoiceTextarea } from "~/components/DraftVoice";
 import { act, ChannelBadge, TOUCH_LABEL } from "~/components/Pipeline";
 import { Button } from "~/components/ui/button";
 import { Kbd } from "~/components/ui/kbd";
@@ -107,7 +108,6 @@ function Composer({
   const blocked = issues.length > 0;
   const docs = useStore((s) => s.vault?.documents) ?? [];
   const attached = docs.filter((d) => draft.attachments.includes(d.id)).map((d) => d.name);
-  const dashes = (body.match(/—/g) ?? []).length;
   const save = () => (dirty ? call("outreach.edit", { id: draft.id, subject, body }) : null);
   const then = (next: () => Promise<unknown>) => act(Promise.resolve(save()).then(next));
   const slot = draft.channel === "email" && draft.touch !== "reply";
@@ -118,6 +118,8 @@ function Composer({
       data-testid="composer"
       className="mx-4 mb-4 rounded-2xl border bg-card shadow-composer focus-within:border-ring/40"
     >
+      {draft.voice === "suggested" ? <OwnWords draft={draft} /> : null}
+      {draft.voice === "own" && draft.fixes.length ? <Fixes fixes={draft.fixes} /> : null}
       {draft.touch !== "reply" && draft.channel === "email" ? (
         <input
           value={subject}
@@ -128,7 +130,7 @@ function Composer({
           className="w-full border-b bg-transparent px-3.5 py-2 text-sm outline-none placeholder:text-placeholder"
         />
       ) : null}
-      <textarea
+      <VoiceTextarea
         value={body}
         onChange={(e) => setBody(e.target.value)}
         onBlur={() => void save()}
@@ -162,9 +164,6 @@ function Composer({
       ) : null}
       <div className="flex items-center gap-1.5 px-2.5 pb-2.5 text-muted-foreground text-xs">
         <ChannelBadge channel={draft.channel} />
-        {dashes ? (
-          <span className="shrink-0 text-warning-foreground">{dashes} em dashes ·</span>
-        ) : null}
         <span className="truncate" title={draft.to}>
           {kindOf(draft)} · to {draft.to}
           {draft.status === "failed" ? ` · not sent: ${draft.note}` : ""}
@@ -346,27 +345,34 @@ export function ConversationView({ c, connected }: { c: Conversation; connected:
         </dl>
         <div className="mt-4 mb-1.5 text-muted-foreground">Sequence</div>
         <ol className="flex flex-col gap-1.5" data-testid="sequence">
-          {sequence(c).map((s) => (
-            <li key={s.id} className="flex items-center gap-2">
-              <span
-                className={cn(
-                  "size-1.5 shrink-0 rounded-full",
-                  s.state === "done" && "bg-success",
-                  s.state === "now" && "bg-status-approval",
-                  (s.state === "later" || s.state === "off") && "bg-muted-foreground/50",
-                )}
-              />
-              <span className={s.state === "off" ? "text-muted-foreground" : "text-foreground"}>
-                {s.label}
-              </span>
-              <span
-                className={cn(
-                  "ml-auto truncate pl-2",
-                  s.state === "now" ? "text-status-approval" : "text-muted-foreground",
-                )}
-              >
-                {s.when}
-              </span>
+          {sequence(c, app?.facts ?? []).map((s) => (
+            <li key={s.id} className="flex flex-col gap-0.5">
+              <div className="flex items-center gap-2">
+                <span
+                  className={cn(
+                    "size-1.5 shrink-0 rounded-full",
+                    s.state === "done" && "bg-success",
+                    s.state === "now" && "bg-status-approval",
+                    (s.state === "later" || s.state === "off") && "bg-muted-foreground/50",
+                  )}
+                />
+                <span className={s.state === "off" ? "text-muted-foreground" : "text-foreground"}>
+                  {s.label}
+                </span>
+                <span
+                  className={cn(
+                    "ml-auto truncate pl-2",
+                    s.state === "now" ? "text-status-approval" : "text-muted-foreground",
+                  )}
+                >
+                  {s.when}
+                </span>
+              </div>
+              {s.detail ? (
+                <div className="truncate pl-3.5 text-muted-foreground" title={s.detail}>
+                  {s.detail}
+                </div>
+              ) : null}
             </li>
           ))}
         </ol>

@@ -32,6 +32,9 @@ const msg = (m: Partial<OutreachMessage>): OutreachMessage => ({
   note: "",
   citations: {},
   attachments: [],
+  voice: "agent",
+  ownWords: "",
+  fixes: [],
   createdAt: "2026-10-12T00:00:00.000Z",
   ...m,
 });
@@ -127,5 +130,18 @@ describe("a draft", () => {
     expect(draftProblem(prof, [first, reply()], { ...email, touch: "follow-up-1" })).toMatch(
       /stopped: they replied/,
     );
+  });
+
+  it("holds a first email to someone not taking students until the applicant asks anyway", () => {
+    const full = {
+      ...fresh,
+      taking: 'no: "not taking new PhD students until Fall 2028" (their page, 2026-10-09)',
+    };
+    expect(draftProblem(full, [], email)).toMatch(/^not taking students \(no: "not taking new PhD/);
+    expect(draftProblem(full, [], { ...email, anyway: true })).toBeNull();
+    // "not stated" is not a no.
+    expect(
+      draftProblem({ ...fresh, taking: "not stated (their page, 2026-10-09)" }, [], email),
+    ).toBeNull();
   });
 });

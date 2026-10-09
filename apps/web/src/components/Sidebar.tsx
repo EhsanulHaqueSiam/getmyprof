@@ -11,6 +11,7 @@ import {
   InboxIcon,
   GraduationCapIcon,
   LandmarkIcon,
+  ListChecksIcon,
   MessageCircleQuestionIcon,
   MonitorIcon,
   PlusIcon,
@@ -317,6 +318,7 @@ export function Sidebar() {
       </div>
       <nav className="flex flex-col gap-px">
         <NavLink to="/" icon={<PlusIcon />} label="New thread" kbd="⌘N" />
+        <NavLink to="/moves" icon={<ListChecksIcon />} label="Next moves" />
         {counts?.students ? (
           <NavLink
             to="/students"

@@ -16,6 +16,7 @@ import { Route as ShellCalendarRouteImport } from './routes/_shell.calendar'
 import { Route as ShellCustomersRouteImport } from './routes/_shell.customers'
 import { Route as ShellFundingRouteImport } from './routes/_shell.funding'
 import { Route as ShellLoopsRouteImport } from './routes/_shell.loops'
+import { Route as ShellMovesRouteImport } from './routes/_shell.moves'
 import { Route as ShellPipelineRouteImport } from './routes/_shell.pipeline'
 import { Route as ShellReportRouteImport } from './routes/_shell.report'
 import { Route as ShellReviewRouteImport } from './routes/_shell.review'
@@ -63,6 +64,11 @@ const ShellFundingRoute = ShellFundingRouteImport.update({
 const ShellLoopsRoute = ShellLoopsRouteImport.update({
   id: '/loops',
   path: '/loops',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellMovesRoute = ShellMovesRouteImport.update({
+  id: '/moves',
+  path: '/moves',
   getParentRoute: () => ShellRoute,
 } as any)
 const ShellPipelineRoute = ShellPipelineRouteImport.update({
@@ -143,6 +149,7 @@ export interface FileRoutesByFullPath {
   '/customers': typeof ShellCustomersRoute
   '/funding': typeof ShellFundingRoute
   '/loops': typeof ShellLoopsRoute
+  '/moves': typeof ShellMovesRoute
   '/pipeline': typeof ShellPipelineRoute
   '/report': typeof ShellReportRoute
   '/review': typeof ShellReviewRoute
@@ -164,6 +171,7 @@ export interface FileRoutesByTo {
   '/customers': typeof ShellCustomersRoute
   '/funding': typeof ShellFundingRoute
   '/loops': typeof ShellLoopsRoute
+  '/moves': typeof ShellMovesRoute
   '/pipeline': typeof ShellPipelineRoute
   '/report': typeof ShellReportRoute
   '/review': typeof ShellReviewRoute
@@ -188,6 +196,7 @@ export interface FileRoutesById {
   '/_shell/customers': typeof ShellCustomersRoute
   '/_shell/funding': typeof ShellFundingRoute
   '/_shell/loops': typeof ShellLoopsRoute
+  '/_shell/moves': typeof ShellMovesRoute
   '/_shell/pipeline': typeof ShellPipelineRoute
   '/_shell/report': typeof ShellReportRoute
   '/_shell/review': typeof ShellReviewRoute
@@ -213,6 +222,7 @@ export interface FileRouteTypes {
     | '/customers'
     | '/funding'
     | '/loops'
+    | '/moves'
     | '/pipeline'
     | '/report'
     | '/review'
@@ -234,6 +244,7 @@ export interface FileRouteTypes {
     | '/customers'
     | '/funding'
     | '/loops'
+    | '/moves'
     | '/pipeline'
     | '/report'
     | '/review'
@@ -257,6 +268,7 @@ export interface FileRouteTypes {
     | '/_shell/customers'
     | '/_shell/funding'
     | '/_shell/loops'
+    | '/_shell/moves'
     | '/_shell/pipeline'
     | '/_shell/report'
     | '/_shell/review'
@@ -330,6 +342,13 @@ declare module '@tanstack/react-router' {
       path: '/loops'
       fullPath: '/loops'
       preLoaderRoute: typeof ShellLoopsRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/moves': {
+      id: '/_shell/moves'
+      path: '/moves'
+      fullPath: '/moves'
+      preLoaderRoute: typeof ShellMovesRouteImport
       parentRoute: typeof ShellRoute
     }
     '/_shell/pipeline': {
@@ -438,6 +457,7 @@ interface ShellRouteChildren {
   ShellCustomersRoute: typeof ShellCustomersRoute
   ShellFundingRoute: typeof ShellFundingRoute
   ShellLoopsRoute: typeof ShellLoopsRoute
+  ShellMovesRoute: typeof ShellMovesRoute
   ShellPipelineRoute: typeof ShellPipelineRoute
   ShellReportRoute: typeof ShellReportRoute
   ShellReviewRoute: typeof ShellReviewRoute
@@ -458,6 +478,7 @@ const ShellRouteChildren: ShellRouteChildren = {
   ShellCustomersRoute: ShellCustomersRoute,
   ShellFundingRoute: ShellFundingRoute,
   ShellLoopsRoute: ShellLoopsRoute,
+  ShellMovesRoute: ShellMovesRoute,
   ShellPipelineRoute: ShellPipelineRoute,
   ShellReportRoute: ShellReportRoute,
   ShellReviewRoute: ShellReviewRoute,

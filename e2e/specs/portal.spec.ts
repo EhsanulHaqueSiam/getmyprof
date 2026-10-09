@@ -76,6 +76,9 @@ test("the portal scripts read a form's fields and fill only what they're given",
   await expect(page.locator('input[value="y"]')).toBeChecked();
   await expect(page.locator("#why")).toHaveValue("DF-RAG's diversity step.");
   await expect(page.locator("#pw")).toHaveValue("secret");
+  // Read again, a select reads as its option's text, so a filled one matches its answer.
+  const again = await page.evaluate<(Field & { value: string })[]>(READ_FIELDS);
+  expect(again.find((f) => f.label === "Term")?.value).toBe("Fall 2027");
   // Nothing it does submits the form or ticks a box it wasn't given.
   await expect(page.locator('[name="agree"]')).not.toBeChecked();
   expect(await page.evaluate(() => "submitted" in window)).toBe(false);

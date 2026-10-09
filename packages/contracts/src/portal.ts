@@ -91,14 +91,14 @@ export function answerSheet(ctx: {
       label: "First name",
       value: names.slice(0, -1).join(" "),
       source: "your mailbox",
-      match: /first|given/i,
+      match: /^(first|given)( name)?$/i,
     });
     add({
       section: "You",
       label: "Last name",
       value: names.at(-1) ?? "",
       source: "your mailbox",
-      match: /last|family|surname/i,
+      match: /^(last|family)( name)?$|^surname$/i,
     });
   }
   add({
@@ -106,21 +106,21 @@ export function answerSheet(ctx: {
     label: "Email",
     value: mail.address,
     source: "your mailbox",
-    match: /e-?mail/i,
+    match: /^(your )?e-?mail( address)?$/i,
   });
   add({
     section: "You",
     label: "Citizenship",
     value: applicant.citizenship.join(", "),
     source: "your setup",
-    match: /citizenship|nationality/i,
+    match: /^(country of )?(citizenship|nationality)$/i,
   });
   add({
     section: "You",
     label: "Country of residence",
     value: applicant.residence,
     source: "your setup",
-    match: /residen/i,
+    match: /^(country of )?(current )?residen(ce|cy)$/i,
   });
 
   for (const f of facts.filter((x) => x.kind === "education" && factStatus(x) === "confirmed"))
@@ -129,21 +129,21 @@ export function answerSheet(ctx: {
       label: "Degree",
       value: f.text,
       source: f.source,
-      match: /degree|institution|university attended|school attended/i,
+      match: /^(degree|institution|university attended|school attended)$/i,
     });
   add({
     section: "Education",
     label: "GPA",
     value: applicant.gpa,
     source: "your setup",
-    match: /\bgpa\b|grade point|cgpa/i,
+    match: /^(cumulative |overall |undergraduate )?(c?gpa|grade point average)$/i,
   });
   add({
     section: "Education",
     label: "GPA scale",
     value: applicant.gpaScale,
     source: "your setup",
-    match: /scale|out of|maximum/i,
+    match: /^(gpa )?scale$|^(gpa )?out of$|^maximum (gpa|grade)$/i,
   });
 
   for (const t of applicant.tests.filter((x) => x.status === "taken")) {
@@ -172,14 +172,14 @@ export function answerSheet(ctx: {
     label: "Program",
     value: program.name,
     source: program.url,
-    match: /program|major|field of study/i,
+    match: /^(intended |desired )?(program|programme|major|field of study)( of interest)?$/i,
   });
   add({
     section: "Program",
     label: "Term",
     value: hunt?.prefs.intake ?? "",
     source: "your hunt",
-    match: /term|intake|entry|semester/i,
+    match: /^(start |entry |admission |intended )?(term|intake|semester)( of entry)?$/i,
   });
   const people = app.professors.flatMap((k) => ctx.records.find((r) => r.key === k)?.name ?? []);
   add({
@@ -187,7 +187,8 @@ export function answerSheet(ctx: {
     label: "Faculty you'd work with",
     value: people.join(", "),
     source: "this application",
-    match: /faculty|professor|advisor|supervisor/i,
+    match:
+      /^(potential |preferred |intended )?(faculty|professors?|advisors?|supervisors?)( of interest)?$/i,
   });
 
   app.recommenders.forEach((r, i) => {
@@ -236,6 +237,11 @@ export function answerFor(
     return { yours: "sign, pay or certify yourself" };
   const said = agent.find((a) => a.label.trim().toLowerCase() === field.label.trim().toLowerCase());
   if (said) return { value: said.value, source: said.source };
-  const hit = sheet.find((a) => a.match.test(field.label));
+  // A question or a long answer is written, not looked up: only the agent answers it.
+  if (field.kind === "textarea" || /\?|\(\s*\d+\s*(words?|characters?)\s*\)/i.test(field.label))
+    return null;
+  // Labels match whole: "Program" is the program, "Why this program?" is a question.
+  const label = field.label.replace(/[*:]+\s*$/, "").trim();
+  const hit = sheet.find((a) => a.match.test(label));
   return hit ? { value: hit.value, source: hit.source } : null;
 }

@@ -43,7 +43,8 @@ export const READ_FIELDS = String.raw`(() => {
       kind: kinds.includes(type) ? type : "text",
       required,
       options: type === "select" ? [...el.options].map((o) => o.text.trim()).filter(Boolean) : [],
-      value: type === "checkbox" ? (el.checked ? "yes" : "") : type === "file" || type === "password" ? "" : el.value,
+      // A select reads as its chosen option's text, the way answers are written.
+      value: type === "checkbox" ? (el.checked ? "yes" : "") : type === "select" ? (el.selectedOptions[0] ? el.selectedOptions[0].text.trim() : "") : type === "file" || type === "password" ? "" : el.value,
     });
   }
   return out;

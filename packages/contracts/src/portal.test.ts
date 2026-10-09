@@ -124,6 +124,17 @@ describe("a portal field's answer", () => {
     expect(answerFor(field("Favourite colour"), sheet, app.answers)).toBeNull();
   });
 
+  it("matches whole labels, and leaves questions and long answers to the agent", () => {
+    expect(answerFor(field("Program *"), sheet, [])).toMatchObject({
+      value: "PhD in Information Technology",
+    });
+    // "program" inside a question is not the Program field.
+    expect(answerFor(field("Why this program? (100 words)", "textarea"), sheet, [])).toBeNull();
+    expect(answerFor(field("Describe your research experience"), sheet, [])).toBeNull();
+    expect(answerFor(field("Which program are you applying to?"), sheet, [])).toBeNull();
+    expect(answerFor(field("Email of your recommender"), sheet, [])).toBeNull();
+  });
+
   it("leaves files, passwords, payment and signatures to the applicant", () => {
     expect(answerFor(field("Transcript", "file"), sheet, [])).toEqual({
       yours: "upload it yourself",

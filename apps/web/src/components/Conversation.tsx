@@ -346,27 +346,34 @@ export function ConversationView({ c, connected }: { c: Conversation; connected:
         </dl>
         <div className="mt-4 mb-1.5 text-muted-foreground">Sequence</div>
         <ol className="flex flex-col gap-1.5" data-testid="sequence">
-          {sequence(c).map((s) => (
-            <li key={s.id} className="flex items-center gap-2">
-              <span
-                className={cn(
-                  "size-1.5 shrink-0 rounded-full",
-                  s.state === "done" && "bg-success",
-                  s.state === "now" && "bg-status-approval",
-                  (s.state === "later" || s.state === "off") && "bg-muted-foreground/50",
-                )}
-              />
-              <span className={s.state === "off" ? "text-muted-foreground" : "text-foreground"}>
-                {s.label}
-              </span>
-              <span
-                className={cn(
-                  "ml-auto truncate pl-2",
-                  s.state === "now" ? "text-status-approval" : "text-muted-foreground",
-                )}
-              >
-                {s.when}
-              </span>
+          {sequence(c, app?.facts ?? []).map((s) => (
+            <li key={s.id} className="flex flex-col gap-0.5">
+              <div className="flex items-center gap-2">
+                <span
+                  className={cn(
+                    "size-1.5 shrink-0 rounded-full",
+                    s.state === "done" && "bg-success",
+                    s.state === "now" && "bg-status-approval",
+                    (s.state === "later" || s.state === "off") && "bg-muted-foreground/50",
+                  )}
+                />
+                <span className={s.state === "off" ? "text-muted-foreground" : "text-foreground"}>
+                  {s.label}
+                </span>
+                <span
+                  className={cn(
+                    "ml-auto truncate pl-2",
+                    s.state === "now" ? "text-status-approval" : "text-muted-foreground",
+                  )}
+                >
+                  {s.when}
+                </span>
+              </div>
+              {s.detail ? (
+                <div className="truncate pl-3.5 text-muted-foreground" title={s.detail}>
+                  {s.detail}
+                </div>
+              ) : null}
             </li>
           ))}
         </ol>

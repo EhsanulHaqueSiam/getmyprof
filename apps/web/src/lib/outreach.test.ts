@@ -85,6 +85,33 @@ describe("the Pipeline's reading of a conversation", () => {
     ]);
     expect(cardLine(waiting)).toBe("sent Oct 13 · follow-up Oct 22");
 
+    // Each step says what it says or will bring: the first email's opening line, and a planned
+    // follow-up's angle, the applicant's newest fact since the send or the fallback.
+    const fact = {
+      id: "f_medqa",
+      text: "4 points on MedQA",
+      source: "notes.md",
+      kind: "project" as const,
+      date: "2026-10-20",
+      confirmed: true,
+      question: false,
+      planned: false,
+    };
+    const said = convo({ messages: [msg({ body: "Dear Dr. Lybarger,\n\nI read DF-RAG [1]." })] });
+    expect(sequence(said).map((s) => s.detail)).toEqual([
+      "I read DF-RAG.",
+      "their newer work, or only the one question",
+      "a short call or your CV, then the last note",
+      "",
+    ]);
+    expect(sequence(said, [fact]).find((s) => s.id === "plan-1")?.detail).toBe(
+      "brings: 4 points on MedQA",
+    );
+    // A fact from before the send isn't new.
+    expect(
+      sequence(said, [{ ...fact, date: "2026-10-01" }]).find((s) => s.id === "plan-1")?.detail,
+    ).toBe("their newer work, or only the one question");
+
     // Once they're named in a submitted application, the note is the next thing to do.
     const applied = convo({
       stage: "applied",

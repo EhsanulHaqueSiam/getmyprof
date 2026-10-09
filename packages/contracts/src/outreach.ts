@@ -168,8 +168,6 @@ const GENERIC_LINES = [
   /\b(?:fascinated|impressed|inspired) by your (?:research|work)\b/i,
   /\byour esteemed \w+/i,
   /\bI came across your (?:profile|website|page)/i,
-  /\bI am writing to express my (?:keen |strong )?interest/i,
-  /\bI hope this (?:e-?mail|message) finds you well/i,
   /\bgreetings of the day/i,
   /\bI humbly request/i,
   /\bkindly consider/i,
@@ -178,6 +176,56 @@ const GENERIC_LINES = [
   /\bit would be an hono(?:u)?r/i,
 ];
 // Subject words that say nothing on their own: "PhD inquiry", "Prospective student, Fall 2027".
+/**
+ * Phrases faculty read as "a model wrote this", each with what to write instead. Checked on every
+ * message that goes out, first email or not; the student's own words are held to it too.
+ */
+export const MODEL_VOICE: [RegExp, string][] = [
+  [
+    /\bI hope (?:this (?:e-?mail|message) finds you well|you(?:'re| are) (?:doing )?well)/i,
+    "filler they skip: open on their work",
+  ],
+  [/\bI am writing to (?:express|inquire)\b/i, "open on their work, not on the email"],
+  [/\bI am reaching out to (?:express|inquire)\b/i, "open on their work, not on the email"],
+  [/\bdelv(?:e|es|ing)\b/i, "say what you'd do"],
+  [
+    /\b(?:deeply|truly|incredibly|profoundly) (?:passionate|inspired|fascinated|intrigued|moved)\b/i,
+    "say what you did with it",
+  ],
+  [/\bpassionate about\b/i, "show it with something you did"],
+  [/\bresonates? (?:deeply |strongly )?with me\b/i, "say which part, and why"],
+  [/\b(?:a )?testament to\b/i, "say what it shows, plainly"],
+  [/\btapestry\b/i, "a model's word"],
+  [/\bin today'?s (?:rapidly )?(?:evolving|changing|fast-paced)\b/i, "filler: cut it"],
+  [/\bever[- ](?:evolving|changing)\b/i, "filler: cut it"],
+  [/\bnavigat(?:e|ing) the complexities\b/i, "say the actual problem"],
+  [/\bembark(?:ing)? on\b/i, "say start"],
+  [/\bcutting[- ]edge\b/i, "name the method instead"],
+  [/\balign(?:s|ed)? (?:seamlessly|perfectly|closely) with\b/i, "say how it fits, concretely"],
+  [
+    /\b(?:unwavering|meticulous(?:ly)?|invaluable|pivotal|paramount|multifaceted|intricate)\b/i,
+    "a model's word: say it plainly",
+  ],
+  [/\bleverag(?:e|ing) my\b/i, "say use"],
+  [/\bfoster(?:s|ing)?\b/i, "a model's word"],
+  [/\bsynerg(?:y|ies|istic)\b/i, "say how the work connects"],
+  [/\bI am (?:eager|excited|thrilled) to\b/i, "say what you'll do, not how you feel"],
+  [/\bI would be (?:honou?red|delighted|thrilled)\b/i, "plain: I'd like to"],
+  [/\bnot only\b[^.]{0,60}\bbut also\b/i, "model rhythm: say it once"],
+  [
+    /(?:^|[.!?]\s+)(?:Furthermore|Moreover|Additionally),/m,
+    "model transition: start the sentence plainly",
+  ],
+  [/—| – /, "a dash faculty now read as a model's: use a comma or a full stop"],
+];
+
+/** The model-voice phrases in a text, each with what to do instead. */
+export const modelVoice = (text: string) =>
+  MODEL_VOICE.flatMap(([re, why]) => {
+    const found = re.exec(text)?.[0].trim();
+    return found ? [`sounds like a model: "${found}": ${why}`] : [];
+  });
+
 const BARE_SUBJECT =
   /^(?:ph|d|phd|doctoral|inquiry|enquiry|query|position|positions|opening|request|for|a|an|the|admission|admissions|application|prospective|student|students|opportunity|regarding|re|in|your|lab|group|research|fall|spring|autumn|winter|summer|intake|funded|\d+)$/;
 const STOP = new Set(
@@ -251,7 +299,8 @@ function personalIssues(
 /**
  * Why an outgoing message can't be approved or sent yet, in words; empty when it may go. The same
  * rules as the Writer: every claim cites a proven fact, no test score without a taken test, at
- * most two links, and cold mail only to a checked address. A first message must also read as
+ * most two links, cold mail only to a checked address, and nothing that reads as a model wrote it
+ * (MODEL_VOICE). A first message must also read as
  * written for this professor (see personalIssues).
  */
 export function draftIssues(
@@ -274,6 +323,7 @@ export function draftIssues(
   for (const claim of uncitedClaims(m.body))
     issues.push(`"${claim.length > 60 ? `${claim.slice(0, 57)}...` : claim}" cites no fact`);
   if ((m.body.match(/https?:\/\/\S+/g) ?? []).length > 2) issues.push("more than two links");
+  issues.push(...modelVoice(`${m.subject}\n${stripCitations(m.body)}`));
   // Not connected yet, it goes as a connection request's note: 200 characters on a free account.
   if (m.channel === "linkedin" && m.touch === "first" && stripCitations(m.body).trim().length > 200)
     issues.push("a first LinkedIn note over 200 characters won't fit a connection request");

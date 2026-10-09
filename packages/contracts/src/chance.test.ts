@@ -120,5 +120,14 @@ describe("a program's chance", () => {
       records: [],
     });
     expect(c.lines.find((l) => l.what === "GPA")?.status).toBe("unknown");
+    const none = programChance(program({}), {
+      applicant: applicant("7.0", ""),
+      facts: [],
+      records: [],
+    });
+    expect(none.lines.find((l) => l.what === "GPA")).toMatchObject({
+      you: "not set",
+      status: "gap",
+    });
   });
 });

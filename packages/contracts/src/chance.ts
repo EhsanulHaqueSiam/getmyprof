@@ -81,7 +81,9 @@ export function programChance(
         gpa !== null
           ? `${ctx.applicant?.gpa}${scale ? ` / ${ctx.applicant?.gpaScale}` : ""}`
           : "not set",
-      status: comparable ? (gpa >= min.value ? "meets" : "short") : "unknown",
+      // No GPA on file is a gap to fill; one on another scale can't be compared.
+      status:
+        gpa === null ? "gap" : comparable ? (gpa >= min.value ? "meets" : "short") : "unknown",
     });
     if (comparable && gpa < min.value)
       moves.push("ask whether they consider a GPA below their minimum");

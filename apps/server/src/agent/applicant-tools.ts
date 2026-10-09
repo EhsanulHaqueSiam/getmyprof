@@ -101,6 +101,12 @@ export const APPLICANT_TOOLS = [
         .describe(
           "Only when rewriting a first email around the applicant's own lines: each line you changed, from, to and why",
         ),
+      anyway: z
+        .boolean()
+        .optional()
+        .describe(
+          "Write a first message though the sheet says they aren't taking students. Only when the applicant asked for it",
+        ),
     },
     paid: false,
     price: () => 0,
@@ -122,6 +128,7 @@ export const APPLICANT_TOOLS = [
             ? "suggested"
             : "agent",
         fixes: args.fixes,
+        anyway: args.anyway,
       });
       if ("problem" in draft)
         return { summary: "not drafted", text: `Not drafted: ${draft.problem}.` };

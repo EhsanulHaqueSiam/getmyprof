@@ -17,6 +17,7 @@ const record: Professor = {
   email: "lybarger@example.edu",
   emailCheck: "ok",
   contact: "",
+  subjectRule: "",
   stage: "sent",
   fitsBecause: "",
   website: "",

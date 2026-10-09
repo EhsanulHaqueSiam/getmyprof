@@ -189,6 +189,9 @@ export async function arcAwards(q: AwardQuery): Promise<RawAward[]> {
   );
 }
 
+/** A hunt's places that name the UK; shared by the award and position source pickers. */
+export const UK_PLACES = /\b(uk|united kingdom|england|scotland|wales|britain)\b/;
+
 /** The databases that cover a hunt's places. Places that name none default to the US pair. */
 export function sourcesFor(places: string[]): Award["source"][] {
   const where = places.join(" ").toLowerCase();
@@ -197,7 +200,7 @@ export function sourcesFor(places: string[]): Award["source"][] {
     picked.add("NSF");
     picked.add("NIH");
   }
-  if (/\b(uk|united kingdom|england|scotland|wales|britain)\b/.test(where)) picked.add("UKRI");
+  if (UK_PLACES.test(where)) picked.add("UKRI");
   if (
     /\b(eu|europe|germany|france|netherlands|sweden|denmark|finland|switzerland|spain|italy|ireland|austria|belgium|norway|portugal|poland)\b/.test(
       where,

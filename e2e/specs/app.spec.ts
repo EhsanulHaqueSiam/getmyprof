@@ -91,6 +91,14 @@ test("professors, funding and loops show the hunt's data", async ({ page }) => {
   await page.goto("/funding");
   await page.getByRole("main").getByRole("button", { name: "Search" }).click();
   await expect(page.getByText("Antonios Anastasopoulos").first()).toBeVisible();
+  // Advertised positions: the posting's contact goes into the sheet in one click.
+  await page.getByRole("tab", { name: "positions" }).click();
+  await page.getByRole("button", { name: "jobs.ac.uk" }).click();
+  await page.getByLabel("Topics").fill("language models");
+  await page.getByRole("main").getByRole("button", { name: "Search" }).click();
+  const posting = page.getByRole("row", { name: /Language models for health records/ });
+  await posting.getByRole("button", { name: "Add PI" }).click();
+  await expect(posting.getByRole("cell", { name: "yes", exact: true })).toBeVisible();
 
   await page.goto("/loops");
   await expect(page.getByRole("cell", { name: "Nightly sweep" })).toBeVisible();

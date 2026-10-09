@@ -11,6 +11,8 @@ import {
   HuntPrefs,
   Loop,
   LoopRow,
+  Position,
+  PositionSource,
   Professor,
   ProfileFact,
   Proposal,
@@ -229,6 +231,11 @@ export const Methods = {
     input: z.object({ award: Award }),
     output: z.object({ key: z.string() }),
   },
+  /** One click from Funding: the professor a posting names goes into the sheet at money tier 1. */
+  "records.addFromPosition": {
+    input: z.object({ position: Position }),
+    output: z.object({ key: z.string() }),
+  },
   "records.import": {
     input: z.object({ csv: z.string() }),
     output: z.object({ added: z.number() }),
@@ -243,6 +250,17 @@ export const Methods = {
       sources: z.array(AwardSource).optional(),
     }),
     output: z.array(Award),
+  },
+
+  /** Advertised PhD positions on the boards that cover the hunt's places, by topic. */
+  "funding.positions": {
+    input: z.object({
+      terms: z.array(z.string()).min(1),
+      universities: z.array(z.string()),
+      /** Which boards; by default the ones that cover the hunt's places and fields. */
+      sources: z.array(PositionSource).optional(),
+    }),
+    output: z.array(Position),
   },
 
   /** Topics next to the given fields, from OpenAlex; empty when it can't be reached. */

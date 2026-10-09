@@ -472,3 +472,31 @@ export const Award = z.object({
   fit: z.number().default(0),
 });
 export type Award = z.infer<typeof Award>;
+
+/** Boards that post funded PhD positions and answer a plain fetch: jobs.ac.uk (UK), INSPIRE (physics). */
+export const PositionSource = z.enum(["jobs.ac.uk", "INSPIRE"]);
+export type PositionSource = z.infer<typeof PositionSource>;
+
+/** An advertised PhD position. A posted, funded opening is money tier 1 for the professor it names. */
+export const Position = z.object({
+  source: PositionSource,
+  id: z.string(),
+  title: z.string(),
+  /** The professor or contact the posting names; empty when it names none. */
+  professor: z.string(),
+  university: z.string(),
+  country: z.string(),
+  /** The funding line in the posting's words, e.g. "fully funded, EPSRC stipend"; empty when unstated. */
+  funding: z.string(),
+  deadline: z.string().nullable(),
+  posted: z.string().nullable(),
+  /** The posting's own page. */
+  url: z.string(),
+  abstract: z.string(),
+  /** Days until the deadline; negative once closed; null without a deadline. */
+  daysLeft: z.number().nullable(),
+  inSheet: z.boolean(),
+  /** How many of the hunt's fields its title and text name; 0 is off topic. */
+  fit: z.number().default(0),
+});
+export type Position = z.infer<typeof Position>;

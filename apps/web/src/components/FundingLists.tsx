@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { cn } from "~/lib/utils";
 import { useStore } from "~/state/store";
 
 const th =
@@ -88,5 +89,49 @@ function Empty({ children }: { children: string }) {
         Open the Vault
       </Link>
     </div>
+  );
+}
+
+/** The source toggles in Funding's header; none chosen means the hunt's places decide. */
+export function Picks<S extends string>({
+  options,
+  notes,
+  chosen,
+  onChange,
+}: {
+  options: readonly S[];
+  notes: Record<S, string>;
+  chosen: S[] | null;
+  onChange: (next: S[]) => void;
+}) {
+  return (
+    <>
+      <span className="flex gap-1">
+        {options.map((s) => {
+          const on = chosen?.includes(s) ?? false;
+          return (
+            <button
+              key={s}
+              type="button"
+              aria-pressed={on}
+              title={notes[s]}
+              onClick={() => {
+                const now = chosen ?? [];
+                onChange(now.includes(s) ? now.filter((x) => x !== s) : [...now, s]);
+              }}
+              className={cn(
+                "h-6 rounded-md px-1.5 text-2xs transition-colors",
+                on ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {s}
+            </button>
+          );
+        })}
+      </span>
+      <span className="text-muted-foreground text-xs">
+        {chosen?.length ? "free" : "free · by your places"}
+      </span>
+    </>
   );
 }

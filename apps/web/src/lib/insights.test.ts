@@ -48,6 +48,9 @@ const msg = (m: Partial<OutreachMessage>): OutreachMessage => ({
   note: "",
   citations: {},
   attachments: [],
+  voice: "agent",
+  ownWords: "",
+  fixes: [],
   createdAt: "",
   ...m,
 });

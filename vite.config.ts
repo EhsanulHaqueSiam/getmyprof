@@ -10,6 +10,8 @@ const IGNORE = [
   "test-results",
   "playwright-report",
   "evidence",
+  // Saved board pages that parser tests read byte for byte.
+  "**/__samples__/**",
 ];
 
 /** Layering: the server and the web app only meet in packages/contracts. */

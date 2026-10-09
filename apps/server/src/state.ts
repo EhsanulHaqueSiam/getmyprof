@@ -14,6 +14,7 @@ export const DEFAULT_SETTINGS: Settings = {
   mcpServers: [],
   mcpToken: "",
   freeSources: [...FREE_SOURCES],
+  firstEmails: "own",
 };
 
 /** The saved settings. The MCP token is made the first time anyone asks, then kept. */

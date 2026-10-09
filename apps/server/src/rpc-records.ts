@@ -1,8 +1,8 @@
 // The sheet and the money behind it: records (list, page, scholarly, Add PI, CSV) and the
 // funding finder. rpc.ts spreads these into its handlers.
-import type { Award } from "@getmyprof/contracts";
+import type { Award, Position } from "@getmyprof/contracts";
 import { exportCsv, importCsv } from "./adapters.ts";
-import { sourceKey } from "./agent/tools.ts";
+import { positionKey, sourceKey } from "./agent/sourcing.ts";
 import { getKv, setKv } from "./db.ts";
 import { pageExtras, scholarly } from "./professor-page.ts";
 import {
@@ -10,16 +10,18 @@ import {
   listRecords,
   personKey,
   professorFromAward,
+  professorFromPosition,
   putRecord,
   recordKey,
   threadProposals,
 } from "./records.ts";
 import type { Handlers, Services } from "./rpc.ts";
 import { intakeStart, monthsAfter, sameSchool, sourcesFor } from "./sources.ts";
+import { daysLeft, positionSourcesFor } from "./sources-positions.ts";
 import { getHunt } from "./state.ts";
 import { getThread } from "./threads.ts";
 
-type RecordMethods = Extract<keyof Handlers, `records.${string}` | "funding.search">;
+type RecordMethods = Extract<keyof Handlers, `records.${string}` | `funding.${string}`>;
 
 export function recordHandlers(svc: Services): Pick<Handlers, RecordMethods> {
   const { db, bus, sources } = svc;
@@ -58,6 +60,16 @@ export function recordHandlers(svc: Services): Pick<Handlers, RecordMethods> {
         setKv(db, "funding.waiting", Math.max(0, getKv(db, "funding.waiting", Number, 0) - 1));
       bus.push({ type: "changed", what: "records" });
       bus.push({ type: "changed", what: "state" });
+      return { key: record.key };
+    },
+    "records.addFromPosition": ({ position }) => {
+      if (!position.professor) throw new Error("This posting names no professor");
+      const record = professorFromPosition(
+        getRecord(db, recordKey(position.professor, position.university)),
+        position,
+      );
+      putRecord(db, record);
+      bus.push({ type: "changed", what: "records" });
       return { key: record.key };
     },
     "records.import": ({ csv }) => {
@@ -126,6 +138,52 @@ export function recordHandlers(svc: Services): Pick<Handlers, RecordMethods> {
       );
       bus.push({ type: "changed", what: "state" });
       return awards;
+    },
+
+    "funding.positions": async ({ terms, universities, sources: picked }) => {
+      const records = listRecords(db);
+      const hunt = getHunt(db);
+      const which = picked?.length
+        ? picked
+        : positionSourcesFor(hunt?.prefs.places ?? [], hunt?.prefs.fields ?? []);
+      const runs = which.flatMap((s) =>
+        (universities.length ? universities : [undefined]).map((u) =>
+          sources[positionKey(s)]({ terms, ...(u ? { university: u } : {}) }),
+        ),
+      );
+      const found = (await Promise.allSettled(runs)).flatMap((r) =>
+        r.status === "fulfilled" ? r.value : [],
+      );
+      const unique = [...new Map(found.map((p) => [`${p.source}:${p.id}`, p])).values()];
+      const words = [...(hunt?.prefs.fields ?? []), ...(hunt?.prefs.adjacent ?? []), ...terms]
+        .map((w) => w.trim().toLowerCase())
+        .filter(Boolean);
+      return (
+        unique
+          .map((p): Position => {
+            const text = `${p.title} ${p.abstract}`.toLowerCase();
+            return {
+              ...p,
+              daysLeft: daysLeft(p.deadline),
+              inSheet:
+                !!p.professor &&
+                records.some(
+                  (r) =>
+                    personKey(r.name) === personKey(p.professor) &&
+                    sameSchool(r.university, p.university),
+                ),
+              fit: [...new Set(words)].filter((w) => text.includes(w)).length,
+            };
+          })
+          // Closed last, off topic before them; then the soonest deadline, then fit.
+          .toSorted(
+            (a, b) =>
+              Number((b.daysLeft ?? 0) >= 0) - Number((a.daysLeft ?? 0) >= 0) ||
+              Number(b.fit > 0) - Number(a.fit > 0) ||
+              (a.daysLeft ?? 9999) - (b.daysLeft ?? 9999) ||
+              b.fit - a.fit,
+          )
+      );
     },
   };
 }

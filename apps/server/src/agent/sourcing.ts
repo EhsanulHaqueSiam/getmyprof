@@ -1,7 +1,7 @@
 // Every free and paid source the agent reads, by key: the grant databases, OpenAlex (people,
 // topics, labs, warm paths), CSRankings and treg. The fake provider swaps in fixtures
 // (fixtures.ts).
-import type { AwardSource } from "@getmyprof/contracts";
+import type { AwardSource, PositionSource } from "@getmyprof/contracts";
 import {
   type AwardQuery,
   type Author,
@@ -23,9 +23,17 @@ import {
   type TopicAuthor,
 } from "../sources-more.ts";
 import { type Lab, openAlexLab, openAlexWarm, type Warm } from "../sources-people.ts";
+import { type ContactRead, contactPage } from "../contact-page.ts";
+import {
+  inspirePositions,
+  jobsAcUkPositions,
+  type PositionQuery,
+  type RawPosition,
+} from "../sources-positions.ts";
 import { tregCall, type TregOutcome, type TregRequest } from "../treg.ts";
 
 type AwardFetch = (q: AwardQuery) => Promise<RawAward[]>;
+type PositionFetch = (q: PositionQuery) => Promise<RawPosition[]>;
 
 /** Every grant database by key, plus OpenAlex and treg. The fake provider swaps in fixtures. */
 export type Sources = {
@@ -36,6 +44,9 @@ export type Sources = {
   arc: AwardFetch;
   dfg: AwardFetch;
   nserc: AwardFetch;
+  /** Advertised PhD positions, by board. */
+  jobsacuk: PositionFetch;
+  inspire: PositionFetch;
   openalex: (name: string, university?: string) => Promise<Author | null>;
   /** Faculty CSRankings lists at a school. */
   csrankings: (university: string) => Promise<Faculty[]>;
@@ -47,6 +58,8 @@ export type Sources = {
   lab: (name: string, university: string) => Promise<Lab | null>;
   /** What links the applicant's papers (fact texts) to a professor, by OpenAlex. */
   warm: (name: string, university: string, papers: string[]) => Promise<Warm | null>;
+  /** What a professor's page says about prospective students, quoted and dated. */
+  contactPage: (url: string) => Promise<ContactRead>;
   treg: (req: TregRequest) => Promise<TregOutcome>;
 };
 
@@ -58,12 +71,15 @@ export const realSources: Sources = {
   arc: arcAwards,
   dfg: dfgAwards,
   nserc: nsercAwards,
+  jobsacuk: jobsAcUkPositions,
+  inspire: inspirePositions,
   openalex: openAlexAuthor,
   csrankings: csrankingsFaculty,
   byTopic: openAlexByTopic,
   adjacent: adjacentTopics,
   lab: openAlexLab,
   warm: openAlexWarm,
+  contactPage,
   treg: (req) => tregCall(req),
 };
 
@@ -79,3 +95,11 @@ const SOURCE_KEY = {
 
 /** An award source's key in Sources. */
 export const sourceKey = (s: AwardSource) => SOURCE_KEY[s];
+
+const POSITION_KEY = {
+  "jobs.ac.uk": "jobsacuk",
+  INSPIRE: "inspire",
+} as const satisfies Record<PositionSource, keyof Sources>;
+
+/** A position board's key in Sources. */
+export const positionKey = (s: PositionSource) => POSITION_KEY[s];

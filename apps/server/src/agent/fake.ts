@@ -14,6 +14,7 @@ import {
   FIXTURE_SCHOOL_MONEY,
   FIXTURE_SCHOOLS,
   FIXTURE_WORK,
+  portalAnswers,
 } from "./fixtures.ts";
 import type { AgentProvider, SessionStart } from "./provider.ts";
 import { askBlocked, capProblem, type HuntTool } from "./tools.ts";
@@ -364,7 +365,14 @@ export const fakeProvider = (
       if (row?.[1] && row[2]) await rowAction(RowOp.parse(row[1]), row[2].split(","));
       else if (reply?.[1] && reply[2] && reply[3]) await answerReply(reply[1], reply[2], reply[3]);
       else if (text.startsWith("[follow-up]")) await followUps(text);
-      else if (text.startsWith("[after-applying]")) await afterApplying(text);
+      else if (text.startsWith("[portal]")) {
+        const answers = portalAnswers(text);
+        await call("save_answers", "portal", {
+          applicationId: /app=(\S+)/.exec(text)?.[1],
+          answers,
+        });
+        say(`Answered ${answers.length} portal field${answers.length === 1 ? "" : "s"}.`);
+      } else if (text.startsWith("[after-applying]")) await afterApplying(text);
       else if (text.startsWith("[thank-you]")) await thankYou(text);
       else if (text.startsWith("[write]")) await write(text);
       else if (/\bask me\b/i.test(text)) {

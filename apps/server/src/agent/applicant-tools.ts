@@ -14,6 +14,7 @@ import { classify } from "../outreach/inbox.ts";
 import { getMessage, issuesFor, saveDraft } from "../outreach/store.ts";
 import { recordKey } from "../records.ts";
 import {
+  listApplications,
   listOffers,
   listPrograms,
   proposeFinding,
@@ -230,6 +231,35 @@ export const APPLICANT_TOOLS = [
       return {
         summary: `stipend ${school.stipendUsd ?? "?"} · rent ${school.rentUsd ?? "?"}`,
         text: `Saved on ${school.name}, from ${source}.`,
+      };
+    },
+  }),
+  define({
+    name: "save_answers",
+    description:
+      "Save answers for fields on an application portal the applicant is filling, by each field's label exactly as given. The applicant reviews every one before it goes into the page. Plain text, no [[fact]] markers, only what confirmed facts back.",
+    shape: {
+      applicationId: z.string(),
+      answers: z.array(
+        z.object({
+          label: z.string(),
+          value: z.string(),
+          source: z.string().describe("Where it comes from: a fact, the Writer, their setup"),
+        }),
+      ),
+    },
+    paid: false,
+    price: () => 0,
+    run: async ({ applicationId, answers }, ctx) => {
+      const app = listApplications(ctx.db).find((a) => a.id === applicationId);
+      if (!app) return { summary: "no application", text: `No application ${applicationId}.` };
+      const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+      const kept = app.answers.filter((a) => !answers.some((n) => same(n.label, a.label)));
+      saveEdit(ctx.db, { kind: "application", value: { ...app, answers: [...kept, ...answers] } });
+      ctx.vaultChanged();
+      return {
+        summary: `${answers.length} answer${answers.length === 1 ? "" : "s"}`,
+        text: "Saved. The applicant reviews them before filling the page.",
       };
     },
   }),

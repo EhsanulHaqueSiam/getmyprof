@@ -5,6 +5,7 @@ import { issuesFor, listMessages } from "../outreach/store.ts";
 import { getRecord, putRecord, recordKey, resolveProposal, threadProposals } from "../records.ts";
 import { saveFacts } from "../state.ts";
 import { createThread, getThread, listEvents } from "../threads.ts";
+import { listApplications, saveEdit, startApplication } from "../vault.ts";
 import { fakeProvider } from "./fake.ts";
 import { fixtureSources } from "./fixtures.ts";
 import { createRunner } from "./runner.ts";
@@ -81,5 +82,46 @@ describe("the scripted agent's first messages", () => {
     ).toMatchObject({ status: "done", meta: "2 co-authors" });
     const lab = threadProposals(db, thread).find((p) => p.status === "pending");
     expect(lab?.changes.map((c) => c.field)).toEqual(["lab"]);
+  });
+});
+
+describe("the scripted agent on a portal", () => {
+  it("saves an answer for each field it was given, by the portal's own label", async () => {
+    const db = openDb(":memory:");
+    saveEdit(db, {
+      kind: "program",
+      value: {
+        id: "gmu",
+        university: "George Mason University",
+        name: "PhD in Information Technology",
+        degree: "phd",
+        deadline: "2026-12-01",
+        fee: "$75",
+        waiver: "",
+        english: "",
+        funding: "",
+        url: "https://gmu.edu/phd",
+        sources: [],
+        note: "",
+      },
+    });
+    const app = startApplication(db, "gmu");
+    const runner = createRunner({
+      db,
+      bus: createBus(),
+      provider: fakeProvider(1),
+      sources: fixtureSources,
+    });
+    const thread = createThread(db, "Portal").id;
+    runner.send(
+      thread,
+      `[portal] app=${app.id}\nAnswer these.\n- Why this program? (100 words) | textarea\n- Preferred start term | select | options: Fall 2027; Spring 2028`,
+      "send",
+    );
+    await until(() => (listApplications(db)[0]?.answers.length ?? 0) === 2);
+    expect(listApplications(db)[0]?.answers.map((a) => a.label)).toEqual([
+      "Why this program? (100 words)",
+      "Preferred start term",
+    ]);
   });
 });

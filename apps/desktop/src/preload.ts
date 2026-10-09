@@ -14,4 +14,10 @@ contextBridge.exposeInMainWorld("getmyprofDesktop", {
   },
   /** Restart into a downloaded update, or open the release when this install can't update itself. */
   act: () => ipcRenderer.send("update:act"),
+  /** An application portal in its own window: open it, read its fields, fill approved ones. */
+  portal: {
+    open: (url: string) => ipcRenderer.invoke("portal:open", url),
+    read: () => ipcRenderer.invoke("portal:read"),
+    fill: (values: { key: string; value: string }[]) => ipcRenderer.invoke("portal:fill", values),
+  },
 });

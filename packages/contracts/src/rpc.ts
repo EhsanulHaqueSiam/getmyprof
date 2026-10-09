@@ -27,6 +27,7 @@ import { ClaudeBinary } from "./desktop.ts";
 import { HubMethods } from "./hub.ts";
 import { ProgressReport } from "./report.ts";
 import { Conversation, MailConnect, MailSignIn, MailStatus } from "./outreach.ts";
+import { PortalField } from "./portal.ts";
 import { RowOp, ThreadEvent, ThreadSummary } from "./threads.ts";
 import {
   Application,
@@ -376,6 +377,11 @@ export const Methods = {
     output: ok,
   },
   "applications.start": { input: z.object({ programId: z.string() }), output: Application },
+  /** Asks the agent for answers to portal fields the answer sheet can't fill; they land on the application. */
+  "applications.suggestAnswers": {
+    input: z.object({ id: z.string(), fields: z.array(PortalField).max(120) }),
+    output: ThreadSummary,
+  },
   /** Asks the agent to write (or, with `basedOn`, tailor) a piece in a new thread. */
   "writing.start": {
     input: z.object({

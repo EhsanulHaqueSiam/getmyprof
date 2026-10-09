@@ -1,4 +1,10 @@
-import { type Method, type MethodOutput, Methods, type ThreadSummary } from "@getmyprof/contracts";
+import {
+  type Method,
+  type MethodOutput,
+  Methods,
+  PORTAL_TAG,
+  type ThreadSummary,
+} from "@getmyprof/contracts";
 import type { z } from "zod";
 import {
   importGradhunt,
@@ -261,6 +267,25 @@ export function createHandlers(svc: Services): Handlers {
       const app = startApplication(db, programId);
       bus.push({ type: "changed", what: "vault" });
       return app;
+    },
+    "applications.suggestAnswers": ({ id, fields }) => {
+      const s = vaultState(db);
+      const app = s.applications.find((a) => a.id === id);
+      const program = s.programs.find((p) => p.id === app?.programId);
+      if (!app || !program) throw new Error("No such application");
+      const title = `Portal · ${program.university}`;
+      const lines = fields.map(
+        (f) =>
+          `- ${f.label} | ${f.kind}${f.required ? " | required" : ""}${f.options.length ? ` | options: ${f.options.join("; ")}` : ""}`,
+      );
+      const t = createThread(db, title);
+      runner.send(
+        t.id,
+        `${PORTAL_TAG} app=${app.id}\nThe applicant is filling the ${program.university} ${program.name} portal. For each field below, give the answer from what you know about them (vault_search; their setup, confirmed facts, the Writer's pieces for this program) and save them with save_answers, the label exactly as given. Short answers: plain words in the applicant's voice, within any limit in the label, only what confirmed facts back. Leave out what only they know (a phone number, an address, a passport number). For a select or radio, answer with one of its options.\n${lines.join("\n")}`,
+        "send",
+        title,
+      );
+      return thread(t.id);
     },
   };
 }

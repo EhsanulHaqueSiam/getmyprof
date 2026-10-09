@@ -56,6 +56,14 @@ export const FIXTURE_PROFESSORS = [
   },
 ];
 
+/** What the fake agent answers for each portal field in a [portal] turn, by its label. */
+export const portalAnswers = (text: string) =>
+  [...text.matchAll(/^- (.+?) \| /gm)].map(([, label = ""]) => ({
+    label,
+    value: `Fixture answer for ${label}`,
+    source: "fixture",
+  }));
+
 /** What the Recent work and focus row action finds for each fixture professor, beside `recent`. */
 export const FIXTURE_WORK: Record<string, { seeking: string; scholar: string }> = {
   "Kevin Lybarger": {

@@ -89,6 +89,7 @@ describe("the Vault", () => {
           professors: [],
           submittedAt: null,
           interviews: [],
+          answers: [],
           note: "",
         },
       ],

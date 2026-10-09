@@ -1,5 +1,6 @@
 // The fake agent's world: three professors, two scholarships, a program, and free sources that
 // answer from fixtures. Emails use example.edu, so nothing here can reach a real person.
+import { type ContactRead, readContactRule } from "../contact-page.ts";
 import { TREG_ENDPOINTS } from "../treg.ts";
 import type { Sources } from "./tools.ts";
 
@@ -15,6 +16,7 @@ export const FIXTURE_PROFESSORS = [
     lasts: "not posted",
     email: "lybarger@example.edu",
     contact: 'email, subject "PhD 2027"',
+    subjectRule: "PhD 2027",
     recent:
       "2026 DF-RAG: Query-Aware Diversity for Retrieval-Augmented Generation (ACL); 2026 Efficient Information Extraction Using LLMs and Knowledge Distillation",
     hook: "DF-RAG's per-query passage diversity is the retrieval step your clinical NLP interest needs",
@@ -55,6 +57,34 @@ export const FIXTURE_PROFESSORS = [
     sources: ["https://www.natalieparde.com/team.html"],
   },
 ];
+
+/** Each fixture professor's own page, as Taking students? reads it: a yes with a subject rule, a
+ * not-until-2028 and an apply-first. */
+const FIXTURE_PAGES: Record<string, string> = {
+  "https://www.kevinlybarger.me/news.html":
+    '<p>I am recruiting PhD students for Fall 2027.</p><p>Email me with "PhD 2027" in the subject line and attach your CV.</p>',
+  "https://vare.ahs.uic.edu/":
+    "<h2>Join us</h2><p>I am not taking new PhD students until Fall 2028.</p>",
+  "https://www.natalieparde.com/team.html":
+    "<p>Prospective students: please do not email me about admissions. Apply to the PhD program first and mention my name in your statement.</p>",
+};
+
+/** What the fake's Taking students? proposes from a page read: their words, dated, and the rules. */
+export function takingFields(r: ContactRead) {
+  const quote = r.statements[0] ? `: "${r.statements[0]}"` : "";
+  const applyOnly = r.noEmail || r.applyFirst || r.form;
+  return {
+    taking: `${r.taking ?? "not stated"}${quote} (their page, ${r.readOn})`,
+    ...(r.subject ? { subjectRule: r.subject } : {}),
+    ...(applyOnly
+      ? {
+          stage: "apply-only",
+          contact: r.form ? `form ${r.form}` : `apply-only: "${r.applyFirst ?? r.noEmail}"`,
+        }
+      : {}),
+    sources: r.urls,
+  };
+}
 
 /** What the Recent work and focus row action finds for each fixture professor, beside `recent`. */
 export const FIXTURE_WORK: Record<string, { seeking: string; scholar: string }> = {
@@ -314,6 +344,11 @@ export const fixtureSources: Sources = {
       },
     ],
   }),
+  contactPage: async (url) =>
+    readContactRule(
+      [{ url, html: FIXTURE_PAGES[url] ?? "<p>Research on language.</p>" }],
+      new Date(),
+    ),
   treg: async (req) => ({
     ok: true,
     result:

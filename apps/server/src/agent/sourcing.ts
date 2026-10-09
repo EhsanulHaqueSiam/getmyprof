@@ -23,6 +23,7 @@ import {
   type TopicAuthor,
 } from "../sources-more.ts";
 import { type Lab, openAlexLab, openAlexWarm, type Warm } from "../sources-people.ts";
+import { type ContactRead, contactPage } from "../contact-page.ts";
 import { tregCall, type TregOutcome, type TregRequest } from "../treg.ts";
 
 type AwardFetch = (q: AwardQuery) => Promise<RawAward[]>;
@@ -47,6 +48,8 @@ export type Sources = {
   lab: (name: string, university: string) => Promise<Lab | null>;
   /** What links the applicant's papers (fact texts) to a professor, by OpenAlex. */
   warm: (name: string, university: string, papers: string[]) => Promise<Warm | null>;
+  /** What a professor's page says about prospective students, quoted and dated. */
+  contactPage: (url: string) => Promise<ContactRead>;
   treg: (req: TregRequest) => Promise<TregOutcome>;
 };
 
@@ -64,6 +67,7 @@ export const realSources: Sources = {
   adjacent: adjacentTopics,
   lab: openAlexLab,
   warm: openAlexWarm,
+  contactPage,
   treg: (req) => tregCall(req),
 };
 

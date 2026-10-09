@@ -158,6 +158,28 @@ test("outreach: drafts wait for approval, a sent email's reply comes back as you
   );
 });
 
+test("taking students: their page's words land dated, and a professor not taking gets no first email", async ({
+  page,
+}) => {
+  // Outreach left the thread with drafts in Pipeline, so it is in the main list, not Settled.
+  await page.goto("/");
+  await page.getByRole("link", { name: "Find professors" }).click();
+  await page.getByRole("tab", { name: /Results/ }).click();
+  await page.getByLabel("Select Mohan Zalake").check();
+  await page.getByRole("button", { name: /Taking students\?/ }).click();
+  const row = page.getByTestId("result-row").filter({ hasText: "Mohan Zalake" });
+  await expect(row).toContainText(
+    'no: "I am not taking new PhD students until Fall 2028." (their page, ',
+  );
+  await page.getByRole("button", { name: "Accept", exact: true }).click();
+  await expect(page.getByText("0 proposed cells")).toBeVisible();
+
+  await page.getByLabel("Select Mohan Zalake").check();
+  await page.getByRole("button", { name: /Draft first emails/ }).click();
+  await page.getByRole("tab", { name: "Chat" }).click();
+  await expect(page.getByText(/Mohan Zalake: Not drafted: not taking students/)).toBeVisible();
+});
+
 test("vault: the agent's finds wait in To file, and submitting an application drafts the notes", async ({
   page,
 }) => {

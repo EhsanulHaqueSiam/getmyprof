@@ -90,6 +90,7 @@ function ProfessorPage() {
       | "taking"
       | "seeking"
       | "contact"
+      | "subjectRule"
       | "emailCheck"
       | "niche"
       | "recent"
@@ -281,6 +282,11 @@ function ProfessorPage() {
               <span className="text-placeholder">not found</span>
             )}
           </Line>
+          {p.subjectRule ? (
+            <Line source={<Source of={sourceOf("subjectRule")} />}>
+              Subject must carry "{p.subjectRule}"
+            </Line>
+          ) : null}
           <Line source={<Source of={data.fieldSources.email ?? sourceOf("emailCheck")} />}>
             {p.email || <span className="text-placeholder">no address yet</span>}
             {p.emailCheck ? <span className="text-muted-foreground"> · {p.emailCheck}</span> : null}

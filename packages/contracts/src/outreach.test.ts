@@ -43,6 +43,7 @@ describe("draft issues", () => {
     recent:
       "2026-05 DF-RAG: Query-Aware Diversity for Retrieval-Augmented Generation (ACL); 2025 Clinical IE",
     hook: "",
+    subjectRule: "",
   };
   const ctx = { facts, applicant: undefined, record };
 
@@ -96,6 +97,7 @@ describe("a first message written for one professor", () => {
     emailCheck: "ok",
     recent: "2026 DF-RAG: Query-Aware Diversity for Retrieval-Augmented Generation (ACL)",
     hook: "",
+    subjectRule: "",
   };
   const ctx = { facts, applicant: undefined, record };
   const email = (body: string, subject = "Clinical RAG PhD, Fall 2027") =>
@@ -202,5 +204,23 @@ describe("a first message written for one professor", () => {
         { ...ctx, record: { ...record, recent: "", hook } },
       ),
     ).toEqual([]);
+  });
+
+  it("carries the words their page asks for in a first email's subject", () => {
+    const first = (subject: string) =>
+      draftIssues(
+        {
+          channel: "email",
+          touch: "first",
+          subject,
+          citations: {},
+          body: "Your query-aware diversity in retrieval paper made me rethink top-k.",
+        },
+        { ...ctx, record: { ...record, subjectRule: "PhD 2027" } },
+      );
+    expect(first("Clinical RAG, Fall 2027")).toEqual([
+      'their page asks for "PhD 2027" in the subject',
+    ]);
+    expect(first("phd 2027: clinical RAG")).toEqual([]);
   });
 });

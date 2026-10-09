@@ -262,6 +262,8 @@ export const Professor = z.object({
   email: z.string(),
   emailCheck: z.string(),
   contact: z.string(),
+  /** Words their page says a first email's subject must carry, e.g. "PhD 2027"; "" when none. */
+  subjectRule: z.string().default(""),
   stage: Stage,
   fitsBecause: z.string(),
   website: z.string(),
@@ -301,6 +303,7 @@ export const PROFESSOR_FIELDS = [
   "email",
   "emailCheck",
   "contact",
+  "subjectRule",
   "stage",
   "fitsBecause",
   "website",

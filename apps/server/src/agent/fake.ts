@@ -14,6 +14,7 @@ import {
   FIXTURE_SCHOOL_MONEY,
   FIXTURE_SCHOOLS,
   FIXTURE_WORK,
+  takingFields,
 } from "./fixtures.ts";
 import type { AgentProvider, SessionStart } from "./provider.ts";
 import { askBlocked, capProblem, type HuntTool } from "./tools.ts";
@@ -57,7 +58,8 @@ export const fakeProvider = (
 
     const tool = (name: string) => s.tools.find((t) => t.name === name) as HuntTool | undefined;
     let result = "";
-    /** Runs a hunt tool like the model would; `result` holds its summary afterwards. */
+    let resultText = "";
+    /** Runs a hunt tool like the model would; `result` and `resultText` hold its answer afterwards. */
     const call = async (name: string, detail: string, args: Record<string, unknown>) => {
       const t = tool(name);
       const id = `fake-${++n}-${Date.now()}`;
@@ -70,6 +72,7 @@ export const fakeProvider = (
         return hooks.emit({ ...base, at: now(), status: "denied", meta: "ask mode" });
       const r = await t.run(args, s.toolContext);
       result = r.summary;
+      resultText = r.text;
       hooks.emit({
         ...base,
         at: now(),
@@ -316,6 +319,7 @@ export const fakeProvider = (
         return p ? [{ ...p, key }] : [];
       });
       let skipped = 0;
+      let held = 0;
       for (const p of rows) {
         // With paid lookups on, an address no official page lists is found through treg,
         // tagged with its row so the cell shows what it cost.
@@ -333,10 +337,26 @@ export const fakeProvider = (
         if (op === "draft") {
           // No checked address but a LinkedIn profile: a short note instead, like the real agent.
           await call("draft_email", `first · ${p.name}`, firstDraft(s.toolContext.db, p));
+          // A refusal (not taking, no address) is said back, like the real agent says why.
+          if (result === "not drafted") {
+            held++;
+            say(`${p.name}: ${resultText}`);
+          }
           continue;
         }
         // Lab check and Warm path and hook read OpenAlex first, like the real agent.
         const who = { name: p.name, university: p.university };
+        // Taking students? reads their page first and records what it says, quoted and dated.
+        if (op === "taking") {
+          const url = p.sources[0] ?? "";
+          await call("read_contact_rule", url, { url });
+          const r = await s.toolContext.sources.contactPage(url);
+          await call("propose_professor", `${p.name} · ${p.university}`, {
+            ...who,
+            ...takingFields(r),
+          });
+          continue;
+        }
         if (op === "lab") await call("lab_members", p.name, who);
         if (op === "personalize") await call("warm_paths", p.name, who);
         await call("propose_professor", `${p.name} · ${p.university}`, {
@@ -350,7 +370,7 @@ export const fakeProvider = (
         });
       }
       say(
-        `Done for ${rows.length - skipped} row${rows.length - skipped === 1 ? "" : "s"}.${skipped ? ` Skipped ${skipped} apply-only.` : ""}`,
+        `Done for ${rows.length - skipped - held} row${rows.length - skipped - held === 1 ? "" : "s"}.${skipped ? ` Skipped ${skipped} apply-only.` : ""}`,
       );
     }
 

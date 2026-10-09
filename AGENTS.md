@@ -73,7 +73,8 @@ docs/internals            decisions and constraints the code can't carry
 ## Commands
 
 `pnpm install` · `scripts/dev-local.sh up|down|status|logs|share` · `pnpm lint` · `pnpm fmt` ·
-`pnpm typecheck` · `pnpm test` · `pnpm build`. e2e needs a fresh fake stack:
+`pnpm typecheck` · `pnpm test` · `pnpm build` · `pnpm release status|patch|minor|build` (see
+docs/internals/release.md). e2e needs a fresh fake stack:
 `rm -rf /tmp/gc-e2e && GETMYPROF_HOME=/tmp/gc-e2e GETMYPROF_AGENT=fake scripts/dev-local.sh up`, then `pnpm e2e`.
 `vp` is Vite+: `pnpm exec vp test run <file>` for one test file.
 

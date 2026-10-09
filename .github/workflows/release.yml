@@ -112,6 +112,7 @@ jobs:
       - run: cp packaging/install.sh dist/release/ && pnpm dist sums && pnpm dist manifests
 
       # gh uploads every asset to a draft and publishes it last, so no updater sees half a release.
+      # The notes are the install link, then GitHub's list of the PRs merged since the last tag.
       # A rerun (say after adding NPM_TOKEN) leaves a published release alone and goes on.
       - name: Release
         run: |
@@ -119,7 +120,7 @@ jobs:
           gh release view "$GITHUB_REF_NAME" --repo "$GETMYPROF_RELEASES" >/dev/null 2>&1 && exit 0
           gh release create "$GITHUB_REF_NAME" --repo "$GETMYPROF_RELEASES" \
             --title "getmyprof ${GITHUB_REF_NAME#v}" \
-            --notes "Install: https://github.com/$GETMYPROF_RELEASES#install" \
+            --notes "Install: https://github.com/$GETMYPROF_RELEASES#install" --generate-notes \
             ./*.tar.gz ./*.dmg ./*.zip ./*.blockmap ./*.AppImage ./*.deb ./latest-*.yml install.sh SHA256SUMS
 
       # A deploy key with write access on the tap repo, so this needs no personal token.

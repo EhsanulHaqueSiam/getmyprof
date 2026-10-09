@@ -95,6 +95,12 @@ export const APPLICANT_TOOLS = [
         .describe(
           "Vault document ids to attach (email only): the CV on a first email, or what they asked for",
         ),
+      anyway: z
+        .boolean()
+        .optional()
+        .describe(
+          "Write a first message though the sheet says they aren't taking students. Only when the applicant asked for it",
+        ),
     },
     paid: false,
     price: () => 0,
@@ -109,6 +115,7 @@ export const APPLICANT_TOOLS = [
         timeZone: args.timeZone,
         threadId: ctx.threadId,
         attach: args.attach,
+        anyway: args.anyway,
       });
       if ("problem" in draft)
         return { summary: "not drafted", text: `Not drafted: ${draft.problem}.` };

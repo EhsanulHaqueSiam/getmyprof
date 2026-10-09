@@ -251,7 +251,8 @@ function personalIssues(
 /**
  * Why an outgoing message can't be approved or sent yet, in words; empty when it may go. The same
  * rules as the Writer: every claim cites a proven fact, no test score without a taken test, at
- * most two links, and cold mail only to a checked address. A first message must also read as
+ * most two links, and cold mail only to a checked address. A first email carries the subject
+ * words their page asks for (subjectRule). A first message must also read as
  * written for this professor (see personalIssues).
  */
 export function draftIssues(
@@ -260,7 +261,7 @@ export function draftIssues(
     facts: ProfileFact[];
     applicant: Applicant | undefined;
     /** The professor it goes to; a message to no one in the sheet has no checked address. */
-    record: Pick<Professor, "emailCheck" | "recent" | "hook"> | undefined;
+    record: Pick<Professor, "emailCheck" | "recent" | "hook" | "subjectRule"> | undefined;
   },
 ) {
   const issues: string[] = [];
@@ -280,6 +281,14 @@ export function draftIssues(
   const cold = m.touch !== "reply" && m.touch !== "thank-you";
   if (m.channel === "email" && cold && !addressChecked(ctx.record?.emailCheck ?? ""))
     issues.push("the address isn't checked yet: run Find and check emails");
+  const rule = ctx.record?.subjectRule.trim();
+  if (
+    m.channel === "email" &&
+    m.touch === "first" &&
+    rule &&
+    !m.subject.toLowerCase().includes(rule.toLowerCase())
+  )
+    issues.push(`their page asks for "${rule}" in the subject`);
   if (m.touch === "first") issues.push(...personalIssues(m, ctx.record));
   return issues;
 }

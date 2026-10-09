@@ -228,6 +228,22 @@ export const fixtureSources: Sources = {
     },
   ],
   nserc: async () => [],
+  jobsacuk: async () => [
+    {
+      source: "jobs.ac.uk",
+      id: "1083400",
+      title: "PhD Studentship: Language models for health records",
+      professor: "Jane Fixture",
+      university: "University of Edinburgh",
+      country: "United Kingdom",
+      funding: "Funding: fully funded. Standard EPSRC stipend",
+      deadline: "2026-11-04",
+      posted: "2026-08-04",
+      url: "https://www.jobs.ac.uk/job/DSK809/fixture",
+      abstract: "Fixture posting.",
+    },
+  ],
+  inspire: async () => [],
   csrankings: async (university) =>
     university.toLowerCase().includes("george mason")
       ? [

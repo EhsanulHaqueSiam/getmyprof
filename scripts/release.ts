@@ -102,7 +102,23 @@ function cut(bump: string, flags: Set<string>) {
     return;
   }
 
+  // Wherever you were, you end up back there: a branch by name, else the same commit.
+  const start = read("git", ["branch", "--show-current"]) || read("git", ["rev-parse", "HEAD"]);
   run("git", ["switch", "--create", branch, "origin/main"]);
+  try {
+    publish(version, tag, branch);
+  } finally {
+    run("git", ["switch", "--quiet", start.length === 40 ? "--detach" : "--no-guess", start]);
+  }
+  // Once the tag is out the release branch is merged and done; it stays if anything stopped.
+  if (read("git", ["ls-remote", "--tags", "origin", tag]))
+    run("git", ["branch", "--quiet", "--delete", "--force", branch]);
+  if (flags.has("--watch")) watch(version);
+  else console.log(`Follow it with: pnpm release watch ${version}`);
+}
+
+/** On the fresh release branch: bump, open the PR, wait for CI, merge, tag main, push the tag. */
+function publish(version: string, tag: string, branch: string) {
   // A regex edit keeps the file's formatting exactly as it is.
   const json = NodeFS.readFileSync(pkgPath, "utf8");
   NodeFS.writeFileSync(pkgPath, json.replace(/("version":\s*")[^"]+"/, `$1${version}"`));
@@ -123,7 +139,9 @@ function cut(bump: string, flags: Set<string>) {
   // Give CI a moment to register its check before watching.
   NodeChild.spawnSync("sleep", ["10"]);
   run("gh", ["pr", "checks", branch, "--watch", "--fail-fast"]);
-  run("gh", ["pr", "merge", branch, "--squash", "--delete-branch"]);
+  // gh's --delete-branch would also try the local branch, which this checkout still has out.
+  run("gh", ["pr", "merge", branch, "--squash"]);
+  run("git", ["push", "--quiet", "origin", "--delete", branch]);
 
   run("git", ["fetch", "--quiet", "origin", "main"]);
   if (versionIn(read("git", ["show", "origin/main:package.json"])) !== version)
@@ -131,8 +149,6 @@ function cut(bump: string, flags: Set<string>) {
   run("git", ["tag", "--annotate", tag, "origin/main", "--message", `getmyprof ${version}`]);
   run("git", ["push", "origin", tag]);
   console.log(`Pushed ${tag}: the release workflow builds and publishes it.`);
-  if (flags.has("--watch")) watch(version);
-  else console.log(`Follow it with: pnpm release watch ${version}`);
 }
 
 function watch(version?: string) {

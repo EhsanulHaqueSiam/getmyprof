@@ -1,9 +1,18 @@
 import { describe, expect, it } from "vite-plus/test";
 import { createBus } from "../bus.ts";
 import { openDb } from "../db.ts";
-import { issuesFor, listMessages } from "../outreach/store.ts";
-import { getRecord, putRecord, recordKey, resolveProposal, threadProposals } from "../records.ts";
-import { saveFacts } from "../state.ts";
+import { fakeMailer } from "../outreach/mail.ts";
+import { createOutreach } from "../outreach/service.ts";
+import { issuesFor, listMessages, markSent, saveDraft } from "../outreach/store.ts";
+import {
+  blankProfessor,
+  getRecord,
+  putRecord,
+  recordKey,
+  resolveProposal,
+  threadProposals,
+} from "../records.ts";
+import { saveFacts, updateSettings } from "../state.ts";
 import { createThread, getThread, listEvents } from "../threads.ts";
 import { listApplications, saveEdit, startApplication } from "../vault.ts";
 import { fakeProvider } from "./fake.ts";
@@ -34,6 +43,8 @@ describe("the scripted agent's first messages", () => {
         planned: false,
       },
     ]);
+    // Full assist: the agent's drafts go as they are.
+    updateSettings(db, { firstEmails: "agent" });
     const runner = createRunner({
       db,
       bus: createBus(),
@@ -82,6 +93,106 @@ describe("the scripted agent's first messages", () => {
     ).toMatchObject({ status: "done", meta: "2 co-authors" });
     const lab = threadProposals(db, thread).find((p) => p.status === "pending");
     expect(lab?.changes.map((c) => c.field)).toEqual(["lab"]);
+  });
+});
+
+describe("the scripted agent's follow-ups", () => {
+  // The line format is the service's (outreach/service.ts draftFollowUps).
+  const line = (facts: string) =>
+    `[follow-up] keys=k\nNo reply yet.\n- Kevin Lybarger | George Mason University | key k | follow-up-1 | channel email | to lybarger@example.edu | zone America/New_York | sent 2026-10-13 | your new facts since: ${facts} | last message "PhD 2027": Dear Dr. Lybarger`;
+
+  async function bump(facts: string) {
+    const db = openDb(":memory:");
+    saveFacts(db, [
+      {
+        id: "f_medqa",
+        text: "4 points on MedQA",
+        source: "notes.md",
+        kind: "project",
+        date: "2026-10-20",
+        confirmed: true,
+        question: false,
+        planned: false,
+      },
+    ]);
+    const record = {
+      ...blankProfessor("Kevin Lybarger", "George Mason University"),
+      email: "lybarger@example.edu",
+      emailCheck: "ok",
+    };
+    putRecord(db, record);
+    const first = saveDraft(db, {
+      recordKey: record.key,
+      channel: "email",
+      touch: "first",
+      to: record.email,
+      subject: "PhD 2027",
+      body: "Dear Dr. Lybarger, about DF-RAG.",
+      timeZone: "America/New_York",
+      threadId: null,
+    });
+    if ("problem" in first) throw new Error(first.problem);
+    markSent(db, first.id, { messageId: "<m1@example.edu>", from: "me@example.com" });
+    const runner = createRunner({
+      db,
+      bus: createBus(),
+      provider: fakeProvider(1),
+      sources: fixtureSources,
+    });
+    const thread = createThread(db, "Follow-ups").id;
+    runner.send(thread, line(facts), "send");
+    await until(() => listMessages(db, record.key).length === 2);
+    return listMessages(db, record.key).find((m) => m.touch === "follow-up-1");
+  }
+
+  it("bring the applicant's new fact, cited", async () => {
+    expect((await bump("[[f_medqa]] 4 points on MedQA (2026-10-20)"))?.body).toContain(
+      "Since my last note I got 4 points on MedQA [1].",
+    );
+  });
+
+  it("with nothing new, ask only the one question", async () => {
+    expect((await bump("none"))?.body).toContain("Are you taking a PhD student for Fall 2027?");
+  });
+});
+
+describe("your words first", () => {
+  it("holds the agent's first email until you write your lines, then rebuilds it around them", async () => {
+    const db = openDb(":memory:");
+    const bus = createBus();
+    const runner = createRunner({ db, bus, provider: fakeProvider(1), sources: fixtureSources });
+    const thread = createThread(db, "health NLP").id;
+    runner.send(thread, "find health NLP professors", "send");
+    await until(() => getThread(db, thread)?.status === "idle");
+    for (const p of threadProposals(db, thread)) resolveProposal(db, p.id, "accept");
+    const key = recordKey("Kevin Lybarger", "George Mason University");
+    const record = getRecord(db, key);
+    if (!record) throw new Error("expected Lybarger in the sheet");
+    putRecord(db, { ...record, emailCheck: "ok, on the lab page" });
+    runner.rowAction(thread, "draft", [key]);
+    await until(() => listMessages(db, key).length === 1);
+    await until(() => getThread(db, thread)?.status === "idle");
+
+    const [suggested] = listMessages(db, key);
+    if (!suggested) throw new Error("expected a draft");
+    expect(suggested.voice).toBe("suggested");
+    expect(issuesFor(db, suggested)).toEqual([
+      "write why them in your own words, or use the agent's version",
+    ]);
+
+    const outreach = createOutreach({ db, bus, runner, mailerFor: () => fakeMailer() });
+    const words =
+      "i read DF-RAG: Query-Aware Diversity for Retrieval-Augmented Generation. i want to try the diversity step on discharge notes.";
+    outreach.ownWords(suggested.id, words);
+    await until(() => listMessages(db, key)[0]?.voice === "own");
+    const own = listMessages(db, key)[0];
+    expect(own?.ownWords).toBe(words);
+    expect(own?.body).toContain("I read DF-RAG");
+    expect(own?.fixes.map((f) => f.to)).toEqual([
+      "I read DF-RAG: Query-Aware Diversity for Retrieval-Augmented Generation.",
+      "I want to try the diversity step on discharge notes.",
+    ]);
+    expect(own && issuesFor(db, own)).toEqual([]);
   });
 });
 

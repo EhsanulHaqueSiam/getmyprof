@@ -4,11 +4,13 @@ import {
   feeBudget,
   type Professor,
   type Program,
+  programChance,
 } from "@getmyprof/contracts";
 import { PlusIcon, Trash2Icon } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useEffect, useState } from "react";
 import { ApplyHelp } from "~/components/ApplyHelp";
+import { ChanceBand, ChanceLines } from "~/components/Chance";
 import { Chip } from "~/components/FormParts";
 import { Interviews } from "~/components/Interviews";
 import { Choice } from "~/components/Table";
@@ -159,6 +161,10 @@ function ApplicationView({
   const docs = useStore((s) => s.vault)?.documents ?? [];
   const here = people.filter((p) => program && school(p.university) === school(program.university));
   const left = app.documents.filter((d) => !d.done).length;
+  const me = useStore((st) => st.app);
+  const chance =
+    program &&
+    programChance(program, { applicant: me?.applicant, facts: me?.facts ?? [], records: people });
   return (
     <section className="border-b px-4 py-3 text-xs" data-testid="application">
       <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 whitespace-nowrap">
@@ -177,6 +183,7 @@ function ApplicationView({
             due {program.deadline} · {due(program.deadline)}
           </span>
         ) : null}
+        {chance ? <ChanceBand band={chance.band} /> : null}
         <span className="ml-auto flex items-center gap-1.5 text-muted-foreground">
           status
           <Choice
@@ -212,6 +219,11 @@ function ApplicationView({
           </Button>
         </span>
       </div>
+      {chance ? (
+        <Row label="Chance">
+          <ChanceLines lines={chance.lines} moves={chance.moves} />
+        </Row>
+      ) : null}
       <Row label={`Checklist · ${left} left`}>
         <div className="flex flex-wrap gap-x-4 gap-y-1">
           {app.documents.map((d, i) => {

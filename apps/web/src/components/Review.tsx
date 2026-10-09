@@ -14,6 +14,7 @@ const FIELD_LABEL: Record<string, string> = {
   scholar: "Scholar",
   recent: "recent work",
   seeking: "looking for",
+  subjectRule: "subject rule",
   warm: "warm path",
 };
 

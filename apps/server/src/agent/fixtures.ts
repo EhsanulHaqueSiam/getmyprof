@@ -1,5 +1,7 @@
 // The fake agent's world: three professors, two scholarships, a program, and free sources that
 // answer from fixtures. Emails use example.edu, so nothing here can reach a real person.
+import { type ContactRead, readContactRule } from "../contact-page.ts";
+import type { RowOp } from "@getmyprof/contracts";
 import { TREG_ENDPOINTS } from "../treg.ts";
 import type { Sources } from "./tools.ts";
 
@@ -15,6 +17,7 @@ export const FIXTURE_PROFESSORS = [
     lasts: "not posted",
     email: "lybarger@example.edu",
     contact: 'email, subject "PhD 2027"',
+    subjectRule: "PhD 2027",
     recent:
       "2026 DF-RAG: Query-Aware Diversity for Retrieval-Augmented Generation (ACL); 2026 Efficient Information Extraction Using LLMs and Knowledge Distillation",
     hook: "DF-RAG's per-query passage diversity is the retrieval step your clinical NLP interest needs",
@@ -60,12 +63,64 @@ export const FIXTURE_PROFESSORS = [
  * What the fake agent answers for each portal field in a [portal] turn, by its label: the first
  * of a select's or radio's options, like the real agent is told to, else a fixture line.
  */
-export const portalAnswers = (text: string) =>
-  [...text.matchAll(/^- (.+?) \| .*$/gm)].map(([line, label = ""]) => ({
+export function portalTurn(text: string) {
+  const answers = [...text.matchAll(/^- (.+?) \| .*$/gm)].map(([line, label = ""]) => ({
     label,
     value: /options: ([^;\n]+)/.exec(line)?.[1]?.trim() ?? `Fixture answer for ${label}`,
     source: "fixture",
   }));
+  return {
+    args: { applicationId: /app=(\S+)/.exec(text)?.[1], answers },
+    said: `Answered ${answers.length} portal field${answers.length === 1 ? "" : "s"}.`,
+  };
+}
+
+/** Each fixture professor's own page, as Taking students? reads it: a yes with a subject rule, a
+ * not-until-2028 and an apply-first. */
+const FIXTURE_PAGES: Record<string, string> = {
+  "https://www.kevinlybarger.me/news.html":
+    '<p>I am recruiting PhD students for Fall 2027.</p><p>Email me with "PhD 2027" in the subject line and attach your CV.</p>',
+  "https://vare.ahs.uic.edu/":
+    "<h2>Join us</h2><p>I am not taking new PhD students until Fall 2028.</p>",
+  "https://www.natalieparde.com/team.html":
+    "<p>Prospective students: please do not email me about admissions. Apply to the PhD program first and mention my name in your statement.</p>",
+};
+
+/** What the fake's Taking students? proposes from a page read: their words, dated, and the rules. */
+export function takingFields(r: ContactRead) {
+  const quote = r.statements[0] ? `: "${r.statements[0]}"` : "";
+  const applyOnly = r.noEmail || r.applyFirst || r.form;
+  return {
+    taking: `${r.taking ?? "not stated"}${quote} (their page, ${r.readOn})`,
+    ...(r.subject ? { subjectRule: r.subject } : {}),
+    ...(applyOnly
+      ? {
+          stage: "apply-only",
+          contact: r.form ? `form ${r.form}` : `apply-only: "${r.applyFirst ?? r.noEmail}"`,
+        }
+      : {}),
+    sources: r.urls,
+  };
+}
+
+/**
+ * The field and value each simple row action proposes in the fake agent. Recent work and focus,
+ * and Warm path and hook, fill several fields from the fixtures instead.
+ */
+export const ROW_FIELD: Record<Exclude<RowOp, "work" | "personalize">, string> = {
+  email: "emailCheck",
+  lasts: "lasts",
+  taking: "taking",
+  lab: "lab",
+  draft: "stage",
+};
+export const ROW_VALUE: Record<Exclude<RowOp, "work" | "personalize">, string> = {
+  email: "ok",
+  lasts: "checked: no award as PI",
+  taking: "not stated",
+  lab: "2 on OpenAlex: Ada Fixture, likely a student; Ben Fixture, last paper 2023, now at Fixture Labs. Ask Ada Fixture",
+  draft: "drafted",
+};
 
 /** What the Recent work and focus row action finds for each fixture professor, beside `recent`. */
 export const FIXTURE_WORK: Record<string, { seeking: string; scholar: string }> = {
@@ -182,6 +237,8 @@ export const FIXTURE_PROGRAMS = [
     asks: "Your research interests and the problems you want to work on\nWhy this program and which faculty",
     limit: "2 pages",
     eligibility: "ok",
+    admitRate: "31% of PhD applicants, 2025 (department report)",
+    gpaMin: "3.0 / 4.0",
     url: "https://cec.gmu.edu/academics/doctoral-programs/phd-information-technology",
     sources: ["https://cec.gmu.edu/academics/doctoral-programs/phd-information-technology"],
     why: "Lybarger and Yao advise through it",
@@ -239,6 +296,22 @@ export const fixtureSources: Sources = {
     },
   ],
   nserc: async () => [],
+  jobsacuk: async () => [
+    {
+      source: "jobs.ac.uk",
+      id: "1083400",
+      title: "PhD Studentship: Language models for health records",
+      professor: "Jane Fixture",
+      university: "University of Edinburgh",
+      country: "United Kingdom",
+      funding: "Funding: fully funded. Standard EPSRC stipend",
+      deadline: "2026-11-04",
+      posted: "2026-08-04",
+      url: "https://www.jobs.ac.uk/job/DSK809/fixture",
+      abstract: "Fixture posting.",
+    },
+  ],
+  inspire: async () => [],
   csrankings: async (university) =>
     university.toLowerCase().includes("george mason")
       ? [
@@ -325,6 +398,11 @@ export const fixtureSources: Sources = {
       },
     ],
   }),
+  contactPage: async (url) =>
+    readContactRule(
+      [{ url, html: FIXTURE_PAGES[url] ?? "<p>Research on language.</p>" }],
+      new Date(),
+    ),
   treg: async (req) => ({
     ok: true,
     result:

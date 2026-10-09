@@ -74,6 +74,13 @@ export const Program = z.object({
    * decisions Feb 10 to Mar 5 (14 reports, 4 international)". Self-reported, so never odds.
    */
   decisions: z.string().default(""),
+  /**
+   * The department's own published PhD admit rate with its year, e.g. "7% of PhD applicants,
+   * 2025 (department report)"; empty when it publishes none. Never from GradCafe.
+   */
+  admitRate: z.string().default(""),
+  /** The published GPA minimum with its scale, e.g. "3.0 / 4.0"; empty when none is stated. */
+  gpaMin: z.string().default(""),
   url: z.string(),
   sources,
   note: z.string(),

@@ -4,6 +4,7 @@
 import { addressChecked, factStatus, recentTitles } from "@getmyprof/contracts";
 import { profileFacts } from "../adapters.ts";
 import type { Db } from "../db.ts";
+import { getMessage } from "../outreach/store.ts";
 import { getRecord } from "../records.ts";
 import { listDocuments } from "../vault.ts";
 import { FIXTURE_DETAIL, type FIXTURE_PROFESSORS } from "./fixtures.ts";
@@ -54,5 +55,46 @@ export function firstDraft(db: Db, p: (typeof FIXTURE_PROFESSORS)[number] & { ke
       .filter(Boolean)
       .join("\n\n"),
     attach: cv ? [cv.id] : [],
+  };
+}
+
+/**
+ * draft_email's arguments for a first message rebuilt around the applicant's own lines (an
+ * [own-words] turn): their sentences with capitals fixed, each change listed with why, between
+ * the greeting and the one question; and what the agent says after. args is null when the
+ * draft is gone.
+ */
+export function ownWordsTurn(db: Db, text: string) {
+  const args = ownWordsDraft(db, text);
+  const fixed = args?.fixes.length ?? 0;
+  return {
+    args,
+    said: args
+      ? `Rewrote it around your lines: ${fixed} ${fixed === 1 ? "fix" : "fixes"}.`
+      : "That draft is gone.",
+  };
+}
+
+function ownWordsDraft(db: Db, text: string) {
+  const m = getMessage(db, /message=(\S+)/.exec(text)?.[1] ?? "");
+  const record = m && getRecord(db, m.recordKey);
+  const words = /"""\n([\s\S]*?)\n"""/.exec(text)?.[1] ?? "";
+  if (!m || !record || !words) return null;
+  const fixes: { from: string; to: string; why: string }[] = [];
+  const lines = words.split(/(?<=[.!?])\s+/).map((from) => {
+    const to = from.replace(/\bi\b/g, "I").replace(/^\p{Ll}/u, (c) => c.toUpperCase());
+    if (to !== from) fixes.push({ from, to, why: "capitals only" });
+    return to;
+  });
+  return {
+    name: record.name,
+    university: record.university,
+    channel: m.channel,
+    touch: "first",
+    to: m.to,
+    subject: m.subject,
+    body: `Dear Dr. ${record.name.split(" ").at(-1)},\n\n${lines.join(" ")}\n\nAre you taking a PhD student for Fall 2027?\n\nBest regards`,
+    timeZone: m.timeZone,
+    fixes,
   };
 }

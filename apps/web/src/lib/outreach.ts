@@ -1,6 +1,14 @@
 // What the Pipeline shows about a conversation: labels, the sequence and the one next step.
 // Pure, from the server's derived Conversation, so Inbox and Board agree.
-import type { Conversation, OutreachMessage, PipelineStage, Turn } from "@getmyprof/contracts";
+import {
+  type Conversation,
+  factsSince,
+  gist,
+  type OutreachMessage,
+  type PipelineStage,
+  type ProfileFact,
+  type Turn,
+} from "@getmyprof/contracts";
 
 export const TURN_LABEL: Record<Turn, string> = {
   yours: "Your turn",
@@ -153,10 +161,16 @@ export type Step = {
   label: string;
   when: string;
   state: "done" | "now" | "later" | "off";
+  /** What it says or will bring: a message's opening line, a planned follow-up's angle. */
+  detail: string;
 };
 
-/** The sequence beside a conversation: what went out, what came back, and what's planned. */
-export function sequence(c: Conversation): Step[] {
+/**
+ * The sequence beside a conversation: what went out, what came back, and what's planned, each
+ * with what it says. A planned follow-up names the applicant's newest fact since the last send
+ * (`facts`), the angle the agent will use; with none, what it falls back to.
+ */
+export function sequence(c: Conversation, facts: ProfileFact[] = []): Step[] {
   const zone = zoneOf(c);
   const steps: Step[] = [];
   for (const m of c.messages) {
@@ -170,7 +184,7 @@ export function sequence(c: Conversation): Step[] {
             : m.channel === "linkedin"
               ? "LinkedIn reply"
               : "Reply received";
-      steps.push({ id: m.id, label, when: m.at ? day(m.at, zone) : "", state: "done" });
+      steps.push({ id: m.id, label, when: m.at ? day(m.at, zone) : "", state: "done", detail: "" });
       continue;
     }
     const label =
@@ -186,22 +200,32 @@ export function sequence(c: Conversation): Step[] {
               ? "Follow-up 2"
               : "After applying";
     const id = m.id;
+    const detail = gist(m.body);
     if (m.status === "sent")
-      steps.push({ id, label, when: m.at ? day(m.at, zone) : "", state: "done" });
+      steps.push({ id, label, when: m.at ? day(m.at, zone) : "", state: "done", detail });
     else if (m.status === "scheduled")
       steps.push({
         id,
         label,
         when: m.scheduledAt ? day(m.scheduledAt, zone) : "",
         state: "later",
+        detail,
       });
     else
-      steps.push({ id, label, when: m.status === "failed" ? "not sent" : "draft", state: "now" });
+      steps.push({
+        id,
+        label,
+        when: m.status === "failed" ? "not sent" : "draft",
+        state: "now",
+        detail,
+      });
   }
   const sentFollowUps = out(c).filter(
     (m) => m.touch?.startsWith("follow-up") && m.status !== "cancelled",
   ).length;
   const contacted = out(c).some((m) => m.touch === "first" && m.status === "sent");
+  const lastSent = out(c).findLast((m) => m.status === "sent");
+  const fresh = factsSince(facts, (lastSent?.at ?? "").slice(0, 10))[0];
   for (const n of [1, 2].slice(sentFollowUps)) {
     if (!contacted) break;
     if (c.stopped) {
@@ -210,6 +234,7 @@ export function sequence(c: Conversation): Step[] {
         label: `Follow-up ${n}`,
         when: `paused: ${c.stopped}`,
         state: "off",
+        detail: "",
       });
       break;
     }
@@ -219,6 +244,13 @@ export function sequence(c: Conversation): Step[] {
       label: `Follow-up ${n}`,
       when: due ? day(c.followUpAt ?? "", zone) : "later",
       state: due && c.turn === "follow-up" ? "now" : "later",
+      // The next bump uses the new fact; the one after keeps its own job.
+      detail:
+        fresh && n === sentFollowUps + 1
+          ? `brings: ${fresh.text}`
+          : n === 1
+            ? "their newer work, or only the one question"
+            : "a short call or your CV, then the last note",
     });
   }
   // The "I applied and named you" note is planned from the start; it's drafted on submit.
@@ -228,6 +260,7 @@ export function sequence(c: Conversation): Step[] {
       label: "After applying: I named you",
       when: c.applied ? "draft on its way" : "on submit",
       state: c.applied ? "now" : "later",
+      detail: "",
     });
   // What happened, then what waits on the user, then what's planned. sort is stable.
   const rank = { done: 0, now: 1, later: 2, off: 3 } as const;

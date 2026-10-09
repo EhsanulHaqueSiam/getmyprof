@@ -5,7 +5,7 @@ import { RowOp, type ThreadEvent } from "@getmyprof/contracts";
 import { now } from "../db.ts";
 import { pendingCount } from "../records.ts";
 import { listDocuments, listPrograms } from "../vault.ts";
-import { firstDraft, ZONE } from "./fake-mail.ts";
+import { firstDraft, ownWordsTurn, ZONE } from "./fake-mail.ts";
 import {
   FIXTURE_DECISIONS,
   FIXTURE_PROFESSORS,
@@ -14,26 +14,13 @@ import {
   FIXTURE_SCHOOL_MONEY,
   FIXTURE_SCHOOLS,
   FIXTURE_WORK,
-  portalAnswers,
+  portalTurn,
+  ROW_FIELD,
+  ROW_VALUE,
+  takingFields,
 } from "./fixtures.ts";
 import type { AgentProvider, SessionStart } from "./provider.ts";
 import { askBlocked, capProblem, type HuntTool } from "./tools.ts";
-
-// Recent work and focus, and Warm path and hook, fill several fields from the fixtures.
-const FIELD_FOR: Record<Exclude<RowOp, "work" | "personalize">, string> = {
-  email: "emailCheck",
-  lasts: "lasts",
-  taking: "taking",
-  lab: "lab",
-  draft: "stage",
-};
-const VALUE_FOR: Record<Exclude<RowOp, "work" | "personalize">, string> = {
-  email: "ok",
-  lasts: "checked: no award as PI",
-  taking: "not stated",
-  lab: "2 on OpenAlex: Ada Fixture, likely a student; Ben Fixture, last paper 2023, now at Fixture Labs. Ask Ada Fixture",
-  draft: "drafted",
-};
 
 /** Row actions, replies and follow-ups reach the agent as tagged prompts (runner, outreach/service). */
 const ROW_TAG = new RegExp(`^\\[row-action:(${RowOp.options.join("|")})\\] keys=(\\S+)`);
@@ -43,7 +30,7 @@ const FACT_LINE = /^- \[\[(\S+?)\]\] (.+) \((confirmed|unconfirmed|needs proof|q
 const orNull = (v: string | undefined) => (!v || v === "-" ? null : v);
 const AFTER_LINE = /^- (.+?) \| (.+?) \| key \S+ \| to (\S+) \| zone (\S+)/gm;
 const FOLLOW_UP_LINE =
-  /^- (.+?) \| (.+?) \| key \S+ \| (follow-up-[12]) \| to (\S+) \| zone (\S+)/gm;
+  /^- (.+?) \| (.+?) \| key \S+ \| (follow-up-[12]) \| channel \S+ \| to (\S+) \| zone (\S+) \| sent \S* \| your new facts since: (?:\[\[(\S+)\]\] (.+?) \(|none)/gm;
 
 export const fakeProvider = (
   delayMs = Number(process.env.GETMYPROF_FAKE_DELAY ?? 120),
@@ -58,7 +45,8 @@ export const fakeProvider = (
 
     const tool = (name: string) => s.tools.find((t) => t.name === name) as HuntTool | undefined;
     let result = "";
-    /** Runs a hunt tool like the model would; `result` holds its summary afterwards. */
+    let resultText = "";
+    /** Runs a hunt tool like the model would; `result` and `resultText` hold its answer afterwards. */
     const call = async (name: string, detail: string, args: Record<string, unknown>) => {
       const t = tool(name);
       const id = `fake-${++n}-${Date.now()}`;
@@ -71,6 +59,7 @@ export const fakeProvider = (
         return hooks.emit({ ...base, at: now(), status: "denied", meta: "ask mode" });
       const r = await t.run(args, s.toolContext);
       result = r.summary;
+      resultText = r.text;
       hooks.emit({
         ...base,
         at: now(),
@@ -162,7 +151,14 @@ export const fakeProvider = (
     async function followUps(text: string) {
       let drafted = 0;
       for (const m of text.matchAll(FOLLOW_UP_LINE)) {
-        const [, name = "", university = "", touch = "", to = "", timeZone = ""] = m;
+        const [, name = "", university = "", touch = "", to = "", timeZone = "", factId, fact] = m;
+        const dear = `Dear Dr. ${name.split(" ").at(-1)},`;
+        // Something new since the last note, cited, or the short honest version.
+        const line = fact
+          ? `Since my last note I got ${fact} [[${factId}]]. Happy to share how, if useful.`
+          : touch === "follow-up-1"
+            ? "Are you taking a PhD student for Fall 2027? I'd be glad to send more if so."
+            : "Would a 15-minute call help? This is my last note.";
         await call("draft_email", `${touch} · ${name}`, {
           name,
           university,
@@ -170,7 +166,7 @@ export const fakeProvider = (
           touch,
           to,
           subject: "",
-          body: `Dear Dr. ${name.split(" ").at(-1)},\n\nA short follow-up on my note about a funded PhD for Fall 2027. Your recent paper made me even more keen.\n\nBest regards`,
+          body: `${dear}\n\n${line}\n\nBest regards`,
           timeZone,
         });
         drafted++;
@@ -317,6 +313,7 @@ export const fakeProvider = (
         return p ? [{ ...p, key }] : [];
       });
       let skipped = 0;
+      let held = 0;
       for (const p of rows) {
         // With paid lookups on, an address no official page lists is found through treg,
         // tagged with its row so the cell shows what it cost.
@@ -334,10 +331,26 @@ export const fakeProvider = (
         if (op === "draft") {
           // No checked address but a LinkedIn profile: a short note instead, like the real agent.
           await call("draft_email", `first · ${p.name}`, firstDraft(s.toolContext.db, p));
+          // A refusal (not taking, no address) is said back, like the real agent says why.
+          if (result === "not drafted") {
+            held++;
+            say(`${p.name}: ${resultText}`);
+          }
           continue;
         }
         // Lab check and Warm path and hook read OpenAlex first, like the real agent.
         const who = { name: p.name, university: p.university };
+        // Taking students? reads their page first and records what it says, quoted and dated.
+        if (op === "taking") {
+          const url = p.sources[0] ?? "";
+          await call("read_contact_rule", url, { url });
+          const r = await s.toolContext.sources.contactPage(url);
+          await call("propose_professor", `${p.name} · ${p.university}`, {
+            ...who,
+            ...takingFields(r),
+          });
+          continue;
+        }
         if (op === "lab") await call("lab_members", p.name, who);
         if (op === "personalize") await call("warm_paths", p.name, who);
         await call("propose_professor", `${p.name} · ${p.university}`, {
@@ -346,12 +359,12 @@ export const fakeProvider = (
             ? { recent: p.recent, ...FIXTURE_WORK[p.name] }
             : op === "personalize"
               ? { warm: p.warm, hook: p.hook }
-              : { [FIELD_FOR[op]]: VALUE_FOR[op] }),
+              : { [ROW_FIELD[op]]: ROW_VALUE[op] }),
           sources: p.sources,
         });
       }
       say(
-        `Done for ${rows.length - skipped} row${rows.length - skipped === 1 ? "" : "s"}.${skipped ? ` Skipped ${skipped} apply-only.` : ""}`,
+        `Done for ${rows.length - skipped - held} row${rows.length - skipped - held === 1 ? "" : "s"}.${skipped ? ` Skipped ${skipped} apply-only.` : ""}`,
       );
     }
 
@@ -366,12 +379,13 @@ export const fakeProvider = (
       else if (reply?.[1] && reply[2] && reply[3]) await answerReply(reply[1], reply[2], reply[3]);
       else if (text.startsWith("[follow-up]")) await followUps(text);
       else if (text.startsWith("[portal]")) {
-        const answers = portalAnswers(text);
-        await call("save_answers", "portal", {
-          applicationId: /app=(\S+)/.exec(text)?.[1],
-          answers,
-        });
-        say(`Answered ${answers.length} portal field${answers.length === 1 ? "" : "s"}.`);
+        const turn = portalTurn(text);
+        await call("save_answers", "portal", turn.args);
+        say(turn.said);
+      } else if (text.startsWith("[own-words]")) {
+        const turn = ownWordsTurn(s.toolContext.db, text);
+        if (turn.args) await call("draft_email", "first · your words", turn.args);
+        say(turn.said);
       } else if (text.startsWith("[after-applying]")) await afterApplying(text);
       else if (text.startsWith("[thank-you]")) await thankYou(text);
       else if (text.startsWith("[write]")) await write(text);

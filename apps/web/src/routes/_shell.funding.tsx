@@ -1,8 +1,9 @@
-import { type Award, AwardSource } from "@getmyprof/contracts";
+import { type Award, AwardSource, type Position, PositionSource } from "@getmyprof/contracts";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ExternalLinkIcon, MessageSquareIcon, PlusIcon, SearchIcon } from "lucide-react";
 import { useState } from "react";
-import { FellowshipsTable, ProgramsTable } from "~/components/FundingLists";
+import { FellowshipsTable, Picks, ProgramsTable } from "~/components/FundingLists";
+import { PositionDetail, PositionsTable } from "~/components/FundingPositions";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
@@ -25,10 +26,16 @@ const SOURCE_NOTE: Record<AwardSource, string> = {
   DFG: "Germany",
   NSERC: "Canada",
 };
+const BOARD_NOTE: Record<PositionSource, string> = {
+  "jobs.ac.uk": "UK",
+  INSPIRE: "Physics",
+};
 
 /**
  * Follow the money: active awards in your fields from free databases (NSF, NIH, UKRI, CORDIS,
- * ARC), ranked by how long they last after your intake. Sources default to your hunt's places.
+ * ARC), ranked by how long they last after your intake, and advertised PhD positions on the
+ * boards (jobs.ac.uk, INSPIRE), soonest deadline first. Sources default to your
+ * hunt's places.
  */
 function Funding() {
   const hunt = useStore((s) => s.app?.hunt);
@@ -42,7 +49,10 @@ function Funding() {
   const [picked, setPicked] = useState<Award | null>(null);
   // null means "the hunt's places decide"; the server picks the same default.
   const [chosen, setChosen] = useState<AwardSource[] | null>(null);
-  const [tab, setTab] = useState<"awards" | "programs" | "fellowships">("awards");
+  const [tab, setTab] = useState<"awards" | "positions" | "programs" | "fellowships">("awards");
+  const [positions, setPositions] = useState<Position[] | null>(null);
+  const [pickedPosition, setPickedPosition] = useState<Position | null>(null);
+  const [boards, setBoards] = useState<PositionSource[] | null>(null);
 
   /** One click: the PI goes into the sheet with this award as their grant. */
   const addPi = async (a: Award) => {
@@ -50,6 +60,14 @@ function Funding() {
     const added = { ...a, inSheet: true };
     setAwards((all) => all?.map((x) => (x === a ? added : x)) ?? null);
     setPicked((p) => (p === a ? added : p));
+  };
+
+  /** One click: the professor a posting names goes into the sheet at money tier 1. */
+  const addContact = async (p: Position) => {
+    await call("records.addFromPosition", { position: p });
+    const added = { ...p, inSheet: true };
+    setPositions((all) => all?.map((x) => (x === p ? added : x)) ?? null);
+    setPickedPosition((x) => (x === p ? added : x));
   };
 
   const search = async () => {
@@ -60,9 +78,18 @@ function Funding() {
           .split(",")
           .map((x) => x.trim())
           .filter(Boolean);
+      const query = { terms: split(terms).slice(0, 3), universities: split(schools).slice(0, 8) };
+      if (tab === "positions") {
+        const found = await call("funding.positions", {
+          ...query,
+          ...(boards?.length ? { sources: boards } : {}),
+        });
+        setPositions(found);
+        setPickedPosition(found[0] ?? null);
+        return;
+      }
       const found = await call("funding.search", {
-        terms: split(terms).slice(0, 3),
-        universities: split(schools).slice(0, 8),
+        ...query,
         ...(chosen?.length ? { sources: chosen } : {}),
       });
       setAwards(found);
@@ -80,6 +107,16 @@ function Funding() {
     });
     void navigate({ to: "/t/$threadId", params: { threadId: t.id } });
   };
+  const vetPosting = async (p: Position) => {
+    const posting = `${p.source} posting "${p.title}" at ${p.university} (${p.url}), closing ${p.deadline ?? "on no stated date"}`;
+    const t = await call("threads.create", {
+      text: p.professor
+        ? `Vet ${p.professor} at ${p.university}. Their ${posting}. Is it funded for someone like me, can I meet its requirements, and do I fit? Propose them if I do.`
+        : `The ${posting} names no supervisor. Find who leads it, whether it is funded for someone like me, and propose them if I fit.`,
+      title: p.professor ? `Vet ${p.professor}` : `Who leads ${p.source} ${p.id}`,
+    });
+    void navigate({ to: "/t/$threadId", params: { threadId: t.id } });
+  };
 
   return (
     <div className="grid min-w-0 flex-1 grid-cols-1 overflow-y-auto md:grid-cols-[minmax(0,1fr)_340px] md:overflow-visible">
@@ -87,7 +124,7 @@ function Funding() {
         <header className="flex min-h-12 shrink-0 flex-wrap items-center gap-2.5 px-4 py-2">
           <h1 className="font-semibold text-sm">Funding</h1>
           <div className="inline-flex rounded-lg border p-0.5 text-xs" role="tablist">
-            {(["awards", "programs", "fellowships"] as const).map((t) => (
+            {(["awards", "positions", "programs", "fellowships"] as const).map((t) => (
               <button
                 key={t}
                 type="button"
@@ -105,36 +142,21 @@ function Funding() {
               </button>
             ))}
           </div>
-          <span className={cn("flex gap-1", tab !== "awards" && "hidden")}>
-            {AwardSource.options.map((s) => {
-              const on = chosen ? chosen.includes(s) : false;
-              return (
-                <button
-                  key={s}
-                  type="button"
-                  aria-pressed={on}
-                  title={SOURCE_NOTE[s]}
-                  onClick={() =>
-                    setChosen((c) => {
-                      const now = c ?? [];
-                      return now.includes(s) ? now.filter((x) => x !== s) : [...now, s];
-                    })
-                  }
-                  className={cn(
-                    "h-6 rounded-md px-1.5 text-2xs transition-colors",
-                    on
-                      ? "bg-accent text-foreground"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {s}
-                </button>
-              );
-            })}
-          </span>
-          <span className={cn("text-muted-foreground text-xs", tab !== "awards" && "hidden")}>
-            {chosen?.length ? "free" : "free · by your places"}
-          </span>
+          {tab === "awards" ? (
+            <Picks
+              options={AwardSource.options}
+              notes={SOURCE_NOTE}
+              chosen={chosen}
+              onChange={setChosen}
+            />
+          ) : tab === "positions" ? (
+            <Picks
+              options={PositionSource.options}
+              notes={BOARD_NOTE}
+              chosen={boards}
+              onChange={setBoards}
+            />
+          ) : null}
         </header>
         {tab === "programs" ? (
           <div className="min-h-0 flex-1 overflow-auto border-t">
@@ -146,7 +168,7 @@ function Funding() {
           </div>
         ) : null}
         <form
-          hidden={tab !== "awards"}
+          hidden={tab !== "awards" && tab !== "positions"}
           onSubmit={(e) => {
             e.preventDefault();
             void search();
@@ -165,7 +187,7 @@ function Funding() {
           <input
             value={schools}
             onChange={(e) => setSchools(e.target.value)}
-            placeholder="Schools (default: your sheet)"
+            placeholder={tab === "awards" ? "Schools (default: your sheet)" : "Schools (optional)"}
             aria-label="Schools"
             className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-placeholder"
           />
@@ -173,6 +195,24 @@ function Funding() {
             {busy ? "Searching" : "Search"}
           </Button>
         </form>
+        {tab === "positions" ? (
+          <div className="min-h-0 flex-1 overflow-auto border-t">
+            {positions?.length ? (
+              <PositionsTable
+                positions={positions}
+                picked={pickedPosition}
+                onPick={setPickedPosition}
+                onAdd={(p) => void addContact(p)}
+              />
+            ) : (
+              <div className="px-6 py-16 text-center text-muted-foreground text-xs">
+                {positions === null
+                  ? "Search your fields to see funded PhD positions open now."
+                  : "No open positions matched. Try another board or broader topics."}
+              </div>
+            )}
+          </div>
+        ) : null}
         <div className={cn("min-h-0 flex-1 overflow-auto border-t", tab !== "awards" && "hidden")}>
           <table className="w-full border-collapse text-[12.5px]">
             <thead>
@@ -283,9 +323,25 @@ function Funding() {
             <span className="ml-auto">ranked by months left after your intake, then fit</span>
           </div>
         ) : null}
+        {tab === "positions" && positions?.length ? (
+          <div className="flex h-9 shrink-0 items-center gap-2 border-t px-4 text-muted-foreground text-xs">
+            {plural(positions.length, "position")}
+            <span className="ml-auto">soonest deadline first, off topic last</span>
+          </div>
+        ) : null}
       </section>
       <aside className="flex flex-col gap-3 overflow-y-auto border-l p-4">
-        {picked ? (
+        {tab === "positions" ? (
+          pickedPosition ? (
+            <PositionDetail
+              p={pickedPosition}
+              onVet={(p) => void vetPosting(p)}
+              onAdd={(p) => void addContact(p)}
+            />
+          ) : (
+            <p className="text-muted-foreground text-xs">Pick a position to see it here.</p>
+          )
+        ) : picked ? (
           <>
             <div className="text-muted-foreground text-xs">
               {picked.source} {picked.id} · {picked.starts?.slice(0, 7)} to{" "}

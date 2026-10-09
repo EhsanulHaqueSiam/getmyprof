@@ -42,7 +42,7 @@ const FACT_LINE = /^- \[\[(\S+?)\]\] (.+) \((confirmed|unconfirmed|needs proof|q
 const orNull = (v: string | undefined) => (!v || v === "-" ? null : v);
 const AFTER_LINE = /^- (.+?) \| (.+?) \| key \S+ \| to (\S+) \| zone (\S+)/gm;
 const FOLLOW_UP_LINE =
-  /^- (.+?) \| (.+?) \| key \S+ \| (follow-up-[12]) \| to (\S+) \| zone (\S+)/gm;
+  /^- (.+?) \| (.+?) \| key \S+ \| (follow-up-[12]) \| channel \S+ \| to (\S+) \| zone (\S+) \| sent \S* \| your new facts since: (?:\[\[(\S+)\]\] (.+?) \(|none)/gm;
 
 export const fakeProvider = (
   delayMs = Number(process.env.GETMYPROF_FAKE_DELAY ?? 120),
@@ -161,7 +161,14 @@ export const fakeProvider = (
     async function followUps(text: string) {
       let drafted = 0;
       for (const m of text.matchAll(FOLLOW_UP_LINE)) {
-        const [, name = "", university = "", touch = "", to = "", timeZone = ""] = m;
+        const [, name = "", university = "", touch = "", to = "", timeZone = "", factId, fact] = m;
+        const dear = `Dear Dr. ${name.split(" ").at(-1)},`;
+        // Something new since the last note, cited, or the short honest version.
+        const line = fact
+          ? `Since my last note I got ${fact} [[${factId}]]. Happy to share how, if useful.`
+          : touch === "follow-up-1"
+            ? "Are you taking a PhD student for Fall 2027? I'd be glad to send more if so."
+            : "Would a 15-minute call help? This is my last note.";
         await call("draft_email", `${touch} · ${name}`, {
           name,
           university,
@@ -169,7 +176,7 @@ export const fakeProvider = (
           touch,
           to,
           subject: "",
-          body: `Dear Dr. ${name.split(" ").at(-1)},\n\nA short follow-up on my note about a funded PhD for Fall 2027. Your recent paper made me even more keen.\n\nBest regards`,
+          body: `${dear}\n\n${line}\n\nBest regards`,
           timeZone,
         });
         drafted++;

@@ -111,6 +111,36 @@ describe("outreach on a mailbox", () => {
     expect(asked.filter((t) => t.startsWith("[follow-up]"))).toHaveLength(1);
     expect(asked[0]).toContain("follow-up-1");
   });
+
+  it("hands a follow-up what the applicant did since the last message, as its new angle", async () => {
+    const { db, asked, outreach, draft } = setup("quiet@example.edu");
+    const day = (d: number) => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
+    const fact = (id: string, text: string, date: string) => ({
+      id,
+      text,
+      source: "notes.md",
+      kind: "project" as const,
+      date,
+      confirmed: true,
+      question: false,
+      planned: false,
+    });
+    saveFacts(db, [
+      fact("f_new", "4 points on MedQA with the diversity step", day(3)),
+      fact("f_old", "Clinical IE project", "2025-05-14"),
+      fact("f_year", "Workshop paper", day(0).slice(0, 4)),
+    ]);
+    await outreach.connect(LOGIN);
+    await outreach.sendNow(draft.id);
+    await outreach.tick(new Date(Date.now() + 20 * 864e5));
+    const [line] = asked.filter((t) => t.startsWith("[follow-up]"));
+    expect(line).toContain(
+      `sent ${day(0)} | your new facts since: [[f_new]] 4 points on MedQA with the diversity step (${day(3)})`,
+    );
+    expect(line).not.toContain("f_old");
+    expect(line).not.toContain("f_year");
+    expect(line).toContain("Never restate the last message");
+  });
   it("sends a follow-up as an answer to the first email, so it threads under it", async () => {
     const { db, record, mailer, outreach, draft } = setup("quiet@example.edu");
     await outreach.connect(LOGIN);

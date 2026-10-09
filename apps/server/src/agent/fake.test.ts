@@ -119,9 +119,9 @@ describe("the scripted agent on a portal", () => {
       "send",
     );
     await until(() => (listApplications(db)[0]?.answers.length ?? 0) === 2);
-    expect(listApplications(db)[0]?.answers.map((a) => a.label)).toEqual([
-      "Why this program? (100 words)",
-      "Preferred start term",
+    expect(listApplications(db)[0]?.answers.map((a) => [a.label, a.value])).toEqual([
+      ["Why this program? (100 words)", "Fixture answer for Why this program? (100 words)"],
+      ["Preferred start term", "Fall 2027"],
     ]);
   });
 });

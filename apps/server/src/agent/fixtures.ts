@@ -56,11 +56,14 @@ export const FIXTURE_PROFESSORS = [
   },
 ];
 
-/** What the fake agent answers for each portal field in a [portal] turn, by its label. */
+/**
+ * What the fake agent answers for each portal field in a [portal] turn, by its label: the first
+ * of a select's or radio's options, like the real agent is told to, else a fixture line.
+ */
 export const portalAnswers = (text: string) =>
-  [...text.matchAll(/^- (.+?) \| /gm)].map(([, label = ""]) => ({
+  [...text.matchAll(/^- (.+?) \| .*$/gm)].map(([line, label = ""]) => ({
     label,
-    value: `Fixture answer for ${label}`,
+    value: /options: ([^;\n]+)/.exec(line)?.[1]?.trim() ?? `Fixture answer for ${label}`,
     source: "fixture",
   }));
 

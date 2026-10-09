@@ -224,3 +224,38 @@ describe("a first message written for one professor", () => {
     expect(first("phd 2027: clinical RAG")).toEqual([]);
   });
 });
+
+describe("a message that reads as a model wrote it", () => {
+  const bump = (body: string, subject = "Re: clinical RAG, Fall 2027") =>
+    draftIssues(
+      { channel: "email", touch: "follow-up-1", subject, body, citations: {} },
+      {
+        facts: [],
+        applicant: undefined,
+        record: { emailCheck: "ok", recent: "", hook: "", subjectRule: "" },
+      },
+    );
+
+  it("names each model phrase with what to write instead, on any touch", () => {
+    expect(
+      bump(
+        "I hope this email finds you well. I am eager to delve into your new preprint — it resonates with me.",
+      ),
+    ).toEqual([
+      'sounds like a model: "I hope this email finds you well": filler they skip: open on their work',
+      'sounds like a model: "delve": say what you\'d do',
+      'sounds like a model: "resonates with me": say which part, and why',
+      'sounds like a model: "I am eager to": say what you\'ll do, not how you feel',
+      'sounds like a model: "—": a dash faculty now read as a model\'s: use a comma or a full stop',
+    ]);
+  });
+
+  it("lets plain writing through, broken English included", () => {
+    expect(
+      bump("I saw your new preprint. The cost table is close to what my hospital can run."),
+    ).toEqual([]);
+    expect(
+      bump("i read your paper, the diversity part is same problem i have in my notes data."),
+    ).toEqual([]);
+  });
+});

@@ -137,6 +137,7 @@ export function systemPrompt(
       "  - Under 150 words. One or two questions they can answer: are you taking a PhD student for the intake, and one specific question about that paper.",
       "  - Attach the CV (draft_email attach, the vault's CV) and say so in a line.",
       '  - No generic praise or filler: no "I find your research fascinating", "your esteemed lab", "I came across your profile", "I am writing to express my interest", "highly motivated", "kindly consider". The draft checks block them.',
+      '  - Sound like the applicant, not a model, in every message including follow-ups: short plain sentences, no "I hope this email finds you well", "delve", "passionate about", "eager to", "resonates with me", "cutting-edge", "Furthermore," and no dashes. Faculty bin email that reads as AI; the draft checks block these too.',
       "  - Fit it to their money tier. 1 (a posted opening): a short cover letter that names the posting and the fact that fits it. 2 (a grant or startup money): name the grant and the one fact that fits it. 3 (indirect signs): ask whether they are taking students for the intake. 4 (nothing found): the shortest version; their answer becomes the record.",
       "- When a professor writes back, classify it with classify_reply before drafting the answer.",
       "- Programs and scholarships go through propose_program and propose_scholarship; they wait in the applicant's To file. Only scholarships open to the applicant's citizenship and degree track.",

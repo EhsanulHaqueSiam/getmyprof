@@ -56,6 +56,10 @@ export type DraftInput = {
   threadId: string | null;
   /** Vault document ids to send with it (email only), e.g. the CV they asked for. */
   attach?: string[] | undefined;
+  /** Whose words it is (OutreachMessage.voice); "agent" when unsaid. */
+  voice?: OutreachMessage["voice"] | undefined;
+  /** What the agent changed in the applicant's own lines, and why. */
+  fixes?: OutreachMessage["fixes"] | undefined;
   /** The applicant asked to write though the sheet says they aren't taking students. */
   anyway?: boolean | undefined;
 };
@@ -118,7 +122,11 @@ export function saveDraft(db: Db, d: DraftInput): OutreachMessage | { problem: s
   const messages = listMessages(db, d.recordKey);
   const problem = draftProblem(record, messages, d);
   if (problem || !record) return { problem: problem ?? "no record" };
-  const attach = d.attach ?? [];
+  const existing = messages.find(
+    (m) => m.direction === "out" && m.status === "draft" && m.touch === d.touch,
+  );
+  // A rewrite keeps the files the waiting draft carried unless it names new ones.
+  const attach = d.attach ?? existing?.attachments ?? [];
   if (attach.length && d.channel !== "email") return { problem: "only email carries attachments" };
   const docs = listDocuments(db);
   const unknown = attach.filter((id) => !docs.some((doc) => doc.id === id));
@@ -131,9 +139,6 @@ export function saveDraft(db: Db, d: DraftInput): OutreachMessage | { problem: s
       m.channel === "email" &&
       m.messageId !== null &&
       (isReply(m) || (m.direction === "out" && m.status === "sent")),
-  );
-  const existing = messages.find(
-    (m) => m.direction === "out" && m.status === "draft" && m.touch === d.touch,
   );
   const message: OutreachMessage = {
     id: existing?.id ?? newId("out"),
@@ -156,6 +161,10 @@ export function saveDraft(db: Db, d: DraftInput): OutreachMessage | { problem: s
     inReplyTo: d.channel === "email" && d.touch !== "first" ? (parent?.messageId ?? null) : null,
     threadId: d.threadId,
     note: "",
+    voice: d.voice ?? "agent",
+    // Their own lines stay with the draft through every rewrite.
+    ownWords: existing?.ownWords ?? "",
+    fixes: d.fixes ?? [],
     createdAt: existing?.createdAt ?? now(),
   };
   putMessage(db, message);

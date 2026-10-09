@@ -1,6 +1,7 @@
 // The fake agent's world: three professors, two scholarships, a program, and free sources that
 // answer from fixtures. Emails use example.edu, so nothing here can reach a real person.
 import { type ContactRead, readContactRule } from "../contact-page.ts";
+import type { RowOp } from "@getmyprof/contracts";
 import { TREG_ENDPOINTS } from "../treg.ts";
 import type { Sources } from "./tools.ts";
 
@@ -85,6 +86,25 @@ export function takingFields(r: ContactRead) {
     sources: r.urls,
   };
 }
+
+/**
+ * The field and value each simple row action proposes in the fake agent. Recent work and focus,
+ * and Warm path and hook, fill several fields from the fixtures instead.
+ */
+export const ROW_FIELD: Record<Exclude<RowOp, "work" | "personalize">, string> = {
+  email: "emailCheck",
+  lasts: "lasts",
+  taking: "taking",
+  lab: "lab",
+  draft: "stage",
+};
+export const ROW_VALUE: Record<Exclude<RowOp, "work" | "personalize">, string> = {
+  email: "ok",
+  lasts: "checked: no award as PI",
+  taking: "not stated",
+  lab: "2 on OpenAlex: Ada Fixture, likely a student; Ben Fixture, last paper 2023, now at Fixture Labs. Ask Ada Fixture",
+  draft: "drafted",
+};
 
 /** What the Recent work and focus row action finds for each fixture professor, beside `recent`. */
 export const FIXTURE_WORK: Record<string, { seeking: string; scholar: string }> = {

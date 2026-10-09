@@ -95,6 +95,12 @@ export const APPLICANT_TOOLS = [
         .describe(
           "Vault document ids to attach (email only): the CV on a first email, or what they asked for",
         ),
+      fixes: z
+        .array(z.object({ from: z.string(), to: z.string(), why: z.string() }))
+        .optional()
+        .describe(
+          "Only when rewriting a first email around the applicant's own lines: each line you changed, from, to and why",
+        ),
       anyway: z
         .boolean()
         .optional()
@@ -115,6 +121,13 @@ export const APPLICANT_TOOLS = [
         timeZone: args.timeZone,
         threadId: ctx.threadId,
         attach: args.attach,
+        // Their own lines, fixed: theirs. Otherwise a first email under "own" waits for them.
+        voice: args.fixes
+          ? "own"
+          : args.touch === "first" && ctx.settings.firstEmails === "own"
+            ? "suggested"
+            : "agent",
+        fixes: args.fixes,
         anyway: args.anyway,
       });
       if ("problem" in draft)

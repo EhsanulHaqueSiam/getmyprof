@@ -5,7 +5,7 @@ import { RowOp, type ThreadEvent } from "@getmyprof/contracts";
 import { now } from "../db.ts";
 import { pendingCount } from "../records.ts";
 import { listDocuments, listPrograms } from "../vault.ts";
-import { firstDraft, ZONE } from "./fake-mail.ts";
+import { firstDraft, ownWordsDraft, ZONE } from "./fake-mail.ts";
 import {
   FIXTURE_DECISIONS,
   FIXTURE_PROFESSORS,
@@ -14,26 +14,12 @@ import {
   FIXTURE_SCHOOL_MONEY,
   FIXTURE_SCHOOLS,
   FIXTURE_WORK,
+  ROW_FIELD,
+  ROW_VALUE,
   takingFields,
 } from "./fixtures.ts";
 import type { AgentProvider, SessionStart } from "./provider.ts";
 import { askBlocked, capProblem, type HuntTool } from "./tools.ts";
-
-// Recent work and focus, and Warm path and hook, fill several fields from the fixtures.
-const FIELD_FOR: Record<Exclude<RowOp, "work" | "personalize">, string> = {
-  email: "emailCheck",
-  lasts: "lasts",
-  taking: "taking",
-  lab: "lab",
-  draft: "stage",
-};
-const VALUE_FOR: Record<Exclude<RowOp, "work" | "personalize">, string> = {
-  email: "ok",
-  lasts: "checked: no award as PI",
-  taking: "not stated",
-  lab: "2 on OpenAlex: Ada Fixture, likely a student; Ben Fixture, last paper 2023, now at Fixture Labs. Ask Ada Fixture",
-  draft: "drafted",
-};
 
 /** Row actions, replies and follow-ups reach the agent as tagged prompts (runner, outreach/service). */
 const ROW_TAG = new RegExp(`^\\[row-action:(${RowOp.options.join("|")})\\] keys=(\\S+)`);
@@ -365,7 +351,7 @@ export const fakeProvider = (
             ? { recent: p.recent, ...FIXTURE_WORK[p.name] }
             : op === "personalize"
               ? { warm: p.warm, hook: p.hook }
-              : { [FIELD_FOR[op]]: VALUE_FOR[op] }),
+              : { [ROW_FIELD[op]]: ROW_VALUE[op] }),
           sources: p.sources,
         });
       }
@@ -384,7 +370,16 @@ export const fakeProvider = (
       if (row?.[1] && row[2]) await rowAction(RowOp.parse(row[1]), row[2].split(","));
       else if (reply?.[1] && reply[2] && reply[3]) await answerReply(reply[1], reply[2], reply[3]);
       else if (text.startsWith("[follow-up]")) await followUps(text);
-      else if (text.startsWith("[after-applying]")) await afterApplying(text);
+      else if (text.startsWith("[own-words]")) {
+        const args = ownWordsDraft(s.toolContext.db, text);
+        if (args) await call("draft_email", `first · ${args.name} · your words`, args);
+        const fixed = args?.fixes.length ?? 0;
+        say(
+          args
+            ? `Rewrote it around your lines: ${fixed} ${fixed === 1 ? "fix" : "fixes"}.`
+            : "That draft is gone.",
+        );
+      } else if (text.startsWith("[after-applying]")) await afterApplying(text);
       else if (text.startsWith("[thank-you]")) await thankYou(text);
       else if (text.startsWith("[write]")) await write(text);
       else if (/\bask me\b/i.test(text)) {

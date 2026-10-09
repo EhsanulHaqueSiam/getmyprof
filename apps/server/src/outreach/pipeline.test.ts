@@ -29,6 +29,9 @@ const sent: OutreachMessage = {
   note: "",
   citations: {},
   attachments: [],
+  voice: "agent",
+  ownWords: "",
+  fixes: [],
   createdAt: "2026-10-01T12:00:00.000Z",
 };
 

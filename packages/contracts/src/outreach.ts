@@ -68,6 +68,16 @@ export const OutreachMessage = z.object({
   attachments: z.array(z.string()).default([]),
   /** The facts a draft cites, by [n] marker: {"1": "fact-id"}. Markers never leave the app. */
   citations: z.record(z.string(), z.string()).default({}),
+  /**
+   * Whose words it is. "suggested": the agent's first email, waiting for the applicant to write
+   * their own lines or take it; "own": built from their lines (ownWords) with only `fixes`
+   * applied; "agent": the agent's, taken as is.
+   */
+  voice: z.enum(["suggested", "own", "agent"]).default("agent"),
+  /** The applicant's rough lines for a first email, as they typed them. */
+  ownWords: z.string().default(""),
+  /** What the agent changed in their lines, and why: shown line by line. */
+  fixes: z.array(z.object({ from: z.string(), to: z.string(), why: z.string() })).default([]),
   createdAt: z.string(),
 });
 export type OutreachMessage = z.infer<typeof OutreachMessage>;
@@ -213,7 +223,7 @@ export const MODEL_VOICE: [RegExp, string][] = [
   [/\bI would be (?:honou?red|delighted|thrilled)\b/i, "plain: I'd like to"],
   [/\bnot only\b[^.]{0,60}\bbut also\b/i, "model rhythm: say it once"],
   [
-    /(?:^|[.!?]\s+)(?:Furthermore|Moreover|Additionally),/m,
+    /(?<=^|[.!?]\s+)(?:Furthermore|Moreover|Additionally),/m,
     "model transition: start the sentence plainly",
   ],
   [/—| – /, "a dash faculty now read as a model's: use a comma or a full stop"],
@@ -225,6 +235,18 @@ export const modelVoice = (text: string) =>
     const found = re.exec(text)?.[0].trim();
     return found ? [`sounds like a model: "${found}": ${why}`] : [];
   });
+
+/** Where each model-voice phrase sits in a text, for underlining it in place; no overlaps. */
+export function voiceMarks(text: string) {
+  const marks = MODEL_VOICE.flatMap(([re, why]) =>
+    [...text.matchAll(new RegExp(re.source, `${re.flags}g`))].map((m) => ({
+      start: m.index,
+      end: m.index + m[0].length,
+      why,
+    })),
+  ).toSorted((a, b) => a.start - b.start);
+  return marks.filter((m, i) => i === 0 || m.start >= (marks[i - 1]?.end ?? 0));
+}
 
 const BARE_SUBJECT =
   /^(?:ph|d|phd|doctoral|inquiry|enquiry|query|position|positions|opening|request|for|a|an|the|admission|admissions|application|prospective|student|students|opportunity|regarding|re|in|your|lab|group|research|fall|spring|autumn|winter|summer|intake|funded|\d+)$/;
@@ -305,7 +327,8 @@ function personalIssues(
  * written for this professor (see personalIssues).
  */
 export function draftIssues(
-  m: Pick<OutreachMessage, "channel" | "touch" | "subject" | "body" | "citations">,
+  m: Pick<OutreachMessage, "channel" | "touch" | "subject" | "body" | "citations"> &
+    Partial<Pick<OutreachMessage, "voice">>,
   ctx: {
     facts: ProfileFact[];
     applicant: Applicant | undefined;
@@ -325,6 +348,8 @@ export function draftIssues(
     issues.push(`"${claim.length > 60 ? `${claim.slice(0, 57)}...` : claim}" cites no fact`);
   if ((m.body.match(/https?:\/\/\S+/g) ?? []).length > 2) issues.push("more than two links");
   issues.push(...modelVoice(`${m.subject}\n${stripCitations(m.body)}`));
+  if (m.voice === "suggested")
+    issues.push("write why them in your own words, or use the agent's version");
   // Not connected yet, it goes as a connection request's note: 200 characters on a free account.
   if (m.channel === "linkedin" && m.touch === "first" && stripCitations(m.body).trim().length > 200)
     issues.push("a first LinkedIn note over 200 characters won't fit a connection request");

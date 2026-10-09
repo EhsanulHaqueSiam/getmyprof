@@ -24,6 +24,7 @@ import {
   TregStatus,
 } from "./domain.ts";
 import { ClaudeBinary } from "./desktop.ts";
+import { HubMethods } from "./hub.ts";
 import { ProgressReport } from "./report.ts";
 import { Conversation, MailConnect, MailSignIn, MailStatus } from "./outreach.ts";
 import { RowOp, ThreadEvent, ThreadSummary } from "./threads.ts";
@@ -55,8 +56,14 @@ export const AppState = z.object({
    * it's signed in (and as whom). */
   claude: z.object({ signedIn: z.boolean(), who: z.string(), binary: ClaudeBinary }),
   /** The sidebar's counts: awards from the last search worth a look (running past the intake,
-   * on topic, PI not in the sheet), loops on, and the last day's spend outside any thread. */
-  counts: z.object({ funding: z.number(), loops: z.number(), spendOutsideThreads: z.number() }),
+   * on topic, PI not in the sheet), loops on, the last day's spend outside any thread, and the
+   * students connected to this install as a hub. */
+  counts: z.object({
+    funding: z.number(),
+    loops: z.number(),
+    spendOutsideThreads: z.number(),
+    students: z.number(),
+  }),
 });
 export type AppState = z.infer<typeof AppState>;
 
@@ -388,6 +395,8 @@ export const Methods = {
     input: z.object({ applicationId: z.string(), interviewId: z.string() }),
     output: ThreadSummary,
   },
+
+  ...HubMethods,
 } as const;
 
 export type Method = keyof typeof Methods;

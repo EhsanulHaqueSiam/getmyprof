@@ -14,6 +14,7 @@ import { createBus } from "./bus.ts";
 import { calendarFeed } from "./calendar.ts";
 import { openDb } from "./db.ts";
 import { health } from "./health.ts";
+import { serveHub } from "./hub.ts";
 import { dueLoops, fillPlaceholders, hookLoop, listLoops, markRan } from "./loops.ts";
 import { fakeMailer, fakeTokenEndpoint, imapMailer } from "./outreach/mail.ts";
 import { createOutreach } from "./outreach/service.ts";
@@ -177,7 +178,13 @@ function remindRecommenders() {
     );
 }
 setInterval(() => void outreach.sync(), 180_000);
-setInterval(() => settleStale(db), 3_600_000);
+// Hourly too: a student's install syncs with its counselor's hub (a cheap no-op when it has none).
+setInterval(() => {
+  settleStale(db);
+  void Promise.resolve(handlers["hub.syncNow"]({})).catch((error: unknown) =>
+    console.error(`hub sync: ${String(error).slice(0, 200)}`),
+  );
+}, 3_600_000);
 
 // The desktop app and the `getmyprof` command serve the built web app from here too; in dev Vite does.
 const site = process.env.GETMYPROF_WEB_DIR ? staticSite(process.env.GETMYPROF_WEB_DIR) : null;
@@ -237,6 +244,12 @@ const server = NodeHttp.createServer((req, res) => {
         .writeHead(202, { "content-type": "application/json" })
         .end(JSON.stringify({ threadId: t.id }));
     });
+    return;
+  }
+  // A counselor's hub: students' installs send reports and facts and pull the shared catalog,
+  // each with its own invite token. Server to server, so no Origin to check.
+  if (req.url?.startsWith("/api/hub/")) {
+    serveHub(db, req, res, () => bus.push({ type: "changed", what: "state" }));
     return;
   }
   // A full backup: GET downloads everything, POST restores one (up to 300 MB).

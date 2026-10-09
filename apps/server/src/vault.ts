@@ -129,7 +129,8 @@ type Keyed =
   | { kind: "scholarship"; item: Pick<Scholarship, "name" | "sponsor"> }
   | { kind: "program"; item: Pick<Program, "university" | "name"> };
 
-const findingKey = (f: Keyed) =>
+/** One key per program (university, name) or scholarship (name, sponsor), however it's spelled. */
+export const findingKey = (f: Keyed) =>
   f.kind === "scholarship"
     ? `scholarship:${norm(f.item.name)}|${norm(f.item.sponsor)}`
     : `program:${norm(f.item.university)}|${norm(f.item.name)}`;

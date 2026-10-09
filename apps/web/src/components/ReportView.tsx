@@ -1,5 +1,6 @@
 import type { ProgressReport } from "@getmyprof/contracts";
 import type { ReactNode } from "react";
+import { plural } from "~/lib/format";
 import { TIER_TONE } from "~/lib/schools";
 import { cn } from "~/lib/utils";
 
@@ -71,7 +72,7 @@ export function ReportView({ report, paper = false }: { report: ProgressReport; 
                     {s.tier}
                   </span>,
                   s.name,
-                  `${s.professors} professors`,
+                  plural(s.professors, "professor"),
                   `${s.emailed} emailed${s.replied ? ` · ${s.replied} replied` : ""}`,
                   s.deadline ? (
                     day(s.deadline)

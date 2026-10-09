@@ -63,7 +63,7 @@ export function HubSettings() {
             onChange={(e) => setCode(e.target.value)}
           />
           <Button type="submit" size="xs" variant="outline" disabled={!code.trim() || busy}>
-            {busy ? "Connecting" : "Connect"}
+            {busy ? "Connecting" : "Connect to hub"}
           </Button>
         </form>
         <span className="text-muted-foreground">
@@ -76,7 +76,7 @@ export function HubSettings() {
     );
 
   return (
-    <div className="flex max-w-xl flex-col gap-2 text-xs">
+    <div className="flex max-w-xl flex-col gap-2 text-xs" data-testid="hub-member">
       <span className="text-secondary-label">
         Connected to <span className="text-foreground">{status.host}</span> ·{" "}
         {status.lastSent ? `report sent ${since(status.lastSent)}` : "report not sent yet"}

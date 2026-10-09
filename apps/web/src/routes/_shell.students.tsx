@@ -21,7 +21,7 @@ const WEEK = 7 * 864e5;
 const HEAD: [string, string][] = [
   ["Student", ""],
   ["Hunt", ""],
-  ["Next deadline", ""],
+  ["Next date", ""],
   ["Schools", "kept · tiers"],
   ["Professors", "found · emailed · replied"],
   ["Synced", ""],
@@ -132,7 +132,7 @@ function NextDeadline({ s, now }: { s: HubStudent; now: number }) {
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="px-4 pt-3">
+    <div className="px-4 pt-4">
       <h2 className="mb-1 font-medium text-muted-foreground text-xs">{title}</h2>
       {children}
     </div>
@@ -142,7 +142,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 function Line({ text, at }: { text: string; at: string }) {
   return (
     <div className="flex items-baseline gap-2 py-1 text-[13px]">
-      <span className="min-w-0 flex-1 truncate text-secondary-label">{text}</span>
+      <span className="min-w-0 flex-1 text-secondary-label">{text}</span>
       <span className="shrink-0 text-muted-foreground text-xs">{day(at)}</span>
     </div>
   );
@@ -155,7 +155,7 @@ function StudentPanel({ s }: { s: HubStudent }) {
   return (
     <aside className="flex min-w-0 flex-col border-l pb-4" data-testid="student-panel">
       <div className="flex h-12 items-baseline gap-2 px-4 pt-4 text-sm">
-        <span className="font-semibold">{s.name}</span>
+        <span className="shrink-0 font-semibold whitespace-nowrap">{s.name}</span>
         <span className="truncate text-muted-foreground text-xs">{r?.hunt ?? "no report yet"}</span>
       </div>
       {r ? (
@@ -221,7 +221,13 @@ function StudentsPage() {
       <div className="flex min-w-0 flex-col md:overflow-y-auto">
         <header className="flex min-h-12 shrink-0 flex-wrap items-center gap-2.5 px-4 py-2">
           <h1 className="font-semibold text-sm">Students</h1>
-          <span className="text-muted-foreground text-xs">{students?.length ?? 0} connected</span>
+          <span className="text-muted-foreground text-xs">
+            {/* Invited until their install sends its first report. */}
+            {students?.filter((s) => s.syncedAt).length ?? 0} connected
+            {students?.some((s) => !s.syncedAt)
+              ? ` · ${students.filter((s) => !s.syncedAt).length} invited`
+              : ""}
+          </span>
           <Button size="xs" variant="outline" className="ml-auto" onClick={() => setInviting(true)}>
             <PlusIcon /> Invite a student
           </Button>
@@ -237,7 +243,11 @@ function StudentsPage() {
                     className="border-b border-input px-3 py-1.5 text-left font-medium text-muted-foreground text-xs whitespace-nowrap"
                   >
                     {h}
-                    {sub ? <span className="ml-1.5 font-normal text-2xs">{sub}</span> : null}
+                    {sub ? (
+                      <span className="block font-mono font-normal text-3xs text-placeholder">
+                        {sub}
+                      </span>
+                    ) : null}
                   </th>
                 ))}
               </tr>
@@ -262,8 +272,8 @@ function StudentsPage() {
                     )}
                   >
                     <Td strong>{s.name}</Td>
-                    <Td>{s.report?.hunt ?? ""}</Td>
-                    <Td>
+                    <Td className="max-w-[170px]">{s.report?.hunt ?? ""}</Td>
+                    <Td className="max-w-[200px]">
                       <NextDeadline s={s} now={now} />
                     </Td>
                     <Td className="tabular-nums">{c ? `${c.schools} · ${tiers.join("/")}` : ""}</Td>

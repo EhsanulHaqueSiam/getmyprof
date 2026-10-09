@@ -82,7 +82,7 @@ export function buildReport(input: {
       professors: records.length,
       emailed: records.filter((r) => sent(r.key)).length,
       replied: records.filter((r) => answered(r.key)).length,
-      applications: vault.applications.filter((a) => a.status !== "planning").length,
+      applications: vault.applications.length,
     },
     shortlist: kept
       .toSorted((a, b) => TIER_ORDER[a.tier] - TIER_ORDER[b.tier] || a.name.localeCompare(b.name))

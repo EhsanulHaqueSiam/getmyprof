@@ -151,6 +151,41 @@ test("schools: the agent suggests a shortlist by tier, you keep or drop, then sw
   await expect(page.getByRole("heading", { name: "Professors at 1 school" })).toBeVisible();
 });
 
+test("calendar, report and a counselor hub: every date, one page, a student's report on the hub", async ({
+  page,
+}) => {
+  await page.goto("/calendar");
+  await expect(page.getByTestId("calendar-row").first()).toBeVisible();
+  await page.goto("/report");
+  await expect(page.getByTestId("progress-report")).toContainText("schools kept");
+
+  // This install is its own hub: invite a student here, then connect to it from Settings.
+  await page.goto("/students");
+  await page.getByRole("button", { name: "Invite a student" }).click();
+  await page.getByLabel("Student name").fill("E2E Student");
+  await page.getByLabel("Where students reach this hub").fill(new URL(page.url()).origin);
+  await page.getByRole("button", { name: "Make invite" }).click();
+  const code = page.locator("code").first();
+  await expect(code).not.toBeEmpty();
+  const invite = (await code.textContent())?.trim() ?? "";
+  await page.goto("/settings");
+  await page.getByLabel("Invite code").fill(invite);
+  await page.getByRole("button", { name: "Connect to hub" }).click();
+  await expect(page.getByTestId("hub-member")).toContainText("report sent");
+
+  await page.goto("/students");
+  const row = page.getByTestId("students").getByRole("row", { name: /E2E Student/ });
+  await expect(row).toContainText("just now");
+  await row.click();
+  await page.getByRole("link", { name: "Open full report" }).click();
+  await expect(page.getByTestId("progress-report")).toContainText("schools kept");
+
+  // Later tests start without a hub.
+  await page.goto("/settings");
+  await page.getByTestId("hub-member").getByRole("button", { name: "Disconnect" }).click();
+  await expect(page.getByLabel("Invite code")).toBeVisible();
+});
+
 test("keyboard: Enter allows, j moves, r rejects, shift-A accepts all; ⌘K goes to a school", async ({
   page,
 }) => {

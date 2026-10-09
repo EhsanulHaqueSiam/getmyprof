@@ -1,7 +1,8 @@
-import { Scholarship, scoreGaps } from "@getmyprof/contracts";
+import { type Professor, programChance, Scholarship, scoreGaps } from "@getmyprof/contracts";
 import { useNavigate } from "@tanstack/react-router";
 import { ExternalLinkIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { ChanceBand } from "~/components/Chance";
 import { Choice, Table, Td } from "~/components/Table";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
@@ -138,6 +139,12 @@ export function VaultPrograms({ onOpenApplication }: { onOpenApplication: () => 
   const programs = useStore((s) => s.vault)?.programs ?? [];
   const apps = useStore((s) => s.vault)?.applications ?? [];
   const applicant = useStore((s) => s.app?.applicant);
+  const facts = useStore((s) => s.app?.facts) ?? [];
+  const recordsVersion = useStore((s) => s.recordsVersion);
+  const [records, setRecords] = useState<Professor[]>([]);
+  useEffect(() => {
+    void call("records.list", {}).then(setRecords);
+  }, [recordsVersion]);
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="flex min-h-12 shrink-0 flex-wrap items-center gap-2 px-4 py-2">
@@ -148,12 +155,12 @@ export function VaultPrograms({ onOpenApplication }: { onOpenApplication: () => 
         />
         <FindButton
           label="Find programs"
-          prompt="Find programs that fit my preferences at schools in my sheet: deadline for my intake, fee and waiver, English rules, and how admits are funded. File each with propose_program."
+          prompt="Find programs that fit my preferences at schools in my sheet: deadline for my intake, fee and waiver, English rules, GPA minimum, the department's own published PhD admit rate, and how admits are funded. File each with propose_program."
         />
       </header>
       <Table
-        head={["Program", "Deadline", "Application"]}
-        widths={["auto", "170px", "150px"]}
+        head={["Program", "Chance", "Deadline", "Application"]}
+        widths={["auto", "190px", "170px", "150px"]}
         empty={programs.length ? null : "None yet. Find programs, then file the ones that fit."}
         testId="programs"
       >
@@ -163,6 +170,13 @@ export function VaultPrograms({ onOpenApplication }: { onOpenApplication: () => 
           const warn = [...(applicant ? scoreGaps(p.english, applicant) : []), p.conflicts]
             .filter(Boolean)
             .join(" · ");
+          const chance = programChance(p, { applicant, facts, records });
+          // The strongest reason the band isn't better, or what makes it good.
+          const reason =
+            chance.lines.find((l) => l.status === "short") ??
+            chance.lines.find((l) => l.status === "strong") ??
+            chance.lines.find((l) => l.status === "high") ??
+            chance.lines.find((l) => l.what === "Faculty interest");
           return (
             <tr key={p.id} className="transition-colors hover:bg-secondary">
               <Td strong className="h-auto max-w-none py-1.5">
@@ -182,6 +196,10 @@ export function VaultPrograms({ onOpenApplication }: { onOpenApplication: () => 
                     .join(" · ")}
                 />
                 {warn ? <Detail warn text={warn} /> : null}
+              </Td>
+              <Td className="h-auto py-1.5">
+                <ChanceBand band={chance.band} />
+                {reason ? <Detail text={reason.you || reason.program} /> : null}
               </Td>
               <Td>
                 <Deadline date={p.deadline} />

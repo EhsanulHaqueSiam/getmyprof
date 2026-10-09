@@ -69,6 +69,8 @@ describe("the Vault", () => {
           eligibility: "",
           conflicts: "",
           decisions: "",
+          admitRate: "",
+          gpaMin: "",
           url: "",
           sources: [],
           note: "",

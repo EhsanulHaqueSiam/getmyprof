@@ -221,6 +221,8 @@ export const FIXTURE_PROGRAMS = [
     asks: "Your research interests and the problems you want to work on\nWhy this program and which faculty",
     limit: "2 pages",
     eligibility: "ok",
+    admitRate: "31% of PhD applicants, 2025 (department report)",
+    gpaMin: "3.0 / 4.0",
     url: "https://cec.gmu.edu/academics/doctoral-programs/phd-information-technology",
     sources: ["https://cec.gmu.edu/academics/doctoral-programs/phd-information-technology"],
     why: "Lybarger and Yao advise through it",

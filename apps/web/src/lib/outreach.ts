@@ -244,11 +244,13 @@ export function sequence(c: Conversation, facts: ProfileFact[] = []): Step[] {
       label: `Follow-up ${n}`,
       when: due ? day(c.followUpAt ?? "", zone) : "later",
       state: due && c.turn === "follow-up" ? "now" : "later",
-      detail: fresh
-        ? `brings: ${fresh.text}`
-        : n === 1
-          ? "their newer work, or only the one question"
-          : "a short call or your CV, then the last note",
+      // The next bump uses the new fact; the one after keeps its own job.
+      detail:
+        fresh && n === sentFollowUps + 1
+          ? `brings: ${fresh.text}`
+          : n === 1
+            ? "their newer work, or only the one question"
+            : "a short call or your CV, then the last note",
     });
   }
   // The "I applied and named you" note is planned from the start; it's drafted on submit.

@@ -104,9 +104,11 @@ describe("the Pipeline's reading of a conversation", () => {
       "a short call or your CV, then the last note",
       "",
     ]);
-    expect(sequence(said, [fact]).find((s) => s.id === "plan-1")?.detail).toBe(
-      "brings: 4 points on MedQA",
-    );
+    expect(
+      sequence(said, [fact])
+        .filter((s) => s.id.startsWith("plan-"))
+        .map((s) => s.detail),
+    ).toEqual(["brings: 4 points on MedQA", "a short call or your CV, then the last note", ""]);
     // A fact from before the send isn't new.
     expect(
       sequence(said, [{ ...fact, date: "2026-10-01" }]).find((s) => s.id === "plan-1")?.detail,

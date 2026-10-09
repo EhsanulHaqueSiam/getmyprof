@@ -9,6 +9,7 @@ import {
 import { PlusIcon, Trash2Icon } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useEffect, useState } from "react";
+import { ApplyHelp } from "~/components/ApplyHelp";
 import { ChanceBand, ChanceLines } from "~/components/Chance";
 import { Chip } from "~/components/FormParts";
 import { Interviews } from "~/components/Interviews";
@@ -265,16 +266,6 @@ function ApplicationView({
       </Row>
       <Row label="Portal">
         <div className="flex flex-wrap items-center gap-2">
-          {app.portal ? (
-            <a
-              href={app.portal}
-              target="_blank"
-              rel="noreferrer"
-              className="max-w-xs truncate text-info-foreground hover:underline"
-            >
-              {app.portal}
-            </a>
-          ) : null}
           <input
             defaultValue={app.portalStatus}
             placeholder="portal status, e.g. 2 of 3 letters in"
@@ -296,6 +287,11 @@ function ApplicationView({
           />
         </div>
       </Row>
+      {program ? (
+        <Row label="Answers">
+          <ApplyHelp app={app} program={program} people={people} />
+        </Row>
+      ) : null}
       <Row label="Interviews">
         <Interviews app={app} program={program} named={here.map((p) => p.name)} />
       </Row>

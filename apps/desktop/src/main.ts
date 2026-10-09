@@ -11,11 +11,12 @@ import {
   stopServer,
   urlOf,
 } from "@getmyprof/server/launch";
-import { app, BrowserWindow, dialog, shell } from "electron";
+import { app, BrowserWindow, dialog, type IpcMainInvokeEvent, ipcMain, shell } from "electron";
 import * as NodeChild from "node:child_process";
 import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
 import { z } from "zod";
+import { FILL_FIELDS, READ_FIELDS } from "./portal-page.ts";
 import { watchUpdates } from "./updates.ts";
 
 // Electron's profile and its one-instance lock live with the data, so a test run on a temp
@@ -95,6 +96,47 @@ function openWindow(url: string) {
   });
   void window.loadURL(url);
 }
+
+let portal: BrowserWindow | null = null;
+
+/**
+ * An application portal in its own window the student watches and logs into; its cookies
+ * persist (partition "persist:portals") so they log in once. It has no preload: the page can't
+ * reach the app, and the app only reads and fills it when asked from its own window.
+ */
+function openPortal(url: string) {
+  if (!/^https?:\/\//i.test(url)) throw new Error("A portal opens from an http(s) link.");
+  if (!portal || portal.isDestroyed()) {
+    portal = new BrowserWindow({
+      width: 1100,
+      height: 860,
+      title: "Portal · getmyprof",
+      autoHideMenuBar: true,
+      webPreferences: { partition: "persist:portals", sandbox: true },
+    });
+    portal.on("closed", () => (portal = null));
+  }
+  void portal.loadURL(url);
+  portal.show();
+}
+
+/** The portal page, to read or fill; only the app's own window may ask. */
+function portalPage(event: IpcMainInvokeEvent) {
+  if (event.sender !== window?.webContents) throw new Error("Not from getmyprof's window.");
+  if (!portal || portal.isDestroyed()) throw new Error("Open the portal first.");
+  return portal.webContents;
+}
+
+ipcMain.handle("portal:open", (event, url: unknown) => {
+  if (event.sender !== window?.webContents) throw new Error("Not from getmyprof's window.");
+  openPortal(z.string().parse(url));
+});
+ipcMain.handle("portal:read", (event) => portalPage(event).executeJavaScript(READ_FIELDS));
+ipcMain.handle("portal:fill", (event, values: unknown) => {
+  const page = portalPage(event);
+  const parsed = z.array(z.object({ key: z.string(), value: z.string() })).parse(values);
+  return page.executeJavaScript(`(${FILL_FIELDS})(${JSON.stringify(parsed)})`);
+});
 
 async function boot() {
   const running = await findRunning();

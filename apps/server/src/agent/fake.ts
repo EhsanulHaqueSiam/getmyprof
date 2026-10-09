@@ -5,7 +5,7 @@ import { RowOp, type ThreadEvent } from "@getmyprof/contracts";
 import { now } from "../db.ts";
 import { pendingCount } from "../records.ts";
 import { listDocuments, listPrograms } from "../vault.ts";
-import { firstDraft, ownWordsDraft, ZONE } from "./fake-mail.ts";
+import { firstDraft, ownWordsTurn, ZONE } from "./fake-mail.ts";
 import {
   FIXTURE_DECISIONS,
   FIXTURE_PROFESSORS,
@@ -14,6 +14,7 @@ import {
   FIXTURE_SCHOOL_MONEY,
   FIXTURE_SCHOOLS,
   FIXTURE_WORK,
+  portalTurn,
   ROW_FIELD,
   ROW_VALUE,
   takingFields,
@@ -377,15 +378,14 @@ export const fakeProvider = (
       if (row?.[1] && row[2]) await rowAction(RowOp.parse(row[1]), row[2].split(","));
       else if (reply?.[1] && reply[2] && reply[3]) await answerReply(reply[1], reply[2], reply[3]);
       else if (text.startsWith("[follow-up]")) await followUps(text);
-      else if (text.startsWith("[own-words]")) {
-        const args = ownWordsDraft(s.toolContext.db, text);
-        if (args) await call("draft_email", `first · ${args.name} · your words`, args);
-        const fixed = args?.fixes.length ?? 0;
-        say(
-          args
-            ? `Rewrote it around your lines: ${fixed} ${fixed === 1 ? "fix" : "fixes"}.`
-            : "That draft is gone.",
-        );
+      else if (text.startsWith("[portal]")) {
+        const turn = portalTurn(text);
+        await call("save_answers", "portal", turn.args);
+        say(turn.said);
+      } else if (text.startsWith("[own-words]")) {
+        const turn = ownWordsTurn(s.toolContext.db, text);
+        if (turn.args) await call("draft_email", "first · your words", turn.args);
+        say(turn.said);
       } else if (text.startsWith("[after-applying]")) await afterApplying(text);
       else if (text.startsWith("[thank-you]")) await thankYou(text);
       else if (text.startsWith("[write]")) await write(text);

@@ -241,6 +241,9 @@ test("vault: the agent's finds wait in To file, and submitting an application dr
   await page.getByRole("button", { name: "Start application" }).click();
   const app = page.getByTestId("application");
   await expect(app).toContainText("PhD in Information Technology");
+  // The answer sheet: what a portal asks, from what the app knows, ready to copy.
+  await expect(app.getByTestId("answer-sheet")).toContainText("PhD in Information Technology");
+  await expect(app.getByRole("button", { name: "Copy Program" })).toBeVisible();
   await expect(app.getByRole("button", { name: "Kevin Lybarger" })).toHaveAttribute(
     "aria-pressed",
     "true",

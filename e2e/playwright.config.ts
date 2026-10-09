@@ -17,6 +17,8 @@ export default defineConfig({
       testMatch: "app.spec.ts",
       use: { ...devices["Desktop Chrome"], colorScheme: "dark" },
     },
+    // The desktop app's portal scripts on a form of its own; needs nothing from the stack.
+    { name: "portal", testMatch: "portal.spec.ts", use: { ...devices["Desktop Chrome"] } },
     // Builds on what app.spec.ts leaves behind, so it waits for it.
     {
       name: "after",

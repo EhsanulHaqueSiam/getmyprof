@@ -61,9 +61,21 @@ export function firstDraft(db: Db, p: (typeof FIXTURE_PROFESSORS)[number] & { ke
 /**
  * draft_email's arguments for a first message rebuilt around the applicant's own lines (an
  * [own-words] turn): their sentences with capitals fixed, each change listed with why, between
- * the greeting and the one question. Null when the draft is gone.
+ * the greeting and the one question; and what the agent says after. args is null when the
+ * draft is gone.
  */
-export function ownWordsDraft(db: Db, text: string) {
+export function ownWordsTurn(db: Db, text: string) {
+  const args = ownWordsDraft(db, text);
+  const fixed = args?.fixes.length ?? 0;
+  return {
+    args,
+    said: args
+      ? `Rewrote it around your lines: ${fixed} ${fixed === 1 ? "fix" : "fixes"}.`
+      : "That draft is gone.",
+  };
+}
+
+function ownWordsDraft(db: Db, text: string) {
   const m = getMessage(db, /message=(\S+)/.exec(text)?.[1] ?? "");
   const record = m && getRecord(db, m.recordKey);
   const words = /"""\n([\s\S]*?)\n"""/.exec(text)?.[1] ?? "";

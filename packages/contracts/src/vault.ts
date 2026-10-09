@@ -127,6 +127,13 @@ export const Application = z.object({
   note: z.string(),
   /** Interviews: who with, and when (local date and time). Prep packs find them by name. */
   interviews: z.array(z.object({ id: z.string(), with: z.string(), at: z.string() })).default([]),
+  /**
+   * The agent's answers for portal fields the answer sheet can't fill (short answers, odd
+   * labels), by the portal's own label, each with where it came from.
+   */
+  answers: z
+    .array(z.object({ label: z.string(), value: z.string(), source: z.string() }))
+    .default([]),
 });
 export type Application = z.infer<typeof Application>;
 

@@ -25,5 +25,6 @@ export * from "./applying.ts";
 export * from "./report.ts";
 export * from "./hub.ts";
 export * from "./desktop.ts";
+export * from "./portal.ts";
 export * from "./chance.ts";
 export * from "./moves.ts";

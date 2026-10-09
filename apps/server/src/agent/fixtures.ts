@@ -59,6 +59,22 @@ export const FIXTURE_PROFESSORS = [
   },
 ];
 
+/**
+ * What the fake agent answers for each portal field in a [portal] turn, by its label: the first
+ * of a select's or radio's options, like the real agent is told to, else a fixture line.
+ */
+export function portalTurn(text: string) {
+  const answers = [...text.matchAll(/^- (.+?) \| .*$/gm)].map(([line, label = ""]) => ({
+    label,
+    value: /options: ([^;\n]+)/.exec(line)?.[1]?.trim() ?? `Fixture answer for ${label}`,
+    source: "fixture",
+  }));
+  return {
+    args: { applicationId: /app=(\S+)/.exec(text)?.[1], answers },
+    said: `Answered ${answers.length} portal field${answers.length === 1 ? "" : "s"}.`,
+  };
+}
+
 /** Each fixture professor's own page, as Taking students? reads it: a yes with a subject rule, a
  * not-until-2028 and an apply-first. */
 const FIXTURE_PAGES: Record<string, string> = {

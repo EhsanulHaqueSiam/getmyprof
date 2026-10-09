@@ -263,6 +263,7 @@ export function startApplication(db: Db, programId: string): Application {
     submittedAt: null,
     note: "",
     interviews: [],
+    answers: [],
   };
   putItem(db, "application", app);
   return app;

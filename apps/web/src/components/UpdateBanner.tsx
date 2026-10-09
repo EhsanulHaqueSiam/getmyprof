@@ -8,6 +8,12 @@ declare global {
     getmyprofDesktop?: {
       onUpdate: (listener: (update: unknown) => void) => () => void;
       act: () => void;
+      /** An application portal in its own window: open it, read its fields, fill some (ApplyHelp). */
+      portal?: {
+        open: (url: string) => Promise<void>;
+        read: () => Promise<unknown>;
+        fill: (values: { key: string; value: string }[]) => Promise<unknown>;
+      };
     };
   }
 }

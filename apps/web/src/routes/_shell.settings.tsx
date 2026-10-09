@@ -106,6 +106,18 @@ function SettingsPage() {
             </Toggle>
           ))}
         </Row>
+        <Row label="First emails">
+          {(
+            [
+              ["own", "Your words"],
+              ["agent", "Full assist"],
+            ] as const
+          ).map(([v, label]) => (
+            <Toggle key={v} on={s.firstEmails === v} onClick={() => void save({ firstEmails: v })}>
+              {label}
+            </Toggle>
+          ))}
+        </Row>
         <Row label="Model">
           {["claude-opus-5-5", "claude-sonnet-5-5"].map((m) => (
             <Toggle key={m} on={s.model === m} onClick={() => void save({ model: m })}>

@@ -29,6 +29,11 @@ export function mailHandlers(svc: Services): Pick<Handlers, MailMethods> {
       outreach.edit(id, subject, body);
       return OK;
     },
+    "outreach.ownWords": ({ id, text }) => outreach.ownWords(id, text),
+    "outreach.useAgentVersion": ({ id }) => {
+      outreach.useAgentVersion(id);
+      return OK;
+    },
     "outreach.cancel": ({ id }) => {
       outreach.cancel(id);
       return OK;

@@ -7,12 +7,14 @@ import {
   MailStatus,
   OutreachMessage,
   addressChecked,
+  factsSince,
   Program,
   stripCitations,
 } from "@getmyprof/contracts";
 import { z } from "zod";
 import type { Runner } from "../agent/runner.ts";
 import type { Bus } from "../bus.ts";
+import { profileFacts } from "../adapters.ts";
 import { type Db, getKv, now, setKv } from "../db.ts";
 import { getRecord, listRecords } from "../records.ts";
 import { sameSchool } from "../sources.ts";
@@ -74,6 +76,7 @@ function safeReturn(returnTo: string) {
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e)).slice(0, 300);
 
 export const FOLLOW_UP_TAG = "[follow-up]";
+export const OWN_WORDS_TAG = "[own-words]";
 export const AFTER_APPLYING_TAG = "[after-applying]";
 export const THANK_TAG = "[thank-you]";
 export const REPLY_TAG = "[reply:";
@@ -208,17 +211,24 @@ export function createOutreach(deps: {
       db,
       `Follow-ups · ${at.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
     );
+    const facts = profileFacts(db);
     const lines = due.map((f) => {
+      // What the applicant did since the last message: a follow-up's honest new angle.
+      const sent = (f.last?.at ?? f.last?.createdAt ?? "").slice(0, 10);
+      const fresh = factsSince(facts, sent);
+      const yours = fresh.length
+        ? fresh.map((x) => `[[${x.id}]] ${x.text} (${x.date})`).join("; ")
+        : "none";
       // A LinkedIn note that got no answer follows up by email when the sheet has a checked address.
       const byEmail =
         f.last?.channel === "linkedin" && !!f.record.email && addressChecked(f.record.emailCheck);
       const channel = byEmail ? "email" : (f.last?.channel ?? "email");
       const to = byEmail ? f.record.email : (f.last?.to ?? f.record.email);
-      return `- ${f.record.name} | ${f.record.university} | key ${f.record.key} | ${f.touch} | channel ${channel} | to ${to} | zone ${f.last?.timeZone ?? "America/New_York"} | last message "${f.last?.subject ?? ""}": ${(f.last?.body ?? "").slice(0, 300)}`;
+      return `- ${f.record.name} | ${f.record.university} | key ${f.record.key} | ${f.touch} | channel ${channel} | to ${to} | zone ${f.last?.timeZone ?? "America/New_York"} | sent ${sent} | your new facts since: ${yours} | last message "${f.last?.subject ?? ""}": ${(f.last?.body ?? "").slice(0, 300)}`;
     });
     runner.send(
       t.id,
-      `${FOLLOW_UP_TAG} keys=${due.map((f) => f.record.key).join(",")}\nNo reply yet from the professors below. Draft the follow-up named on each line with draft_email. Follow-up 1 is a short bump with a new angle (their latest paper); follow-up 2 is a last note offering a CV or a call. Keep the same subject with "Re: ". Use the channel on each line: a LinkedIn note with no reply moves to email.\n${lines.join("\n")}`,
+      `${FOLLOW_UP_TAG} keys=${due.map((f) => f.record.key).join(",")}\nNo reply yet from the professors below. Draft the follow-up named on each line with draft_email, keeping the subject with "Re: ". Each one brings one thing that is new since the last message was sent, and says where it is from: their work dated after it (check openalex_author), or one of the applicant's new facts on the line (cite it). Never restate the last message. With nothing new, follow-up 1 is two plain sentences asking only whether they are taking a student for the intake, and follow-up 2 offers a 15-minute call or the CV and says it is the last note. Use the channel on each line: a LinkedIn note with no reply moves to email.\n${lines.join("\n")}`,
       "send",
       `Draft ${due.length} follow-up${due.length === 1 ? "" : "s"}`,
     );
@@ -388,6 +398,38 @@ export function createOutreach(deps: {
       if (!m || !["draft", "scheduled", "failed"].includes(m.status))
         throw new Error("Only a message that hasn't gone out can change.");
       putMessage(db, { ...m, subject, body });
+      changed();
+    },
+
+    /**
+     * The applicant's own lines for a first email: kept on the draft, and the agent that drafted
+     * it rewrites the draft around them, fixing only facts and citations.
+     */
+    ownWords(id: string, text: string) {
+      const m = getMessage(db, id);
+      const record = m && getRecord(db, m.recordKey);
+      if (!m || !record || m.status !== "draft" || m.touch !== "first")
+        throw new Error("Only a first email waiting for approval takes your own words.");
+      putMessage(db, { ...m, ownWords: text });
+      changed();
+      const thread =
+        m.threadId && getThread(db, m.threadId)
+          ? m.threadId
+          : createThread(db, `Your words · ${record.name}`).id;
+      runner.send(
+        thread,
+        `${OWN_WORDS_TAG} message=${m.id}\nThe applicant wrote these lines for their first ${m.channel === "linkedin" ? "LinkedIn note" : "email"} to ${record.name} (${record.university}), in their own words:\n"""\n${text}\n"""\nRewrite the waiting draft with draft_email (touch first, channel ${m.channel}, to ${m.to}, subject "${m.subject}", zone ${m.timeZone}) around these lines. Keep their words, order and voice: fix only capitals, spelling and punctuation, cite each claim about them with a confirmed fact [[id]] (vault_search), and drop a claim no fact backs, saying so in its why. Add only the greeting (Dear Dr. ${record.name.split(" ").at(-1)},), the one question (are you taking a PhD student for the intake) and the sign-off. Pass fixes: every line you changed, as from, to and why.`,
+        "send",
+        `Your words · ${record.name}`,
+      );
+      return { threadId: thread };
+    },
+
+    /** The applicant takes the agent's first email as it is (full assist for this one). */
+    useAgentVersion(id: string) {
+      const m = getMessage(db, id);
+      if (!m || m.status !== "draft") throw new Error("Only a waiting draft can change.");
+      putMessage(db, { ...m, voice: "agent" });
       changed();
     },
 

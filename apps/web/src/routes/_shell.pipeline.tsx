@@ -1,26 +1,29 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ChevronLeftIcon, XIcon } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Toggle, ToggleGroup } from "~/components/ui/toggle-group";
 import { ConversationView } from "~/components/Conversation";
 import { Board, InboxList, MailLabel, SendQueue } from "~/components/Pipeline";
+import { ReplyInsights } from "~/components/ReplyInsights";
 import { needsYou } from "~/lib/outreach";
 import { useStore } from "~/state/store";
 import { plural } from "~/lib/format";
 import { cn } from "~/lib/utils";
 
+const VIEWS = ["board", "inbox", "replies"] as const;
+
 /** Both optional, so a plain link to /pipeline opens the Inbox. */
-type Search = { view?: "inbox" | "board"; key?: string };
+type Search = { view?: (typeof VIEWS)[number]; key?: string };
 
 export const Route = createFileRoute("/_shell/pipeline")({
   component: PipelinePage,
-  validateSearch: (s: Record<string, unknown>): Search => ({
-    ...(s.view === "board" ? { view: "board" as const } : {}),
-    ...(typeof s.key === "string" ? { key: s.key } : {}),
-  }),
+  validateSearch: (s: Record<string, unknown>): Search => {
+    const view = VIEWS.find((v) => v === s.view && v !== "inbox");
+    return { ...(view ? { view } : {}), ...(typeof s.key === "string" ? { key: s.key } : {}) };
+  },
 });
 
-/** Outreach like a pipeline: Inbox by whose turn it is (default), or the Board by stage. */
+/** Outreach like a pipeline: Inbox by whose turn it is (default), the Board by stage, or Replies. */
 function PipelinePage() {
   const { view = "inbox", key } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
@@ -41,7 +44,7 @@ function PipelinePage() {
         <ToggleGroup
           value={[view]}
           onValueChange={(v) => {
-            const next = v[0] === "board" ? "board" : v[0] === "inbox" ? "inbox" : view;
+            const next = VIEWS.find((x) => x === v[0]) ?? view;
             void navigate({ search: { view: next, ...(key ? { key } : {}) } });
           }}
         >
@@ -50,6 +53,9 @@ function PipelinePage() {
           </Toggle>
           <Toggle value="inbox" size="xs">
             Inbox
+          </Toggle>
+          <Toggle value="replies" size="xs">
+            Replies
           </Toggle>
         </ToggleGroup>
         <span className="whitespace-nowrap text-muted-foreground text-xs tabular-nums">
@@ -69,6 +75,9 @@ function PipelinePage() {
           </span>
         ) : null}
         <span className="ml-auto flex items-center gap-3">
+          <Button size="xs" variant="ghost-muted" render={<Link to="/report" />}>
+            Report
+          </Button>
           <MailLabel />
           <SendQueue conversations={conversations} />
         </span>
@@ -80,6 +89,8 @@ function PipelinePage() {
         </div>
       ) : view === "board" ? (
         <Board conversations={conversations} onOpen={open} />
+      ) : view === "replies" ? (
+        <ReplyInsights conversations={conversations} />
       ) : (
         // On a phone: the list, or the conversation you opened with a way back to it.
         <div

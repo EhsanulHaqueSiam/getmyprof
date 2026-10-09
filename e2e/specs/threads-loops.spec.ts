@@ -124,6 +124,68 @@ test("funding and professor pages: Add PI, tabs, every fact with its source, fin
   ).toBeVisible();
 });
 
+test("schools: the agent suggests a shortlist by tier, you keep or drop, then sweep a school", async ({
+  page,
+}) => {
+  await page.goto("/schools");
+  await page.getByRole("button", { name: "Suggest schools" }).click();
+  await expect(page.getByText("4 schools wait on the Schools page.")).toBeVisible();
+
+  await page.goto("/schools");
+  const waiting = page.getByTestId("school-suggestion");
+  await expect(waiting).toHaveCount(4);
+  await page.getByRole("button", { name: "Drop Kansas State University" }).click();
+  await page.getByRole("button", { name: "Keep all" }).click();
+  await expect(waiting).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Dropped 1" })).toBeVisible();
+
+  // The hunt's professors at George Mason join its row, and their pages show its tier.
+  const gmu = page.getByTestId("school-row").filter({ hasText: "George Mason University" });
+  await gmu.getByRole("link", { name: "George Mason University" }).click();
+  await page.getByRole("main").getByRole("link", { name: "Kevin Lybarger" }).click();
+  await expect(page.getByRole("link", { name: "school match" })).toBeVisible();
+
+  await page.goto("/schools");
+  await page.getByLabel("Select George Mason University").check();
+  await page.getByRole("button", { name: "Find professors here" }).click();
+  await expect(page.getByRole("heading", { name: "Professors at 1 school" })).toBeVisible();
+});
+
+test("calendar, report and a counselor hub: every date, one page, a student's report on the hub", async ({
+  page,
+}) => {
+  await page.goto("/calendar");
+  await expect(page.getByTestId("calendar-row").first()).toBeVisible();
+  await page.goto("/report");
+  await expect(page.getByTestId("progress-report")).toContainText("schools kept");
+
+  // This install is its own hub: invite a student here, then connect to it from Settings.
+  await page.goto("/students");
+  await page.getByRole("button", { name: "Invite a student" }).click();
+  await page.getByLabel("Student name").fill("E2E Student");
+  await page.getByLabel("Where students reach this hub").fill(new URL(page.url()).origin);
+  await page.getByRole("button", { name: "Make invite" }).click();
+  const code = page.locator("code").first();
+  await expect(code).not.toBeEmpty();
+  const invite = (await code.textContent())?.trim() ?? "";
+  await page.goto("/settings");
+  await page.getByLabel("Invite code").fill(invite);
+  await page.getByRole("button", { name: "Connect to hub" }).click();
+  await expect(page.getByTestId("hub-member")).toContainText("report sent");
+
+  await page.goto("/students");
+  const row = page.getByTestId("students").getByRole("row", { name: /E2E Student/ });
+  await expect(row).toContainText("just now");
+  await row.click();
+  await page.getByRole("link", { name: "Open full report" }).click();
+  await expect(page.getByTestId("progress-report")).toContainText("schools kept");
+
+  // Later tests start without a hub.
+  await page.goto("/settings");
+  await page.getByTestId("hub-member").getByRole("button", { name: "Disconnect" }).click();
+  await expect(page.getByLabel("Invite code")).toBeVisible();
+});
+
 test("keyboard: Enter allows, j moves, r rejects, shift-A accepts all; ⌘K goes to a school", async ({
   page,
 }) => {
@@ -151,6 +213,10 @@ test("keyboard: Enter allows, j moves, r rejects, shift-A accepts all; ⌘K goes
 
   await page.keyboard.press("ControlOrMeta+k");
   await page.getByLabel("Command").fill("University of Illinois");
+  // The school comes first once the sheet loads; Enter before then picks a thread that said it.
+  await expect(page.getByRole("dialog").getByRole("button").first()).toHaveText(
+    "University of Illinois Chicago",
+  );
   await page.getByLabel("Command").press("Enter");
   await expect(page).toHaveURL(/\/professors\?school=/);
   await expect(page.getByLabel("School")).toHaveValue("University of Illinois Chicago");

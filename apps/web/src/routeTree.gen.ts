@@ -12,16 +12,22 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ShellRouteImport } from './routes/_shell'
 import { Route as SetupRouteImport } from './routes/setup'
 import { Route as ShellIndexRouteImport } from './routes/_shell.index'
+import { Route as ShellCalendarRouteImport } from './routes/_shell.calendar'
 import { Route as ShellCustomersRouteImport } from './routes/_shell.customers'
 import { Route as ShellFundingRouteImport } from './routes/_shell.funding'
 import { Route as ShellLoopsRouteImport } from './routes/_shell.loops'
 import { Route as ShellPipelineRouteImport } from './routes/_shell.pipeline'
+import { Route as ShellReportRouteImport } from './routes/_shell.report'
 import { Route as ShellReviewRouteImport } from './routes/_shell.review'
+import { Route as ShellSchoolsRouteImport } from './routes/_shell.schools'
 import { Route as ShellSettingsRouteImport } from './routes/_shell.settings'
+import { Route as ShellStudentsRouteImport } from './routes/_shell.students'
 import { Route as ShellVaultRouteImport } from './routes/_shell.vault'
 import { Route as PrintIdRouteImport } from './routes/print.$id'
+import { Route as PrintReportRouteImport } from './routes/print.report'
 import { Route as ShellProfessorsIndexRouteImport } from './routes/_shell.professors.index'
 import { Route as ShellProfessorsKeyRouteImport } from './routes/_shell.professors.$key'
+import { Route as ShellStudentsIdRouteImport } from './routes/_shell.students_.$id'
 import { Route as ShellTThreadIdRouteImport } from './routes/_shell.t.$threadId'
 import { Route as ShellVaultWritingIdRouteImport } from './routes/_shell.vault_.writing.$id'
 
@@ -37,6 +43,11 @@ const SetupRoute = SetupRouteImport.update({
 const ShellIndexRoute = ShellIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellCalendarRoute = ShellCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
   getParentRoute: () => ShellRoute,
 } as any)
 const ShellCustomersRoute = ShellCustomersRouteImport.update({
@@ -59,14 +70,29 @@ const ShellPipelineRoute = ShellPipelineRouteImport.update({
   path: '/pipeline',
   getParentRoute: () => ShellRoute,
 } as any)
+const ShellReportRoute = ShellReportRouteImport.update({
+  id: '/report',
+  path: '/report',
+  getParentRoute: () => ShellRoute,
+} as any)
 const ShellReviewRoute = ShellReviewRouteImport.update({
   id: '/review',
   path: '/review',
   getParentRoute: () => ShellRoute,
 } as any)
+const ShellSchoolsRoute = ShellSchoolsRouteImport.update({
+  id: '/schools',
+  path: '/schools',
+  getParentRoute: () => ShellRoute,
+} as any)
 const ShellSettingsRoute = ShellSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellStudentsRoute = ShellStudentsRouteImport.update({
+  id: '/students',
+  path: '/students',
   getParentRoute: () => ShellRoute,
 } as any)
 const ShellVaultRoute = ShellVaultRouteImport.update({
@@ -79,6 +105,11 @@ const PrintIdRoute = PrintIdRouteImport.update({
   path: '/print/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrintReportRoute = PrintReportRouteImport.update({
+  id: '/print/report',
+  path: '/print/report',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ShellProfessorsIndexRoute = ShellProfessorsIndexRouteImport.update({
   id: '/professors/',
   path: '/professors/',
@@ -87,6 +118,11 @@ const ShellProfessorsIndexRoute = ShellProfessorsIndexRouteImport.update({
 const ShellProfessorsKeyRoute = ShellProfessorsKeyRouteImport.update({
   id: '/professors/$key',
   path: '/professors/$key',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellStudentsIdRoute = ShellStudentsIdRouteImport.update({
+  id: '/students_/$id',
+  path: '/students/$id',
   getParentRoute: () => ShellRoute,
 } as any)
 const ShellTThreadIdRoute = ShellTThreadIdRouteImport.update({
@@ -103,31 +139,43 @@ const ShellVaultWritingIdRoute = ShellVaultWritingIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof ShellIndexRoute
   '/setup': typeof SetupRoute
+  '/calendar': typeof ShellCalendarRoute
   '/customers': typeof ShellCustomersRoute
   '/funding': typeof ShellFundingRoute
   '/loops': typeof ShellLoopsRoute
   '/pipeline': typeof ShellPipelineRoute
+  '/report': typeof ShellReportRoute
   '/review': typeof ShellReviewRoute
+  '/schools': typeof ShellSchoolsRoute
   '/settings': typeof ShellSettingsRoute
+  '/students': typeof ShellStudentsRoute
   '/vault': typeof ShellVaultRoute
   '/print/$id': typeof PrintIdRoute
+  '/print/report': typeof PrintReportRoute
   '/professors/$key': typeof ShellProfessorsKeyRoute
+  '/students/$id': typeof ShellStudentsIdRoute
   '/t/$threadId': typeof ShellTThreadIdRoute
   '/professors/': typeof ShellProfessorsIndexRoute
   '/vault/writing/$id': typeof ShellVaultWritingIdRoute
 }
 export interface FileRoutesByTo {
   '/setup': typeof SetupRoute
+  '/calendar': typeof ShellCalendarRoute
   '/customers': typeof ShellCustomersRoute
   '/funding': typeof ShellFundingRoute
   '/loops': typeof ShellLoopsRoute
   '/pipeline': typeof ShellPipelineRoute
+  '/report': typeof ShellReportRoute
   '/review': typeof ShellReviewRoute
+  '/schools': typeof ShellSchoolsRoute
   '/settings': typeof ShellSettingsRoute
+  '/students': typeof ShellStudentsRoute
   '/vault': typeof ShellVaultRoute
   '/print/$id': typeof PrintIdRoute
+  '/print/report': typeof PrintReportRoute
   '/': typeof ShellIndexRoute
   '/professors/$key': typeof ShellProfessorsKeyRoute
+  '/students/$id': typeof ShellStudentsIdRoute
   '/t/$threadId': typeof ShellTThreadIdRoute
   '/professors': typeof ShellProfessorsIndexRoute
   '/vault/writing/$id': typeof ShellVaultWritingIdRoute
@@ -136,16 +184,22 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_shell': typeof ShellRouteWithChildren
   '/setup': typeof SetupRoute
+  '/_shell/calendar': typeof ShellCalendarRoute
   '/_shell/customers': typeof ShellCustomersRoute
   '/_shell/funding': typeof ShellFundingRoute
   '/_shell/loops': typeof ShellLoopsRoute
   '/_shell/pipeline': typeof ShellPipelineRoute
+  '/_shell/report': typeof ShellReportRoute
   '/_shell/review': typeof ShellReviewRoute
+  '/_shell/schools': typeof ShellSchoolsRoute
   '/_shell/settings': typeof ShellSettingsRoute
+  '/_shell/students': typeof ShellStudentsRoute
   '/_shell/vault': typeof ShellVaultRoute
   '/print/$id': typeof PrintIdRoute
+  '/print/report': typeof PrintReportRoute
   '/_shell/': typeof ShellIndexRoute
   '/_shell/professors/$key': typeof ShellProfessorsKeyRoute
+  '/_shell/students_/$id': typeof ShellStudentsIdRoute
   '/_shell/t/$threadId': typeof ShellTThreadIdRoute
   '/_shell/professors/': typeof ShellProfessorsIndexRoute
   '/_shell/vault_/writing/$id': typeof ShellVaultWritingIdRoute
@@ -155,31 +209,43 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/setup'
+    | '/calendar'
     | '/customers'
     | '/funding'
     | '/loops'
     | '/pipeline'
+    | '/report'
     | '/review'
+    | '/schools'
     | '/settings'
+    | '/students'
     | '/vault'
     | '/print/$id'
+    | '/print/report'
     | '/professors/$key'
+    | '/students/$id'
     | '/t/$threadId'
     | '/professors/'
     | '/vault/writing/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/setup'
+    | '/calendar'
     | '/customers'
     | '/funding'
     | '/loops'
     | '/pipeline'
+    | '/report'
     | '/review'
+    | '/schools'
     | '/settings'
+    | '/students'
     | '/vault'
     | '/print/$id'
+    | '/print/report'
     | '/'
     | '/professors/$key'
+    | '/students/$id'
     | '/t/$threadId'
     | '/professors'
     | '/vault/writing/$id'
@@ -187,16 +253,22 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_shell'
     | '/setup'
+    | '/_shell/calendar'
     | '/_shell/customers'
     | '/_shell/funding'
     | '/_shell/loops'
     | '/_shell/pipeline'
+    | '/_shell/report'
     | '/_shell/review'
+    | '/_shell/schools'
     | '/_shell/settings'
+    | '/_shell/students'
     | '/_shell/vault'
     | '/print/$id'
+    | '/print/report'
     | '/_shell/'
     | '/_shell/professors/$key'
+    | '/_shell/students_/$id'
     | '/_shell/t/$threadId'
     | '/_shell/professors/'
     | '/_shell/vault_/writing/$id'
@@ -206,6 +278,7 @@ export interface RootRouteChildren {
   ShellRoute: typeof ShellRouteWithChildren
   SetupRoute: typeof SetupRoute
   PrintIdRoute: typeof PrintIdRoute
+  PrintReportRoute: typeof PrintReportRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -229,6 +302,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof ShellIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/calendar': {
+      id: '/_shell/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof ShellCalendarRouteImport
       parentRoute: typeof ShellRoute
     }
     '/_shell/customers': {
@@ -259,6 +339,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellPipelineRouteImport
       parentRoute: typeof ShellRoute
     }
+    '/_shell/report': {
+      id: '/_shell/report'
+      path: '/report'
+      fullPath: '/report'
+      preLoaderRoute: typeof ShellReportRouteImport
+      parentRoute: typeof ShellRoute
+    }
     '/_shell/review': {
       id: '/_shell/review'
       path: '/review'
@@ -266,11 +353,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellReviewRouteImport
       parentRoute: typeof ShellRoute
     }
+    '/_shell/schools': {
+      id: '/_shell/schools'
+      path: '/schools'
+      fullPath: '/schools'
+      preLoaderRoute: typeof ShellSchoolsRouteImport
+      parentRoute: typeof ShellRoute
+    }
     '/_shell/settings': {
       id: '/_shell/settings'
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof ShellSettingsRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/students': {
+      id: '/_shell/students'
+      path: '/students'
+      fullPath: '/students'
+      preLoaderRoute: typeof ShellStudentsRouteImport
       parentRoute: typeof ShellRoute
     }
     '/_shell/vault': {
@@ -287,6 +388,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrintIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/print/report': {
+      id: '/print/report'
+      path: '/print/report'
+      fullPath: '/print/report'
+      preLoaderRoute: typeof PrintReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_shell/professors/': {
       id: '/_shell/professors/'
       path: '/professors'
@@ -299,6 +407,13 @@ declare module '@tanstack/react-router' {
       path: '/professors/$key'
       fullPath: '/professors/$key'
       preLoaderRoute: typeof ShellProfessorsKeyRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/students_/$id': {
+      id: '/_shell/students_/$id'
+      path: '/students/$id'
+      fullPath: '/students/$id'
+      preLoaderRoute: typeof ShellStudentsIdRouteImport
       parentRoute: typeof ShellRoute
     }
     '/_shell/t/$threadId': {
@@ -319,30 +434,40 @@ declare module '@tanstack/react-router' {
 }
 
 interface ShellRouteChildren {
+  ShellCalendarRoute: typeof ShellCalendarRoute
   ShellCustomersRoute: typeof ShellCustomersRoute
   ShellFundingRoute: typeof ShellFundingRoute
   ShellLoopsRoute: typeof ShellLoopsRoute
   ShellPipelineRoute: typeof ShellPipelineRoute
+  ShellReportRoute: typeof ShellReportRoute
   ShellReviewRoute: typeof ShellReviewRoute
+  ShellSchoolsRoute: typeof ShellSchoolsRoute
   ShellSettingsRoute: typeof ShellSettingsRoute
+  ShellStudentsRoute: typeof ShellStudentsRoute
   ShellVaultRoute: typeof ShellVaultRoute
   ShellIndexRoute: typeof ShellIndexRoute
   ShellProfessorsKeyRoute: typeof ShellProfessorsKeyRoute
+  ShellStudentsIdRoute: typeof ShellStudentsIdRoute
   ShellTThreadIdRoute: typeof ShellTThreadIdRoute
   ShellProfessorsIndexRoute: typeof ShellProfessorsIndexRoute
   ShellVaultWritingIdRoute: typeof ShellVaultWritingIdRoute
 }
 
 const ShellRouteChildren: ShellRouteChildren = {
+  ShellCalendarRoute: ShellCalendarRoute,
   ShellCustomersRoute: ShellCustomersRoute,
   ShellFundingRoute: ShellFundingRoute,
   ShellLoopsRoute: ShellLoopsRoute,
   ShellPipelineRoute: ShellPipelineRoute,
+  ShellReportRoute: ShellReportRoute,
   ShellReviewRoute: ShellReviewRoute,
+  ShellSchoolsRoute: ShellSchoolsRoute,
   ShellSettingsRoute: ShellSettingsRoute,
+  ShellStudentsRoute: ShellStudentsRoute,
   ShellVaultRoute: ShellVaultRoute,
   ShellIndexRoute: ShellIndexRoute,
   ShellProfessorsKeyRoute: ShellProfessorsKeyRoute,
+  ShellStudentsIdRoute: ShellStudentsIdRoute,
   ShellTThreadIdRoute: ShellTThreadIdRoute,
   ShellProfessorsIndexRoute: ShellProfessorsIndexRoute,
   ShellVaultWritingIdRoute: ShellVaultWritingIdRoute,
@@ -354,6 +479,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShellRoute: ShellRouteWithChildren,
   SetupRoute: SetupRoute,
   PrintIdRoute: PrintIdRoute,
+  PrintReportRoute: PrintReportRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

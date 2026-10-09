@@ -67,6 +67,8 @@ describe("the Vault", () => {
           asks: "",
           limit: "",
           eligibility: "",
+          conflicts: "",
+          decisions: "",
           url: "",
           sources: [],
           note: "",
@@ -78,6 +80,7 @@ describe("the Vault", () => {
           programId: "p1",
           status: "in-progress",
           waiver: "none",
+          onlyIfWaived: false,
           documents: [{ name: "CV", docId: null, done: false }],
           recommenders: [],
           portal: "",
@@ -96,6 +99,7 @@ describe("the Vault", () => {
       offers: [],
       writing: [],
       toFile: [],
+      schools: [],
     };
     expect(comingUp(v, now).map((u) => u.text)).toEqual([
       // Six weeks out with no recommender asked yet: ask now.

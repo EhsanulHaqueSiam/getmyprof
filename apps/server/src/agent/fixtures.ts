@@ -15,6 +15,10 @@ export const FIXTURE_PROFESSORS = [
     lasts: "not posted",
     email: "lybarger@example.edu",
     contact: 'email, subject "PhD 2027"',
+    recent:
+      "2026 DF-RAG: Query-Aware Diversity for Retrieval-Augmented Generation (ACL); 2026 Efficient Information Extraction Using LLMs and Knowledge Distillation",
+    hook: "DF-RAG's per-query passage diversity is the retrieval step your clinical NLP interest needs",
+    warm: "Your co-author Ada Fixture wrote with him in 2024: Retrieval for clinical notes at scale",
     sources: ["https://www.kevinlybarger.me/news.html"],
   },
   {
@@ -29,6 +33,9 @@ export const FIXTURE_PROFESSORS = [
     email: "zalake@example.edu",
     contact: "follow the join-us page",
     linkedin: "https://www.linkedin.com/in/mohan-zalake",
+    recent: "2026-05 LLM agents for patient conversations",
+    hook: "His LLM agents for patient conversations fit your health NLP fields",
+    warm: "none found",
     sources: ["https://vare.ahs.uic.edu/"],
   },
   {
@@ -42,9 +49,87 @@ export const FIXTURE_PROFESSORS = [
     lasts: "?",
     contact: "apply-only, no cold email",
     stage: "apply-only",
+    recent: "2026-02 Multimodal models for health text",
+    hook: "Her multimodal models for health text fit your health NLP fields",
+    warm: "none found",
     sources: ["https://www.natalieparde.com/team.html"],
   },
 ];
+
+/** What the Recent work and focus row action finds for each fixture professor, beside `recent`. */
+export const FIXTURE_WORK: Record<string, { seeking: string; scholar: string }> = {
+  "Kevin Lybarger": {
+    seeking: "PhD students for clinical NLP and RAG in healthcare",
+    scholar: "https://scholar.google.com/citations?user=fixture-lybarger",
+  },
+  "Mohan Zalake": {
+    seeking: "students building health agents, with some HCI background",
+    scholar: "https://scholar.google.com/citations?user=fixture-zalake",
+  },
+  "Natalie Parde": { seeking: "not stated", scholar: "" },
+};
+
+/** One concrete detail of each emailed fixture professor's newest paper: first emails name it. */
+export const FIXTURE_DETAIL: Record<string, string> = {
+  "Kevin Lybarger":
+    "It picks passages for diversity per query instead of a fixed top-k, the step I want to try on long clinical notes.",
+  "Mohan Zalake":
+    "Its agent asks a follow-up question before it answers, and I want to see how that holds with older patients.",
+};
+
+/** Schools the scripted agent suggests for the shortlist, one or two per tier. */
+export const FIXTURE_SCHOOLS = [
+  {
+    name: "University of Maryland",
+    country: "USA",
+    tier: "reach",
+    rank: "CSRankings #9, NLP",
+    admits: "committee",
+    why: "Top 10 in NLP and very selective; every PhD admit is funded.",
+    sources: ["https://csrankings.org/#/index?nlp&us"],
+  },
+  {
+    name: "George Mason University",
+    country: "USA",
+    tier: "match",
+    rank: "CSRankings #52",
+    admits: "committee",
+    why: "Mid-ranked in NLP with three health NLP groups that fit your fields; admits funded 5 years.",
+    sources: ["https://csrankings.org/#/index?nlp&us"],
+  },
+  {
+    name: "University of Illinois Chicago",
+    country: "USA",
+    tier: "match",
+    rank: "CSRankings #48",
+    admits: "committee",
+    why: "Health NLP and LLM agent labs with active grants past 2028.",
+    sources: ["https://csrankings.org/#/index?nlp&us"],
+  },
+  {
+    name: "Kansas State University",
+    country: "USA",
+    tier: "safety",
+    rank: "CSRankings #120",
+    admits: "committee",
+    why: "Funds every PhD admit and waives the fee with a medium-of-instruction certificate.",
+    sources: ["https://www.k-state.edu/grad/"],
+  },
+] as const;
+
+/** What the scripted agent finds George Mason pays and costs when it checks programs there. */
+export const FIXTURE_SCHOOL_MONEY = {
+  name: "George Mason University",
+  stipendUsd: 32000,
+  rentUsd: 1100,
+  source: "https://cec.gmu.edu/academics/doctoral-programs/phd-information-technology",
+};
+
+/** Last cycle's timing the scripted agent notes on every Vault program. */
+export const FIXTURE_DECISIONS = {
+  decisions: "interviews late Jan; decisions Feb 10 to Mar 5 (14 reports, 4 international)",
+  source: "https://www.thegradcafe.com/survey",
+};
 
 export const FIXTURE_SCHOLARSHIPS = [
   {
@@ -173,7 +258,61 @@ export const fixtureSources: Sources = {
     works: 42,
     citations: 900,
     topics: ["NLP"],
-    recent: [],
+    recent: [
+      {
+        title: "Query-aware retrieval for clinical notes",
+        date: "2026-08-14",
+        link: "https://doi.org/10.5555/fixture.1",
+      },
+      {
+        title: "Small language models for health text",
+        date: "2026-03-02",
+        link: "https://doi.org/10.5555/fixture.2",
+      },
+    ],
+  }),
+  lab: async (name) => ({
+    name,
+    institution: "Fixture University",
+    works: 24,
+    since: 2021,
+    coAuthors: [
+      {
+        id: "A0000000002",
+        name: "Ada Fixture",
+        link: "https://openalex.org/A0000000002",
+        shared: 6,
+        lastYear: 2026,
+        institution: "Fixture University",
+        now: "",
+        student: true,
+        alumnus: false,
+      },
+      {
+        id: "A0000000003",
+        name: "Ben Fixture",
+        link: "https://openalex.org/A0000000003",
+        shared: 3,
+        lastYear: 2023,
+        institution: "Fixture University",
+        now: "Fixture Labs",
+        student: false,
+        alumnus: true,
+      },
+    ],
+  }),
+  warm: async (name, _university, papers) => ({
+    name,
+    found: papers.slice(0, 1),
+    direct: [],
+    paths: [
+      {
+        via: "Ada Fixture",
+        title: "Retrieval for clinical notes at scale",
+        year: 2024,
+        link: "https://doi.org/10.5555/fixture.3",
+      },
+    ],
   }),
   treg: async (req) => ({
     ok: true,

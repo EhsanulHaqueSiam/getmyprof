@@ -67,6 +67,13 @@ export const Program = z.object({
   limit: z.string().default(""),
   /** "ok", or "no: <why>" when this applicant can't be admitted or funded here. */
   eligibility: z.string().default(""),
+  /** Where two official pages disagree (department and graduate school): both values, both pages. */
+  conflicts: z.string().default(""),
+  /**
+   * Last cycle's interview and decision dates from GradCafe reports, e.g. "interviews late Jan;
+   * decisions Feb 10 to Mar 5 (14 reports, 4 international)". Self-reported, so never odds.
+   */
+  decisions: z.string().default(""),
   url: z.string(),
   sources,
   note: z.string(),
@@ -91,6 +98,8 @@ export const Application = z.object({
   programId: z.string(),
   status: AppStatus,
   waiver: z.enum(["none", "requested", "granted", "denied"]),
+  /** Apply only if the fee is waived: until a waiver is granted, its fee isn't counted as paid. */
+  onlyIfWaived: z.boolean().default(false),
   documents: z.array(
     z.object({ name: z.string(), docId: z.string().nullable(), done: z.boolean() }),
   ),
@@ -171,6 +180,33 @@ export const Writing = z.object({
 });
 export type Writing = z.infer<typeof Writing>;
 
+export const SchoolTier = z.enum(["reach", "match", "safety"]);
+export type SchoolTier = z.infer<typeof SchoolTier>;
+
+/**
+ * A school on the shortlist, in a tier for this applicant. The agent suggests it with
+ * propose_school; the applicant keeps or drops it. Programs and professors join it by name.
+ */
+export const School = z.object({
+  id: z.string(),
+  name: z.string(),
+  country: z.string(),
+  tier: SchoolTier,
+  /** Its rank in the applicant's field and where that comes from, e.g. "CSRankings #52, NLP". */
+  rank: z.string(),
+  /** Who admits PhD students: a committee, or each advisor hiring for their own lab. */
+  admits: z.enum(["committee", "advisor", "unknown"]),
+  /** One line: why this tier for this applicant. */
+  why: z.string(),
+  /** The yearly PhD stipend in USD, from a page that states it; null until found. */
+  stipendUsd: z.number().nullable().default(null),
+  /** Monthly rent for a one-bedroom near campus in USD; null until found. */
+  rentUsd: z.number().nullable().default(null),
+  sources,
+  status: z.enum(["suggested", "kept", "dropped"]),
+});
+export type School = z.infer<typeof School>;
+
 const finding = {
   id: z.string(),
   why: z.string(),
@@ -201,6 +237,7 @@ export const VaultState = z.object({
   offers: z.array(Offer),
   writing: z.array(Writing),
   toFile: z.array(FileItem),
+  schools: z.array(School),
 });
 export type VaultState = z.infer<typeof VaultState>;
 
@@ -212,6 +249,7 @@ export const VaultEdit = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("application"), value: Application }),
   z.object({ kind: z.literal("writing"), value: Writing }),
   z.object({ kind: z.literal("offer"), value: Offer }),
+  z.object({ kind: z.literal("school"), value: School }),
 ]);
 export type VaultEdit = z.infer<typeof VaultEdit>;
 export type VaultKind = VaultEdit["kind"];

@@ -46,10 +46,16 @@ is no AUR package; Arch runs the AppImage.
 
 ## Cutting a release
 
-1. Bump `version` in the root `package.json`, commit, and push to `main`.
-2. `git tag vX.Y.Z && git push origin vX.Y.Z`. The workflow fails if the tag and the version differ.
+`pnpm release minor` (or `patch`, `major`, `X.Y.Z`; `--dry-run` shows the plan, `--watch` follows
+the build) does it from any checkout with a clean tree: a `chore/release-X.Y.Z` branch from
+`origin/main` bumps the root `package.json`, its PR waits for CI and squash-merges, and
+`origin/main` gets the `vX.Y.Z` tag, which runs the workflow. The workflow fails if the tag and
+the version differ. `pnpm release status` shows main's version, the last tag, what main holds since
+and that tag's run; `pnpm release watch [X.Y.Z]` follows a run. The release's notes are the
+install link and GitHub's list of PRs merged since the previous tag, so PR titles are the changelog.
 
-Local builds use the same steps: `pnpm dist runtime`, then
+`pnpm release build` builds this machine's command line and desktop app into `dist/release`, no
+publishing. Other platforms and the npm package use the same steps: `pnpm dist runtime`, then
 `pnpm dist cli darwin-arm64`, `pnpm dist desktop mac arm64`, `pnpm dist npm`, `pnpm dist sums`
 into `dist/release`. `GETMYPROF_UPDATE_URL=http://host/feed` points a test build's updater at
 any folder holding a `latest-*.yml`. From a checkout, `pnpm dist runtime` then

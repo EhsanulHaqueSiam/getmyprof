@@ -12,6 +12,7 @@ import { TREG_ENDPOINTS } from "../treg.ts";
 import { daySpend, getThread, recordSpend, threadSpend } from "../threads.ts";
 import { APPLICANT_TOOLS } from "./applicant-tools.ts";
 import { DISCOVERY_TOOLS } from "./discovery-tools.ts";
+import { PEOPLE_TOOLS } from "./people-tools.ts";
 import { TREG_TOOL_NAMES, tregJobs } from "./treg-jobs.ts";
 
 export { realSources, type Sources, sourceKey } from "./sourcing.ts";
@@ -51,6 +52,8 @@ export const READ_ONLY = new Set([
   "vault_search",
   "csrankings_faculty",
   "openalex_by_topic",
+  "lab_members",
+  "warm_paths",
 ]);
 
 /** Why a tool can't run in this turn, or null: an Ask changes nothing and spends nothing. */
@@ -107,7 +110,7 @@ const professorFields = {
   name: z.string().describe("Full name as written on their own page"),
   university: z.string().describe("University name"),
   department: z.string().optional(),
-  niche: z.string().optional().describe("Their research area in a few words"),
+  niche: z.string().optional().describe("Their area and the topics they work on now"),
   fit: z
     .number()
     .int()
@@ -158,6 +161,18 @@ const professorFields = {
     .describe(
       "Their LinkedIn profile URL (https://www.linkedin.com/in/...), only when their own page links it or a search shows it is them",
     ),
+  scholar: z.string().optional().describe("Their Google Scholar profile URL"),
+  recent: z.string().optional().describe("Latest 2 or 3 papers or projects, newest first, dated"),
+  seeking: z.string().optional().describe("What they want in a student, in their words"),
+  lab: z
+    .string()
+    .optional()
+    .describe("Who is in the lab now, recent graduates and where they went, who to ask"),
+  warm: z
+    .string()
+    .optional()
+    .describe('A true path to them with its paper or event, or "none found"'),
+  hook: z.string().optional().describe("One line tying the applicant's work to one of theirs"),
 };
 
 export const HUNT_TOOLS = [
@@ -211,7 +226,7 @@ export const HUNT_TOOLS = [
     run: async (args, ctx) => {
       const a = await ctx.sources.openalex(args.name, args.university);
       if (!a) return { summary: "not found", text: "No matching OpenAlex author." };
-      const recent = a.recent.map((w) => `- ${w.title} (${w.year}) ${w.link}`).join("\n");
+      const recent = a.recent.map((w) => `- ${w.title} (${w.date}) ${w.link}`).join("\n");
       return {
         summary: `${a.works} works · ${a.citations} citations`,
         text: `${a.name}, ${a.institution}\nTopics: ${a.topics.join(", ")}\nRecent:\n${recent}`,
@@ -309,6 +324,7 @@ export const HUNT_TOOLS = [
   }),
   ...APPLICANT_TOOLS,
   ...DISCOVERY_TOOLS,
+  ...PEOPLE_TOOLS,
   define({
     name: "treg",
     description: `Paid data lookups through treg, for when free sources fail. Allowed endpoints with their data fields, usual USD per call and the most one call may cost:\n${Object.entries(
@@ -413,5 +429,7 @@ const NEEDS: Record<string, FreeSource> = {
   nih_awards: "NIH",
   openalex_author: "OpenAlex",
   openalex_by_topic: "OpenAlex",
+  lab_members: "OpenAlex",
+  warm_paths: "OpenAlex",
   csrankings_faculty: "CSRankings",
 };

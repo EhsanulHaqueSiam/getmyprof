@@ -37,7 +37,10 @@ import {
   saveHunt,
   updateSettings,
 } from "./state.ts";
+import { progressReport } from "./report.ts";
 import { recordHandlers } from "./rpc-records.ts";
+import { hubHandlers } from "./rpc-hub.ts";
+import { studentCount } from "./hub.ts";
 import { askCvQuestions } from "./cv-questions.ts";
 import { mailHandlers } from "./rpc-mail.ts";
 import { threadHandlers } from "./rpc-threads.ts";
@@ -104,6 +107,7 @@ export function createHandlers(svc: Services): Handlers {
           funding: getKv(db, "funding.waiting", Number, 0),
           loops: listLoops(db).filter((l) => l.enabled).length,
           spendOutsideThreads: daySpendOutsideThreads(db),
+          students: studentCount(db),
         },
       };
     },
@@ -199,8 +203,10 @@ export function createHandlers(svc: Services): Handlers {
     },
 
     ...tregHandlers(svc),
+    ...hubHandlers(svc),
 
     "vault.get": () => vaultState(db),
+    "report.get": () => progressReport(db),
     "vault.save": (edit) => {
       const before = saveEdit(db, edit);
       if (

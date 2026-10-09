@@ -18,8 +18,9 @@ import {
   sharesSession,
   threadSpend,
 } from "../threads.ts";
+import { listPrograms, listSchools, proposeSchool, saveEdit } from "../vault.ts";
 import { fakeProvider } from "./fake.ts";
-import { fixtureSources } from "./fixtures.ts";
+import { FIXTURE_DECISIONS, fixtureSources } from "./fixtures.ts";
 import { createRunner } from "./runner.ts";
 
 const until = async (check: () => boolean, ms = 5000) => {
@@ -339,5 +340,58 @@ describe("a restart mid-turn", () => {
     runner.resumeAfterRestart();
     expect(getThread(db, again)?.status).toBe("idle");
     expect(listEvents(db, again)).toHaveLength(1);
+  });
+});
+
+describe("notes from a turn", () => {
+  it("puts decision timing on each Vault program, and a school's stipend and rent on the shortlist", async () => {
+    const db = openDb(":memory:");
+    const runner = createRunner({
+      db,
+      bus: createBus(),
+      provider: fakeProvider(1),
+      sources: fixtureSources,
+    });
+    const program = {
+      id: "prg_1",
+      university: "George Mason University",
+      name: "PhD in Information Technology",
+      degree: "phd" as const,
+      deadline: "2026-12-01",
+      fee: "$75",
+      waiver: "",
+      english: "IELTS 6.5",
+      funding: "",
+      url: "",
+      sources: ["https://cec.gmu.edu"],
+      note: "",
+    };
+    saveEdit(db, { kind: "program", value: program });
+    proposeSchool(db, {
+      name: "George Mason University",
+      country: "USA",
+      tier: "match",
+      rank: "",
+      admits: "committee",
+      why: "",
+      sources: [],
+    });
+
+    const timing = createThread(db, "Decision timing").id;
+    runner.send(timing, "For each program in my Vault, read last cycle's results.", "send");
+    await until(() => getThread(db, timing)?.status === "idle");
+    // Only the notes change; everything the applicant filed stays.
+    expect(listPrograms(db)).toMatchObject([
+      {
+        ...program,
+        decisions: FIXTURE_DECISIONS.decisions,
+        sources: ["https://cec.gmu.edu", FIXTURE_DECISIONS.source],
+      },
+    ]);
+
+    const check = createThread(db, "Programs").id;
+    runner.send(check, "Find programs at George Mason University: deadline, fee.", "send");
+    await until(() => getThread(db, check)?.status === "idle");
+    expect(listSchools(db)).toMatchObject([{ stipendUsd: 32000, rentUsd: 1100 }]);
   });
 });

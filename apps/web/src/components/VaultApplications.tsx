@@ -1,4 +1,10 @@
-import { type Application, AppStatus, type Professor, type Program } from "@getmyprof/contracts";
+import {
+  type Application,
+  AppStatus,
+  feeBudget,
+  type Professor,
+  type Program,
+} from "@getmyprof/contracts";
 import { PlusIcon, Trash2Icon } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useEffect, useState } from "react";
@@ -6,6 +12,7 @@ import { Chip } from "~/components/FormParts";
 import { Interviews } from "~/components/Interviews";
 import { Choice } from "~/components/Table";
 import { Button } from "~/components/ui/button";
+import { plural } from "~/lib/format";
 import { cn } from "~/lib/utils";
 import { daysLeft, due } from "~/lib/vault";
 import { call } from "~/rpc/client";
@@ -19,6 +26,7 @@ const school = (s: string) =>
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 
+const dollars = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
 const save = (value: Application) => void call("vault.save", { kind: "application", value });
 
 /** The agent drafts a short note in a new thread; it lands in Vault > Writing. */
@@ -183,6 +191,16 @@ function ApplicationView({
             options={WAIVER}
             onChange={(waiver) => save({ ...app, waiver })}
           />
+          {/* Apply here only if the fee is waived: until then, its fee stays out of the budget. */}
+          <label className="flex items-center gap-1.5">
+            <input
+              type="checkbox"
+              className="size-3.5 accent-foreground"
+              checked={app.onlyIfWaived}
+              onChange={() => save({ ...app, onlyIfWaived: !app.onlyIfWaived })}
+            />
+            Only if waived
+          </label>
           <Button
             size="icon-micro"
             variant="ghost-muted"
@@ -303,6 +321,35 @@ function ApplicationView({
   );
 }
 
+/**
+ * "Fees $225 of $300 · 2 waivers pending", in the warning tone once over budget; nothing until
+ * there's an application. The Applications header and the Calendar show it.
+ */
+export function FeeLine({ className }: { className?: string }) {
+  const vault = useStore((s) => s.vault);
+  const applicant = useStore((s) => s.app?.applicant);
+  if (!vault?.applications.length || !applicant) return null;
+  const fees = feeBudget(vault, applicant);
+  return (
+    <span
+      title={fees.unknown.join("\n") || undefined}
+      className={cn(
+        "text-xs tabular-nums",
+        fees.over ? "text-warning-foreground" : "text-muted-foreground",
+        className,
+      )}
+    >
+      {[
+        `Fees ${dollars(fees.spent)}${fees.budget === null ? "" : ` of ${dollars(fees.budget)}`}`,
+        fees.pending ? `${plural(fees.pending, "waiver")} pending` : "",
+        fees.unknown.length ? `${plural(fees.unknown.length, "fee")} unknown` : "",
+      ]
+        .filter(Boolean)
+        .join(" · ")}
+    </span>
+  );
+}
+
 /** Every application: checklist, recommenders, portal, and who to name. */
 export function VaultApplications() {
   const vault = useStore((s) => s.vault);
@@ -317,6 +364,7 @@ export function VaultApplications() {
       <header className="flex min-h-12 shrink-0 flex-wrap items-center gap-2 px-4 py-2">
         <h1 className="font-semibold text-sm">Applications</h1>
         <span className="text-muted-foreground text-xs tabular-nums">{apps.length}</span>
+        <FeeLine className="ml-auto" />
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto border-t">
         {apps.map((a) => (

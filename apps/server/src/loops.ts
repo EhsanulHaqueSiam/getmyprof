@@ -246,4 +246,10 @@ export const STARTER_LOOPS = [
       "Check the program pages of schools in my sheet for application deadlines, fees and English test rules for my intake. Report what changed.",
     schedule: { kind: "at", at: "09:00", weekdays: [0] },
   },
+  {
+    name: "Professor watch",
+    instructions:
+      "For professors in my sheet at schools I kept on the shortlist, or with fit 4 or more, check their homepage or lab page, OpenAlex (openalex_author), NSF and NIH (with pi), and their X posts when paid lookups are on, for a posted opening, a new grant, a new paper or a move to another school. Propose an update with its sources: taking, money and lasts, recent; for a move, propose them at the new school and set taking at the old one to 'moved to <school>'. Skip anyone unchanged.",
+    schedule: { kind: "at", at: "10:00", weekdays: [6] },
+  },
 ] satisfies { name: string; instructions: string; schedule: Schedule }[];

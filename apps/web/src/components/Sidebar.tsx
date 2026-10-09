@@ -2,12 +2,14 @@ import type { ThreadSummary } from "@getmyprof/contracts";
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import {
+  CalendarIcon,
   ContactIcon,
   CheckIcon,
   ChevronDownIcon,
   CircleAlertIcon,
   Clock3Icon,
   InboxIcon,
+  GraduationCapIcon,
   LandmarkIcon,
   MessageCircleQuestionIcon,
   MonitorIcon,
@@ -20,6 +22,7 @@ import {
   SettingsIcon,
   SquarePenIcon,
   UsersIcon,
+  UsersRoundIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
@@ -266,6 +269,10 @@ export function Sidebar() {
   const counts = useStore((st) => st.app?.counts);
   const outreach = useStore((st) => st.conversations.filter(needsYou).length);
   const toFile = useStore((st) => st.vault?.toFile.length);
+  // Schools the agent suggested, waiting for keep or drop.
+  const schoolsWaiting = useStore(
+    (st) => st.vault?.schools.filter((x) => x.status === "suggested").length,
+  );
   const today = threads.reduce((n, t) => n + t.spendDayUsd, 0) + (counts?.spendOutsideThreads ?? 0);
   const activeId = "threadId" in params ? params.threadId : undefined;
 
@@ -310,7 +317,23 @@ export function Sidebar() {
       </div>
       <nav className="flex flex-col gap-px">
         <NavLink to="/" icon={<PlusIcon />} label="New thread" kbd="⌘N" />
+        {counts?.students ? (
+          <NavLink
+            to="/students"
+            icon={<UsersRoundIcon />}
+            label="Students"
+            count={counts.students}
+          />
+        ) : null}
         <NavLink to="/professors" icon={<UsersIcon />} label="Professors" count={professors} />
+        <NavLink
+          to="/schools"
+          icon={<GraduationCapIcon />}
+          label="Schools"
+          count={schoolsWaiting}
+          accent
+        />
+        <NavLink to="/calendar" icon={<CalendarIcon />} label="Calendar" />
         <NavLink to="/funding" icon={<LandmarkIcon />} label="Funding" count={counts?.funding} />
         <NavLink to="/pipeline" icon={<SendIcon />} label="Pipeline" count={outreach} accent />
         <NavLink to="/vault" icon={<ArchiveIcon />} label="Vault" count={toFile} accent />

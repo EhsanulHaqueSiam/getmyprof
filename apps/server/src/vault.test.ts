@@ -10,10 +10,13 @@ import {
   documentPath,
   numberCitations,
   proposeFinding,
+  proposeSchool,
   removeEntry,
   resolveFinding,
   saveDocument,
+  saveEdit,
   saveWriting,
+  setSchoolMoney,
   startApplication,
   vaultState,
   writingBrief,
@@ -78,6 +81,51 @@ describe("To file", () => {
     const other = proposeFinding(db, program);
     if ("id" in other) resolveFinding(db, other.id, "dismiss");
     expect(proposeFinding(db, program)).toEqual({ skipped: "dismissed earlier" });
+  });
+});
+
+describe("the school shortlist", () => {
+  const gmu = {
+    name: "George Mason University",
+    country: "USA",
+    tier: "match" as const,
+    rank: "CSRankings #52",
+    admits: "committee" as const,
+    why: "fits",
+    sources: ["https://csrankings.org"],
+  };
+
+  it("waits for keep or drop; a dropped school never returns, a kept one keeps its tier", () => {
+    const db = openDb(":memory:");
+    const first = proposeSchool(db, gmu);
+    if ("skipped" in first) throw new Error("expected a suggestion");
+    // Still waiting: the newer details win, and it stays one school.
+    proposeSchool(db, { ...gmu, name: "george mason university", tier: "safety" });
+    expect(vaultState(db).schools).toMatchObject([{ id: first.id, tier: "safety" }]);
+
+    saveEdit(db, { kind: "school", value: { ...first, tier: "reach", status: "kept" } });
+    expect(proposeSchool(db, gmu)).toEqual({ skipped: "on the shortlist already, as reach" });
+    saveEdit(db, { kind: "school", value: { ...first, status: "dropped" } });
+    expect(proposeSchool(db, gmu)).toEqual({ skipped: "dropped earlier" });
+  });
+
+  it("records a school's stipend and rent with their page, and a newer suggestion keeps them", () => {
+    const db = openDb(":memory:");
+    expect(setSchoolMoney(db, "George Mason University", { rentUsd: 1100 }, "rent.page")).toBe(
+      null,
+    );
+    proposeSchool(db, gmu);
+    setSchoolMoney(db, "george mason university", { stipendUsd: 32000.4 }, "gmu.edu/phd");
+    setSchoolMoney(db, "George Mason University", { rentUsd: 1100 }, "rent.page");
+    proposeSchool(db, { ...gmu, why: "newer" });
+    expect(vaultState(db).schools).toMatchObject([
+      {
+        why: "newer",
+        stipendUsd: 32000,
+        rentUsd: 1100,
+        sources: ["https://csrankings.org", "gmu.edu/phd", "rent.page"],
+      },
+    ]);
   });
 });
 

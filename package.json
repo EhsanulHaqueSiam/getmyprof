@@ -13,7 +13,8 @@
     "fmt:check": "vp fmt --check",
     "test": "vp test run",
     "e2e": "vp run --filter @getmyprof/e2e test",
-    "dist": "node apps/desktop/scripts/dist.ts"
+    "dist": "node apps/desktop/scripts/dist.ts",
+    "release": "node scripts/release.ts"
   },
   "devDependencies": {
     "@shadcn/lint": "0.1.5",

@@ -56,7 +56,8 @@ apps/server               Node WebSocket + HTTP server. rpc.ts maps contract met
                           db/state/threads/records/loops (SQLite), sources (NSF, NIH, OpenAlex, treg),
                           adapters (gradhunt, hq, CSV), agent/ (runner, claude, fake, tools, prompt),
                           outreach/ (mail, store, service, plan: drafts, send queue, reply sync),
-                          vault (documents, scholarships, programs, applications, To file),
+                          vault (documents, scholarships, programs, applications, the school
+                          shortlist, To file),
                           okf (the Vault as an OKF bundle on disk, and vault_search), treg
 apps/web                  React 19 + Vite+. src/routes (TanStack file routes), src/state (Zustand),
                           src/components/ui (a vendored Base UI kit), src/lib
@@ -72,7 +73,8 @@ docs/internals            decisions and constraints the code can't carry
 ## Commands
 
 `pnpm install` · `scripts/dev-local.sh up|down|status|logs|share` · `pnpm lint` · `pnpm fmt` ·
-`pnpm typecheck` · `pnpm test` · `pnpm build`. e2e needs a fresh fake stack:
+`pnpm typecheck` · `pnpm test` · `pnpm build` · `pnpm release status|patch|minor|build` (see
+docs/internals/release.md). e2e needs a fresh fake stack:
 `rm -rf /tmp/gc-e2e && GETMYPROF_HOME=/tmp/gc-e2e GETMYPROF_AGENT=fake scripts/dev-local.sh up`, then `pnpm e2e`.
 `vp` is Vite+: `pnpm exec vp test run <file>` for one test file.
 

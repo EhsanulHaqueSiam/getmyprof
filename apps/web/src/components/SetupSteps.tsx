@@ -22,7 +22,13 @@ const SUGGESTED_ADJACENT = [
   "digital humanities",
   "bioinformatics",
 ];
-export const LOOP_NAMES = ["Nightly sweep", "Recruiting watch", "New awards", "Deadline watch"];
+export const LOOP_NAMES = [
+  "Nightly sweep",
+  "Recruiting watch",
+  "New awards",
+  "Deadline watch",
+  "Professor watch",
+];
 
 type Budget = { perThread: number; perLoopRun: number; perDay: number; askOver: number };
 
@@ -229,10 +235,15 @@ export function BudgetStep(props: {
               [
                 "std",
                 "Standard",
-                "adds how long the money lasts, eligibility, contact rule, stage",
-                "10 columns",
+                "adds what they work on and look for, how long the money lasts, contact rule",
+                "12 columns",
               ],
-              ["deep", "Deep", "adds why they fit you and every source", "12 columns · most calls"],
+              [
+                "deep",
+                "Deep",
+                "adds recent work, the way in, why they fit you and every source",
+                "16 columns · most calls",
+              ],
             ] as const
           ).map(([id, title, body, note]) => (
             <button

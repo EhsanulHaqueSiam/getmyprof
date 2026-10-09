@@ -1,5 +1,6 @@
 // The vault's store: one table of typed items (documents, scholarships, programs, applications,
-// and the agent's finds waiting in To file), plus document bytes under GETMYPROF_HOME/files.
+// the school shortlist, and the agent's finds waiting in To file), plus document bytes under
+// GETMYPROF_HOME/files.
 import {
   Application,
   factStatus,
@@ -7,8 +8,9 @@ import {
   type ProfileFact,
   Program,
   Scholarship,
+  School,
   VaultDocument,
-  type VaultEdit,
+  VaultEdit,
   type VaultKind,
   type VaultState,
   Offer,
@@ -46,6 +48,7 @@ export const listPrograms = (db: Db) => items(db, "program", Program);
 export const listApplications = (db: Db) => items(db, "application", Application);
 export const listWriting = (db: Db) => items(db, "writing", Writing);
 export const listOffers = (db: Db) => items(db, "offer", Offer);
+export const listSchools = (db: Db) => items(db, "school", School);
 
 /** The offer the applicant accepted, if any: the hunt is over, so loops and cold mail stop. */
 export const acceptedOffer = (db: Db) =>
@@ -60,11 +63,16 @@ export function vaultState(db: Db): VaultState {
     offers: listOffers(db),
     writing: listWriting(db),
     toFile: items(db, "toFile", FileItem),
+    schools: listSchools(db),
   };
 }
 
-/** Saves one edited item. Returns the application before the edit, so callers see transitions. */
-export function saveEdit(db: Db, edit: VaultEdit) {
+/**
+ * Saves one edited item, with any field left out at its default. Returns the application before
+ * the edit, so callers see transitions.
+ */
+export function saveEdit(db: Db, input: z.input<typeof VaultEdit>) {
+  const edit = VaultEdit.parse(input);
   const before =
     edit.kind === "application"
       ? (listApplications(db).find((a) => a.id === edit.value.id) ?? null)
@@ -111,14 +119,18 @@ const norm = (s: string) =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
-/** A find without the fields the store assigns. Distributes, so `kind` still narrows `item`. */
+/**
+ * A find without the fields the store assigns, before parsing, so fields with defaults may be
+ * left out. Distributes, so `kind` still narrows `item`.
+ */
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
-type NewFinding = DistributiveOmit<FileItem, "id" | "createdAt">;
+type NewFinding = DistributiveOmit<z.input<typeof FileItem>, "id" | "createdAt">;
 type Keyed =
   | { kind: "scholarship"; item: Pick<Scholarship, "name" | "sponsor"> }
   | { kind: "program"; item: Pick<Program, "university" | "name"> };
 
-const findingKey = (f: Keyed) =>
+/** One key per program (university, name) or scholarship (name, sponsor), however it's spelled. */
+export const findingKey = (f: Keyed) =>
   f.kind === "scholarship"
     ? `scholarship:${norm(f.item.name)}|${norm(f.item.sponsor)}`
     : `program:${norm(f.item.university)}|${norm(f.item.name)}`;
@@ -141,6 +153,55 @@ export function proposeFinding(db: Db, f: NewFinding): FileItem | { skipped: str
   const finding = FileItem.parse({ ...f, id: newId("find"), createdAt: now() });
   putItem(db, "toFile", finding);
   return finding;
+}
+
+/** The school on the shortlist with this name, as the agent writes it. */
+const schoolNamed = (db: Db, name: string) =>
+  listSchools(db).find((x) => norm(x.name) === norm(name));
+
+/**
+ * Puts a school the agent suggests on the shortlist, waiting for keep or drop. One still waiting
+ * takes the newer details; a kept or dropped one stays as the applicant left it.
+ */
+export function proposeSchool(
+  db: Db,
+  s: Omit<z.input<typeof School>, "id" | "status">,
+): School | { skipped: string } {
+  const same = schoolNamed(db, s.name);
+  if (same?.status === "dropped") return { skipped: "dropped earlier" };
+  if (same?.status === "kept") return { skipped: `on the shortlist already, as ${same.tier}` };
+  // A stipend or rent found earlier stays unless this suggestion brings its own, with its page.
+  const school = School.parse({
+    ...same,
+    ...s,
+    sources: [...new Set([...(same?.sources ?? []), ...s.sources])],
+    id: same?.id ?? newId("school"),
+    status: "suggested",
+  });
+  putItem(db, "school", school);
+  return school;
+}
+
+/**
+ * Records a school's yearly stipend and monthly rent (USD) from a page that states them, kept or
+ * suggested, and adds the page to its sources. Null when the school isn't on the shortlist.
+ */
+export function setSchoolMoney(
+  db: Db,
+  name: string,
+  money: { stipendUsd?: number | undefined; rentUsd?: number | undefined },
+  source: string,
+) {
+  const school = schoolNamed(db, name);
+  if (!school) return null;
+  const next: School = {
+    ...school,
+    stipendUsd: money.stipendUsd === undefined ? school.stipendUsd : Math.round(money.stipendUsd),
+    rentUsd: money.rentUsd === undefined ? school.rentUsd : Math.round(money.rentUsd),
+    sources: school.sources.includes(source) ? school.sources : [...school.sources, source],
+  };
+  putItem(db, "school", next);
+  return next;
 }
 
 /** Files a find into the vault, or drops it so it never comes back. Returns the find. */
@@ -187,6 +248,7 @@ export function startApplication(db: Db, programId: string): Application {
     programId,
     status: "planning",
     waiver: "none",
+    onlyIfWaived: false,
     documents: CHECKLIST.map(([name, kind]) => {
       const doc = kind ? docs.find((d) => d.kind === kind) : undefined;
       return { name, docId: doc?.id ?? null, done: !!doc };

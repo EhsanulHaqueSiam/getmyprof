@@ -1,14 +1,44 @@
 // Tools that act on the applicant's side of the hunt: drafting mail, reading replies, filing
 // finds into the vault, and writing statements. tools.ts lists them with the research tools.
-import { Channel, Degree, ReplyClass, Touch, WritingKind } from "@getmyprof/contracts";
+import {
+  Channel,
+  Degree,
+  ReplyClass,
+  School,
+  SchoolTier,
+  Touch,
+  WritingKind,
+} from "@getmyprof/contracts";
 import { z } from "zod";
 import { classify } from "../outreach/inbox.ts";
 import { getMessage, issuesFor, saveDraft } from "../outreach/store.ts";
 import { recordKey } from "../records.ts";
-import { listOffers, proposeFinding, saveEdit, saveWriting } from "../vault.ts";
+import {
+  listOffers,
+  listPrograms,
+  proposeFinding,
+  proposeSchool,
+  saveEdit,
+  saveWriting,
+  setSchoolMoney,
+} from "../vault.ts";
 import type { HuntTool } from "./tools.ts";
 
 const define = <S extends z.ZodRawShape>(t: HuntTool<S>) => t;
+
+const CONFLICTS = z
+  .string()
+  .describe(
+    "When the department's and the graduate school's pages disagree (deadline, GRE, English rules), use the earlier deadline and record both values and both pages here, e.g. 'deadline: Dec 1 (cs.x.edu/phd) vs Dec 15 (grad.x.edu)'",
+  );
+const STIPEND = z
+  .number()
+  .positive()
+  .describe("The yearly PhD stipend in USD, from a page that states it");
+const RENT = z
+  .number()
+  .positive()
+  .describe("Median monthly rent in USD for a one-bedroom near campus, from a page that states it");
 
 export const APPLICANT_TOOLS = [
   define({
@@ -39,7 +69,7 @@ export const APPLICANT_TOOLS = [
   define({
     name: "draft_email",
     description:
-      "Draft an email (or a LinkedIn note) to a professor in the sheet. It waits for the applicant to approve; nothing is sent by you. Email goes only to the address already in the sheet; apply-only professors get none. Plain text, one recipient, at most two links. A first LinkedIn note stays under 200 characters, so it also fits a connection request. Cite each claim about the applicant with [[fact-id]] right after it, as in the Writer; an uncited or unproven claim keeps the draft from being approved.",
+      "Draft an email (or a LinkedIn note) to a professor in the sheet. It waits for the applicant to approve; nothing is sent by you. Email goes only to the address already in the sheet; apply-only professors get none. Plain text, one recipient, at most two links. A first LinkedIn note stays under 200 characters, so it also fits a connection request. Cite each claim about the applicant with [[fact-id]] right after it, as in the Writer; an uncited or unproven claim keeps the draft from being approved. A first message follows the first email playbook: their name, one recent paper of theirs by title and a detail of it, a specific subject, under 150 words, no generic praise; the checks block one that misses.",
     shape: {
       name: z.string(),
       university: z.string(),
@@ -62,7 +92,9 @@ export const APPLICANT_TOOLS = [
       attach: z
         .array(z.string())
         .optional()
-        .describe("Vault document ids to attach (email only), only when they asked, e.g. the CV"),
+        .describe(
+          "Vault document ids to attach (email only): the CV on a first email, or what they asked for",
+        ),
     },
     paid: false,
     price: () => 0,
@@ -138,6 +170,7 @@ export const APPLICANT_TOOLS = [
       eligibility: z
         .string()
         .describe('"ok", or "no: <why>" when this applicant can\'t be admitted or funded here'),
+      conflicts: CONFLICTS.optional(),
       url: z.string(),
       sources: z.array(z.string()).min(1),
       why: z.string().describe("One line: why it fits this applicant"),
@@ -149,6 +182,90 @@ export const APPLICANT_TOOLS = [
       if ("skipped" in r) return { summary: r.skipped, text: `Not filed: ${r.skipped}.` };
       ctx.vaultChanged();
       return { summary: "to file", text: "Waiting in the applicant's To file." };
+    },
+  }),
+  define({
+    name: "propose_school",
+    description:
+      "Suggest a school for the applicant's shortlist, in a tier for them. It waits on the Schools page until they keep or drop it; a dropped school can't come back. One call per school, with sources.",
+    shape: {
+      name: z.string().describe("The university's own name, as professors' pages write it"),
+      country: z.string(),
+      tier: SchoolTier,
+      rank: z.string().describe("Its rank in the field and the source, e.g. 'CSRankings #52, NLP'"),
+      admits: School.shape.admits.describe(
+        "committee: a program admits; advisor: professors hire for their labs",
+      ),
+      why: z.string().describe("One line: why this tier for this applicant"),
+      stipendUsd: STIPEND.optional(),
+      rentUsd: RENT.optional(),
+      sources: z.array(z.string()).min(1),
+    },
+    paid: false,
+    price: () => 0,
+    run: async (args, ctx) => {
+      const r = proposeSchool(ctx.db, args);
+      if ("skipped" in r) return { summary: r.skipped, text: `Not suggested: ${r.skipped}.` };
+      ctx.vaultChanged();
+      return { summary: `suggested · ${r.tier}`, text: "Waiting on the Schools page." };
+    },
+  }),
+  define({
+    name: "set_school_money",
+    description:
+      "Record what a school on the shortlist pays and what living there costs, so schools compare by the stipend left after rent. Give the page each figure is from.",
+    shape: {
+      name: z.string().describe("The school's name as the shortlist has it"),
+      stipendUsd: STIPEND.optional(),
+      rentUsd: RENT.optional(),
+      source: z.string().describe("The page the figures are from"),
+    },
+    paid: false,
+    price: () => 0,
+    run: async ({ name, source, ...money }, ctx) => {
+      const school = setSchoolMoney(ctx.db, name, money, source);
+      if (!school)
+        return { summary: "no school", text: `No school named ${name} on the shortlist.` };
+      ctx.vaultChanged();
+      return {
+        summary: `stipend ${school.stipendUsd ?? "?"} · rent ${school.rentUsd ?? "?"}`,
+        text: `Saved on ${school.name}, from ${source}.`,
+      };
+    },
+  }),
+  define({
+    name: "note_program",
+    description:
+      "Add notes to a program already in the applicant's Vault: last cycle's decision timing, or where official pages disagree. Notes, not commitments, so they save directly.",
+    shape: {
+      programId: z.string(),
+      decisions: z
+        .string()
+        .optional()
+        .describe(
+          "Last cycle's interview and decision dates from GradCafe reports, with how many reports and how many international, e.g. 'interviews late Jan; decisions Feb 10 to Mar 5 (14 reports, 4 international)'. Self-reported: never odds",
+        ),
+      conflicts: CONFLICTS.optional(),
+      source: z.string().describe("The page the notes are from"),
+    },
+    paid: false,
+    price: () => 0,
+    run: async ({ programId, source, ...notes }, ctx) => {
+      const program = listPrograms(ctx.db).find((p) => p.id === programId);
+      if (!program) return { summary: "no program", text: `No program ${programId} in the Vault.` };
+      saveEdit(ctx.db, {
+        kind: "program",
+        value: {
+          ...program,
+          decisions: notes.decisions ?? program.decisions,
+          conflicts: notes.conflicts ?? program.conflicts,
+          sources: program.sources.includes(source)
+            ? program.sources
+            : [...program.sources, source],
+        },
+      });
+      ctx.vaultChanged();
+      return { summary: "noted", text: `Noted on ${program.university} · ${program.name}.` };
     },
   }),
   define({

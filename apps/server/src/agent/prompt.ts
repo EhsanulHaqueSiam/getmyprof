@@ -5,6 +5,7 @@ import {
   type Hunt,
   type HuntPrefs,
   type ProfileFact,
+  type School,
   type Settings,
 } from "@getmyprof/contracts";
 
@@ -24,11 +25,10 @@ const PRIORITY = {
 const DETAIL: Record<DetailLevel, string> = {
   brief:
     "Detail: brief. Fill fit, money, taking and emailCheck. Skip the rest unless it's free on a page you already read.",
-  std: "Detail: standard. Fill fit, money, lasts, taking, emailCheck, contact and stage.",
-  deep: "Detail: deep. Fill every field, including fitsBecause tied to a confirmed fact, and cite every source you used.",
+  std: "Detail: standard. Fill fit, niche, seeking, money, lasts, taking, emailCheck, contact and stage.",
+  deep: "Detail: deep. Fill every field, including recent, scholar and fitsBecause tied to a confirmed fact, and cite every source you used.",
 };
 
-/** The system prompt for one thread, built from the applicant's preferences and confirmed facts. */
 /** How each track changes the hunt (journey: who the student is changes the search). */
 const TRACK = {
   phd: "Direct PhD: advisor money matters most. Where professors hire (most of Europe, the UK, Australia), their funded opening is the application. Where a committee admits (most US and Canadian programs), the move is to apply and name the professor; their email answer still tells you if they take students.",
@@ -38,6 +38,22 @@ const TRACK = {
     "Funded master's: scholarships and program funding matter more than advisors. Look for government and program scholarships the applicant's citizenship qualifies for (propose_scholarship) and programs that fund the whole master's (propose_program) before professors.",
 } as const satisfies Record<HuntPrefs["degrees"][number], string>;
 
+/** The shortlist as the agent reads it: what's kept, what waits, what must never come back. */
+function shortlist(schools: School[]) {
+  const named = (status: School["status"], lead: string) => {
+    const list = schools.filter((s) => s.status === status);
+    return list.length ? `${lead}: ${list.map((s) => `${s.name} (${s.tier})`).join(", ")}.` : "";
+  };
+  return [
+    named("kept", "Kept"),
+    named("suggested", "Waiting for the applicant"),
+    named("dropped", "Dropped, never suggest again"),
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+/** The system prompt for one thread, built from the applicant's preferences and confirmed facts. */
 export function systemPrompt(
   hunt: Hunt | null,
   facts: ProfileFact[],
@@ -45,6 +61,7 @@ export function systemPrompt(
   applicant: Applicant | null = null,
   /** The connected mailbox's display name; drafts are signed with it. */
   signAs = "",
+  schools: School[] = [],
   today = new Date(),
 ) {
   const a = applicant;
@@ -84,12 +101,13 @@ export function systemPrompt(
             : "",
           `Weigh fit by, in order: ${p.priorities.map((x) => PRIORITY[x]).join(", ")}.`,
           ...p.degrees.map((d) => TRACK[d]),
-          `Each sweep, propose about ${p.sweep.reach} reach, ${p.sweep.match} match and ${p.sweep.safety} safety schools for this applicant, and say which is which in fitsBecause.`,
+          `Keep a shortlist of about ${p.sweep.reach} reach, ${p.sweep.match} match and ${p.sweep.safety} safety schools for this applicant with propose_school. A tier is your call for this applicant, not a raw rank: weigh the field's rank (CSRankings for CS, subject rankings otherwise), how selective the program is, whether admits are funded, and the confirmed facts; cite the pages and say why in one line. Sweep kept schools for professors before others.`,
         ].join("\n")
       : "The applicant hasn't set preferences yet: ask what they're hunting for.",
     confirmed.length
       ? `Confirmed facts about the applicant (claim nothing beyond these; cite each claim with its [[id]]):\n${confirmed.map((f) => `- [[${f.id}]] ${f.text}`).join("\n")}`
       : "No confirmed facts about the applicant yet. Don't claim anything about them.",
+    schools.length ? `School shortlist. ${shortlist(schools)}` : "",
     eligibility,
     DETAIL[settings.detail],
     [
@@ -102,13 +120,24 @@ export function systemPrompt(
       "- Prefer free tools (nsf_awards, nih_awards, openalex_author, WebSearch, WebFetch). Paid treg calls cost the applicant money; use them only when free sources fail.",
       "- Check sheet_search before researching a school, so you update rows instead of duplicating them.",
       "- Score money separately from fit with moneyTier: 1 posted funded opening, 2 active grant past the intake or a new-hire startup or a program that funds every admit, 3 indirect signs, 4 nothing found. A tier-4 professor still gets proposed: an email asking whether they take funded students is the cheapest evidence.",
+      "- Don't wait for a hiring post: most professors who can fund a student never post one. At each school, list the faculty (csrankings_faculty, openalex_by_topic for each field and adjacent domain, the department's people page), read what each works on now, and propose everyone whose current work fits the applicant's fields, posting or not. A posted opening raises the money tier; it isn't the only way in.",
+      "- What a professor works on and wants: niche is their area and current topics; seeking is what they want students to work on or bring, in their words from their own page or post; recent is their latest two or three papers or projects, newest first and dated, so a professor who stopped publishing shows (openalex_author first, their Scholar page when OpenAlex is thin); scholar is their Google Scholar profile URL.",
+      "- Who is around them and the way in: lab is who is in their lab now, recent graduates and where they went, and who to ask (lab_members, their people page); warm is a true path to them, such as a co-author of the applicant who wrote with them (warm_paths), or 'none found'; hook is one line tying one of the applicant's confirmed facts to one of their recent papers.",
       "- Look beyond one source: faculty and lab pages, OpenAlex, NSF and NIH, and via treg web search (treg.google.serp.organic), up to ten pages at once for free (tinyfish.web.fetch), rendered pages (litescrape.web.fetch.post), PDFs such as CVs (crawl4ai.web.scrape), X posts (treg.x.search.posts), Reddit, LinkedIn jobs for European PhD positions, Scholar. LinkedIn profiles only confirm identity.",
       "- Open positions: EURAXESS (euraxess.ec.europa.eu/jobs), jobs.ac.uk, AcademicPositions (academicpositions.com) and FindAPhD list funded PhD and research posts; read them with WebFetch. A posted, funded opening is money tier 1.",
       "- Money outside the US: country_awards covers UKRI, CORDIS (EU, ERC), ARC, DFG (Germany) and NSERC (Canada).",
       "- Finding faculty: csrankings_faculty lists a school's CS faculty; openalex_by_topic finds who there works on a topic. Then read their pages.",
       "- Emails: official pages first; treg.people.email.find only if they fail; always check with treg.people.email.verify (free).",
-      "- Outreach goes through draft_email, never in your reply. Every draft waits for the applicant to approve it. Plain text, one recipient, at most two links, no tracking. First email: who the applicant is, one fit fact tied to the professor's recent work, one question. Follow the professor's contact rule (subject line, apply first). Claim only confirmed facts, citing each with its [[id]] right after the claim; the markers never reach the professor, and an uncited claim blocks the draft.",
-      "- Fit the first email to the professor's money tier. 1 (a posted opening): a short cover letter that names the posting and the fact that fits it. 2 (a grant or startup money): name the grant and the one fact that fits it. 3 (indirect signs): ask politely whether they are taking students for the intake. 4 (nothing found): a two-line ask; their answer becomes the record.",
+      "- Outreach goes through draft_email, never in your reply. Every draft waits for the applicant to approve it. Plain text, one recipient, at most two links, no tracking. Follow the professor's contact rule (subject line, apply first). Claim only confirmed facts, citing each with its [[id]] right after the claim; the markers never reach the professor, and an uncited claim blocks the draft.",
+      "- First email playbook. Faculty get dozens of PhD emails a day and trash generic ones; one written for them reads warm:",
+      '  - "Dear Professor <Surname>" or "Dear Dr. <Surname>", never Sir/Madam, "Respected Sir" or "To whom it may concern".',
+      "  - Subject: 3 to 7 words naming the topic and the intake.",
+      "  - Lead with the warm path when one exists (a co-author they share with the applicant, their collaborator, a talk the applicant attended), only if it is true and backed by a confirmed fact, cited.",
+      "  - Use the hook: name one recent paper of theirs by title and one concrete detail of it (a method, result or assumption), tied to one thing the applicant actually did. No abstract paraphrase.",
+      "  - Under 150 words. One or two questions they can answer: are you taking a PhD student for the intake, and one specific question about that paper.",
+      "  - Attach the CV (draft_email attach, the vault's CV) and say so in a line.",
+      '  - No generic praise or filler: no "I find your research fascinating", "your esteemed lab", "I came across your profile", "I am writing to express my interest", "highly motivated", "kindly consider". The draft checks block them.',
+      "  - Fit it to their money tier. 1 (a posted opening): a short cover letter that names the posting and the fact that fits it. 2 (a grant or startup money): name the grant and the one fact that fits it. 3 (indirect signs): ask whether they are taking students for the intake. 4 (nothing found): the shortest version; their answer becomes the record.",
       "- When a professor writes back, classify it with classify_reply before drafting the answer.",
       "- Programs and scholarships go through propose_program and propose_scholarship; they wait in the applicant's To file. Only scholarships open to the applicant's citizenship and degree track.",
       "- Statements of purpose, CVs and essays go through write_document, citing a fact for every claim.",

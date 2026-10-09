@@ -36,6 +36,14 @@ CREATE TABLE IF NOT EXISTS vault (
   id TEXT PRIMARY KEY, kind TEXT NOT NULL, body TEXT NOT NULL, created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS vault_kind ON vault (kind);
+CREATE TABLE IF NOT EXISTS students (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, token_hash TEXT NOT NULL, report TEXT, synced_at TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS catalog (
+  key TEXT PRIMARY KEY, kind TEXT NOT NULL, body TEXT NOT NULL, contributors TEXT NOT NULL,
+  checked_at TEXT NOT NULL
+);
 CREATE VIRTUAL TABLE IF NOT EXISTS notes USING fts5(path UNINDEXED, type UNINDEXED, title, body, links UNINDEXED);
 CREATE INDEX IF NOT EXISTS messages_record ON messages (record_key);
 CREATE INDEX IF NOT EXISTS messages_message_id ON messages (message_id);

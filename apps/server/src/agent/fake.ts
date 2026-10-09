@@ -1,29 +1,41 @@
 // A scripted agent for e2e and offline dev (GETMYPROF_AGENT=fake). It runs the real hunt tools
 // against fixture sources, so proposals, approvals, spend and settling behave exactly as with
 // Claude, for free and the same way every time.
-import { addressChecked, type RowOp, type ThreadEvent } from "@getmyprof/contracts";
+import { RowOp, type ThreadEvent } from "@getmyprof/contracts";
 import { now } from "../db.ts";
-import { getRecord, pendingCount } from "../records.ts";
-import { listDocuments } from "../vault.ts";
-import { FIXTURE_PROFESSORS, FIXTURE_PROGRAMS, FIXTURE_SCHOLARSHIPS } from "./fixtures.ts";
+import { pendingCount } from "../records.ts";
+import { listDocuments, listPrograms } from "../vault.ts";
+import { firstDraft, ZONE } from "./fake-mail.ts";
+import {
+  FIXTURE_DECISIONS,
+  FIXTURE_PROFESSORS,
+  FIXTURE_PROGRAMS,
+  FIXTURE_SCHOLARSHIPS,
+  FIXTURE_SCHOOL_MONEY,
+  FIXTURE_SCHOOLS,
+  FIXTURE_WORK,
+} from "./fixtures.ts";
 import type { AgentProvider, SessionStart } from "./provider.ts";
 import { askBlocked, capProblem, type HuntTool } from "./tools.ts";
 
-const FIELD_FOR: Record<RowOp, string> = {
+// Recent work and focus, and Warm path and hook, fill several fields from the fixtures.
+const FIELD_FOR: Record<Exclude<RowOp, "work" | "personalize">, string> = {
   email: "emailCheck",
   lasts: "lasts",
   taking: "taking",
+  lab: "lab",
   draft: "stage",
 };
-const VALUE_FOR: Record<RowOp, string> = {
+const VALUE_FOR: Record<Exclude<RowOp, "work" | "personalize">, string> = {
   email: "ok",
   lasts: "checked: no award as PI",
   taking: "not stated",
+  lab: "2 on OpenAlex: Ada Fixture, likely a student; Ben Fixture, last paper 2023, now at Fixture Labs. Ask Ada Fixture",
   draft: "drafted",
 };
 
 /** Row actions, replies and follow-ups reach the agent as tagged prompts (runner, outreach/service). */
-const ROW_TAG = /^\[row-action:(email|lasts|taking|draft)\] keys=(\S+)/;
+const ROW_TAG = new RegExp(`^\\[row-action:(${RowOp.options.join("|")})\\] keys=(\\S+)`);
 const REPLY = /^\[reply:(\S+)\] (.+?) \((.+?)\) wrote back/;
 const WRITE = /^\[write\] kind=(\w+) program=(\S+) scholarship=(\S+) revise=(\S+)/;
 const FACT_LINE = /^- \[\[(\S+?)\]\] (.+) \((confirmed|unconfirmed|needs proof|question)\)$/gm;
@@ -31,10 +43,6 @@ const orNull = (v: string | undefined) => (!v || v === "-" ? null : v);
 const AFTER_LINE = /^- (.+?) \| (.+?) \| key \S+ \| to (\S+) \| zone (\S+)/gm;
 const FOLLOW_UP_LINE =
   /^- (.+?) \| (.+?) \| key \S+ \| (follow-up-[12]) \| to (\S+) \| zone (\S+)/gm;
-const ZONE: Record<string, string> = {
-  "George Mason University": "America/New_York",
-  "University of Illinois Chicago": "America/Chicago",
-};
 
 export const fakeProvider = (
   delayMs = Number(process.env.GETMYPROF_FAKE_DELAY ?? 120),
@@ -127,17 +135,6 @@ export const fakeProvider = (
       );
     }
 
-    const firstEmail = (p: (typeof FIXTURE_PROFESSORS)[number]) => ({
-      name: p.name,
-      university: p.university,
-      channel: "email",
-      touch: "first",
-      to: p.email ?? "",
-      subject: p.contact.includes("PhD 2027") ? "PhD 2027" : "Prospective PhD student, Fall 2027",
-      body: `Dear Dr. ${p.name.split(" ").at(-1)},\n\nI'm applying for a funded PhD starting Fall 2027 and your work on ${p.niche} is close to what I want to do. Are you taking students for that intake?\n\nBest regards`,
-      timeZone: ZONE[p.university] ?? "America/New_York",
-    });
-
     async function answerReply(id: string, name: string, university: string) {
       await call("classify_reply", "interested", {
         messageId: id,
@@ -188,10 +185,37 @@ export const fakeProvider = (
         await call(scholarships ? "propose_scholarship" : "propose_program", f.name, f);
         if (result === "to file") filed++;
       }
+      // Checking programs at shortlisted schools also records George Mason's stipend and rent.
+      if (/^Find programs at/i.test(text))
+        await call("set_school_money", FIXTURE_SCHOOL_MONEY.name, FIXTURE_SCHOOL_MONEY);
       say(
         filed
           ? `${filed} ${filed === 1 ? "waits" : "wait"} in your To file.`
           : "Nothing new: everything I found is already in your vault.",
+      );
+    }
+
+    /** Fills the shortlist from fixtures; schools already listed or dropped are refused. */
+    async function suggestSchools() {
+      let added = 0;
+      for (const school of FIXTURE_SCHOOLS) {
+        await call("propose_school", `${school.name} · ${school.tier}`, school);
+        if (result.startsWith("suggested")) added++;
+      }
+      say(
+        added
+          ? `${added} school${added === 1 ? "" : "s"} wait on the Schools page.`
+          : "Nothing new: every school I found is already on your list.",
+      );
+    }
+
+    /** Notes last cycle's decision timing on every Vault program, from one fixture line. */
+    async function decisionTiming() {
+      const programs = listPrograms(s.toolContext.db);
+      for (const p of programs)
+        await call("note_program", p.name, { programId: p.id, ...FIXTURE_DECISIONS });
+      say(
+        `Noted decision timing on ${programs.length} program${programs.length === 1 ? "" : "s"}.`,
       );
     }
 
@@ -308,28 +332,20 @@ export const fakeProvider = (
         }
         if (op === "draft") {
           // No checked address but a LinkedIn profile: a short note instead, like the real agent.
-          const record = getRecord(s.toolContext.db, p.key);
-          const note =
-            record && !addressChecked(record.emailCheck) && "linkedin" in p && p.linkedin;
-          await call(
-            "draft_email",
-            `first · ${p.name}`,
-            note
-              ? {
-                  ...firstEmail(p),
-                  channel: "linkedin",
-                  to: note,
-                  subject: "",
-                  body: `Dear Dr. ${p.name.split(" ").at(-1)}, I'm applying for a funded PhD for Fall 2027 and your work on ${p.niche} is close to mine. Are you taking students?`,
-                }
-              : firstEmail(p),
-          );
+          await call("draft_email", `first · ${p.name}`, firstDraft(s.toolContext.db, p));
           continue;
         }
+        // Lab check and Warm path and hook read OpenAlex first, like the real agent.
+        const who = { name: p.name, university: p.university };
+        if (op === "lab") await call("lab_members", p.name, who);
+        if (op === "personalize") await call("warm_paths", p.name, who);
         await call("propose_professor", `${p.name} · ${p.university}`, {
-          name: p.name,
-          university: p.university,
-          [FIELD_FOR[op]]: VALUE_FOR[op],
+          ...who,
+          ...(op === "work"
+            ? { recent: p.recent, ...FIXTURE_WORK[p.name] }
+            : op === "personalize"
+              ? { warm: p.warm, hook: p.hook }
+              : { [FIELD_FOR[op]]: VALUE_FOR[op] }),
           sources: p.sources,
         });
       }
@@ -345,7 +361,7 @@ export const fakeProvider = (
       hooks.turnStarted();
       const row = ROW_TAG.exec(text);
       const reply = REPLY.exec(text);
-      if (row?.[1] && row[2]) await rowAction(row[1] as RowOp, row[2].split(","));
+      if (row?.[1] && row[2]) await rowAction(RowOp.parse(row[1]), row[2].split(","));
       else if (reply?.[1] && reply[2] && reply[3]) await answerReply(reply[1], reply[2], reply[3]);
       else if (text.startsWith("[follow-up]")) await followUps(text);
       else if (text.startsWith("[after-applying]")) await afterApplying(text);
@@ -357,6 +373,9 @@ export const fakeProvider = (
         });
         say("I'll wait for your answer.");
       } else if (/^Find (scholarships|programs)/i.test(text)) await vaultFinds(text);
+      else if (/^Suggest schools/i.test(text)) await suggestSchools();
+      else if (/^For each program in my Vault, read last cycle's results/i.test(text))
+        await decisionTiming();
       else if (/Ask mode/.test(text) && text.includes("\nScope: ")) {
         // A scoped Ask answers from the record the message carries, fetching nothing.
         await pause();

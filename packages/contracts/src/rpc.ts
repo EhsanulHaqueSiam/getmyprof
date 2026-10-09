@@ -24,11 +24,14 @@ import {
   TregStatus,
 } from "./domain.ts";
 import { ClaudeBinary } from "./desktop.ts";
+import { HubMethods } from "./hub.ts";
+import { ProgressReport } from "./report.ts";
 import { Conversation, MailConnect, MailSignIn, MailStatus } from "./outreach.ts";
 import { RowOp, ThreadEvent, ThreadSummary } from "./threads.ts";
 import {
   Application,
   DocKind,
+  School,
   VaultDocument,
   VaultEdit,
   VaultState,
@@ -53,8 +56,14 @@ export const AppState = z.object({
    * it's signed in (and as whom). */
   claude: z.object({ signedIn: z.boolean(), who: z.string(), binary: ClaudeBinary }),
   /** The sidebar's counts: awards from the last search worth a look (running past the intake,
-   * on topic, PI not in the sheet), loops on, and the last day's spend outside any thread. */
-  counts: z.object({ funding: z.number(), loops: z.number(), spendOutsideThreads: z.number() }),
+   * on topic, PI not in the sheet), loops on, the last day's spend outside any thread, and the
+   * students connected to this install as a hub. */
+  counts: z.object({
+    funding: z.number(),
+    loops: z.number(),
+    spendOutsideThreads: z.number(),
+    students: z.number(),
+  }),
 });
 export type AppState = z.infer<typeof AppState>;
 
@@ -201,6 +210,8 @@ export const Methods = {
       programs: z.array(
         z.object({ name: z.string(), deadline: z.string().nullable(), funding: z.string() }),
       ),
+      /** Their school on the shortlist, with its tier for this applicant. */
+      school: School.nullable(),
     }),
   },
   /** Their grants (NSF, NIH), recent work and interests (OpenAlex), live from free APIs. */
@@ -208,7 +219,8 @@ export const Methods = {
     input: z.object({ key: z.string() }),
     output: z.object({
       grants: z.array(Award),
-      works: z.array(z.object({ title: z.string(), year: z.number(), link: z.string() })),
+      /** Newest first; `date` is the publication date, as precise as OpenAlex has it. */
+      works: z.array(z.object({ title: z.string(), date: z.string(), link: z.string() })),
       interests: z.array(z.string()),
     }),
   },
@@ -338,6 +350,8 @@ export const Methods = {
   },
 
   "vault.get": { input: z.object({}), output: VaultState },
+  /** The progress report: counts, shortlist, replies and the next 30 days. */
+  "report.get": { input: z.object({}), output: ProgressReport },
   "vault.save": { input: VaultEdit, output: ok },
   "vault.remove": {
     input: z.object({
@@ -381,6 +395,8 @@ export const Methods = {
     input: z.object({ applicationId: z.string(), interviewId: z.string() }),
     output: ThreadSummary,
   },
+
+  ...HubMethods,
 } as const;
 
 export type Method = keyof typeof Methods;

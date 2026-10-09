@@ -267,6 +267,18 @@ export const Professor = z.object({
   website: z.string(),
   /** Their LinkedIn profile URL, for a note when no checked address exists. */
   linkedin: z.string().default(""),
+  /** Their Google Scholar profile URL. */
+  scholar: z.string().default(""),
+  /** Their latest papers or projects, newest first, each dated: shows they are still active. */
+  recent: z.string().default(""),
+  /** What they want students to work on or bring, in their words. */
+  seeking: z.string().default(""),
+  /** Who is in their lab now, recent graduates and where they went, and who to ask about it. */
+  lab: z.string().default(""),
+  /** A real path to them, e.g. a co-author of the applicant who wrote with them, and the paper. */
+  warm: z.string().default(""),
+  /** One line tying the applicant's work to theirs: what a first email opens on. */
+  hook: z.string().default(""),
   sources: z.array(z.string()),
   grants: z.array(Grant),
   origin: z.enum(["app", "gradhunt"]),
@@ -293,6 +305,12 @@ export const PROFESSOR_FIELDS = [
   "fitsBecause",
   "website",
   "linkedin",
+  "scholar",
+  "recent",
+  "seeking",
+  "lab",
+  "warm",
+  "hook",
 ] as const;
 export type ProfessorField = (typeof PROFESSOR_FIELDS)[number];
 
@@ -399,6 +417,34 @@ export const ScoutLoop = z.object({
   found7d: z.number(),
 });
 export type ScoutLoop = z.infer<typeof ScoutLoop>;
+
+const schoolWords = (s: string) =>
+  s
+    .toLowerCase()
+    .split(/[^a-z]+/)
+    .filter(
+      (w) =>
+        w.length > 3 &&
+        !["university", "college", "state", "institute", "school", "campus", "the"].includes(w),
+    );
+
+/** "UNIVERSITY OF READING" and "University of Reading" are the same school. */
+export const sameSchool = (a: string, b: string) => {
+  const wa = schoolWords(a);
+  return schoolWords(b).some((w) => wa.includes(w));
+};
+
+/**
+ * The school on a list that a university belongs to: the same name first, then a loose match,
+ * so "University of Illinois Chicago" doesn't land on "University of Chicago" when both are listed.
+ */
+export const schoolFor = <T extends { name: string }>(list: T[], university: string) => {
+  const exact = schoolWords(university).join(" ");
+  return (
+    list.find((s) => schoolWords(s.name).join(" ") === exact) ??
+    list.find((s) => sameSchool(s.name, university))
+  );
+};
 
 /** Free grant databases: NSF and NIH (US), UKRI (UK), CORDIS (EU, ERC), ARC (Australia), DFG (Germany), NSERC (Canada). */
 export const AwardSource = z.enum(["NSF", "NIH", "UKRI", "CORDIS", "ARC", "DFG", "NSERC"]);

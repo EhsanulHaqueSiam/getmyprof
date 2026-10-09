@@ -1,6 +1,8 @@
 // Data sources the agent and the Funding view use: free public APIs (NSF, NIH RePORTER, UKRI,
 // CORDIS, ARC, OpenAlex). Paid lookups go through treg.ts.
-import type { Award } from "@getmyprof/contracts";
+import { type Award, sameSchool } from "@getmyprof/contracts";
+
+export { sameSchool };
 
 const TIMEOUT_MS = 20_000;
 
@@ -49,22 +51,6 @@ export type AwardQuery = {
   activeAfter?: string;
 };
 export type RawAward = Omit<Award, "monthsAfterIntake" | "inSheet" | "fit">;
-
-const schoolWords = (s: string) =>
-  s
-    .toLowerCase()
-    .split(/[^a-z]+/)
-    .filter(
-      (w) =>
-        w.length > 3 &&
-        !["university", "college", "state", "institute", "school", "campus", "the"].includes(w),
-    );
-
-/** "UNIVERSITY OF READING" and "University of Reading" are the same school. */
-export const sameSchool = (a: string, b: string) => {
-  const wa = schoolWords(a);
-  return schoolWords(b).some((w) => wa.includes(w));
-};
 
 /** Keeps awards that match the query's school, PI and end date, for APIs that can't filter. */
 const narrow = (q: AwardQuery, awards: RawAward[]) =>
@@ -322,10 +308,17 @@ export type Author = {
   works: number;
   citations: number;
   topics: string[];
-  recent: { title: string; year: number; link: string }[];
+  recent: { title: string; date: string; link: string }[];
 };
 
-export async function openAlexAuthor(name: string, university?: string): Promise<Author | null> {
+/** Where OpenAlex last saw an author, e.g. "George Mason University". */
+export const lastInstitution = (a: Record<string, unknown>) =>
+  asArray(a.last_known_institutions)
+    .map((i) => text(asRecord(i).display_name))
+    .join(", ");
+
+/** The OpenAlex author record a name most likely is: the first match last seen at the university. */
+export async function openAlexMatch(name: string, university?: string) {
   const found = asArray(
     asRecord(
       await getJson(
@@ -333,18 +326,20 @@ export async function openAlexAuthor(name: string, university?: string): Promise
       ),
     ).results,
   ).map(asRecord);
-  const inst = (a: Record<string, unknown>) =>
-    asArray(a.last_known_institutions)
-      .map((i) => text(asRecord(i).display_name))
-      .join(", ");
   const want =
     university
       ?.toLowerCase()
       .split(/\W+/)
       .filter((w) => w.length > 3) ?? [];
-  const pick =
-    found.find((a) => want.length === 0 || want.some((w) => inst(a).toLowerCase().includes(w))) ??
-    null;
+  return (
+    found.find(
+      (a) => want.length === 0 || want.some((w) => lastInstitution(a).toLowerCase().includes(w)),
+    ) ?? null
+  );
+}
+
+export async function openAlexAuthor(name: string, university?: string): Promise<Author | null> {
+  const pick = await openAlexMatch(name, university);
   if (!pick) return null;
   const authorId = text(pick.id).split("/").pop();
   const works = asArray(
@@ -356,7 +351,7 @@ export async function openAlexAuthor(name: string, university?: string): Promise
   ).map(asRecord);
   return {
     name: text(pick.display_name),
-    institution: inst(pick),
+    institution: lastInstitution(pick),
     works: Number(pick.works_count ?? 0),
     citations: Number(pick.cited_by_count ?? 0),
     topics: asArray(pick.topics)
@@ -364,7 +359,7 @@ export async function openAlexAuthor(name: string, university?: string): Promise
       .map((t) => text(asRecord(t).display_name)),
     recent: works.map((w) => ({
       title: text(w.title),
-      year: Number(w.publication_year ?? 0),
+      date: text(w.publication_date) || text(w.publication_year),
       link: text(w.doi) || text(asRecord(w.primary_location).landing_page_url),
     })),
   };

@@ -319,6 +319,21 @@ function personalIssues(
 }
 
 /**
+ * What the applicant did since a message went out (its ISO date): confirmed facts dated to the
+ * day after it. A follow-up's honest new angle; a fact dated only "2026" can't be placed after a
+ * day, so it doesn't count.
+ */
+export const factsSince = (facts: ProfileFact[], sent: string) =>
+  facts.filter((f) => factStatus(f) === "confirmed" && f.date.length >= 10 && f.date > sent);
+
+/** The opening line of a message, past the greeting, without citation markers: what it says. */
+export const gist = (body: string) =>
+  stripCitations(body)
+    .split(/\n+/)
+    .map((l) => l.trim())
+    .find((l) => l && !/^(?:dear|hi|hello)\b/i.test(l)) ?? "";
+
+/**
  * Why an outgoing message can't be approved or sent yet, in words; empty when it may go. The same
  * rules as the Writer: every claim cites a proven fact, no test score without a taken test, at
  * most two links, cold mail only to a checked address, and nothing that reads as a model wrote it

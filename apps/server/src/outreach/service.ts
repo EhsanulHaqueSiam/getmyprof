@@ -7,7 +7,7 @@ import {
   MailStatus,
   OutreachMessage,
   addressChecked,
-  factStatus,
+  factsSince,
   Program,
   stripCitations,
 } from "@getmyprof/contracts";
@@ -211,12 +211,11 @@ export function createOutreach(deps: {
       db,
       `Follow-ups · ${at.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
     );
-    const facts = profileFacts(db).filter((f) => factStatus(f) === "confirmed" && f.date);
+    const facts = profileFacts(db);
     const lines = due.map((f) => {
-      // What the applicant did since the last message: a follow-up's honest new angle. A fact
-      // dated only "2026" can't be placed after a day, so it doesn't count.
+      // What the applicant did since the last message: a follow-up's honest new angle.
       const sent = (f.last?.at ?? f.last?.createdAt ?? "").slice(0, 10);
-      const fresh = facts.filter((x) => x.date.length >= 10 && x.date > sent);
+      const fresh = factsSince(facts, sent);
       const yours = fresh.length
         ? fresh.map((x) => `[[${x.id}]] ${x.text} (${x.date})`).join("; ")
         : "none";

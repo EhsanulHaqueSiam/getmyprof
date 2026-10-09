@@ -200,6 +200,11 @@ test("vault: the agent's finds wait in To file, and submitting an application dr
     "aria-pressed",
     "true",
   );
+  // Its chance and the lines behind it: Lybarger's reply is the strongest signal, but with no
+  // English test on file it stays a reach, and says what would move it.
+  await expect(app.getByTestId("chance-band")).toHaveText("reach");
+  await expect(app.getByTestId("chance-lines")).toContainText("Kevin Lybarger replied: taking");
+  await expect(app.getByTestId("chance-lines")).toContainText("needs IELTS 6.5, none taken");
 
   await app.getByLabel("Application status").selectOption("submitted");
   // The agent drafts the note; it waits behind Lybarger's earlier answer in his sequence.

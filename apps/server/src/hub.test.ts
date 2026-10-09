@@ -41,6 +41,8 @@ const program = {
   limit: "",
   conflicts: "",
   decisions: "",
+  admitRate: "",
+  gpaMin: "",
   url: "https://cec.gmu.edu/phd",
   sources: ["https://cec.gmu.edu/phd"],
 };

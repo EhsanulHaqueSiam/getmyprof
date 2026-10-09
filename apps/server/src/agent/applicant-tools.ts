@@ -26,6 +26,16 @@ import type { HuntTool } from "./tools.ts";
 
 const define = <S extends z.ZodRawShape>(t: HuntTool<S>) => t;
 
+const ADMIT_RATE = z
+  .string()
+  .describe(
+    "The department's own published PhD admit rate with its year, e.g. '7% of PhD applicants, 2025 (department report)'. Never from GradCafe or a ranking site; leave it out when the department publishes none",
+  );
+const GPA_MIN = z
+  .string()
+  .describe(
+    "The published GPA minimum with its scale, e.g. '3.0 / 4.0'; leave it out when none is stated",
+  );
 const CONFLICTS = z
   .string()
   .describe(
@@ -171,6 +181,8 @@ export const APPLICANT_TOOLS = [
         .string()
         .describe('"ok", or "no: <why>" when this applicant can\'t be admitted or funded here'),
       conflicts: CONFLICTS.optional(),
+      admitRate: ADMIT_RATE.optional(),
+      gpaMin: GPA_MIN.optional(),
       url: z.string(),
       sources: z.array(z.string()).min(1),
       why: z.string().describe("One line: why it fits this applicant"),
@@ -246,6 +258,8 @@ export const APPLICANT_TOOLS = [
           "Last cycle's interview and decision dates from GradCafe reports, with how many reports and how many international, e.g. 'interviews late Jan; decisions Feb 10 to Mar 5 (14 reports, 4 international)'. Self-reported: never odds",
         ),
       conflicts: CONFLICTS.optional(),
+      admitRate: ADMIT_RATE.optional(),
+      gpaMin: GPA_MIN.optional(),
       source: z.string().describe("The page the notes are from"),
     },
     paid: false,
@@ -259,6 +273,8 @@ export const APPLICANT_TOOLS = [
           ...program,
           decisions: notes.decisions ?? program.decisions,
           conflicts: notes.conflicts ?? program.conflicts,
+          admitRate: notes.admitRate ?? program.admitRate,
+          gpaMin: notes.gpaMin ?? program.gpaMin,
           sources: program.sources.includes(source)
             ? program.sources
             : [...program.sources, source],

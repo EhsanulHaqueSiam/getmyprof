@@ -6,14 +6,15 @@ import { z } from "zod";
 import type { Db } from "../db.ts";
 import { acceptByRules, listLoops } from "../loops.ts";
 import { searchVault } from "../okf.ts";
-import { listRecords, notInSheet, personKey, propose } from "../records.ts";
-import { intakeStart, monthsAfter, sameSchool } from "../sources.ts";
+import { listRecords, notInSheet, propose } from "../records.ts";
+import { sameSchool } from "../sources.ts";
 import { TREG_ENDPOINTS, tregText } from "../treg.ts";
 import { daySpend, getThread, recordSpend, threadSpend } from "../threads.ts";
 import { APPLICANT_TOOLS } from "./applicant-tools.ts";
 import { DISCOVERY_TOOLS } from "./discovery-tools.ts";
+import { awardLines } from "./awards.ts";
+import { sweptSchools } from "./sweep.ts";
 import { PEOPLE_TOOLS } from "./people-tools.ts";
-import { surface } from "./sweep.ts";
 import { professorFields } from "./professor-fields.ts";
 import { TREG_TOOL_NAMES, tregJobs } from "./treg-jobs.ts";
 
@@ -59,6 +60,7 @@ export const READ_ONLY = new Set([
   "warm_paths",
   "read_contact_rule",
   "sweep_status",
+  "professor_dossier",
 ]);
 
 /** Why a tool can't run in this turn, or null: an Ask changes nothing and spends nothing. */
@@ -81,62 +83,6 @@ export type HuntTool<S extends z.ZodRawShape = z.ZodRawShape> = {
 };
 
 const define = <S extends z.ZodRawShape>(t: HuntTool<S>) => t;
-const SYMBOL: Record<string, string> = { USD: "$", GBP: "£", EUR: "€", AUD: "A$" };
-const money = (amount: number | null, currency = "USD") =>
-  amount == null
-    ? "?"
-    : `${SYMBOL[currency] ?? `${currency} `}${Math.round(amount).toLocaleString("en-US")}`;
-
-const awardLines = async (
-  ctx: ToolContext,
-  which: ReturnType<typeof sourceKey>,
-  args: { terms: string[]; university?: string | undefined; pi?: string | undefined },
-) => {
-  const start = intakeStart(ctx.hunt?.prefs.intake ?? "");
-  const activeAfter = start?.toISOString().slice(0, 10);
-  const q = {
-    terms: args.terms,
-    ...(args.university ? { university: args.university } : {}),
-    ...(args.pi ? { pi: args.pi } : {}),
-    ...(activeAfter ? { activeAfter } : {}),
-  };
-  const awards = await ctx.sources[which](q);
-  surface(
-    ctx.db,
-    ctx.threadId,
-    awards.flatMap((a) => [
-      ...(a.pi ? [{ name: a.pi, university: a.university, via: `${a.source} ${a.id}` }] : []),
-      ...(a.coPis ?? []).map((c) => ({
-        name: c.name,
-        university: a.university,
-        via: `${a.source} ${a.id} co-PI`,
-      })),
-    ]),
-  );
-  // One block per PI: a lab's five awards read as one lead, with the email the award lists.
-  const byPi = new Map<string, { pi: string; university: string; awards: typeof awards }>();
-  for (const a of awards) {
-    const who = `${a.pi ? personKey(a.pi) : a.id}@${a.university.toLowerCase()}`;
-    const at = byPi.get(who) ?? { pi: a.pi, university: a.university, awards: [] };
-    at.awards.push(a);
-    byPi.set(who, at);
-  }
-  const blocks = [...byPi.values()].map((p) => {
-    const email = p.awards.find((a) => a.piEmail)?.piEmail;
-    return [
-      `PI ${p.pi || "not listed"}${email ? ` <${email}> (from the award)` : ""} | ${p.university}`,
-      ...p.awards.map(
-        (a) =>
-          `  ${a.source} ${a.id} | ${money(a.amount, a.currency)} | ends ${a.ends ?? "?"} | ${monthsAfter(a.ends, start) ?? "?"} months after intake | ${a.title}${a.coPis?.length ? ` | co-PIs here: ${a.coPis.map((c) => `${c.name} <${c.email}>`).join(", ")}` : ""}`,
-      ),
-    ].join("\n");
-  });
-  return {
-    summary: `${awards.length} award${awards.length === 1 ? "" : "s"}, ${byPi.size} PI${byPi.size === 1 ? "" : "s"} · free`,
-    text: blocks.join("\n") || "No active awards found.",
-  };
-};
-
 export const HUNT_TOOLS = [
   define({
     name: "nsf_awards",
@@ -245,6 +191,7 @@ export const HUNT_TOOLS = [
       const others = notInSheet(ctx.db).filter(
         (x) => school(x.university) && want(`${x.name} ${x.niche}`, args.query),
       );
+      const swept = Object.entries(sweptSchools(ctx.db)).map(([s, day]) => `${s} (${day})`);
       return {
         summary: `${rows.length} in the sheet${others.length ? `, ${others.length} waiting or rejected` : ""}`,
         text:
@@ -256,6 +203,7 @@ export const HUNT_TOOLS = [
                   `${p.name} | ${p.university} | fit ${p.fit} | money ${p.money || "?"} | taking ${p.taking || "?"} | email ${p.emailCheck || "?"} | ${p.stage}`,
               ),
             ...others.slice(0, 40).map((x) => `${x.name} | ${x.university} | ${x.status}`),
+            ...(swept.length ? [`Schools already swept, pick others: ${swept.join(", ")}`] : []),
           ].join("\n") || "Nothing yet.",
       };
     },

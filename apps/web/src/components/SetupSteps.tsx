@@ -77,7 +77,8 @@ function BetterOddsList({ prefs, onAdd }: { prefs: HuntPrefs; onAdd: (field: str
               style={{ width: `${Math.round((f.fundedPis / most) * 80) + 2}px` }}
             />
             <span className={note}>
-              {f.fundedPis} funded PIs{f.usd ? `, $${(f.usd / 1e6).toFixed(1)}M` : ""}
+              {f.fundedPis} funded PI{f.fundedPis === 1 ? "" : "s"}
+              {f.usd ? `, $${(f.usd / 1e6).toFixed(1)}M` : ""}
               {f.citizenOnly ? ` · ${f.citizenOnly} training grants pay US citizens only` : ""}
             </span>
             <Button size="xs" variant="outline" disabled={added} onClick={() => onAdd(f.field)}>

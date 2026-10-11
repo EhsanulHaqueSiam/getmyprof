@@ -58,6 +58,21 @@ export function unchecked(db: Db, threadId: string) {
   );
 }
 
+const Swept = z.record(z.string(), z.string());
+
+/** Schools whose sweep finished, with the day: a school with no fits leaves no rows otherwise. */
+export const sweptSchools = (db: Db) => getKv(db, "swept.schools", (v) => Swept.parse(v), {});
+
+/** Marks the schools a finished sweep covered, so a later Nightly sweep picks others. */
+export function noteSwept(db: Db, threadId: string, day: string) {
+  const schools = new Set(read(db, threadId).map((p) => p.university));
+  if (!schools.size) return;
+  setKv(db, "swept.schools", {
+    ...sweptSchools(db),
+    ...Object.fromEntries([...schools].map((s) => [s, day])),
+  });
+}
+
 /** The message that sends the agent back to finish a sweep, or null when nobody is left. */
 export function sweepNudge(db: Db, threadId: string) {
   const left = unchecked(db, threadId);

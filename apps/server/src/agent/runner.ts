@@ -26,7 +26,7 @@ import {
 } from "../threads.ts";
 import { systemPrompt } from "./prompt.ts";
 import type { AgentProvider, AgentSession, Attachment, SessionHooks } from "./provider.ts";
-import { sweepNudge } from "./sweep.ts";
+import { noteSwept, sweepNudge } from "./sweep.ts";
 import { ROW_INSTRUCTIONS } from "./row-actions.ts";
 import { type Sources, toolsFor } from "./tools.ts";
 
@@ -148,6 +148,7 @@ export function createRunner(deps: {
           !error && !asks.has(threadId) && sentBack < (deps.sweepNudges ?? 0)
             ? sweepNudge(db, threadId)
             : null;
+        if (!error && !nudge && !asks.has(threadId)) noteSwept(db, threadId, now().slice(0, 10));
         if (nudge) {
           nudged.set(threadId, sentBack + 1);
           setTimeout(() => send(threadId, nudge, "send", "Finish the sweep", [], true));

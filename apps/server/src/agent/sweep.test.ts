@@ -2,7 +2,16 @@ import { describe, expect, it } from "vite-plus/test";
 import { openDb } from "../db.ts";
 import { propose } from "../records.ts";
 import { createThread } from "../threads.ts";
-import { fieldVenues, papersIn, skip, surface, sweepNudge, unchecked } from "./sweep.ts";
+import {
+  fieldVenues,
+  noteSwept,
+  papersIn,
+  skip,
+  surface,
+  sweepNudge,
+  sweptSchools,
+  unchecked,
+} from "./sweep.ts";
 
 const GMU = "George Mason University";
 
@@ -32,6 +41,9 @@ describe("a hunt's sweep", () => {
     expect(sweepNudge(db, thread)).toContain(`${GMU}: Ziwei Zhu (CSRankings acl 3, www 4)`);
     skip(db, thread, [{ name: "Ziwei Zhu", university: GMU, why: "recommender systems" }]);
     expect(sweepNudge(db, thread)).toBeNull();
+    // A finished sweep marks its schools, so a later Nightly sweep picks others.
+    noteSwept(db, thread, "2026-10-11");
+    expect(sweptSchools(db)).toEqual({ [GMU]: "2026-10-11" });
   });
 
   it("reads NLP authors from acl, emnlp and naacl, two papers or more", () => {

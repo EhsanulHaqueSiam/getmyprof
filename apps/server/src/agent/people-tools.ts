@@ -5,12 +5,73 @@
 import { factStatus } from "@getmyprof/contracts";
 import { z } from "zod";
 import { profileFacts } from "../adapters.ts";
+import { awardLines } from "./awards.ts";
 import type { HuntTool } from "./tools.ts";
 
 const define = <S extends z.ZodRawShape>(t: HuntTool<S>) => t;
 const who = { name: z.string(), university: z.string() };
 
 export const PEOPLE_TOOLS = [
+  define({
+    name: "professor_dossier",
+    description:
+      "Everything free about one professor in one call, instead of five: their OpenAlex record and newest works, their NSF and NIH awards past the intake (with the emails awards list), what their page tells prospective students (each quote with its page, and the emails it gives), and who is in their lab. Free.",
+    shape: {
+      name: z.string(),
+      university: z.string(),
+      homepage: z.string().optional().describe("Their homepage or lab page, when you know it"),
+    },
+    paid: false,
+    price: () => 0,
+    run: async ({ name, university, homepage }, ctx) => {
+      const each = { terms: [], university, pi: name };
+      const [author, nsf, nih, page, lab] = await Promise.allSettled([
+        ctx.sources.openalex(name, university),
+        awardLines(ctx, "nsf", each),
+        awardLines(ctx, "nih", each),
+        homepage ? ctx.sources.contactPage(homepage) : Promise.resolve(null),
+        ctx.sources.lab(name, university),
+      ]);
+      // A source that fails says so in its own section; the rest still arrive.
+      const failed = (r: PromiseRejectedResult) => `unavailable: ${String(r.reason).slice(0, 160)}`;
+      const a = author.status === "fulfilled" ? author.value : null;
+      const sections = [
+        `## OpenAlex\n${
+          author.status === "rejected"
+            ? failed(author)
+            : a
+              ? `${a.name}, ${a.institution} · ${a.works} works, ${a.citations} citations\nTopics: ${a.topics.join(", ")}\n${a.recent.map((w) => `- ${w.title} (${w.date}) ${w.link}`).join("\n")}`
+              : "No matching author at this school."
+        }`,
+        `## Awards\n${[nsf, nih].map((r) => (r.status === "fulfilled" ? r.value.text : failed(r))).join("\n")}`,
+        `## Their page\n${
+          page.status === "rejected"
+            ? failed(page)
+            : page.value
+              ? [
+                  `Read ${page.value.urls.join(" and ")} on ${page.value.readOn}; taking: ${page.value.taking ?? "not stated"}`,
+                  ...page.value.statements.map((q) => `Says (${page.value?.from[q]}): "${q}"`),
+                  ...(page.value.emails.length ? [`Emails: ${page.value.emails.join(", ")}`] : []),
+                ].join("\n")
+              : "No homepage given: pass one, or read_contact_rule it later."
+        }`,
+        `## Lab\n${
+          lab.status === "rejected"
+            ? failed(lab)
+            : lab.value
+              ? lab.value.coAuthors
+                  .slice(0, 12)
+                  .map(
+                    (c) =>
+                      `- ${c.name} | ${c.shared} shared, last ${c.lastYear}${c.student ? " | likely student" : ""}`,
+                  )
+                  .join("\n") || "Nobody wrote with them twice."
+              : "No matching author."
+        }`,
+      ];
+      return { summary: a ? `${a.works} works` : "dossier", text: sections.join("\n\n") };
+    },
+  }),
   define({
     name: "lab_members",
     description:

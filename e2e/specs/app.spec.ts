@@ -216,7 +216,7 @@ test("vault: the agent's finds wait in To file, and submitting an application dr
 
   await page.goto("/vault?section=scholarships");
   await page.getByRole("button", { name: "Find scholarships" }).click();
-  // The agent proposed two; the server refused Chevening, closed to this applicant's citizenship.
+  // The agent proposed two; the server refused Chevening, which funds master's only (a PhD hunt).
   await expect(page.getByText("1 waits in your To file.")).toBeVisible();
   await page.goto("/vault?section=scholarships");
   await expect(page.getByTestId("to-file")).toHaveCount(1);

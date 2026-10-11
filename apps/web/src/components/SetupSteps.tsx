@@ -1,4 +1,4 @@
-import type { DetailLevel, HuntPrefs } from "@getmyprof/contracts";
+import type { DetailLevel, HuntPrefs, MethodOutput } from "@getmyprof/contracts";
 import { ArrowDownIcon, ArrowUpIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Chip, ListEditor, Row } from "~/components/FormParts";
@@ -33,6 +33,63 @@ export const LOOP_NAMES = [
 type Budget = { perThread: number; perLoopRun: number; perDay: number; askOver: number };
 
 /** First run, step 3: what the applicant is hunting for. */
+/**
+ * Fields next to the hunt's, ranked by funded PIs at the applicant's kept (or sheet) schools, with
+ * citizen-only training grants apart. Add puts one in the adjacent domains.
+ */
+function BetterOddsList({ prefs, onAdd }: { prefs: HuntPrefs; onAdd: (field: string) => void }) {
+  const [odds, setOdds] = useState<MethodOutput<"hunt.betterOdds"> | null>(null);
+  const fieldsKey = prefs.fields.join("|");
+  useEffect(() => {
+    setOdds(null);
+    const fields = fieldsKey.split("|").filter(Boolean);
+    const t = setTimeout(
+      () =>
+        void call("hunt.betterOdds", { fields, intake: prefs.intake }).then(setOdds, () =>
+          setOdds({ schools: [], core: 0, fields: [] }),
+        ),
+      600,
+    );
+    return () => clearTimeout(t);
+  }, [fieldsKey, prefs.intake]);
+  const note = "text-muted-foreground text-xs";
+  if (!odds) return <span className={note}>Comparing fields at your schools</span>;
+  if (!odds.schools.length || !odds.fields.length)
+    return (
+      <span className={note}>
+        Keep schools on your shortlist to compare fields there, or start "Fields with better odds"
+        from the home page.
+      </span>
+    );
+  const most = Math.max(1, ...odds.fields.map((f) => f.fundedPis));
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className={note}>
+        Funded PIs at {odds.schools.join(", ")} past your intake; {odds.core} in your own fields.
+      </span>
+      {odds.fields.map((f) => {
+        const added = prefs.adjacent.includes(f.field);
+        return (
+          <div key={f.field} className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="w-48">{f.field}</span>
+            <span
+              className="h-1.5 rounded-sm bg-primary"
+              style={{ width: `${Math.round((f.fundedPis / most) * 80) + 2}px` }}
+            />
+            <span className={note}>
+              {f.fundedPis} funded PIs{f.usd ? `, $${(f.usd / 1e6).toFixed(1)}M` : ""}
+              {f.citizenOnly ? ` · ${f.citizenOnly} training grants pay US citizens only` : ""}
+            </span>
+            <Button size="xs" variant="outline" disabled={added} onClick={() => onAdd(f.field)}>
+              {added ? "Added" : "Add"}
+            </Button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function HuntStep({
   prefs,
   set,
@@ -134,6 +191,12 @@ export function HuntStep({
         <span className="mt-1.5 block text-muted-foreground text-xs">
           These labs need your skills and get fewer applicants.
         </span>
+      </Row>
+      <Row label="Better odds">
+        <BetterOddsList
+          prefs={prefs}
+          onAdd={(field) => set("adjacent", [...prefs.adjacent, field])}
+        />
       </Row>
       <Row label="Funding floor">
         <div className="flex flex-wrap gap-1.5">

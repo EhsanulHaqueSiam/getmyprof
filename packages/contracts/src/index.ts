@@ -16,6 +16,7 @@ export const Health = z.object({
 export type Health = z.infer<typeof Health>;
 
 export * from "./domain.ts";
+export * from "./fields.ts";
 export * from "./threads.ts";
 export * from "./rpc.ts";
 export * from "./outreach.ts";

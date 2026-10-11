@@ -1,10 +1,11 @@
 // The WebSocket API. Each method pairs an input schema with an output schema; the server
 // validates inputs before dispatch and the client's `call` infers both sides from this map.
 import { z } from "zod";
+import { BetterOdds } from "./fields.ts";
 import {
   Applicant,
-  Award,
   AutoRules,
+  Award,
   AwardSource,
   DetailLevel,
   Hunt,
@@ -268,6 +269,15 @@ export const Methods = {
   "hunt.adjacent": {
     input: z.object({ fields: z.array(z.string()) }),
     output: z.array(z.string()),
+  },
+  /** Fields next to these, ranked by funded PIs at the shortlist's (or the sheet's) schools. */
+  "hunt.betterOdds": {
+    input: z.object({ fields: z.array(z.string()), intake: z.string() }),
+    output: z.object({
+      schools: z.array(z.string()),
+      core: z.number(),
+      fields: z.array(BetterOdds),
+    }),
   },
   "loops.list": { input: z.object({}), output: z.array(LoopRow) },
   /** Scout's nightly loop, read from gradhunt; null on any install without it. */

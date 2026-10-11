@@ -295,38 +295,6 @@ export const Professor = z.object({
 });
 export type Professor = z.infer<typeof Professor>;
 
-export const DETAIL_RANK: Record<DetailLevel, number> = { brief: 0, std: 1, deep: 2 };
-
-/**
- * The detail level each professor field comes in at: the agent fills it from that level up and the
- * Results grid shows its column from there, so the two never disagree.
- */
-export const FIELD_LEVEL = {
-  fit: "brief",
-  name: "brief",
-  moneyTier: "brief",
-  taking: "brief",
-  money: "brief",
-  emailCheck: "brief",
-  niche: "std",
-  seeking: "std",
-  lasts: "std",
-  eligibility: "std",
-  contact: "std",
-  stage: "std",
-  recent: "deep",
-  scholar: "deep",
-  hook: "deep",
-  fitsBecause: "deep",
-  sources: "deep",
-} as const satisfies Partial<Record<keyof Professor, DetailLevel>>;
-
-/** The fields the agent fills at a detail level, beyond the name it always gives. */
-export const fieldsAt = (level: DetailLevel) =>
-  Object.entries(FIELD_LEVEL)
-    .filter(([f, l]) => f !== "name" && f !== "sources" && DETAIL_RANK[l] <= DETAIL_RANK[level])
-    .map(([f]) => f);
-
 /** Fields a proposal may change. key, origin and updatedAt are the store's to manage. */
 export const PROFESSOR_FIELDS = [
   "name",

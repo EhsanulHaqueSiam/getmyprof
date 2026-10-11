@@ -14,12 +14,15 @@ const DAY = 864e5;
  */
 const openAlexSeen = new Map<string, { at: number; body: unknown }>();
 
-/** OpenAlex's own key (GETMYPROF_OPENALEX_KEY, free at openalex.org) lifts the daily budget 10x. */
+/** The user's OpenAlex key (Settings, or GETMYPROF_OPENALEX_KEY): 10x the keyless daily budget. */
+let openAlexKey = process.env.GETMYPROF_OPENALEX_KEY ?? "";
+export const setOpenAlexKey = (key: string) => {
+  openAlexKey = key || process.env.GETMYPROF_OPENALEX_KEY || "";
+};
 const openAlex = (url: string) => {
   const u = new URL(url);
   u.searchParams.set("mailto", "hunt@getmyprof.dev");
-  if (process.env.GETMYPROF_OPENALEX_KEY)
-    u.searchParams.set("api_key", process.env.GETMYPROF_OPENALEX_KEY);
+  if (openAlexKey) u.searchParams.set("api_key", openAlexKey);
   return u.toString();
 };
 
@@ -34,7 +37,7 @@ export async function getJson(url: string, init?: RequestInit): Promise<unknown>
   if (isOpenAlex && res.status === 429) {
     const hours = Math.ceil(Number(res.headers.get("x-ratelimit-reset") ?? 0) / 3600);
     throw new Error(
-      `OpenAlex's free daily limit is used up${hours ? ` for about ${hours} more hours` : ""}. Until then find papers with scholar_search and read their own pages; a free OpenAlex key (GETMYPROF_OPENALEX_KEY) raises the limit.`,
+      `OpenAlex's free daily limit is used up${hours ? ` for about ${hours} more hours` : ""}. Until then find papers with scholar_search and read their own pages; a free OpenAlex key in Settings raises the limit.`,
     );
   }
   if (!res.ok) throw new Error(`${new URL(url).host} answered ${res.status}`);
@@ -308,15 +311,32 @@ export async function nsfAwards(q: AwardQuery): Promise<RawAward[]> {
   return [...out.values()];
 }
 
+const words = (s: string) =>
+  ` ${s
+    .toLowerCase()
+    .replace(/[^a-z]+/g, " ")
+    .trim()} `;
+
+/**
+ * NIH's spelling of a school holds the school's whole name: "UTAH STATE HIGHER EDUCATION
+ * SYSTEM--UNIVERSITY OF UTAH" is the University of Utah, "UTAH STATE UNIVERSITY" isn't.
+ */
+export const sameOrg = (org: string, school: string) =>
+  words(org).includes(words(school)) || sameSchoolName(org, school);
+
 export async function nihAwards(q: AwardQuery): Promise<RawAward[]> {
   const criteria: Record<string, unknown> = {};
   if (q.terms.length)
     criteria.advanced_text_search = {
       operator: "or",
       search_field: "projecttitle,terms,abstracttext",
-      search_text: q.terms.join(" "),
+      // Each term as a phrase: "natural language processing", not any of its three words.
+      search_text: q.terms.map((t) => `"${t.replaceAll('"', "")}"`).join(" "),
     };
-  if (q.university) criteria.org_names = [q.university];
+  // NIH matches whole words of its own spelling ("UTAH STATE HIGHER EDUCATION SYSTEM--UNIVERSITY
+  // OF UTAH", "CARNEGIE-MELLON UNIVERSITY"), so ask by the school's telling words too and keep only
+  // the school here (sameOrg).
+  if (q.university) criteria.org_names = [q.university, ...schoolWords(q.university)];
   if (q.pi) criteria.pi_names = [{ any_name: q.pi }];
   if (q.activeAfter) criteria.project_end_date = { from_date: q.activeAfter };
   const body = asRecord(
@@ -333,10 +353,12 @@ export async function nihAwards(q: AwardQuery): Promise<RawAward[]> {
           "AwardAmount",
           "Organization",
           "ContactPiName",
+          "ActivityCode",
           "AbstractText",
         ],
-        // Grouped by PI for the agent, so a full page of 50 reads as a short list of labs.
-        limit: 50,
+        // Grouped by PI for the agent, so a full page reads as a short list of labs. More with a
+        // school: the telling words also bring in its namesakes, which sameOrg drops.
+        limit: q.university ? 200 : 50,
       }),
     }),
   );
@@ -346,15 +368,19 @@ export async function nihAwards(q: AwardQuery): Promise<RawAward[]> {
     .flatMap((r) => {
       const id = text(r.project_num);
       const core = id.slice(1, 12); // one row per project, not per fiscal year
+      const org = text(asRecord(r.organization).org_name);
+      if (q.university && !sameOrg(org, q.university)) return [];
       if (seen.has(core)) return [];
       seen.add(core);
       return [
         {
           source: "NIH" as const,
           id,
-          title: text(r.project_title),
+          // T32, T90 and R90 are training grants: they pay PhD students, the strongest money there is.
+          title: `${/^(T32|T90|R90)$/.test(text(r.activity_code)) ? `[${text(r.activity_code)} training grant, pays PhD students] ` : ""}${text(r.project_title)}`,
           pi: text(r.contact_pi_name),
-          university: text(asRecord(r.organization).org_name),
+          // The school as the hunt names it, not NIH's system name.
+          university: q.university ?? org,
           amount: r.award_amount == null ? null : Number(r.award_amount),
           currency: "USD",
           url: `https://reporter.nih.gov/project-details/${id}`,

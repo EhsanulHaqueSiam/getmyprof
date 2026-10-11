@@ -13,6 +13,7 @@ import {
   scoutLoop,
   writeBackToGradhunt,
 } from "./adapters.ts";
+import { setOpenAlexKey } from "./sources.ts";
 import { claudeStatus, ensureClaude, loginCode, startLogin } from "./agent/binary.ts";
 import { extractFacts, fakeFacts } from "./agent/extract.ts";
 import type { Runner } from "./agent/runner.ts";
@@ -120,6 +121,7 @@ export function createHandlers(svc: Services): Handlers {
     "settings.update": (patch) => {
       const before = getSettings(db);
       const next = updateSettings(db, patch);
+      setOpenAlexKey(next.openalexKey);
       if (next.gradhunt && !before.gradhunt) importGradhunt(db);
       if (next.setupDone && !before.setupDone && listLoops(db).length === 0)
         for (const l of STARTER_LOOPS)

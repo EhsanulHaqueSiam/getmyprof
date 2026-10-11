@@ -3,6 +3,7 @@ import * as NodeFS from "node:fs";
 import * as NodeHttp from "node:http";
 import { WebSocketServer } from "ws";
 import { z } from "zod";
+import { setOpenAlexKey } from "./sources.ts";
 import { importGradhunt, profileFacts } from "./adapters.ts";
 import { ensureClaude } from "./agent/binary.ts";
 import { claudeProvider } from "./agent/claude.ts";
@@ -35,6 +36,7 @@ const fake = process.env.GETMYPROF_AGENT === "fake";
 const db = openDb();
 settleStale(db);
 if (getSettings(db).gradhunt) importGradhunt(db);
+setOpenAlexKey(getSettings(db).openalexKey);
 
 const bus = createBus();
 const sources = fake ? fixtureSources : realSources;

@@ -225,10 +225,9 @@ export async function csrankingsFaculty(university: string): Promise<Faculty[]> 
   );
 }
 
-const firstId = async (path: string) =>
-  text(asRecord(asArray(asRecord(await getJson(`https://api.openalex.org/${path}`)).results)[0]).id)
-    .split("/")
-    .at(-1) ?? "";
+const openAlexResults = async (path: string) =>
+  asArray(asRecord(await getJson(`https://api.openalex.org/${path}`)).results).map(asRecord);
+const idOf = (r: Record<string, unknown> | undefined) => text(r?.id).split("/").at(-1) ?? "";
 
 export type TopicAuthor = {
   name: string;
@@ -240,14 +239,20 @@ export type TopicAuthor = {
 
 /** Who at a school works on a topic, by OpenAlex: most published first. */
 export async function openAlexByTopic(topic: string, university: string): Promise<TopicAuthor[]> {
-  const [inst, top] = await Promise.all([
-    firstId(`institutions?search=${encodeURIComponent(university)}&per-page=1`),
-    firstId(`topics?search=${encodeURIComponent(topic)}&per-page=1`),
+  const [insts, tops] = await Promise.all([
+    openAlexResults(`institutions?search=${encodeURIComponent(university)}&per-page=5`),
+    openAlexResults(`topics?search=${encodeURIComponent(topic)}&per-page=3`),
   ]);
+  // The very school, not the first hit ("University of Utah", not Utah State); any of the three
+  // closest topics, since one topic name rarely covers a field.
+  const inst = idOf(
+    insts.find((i) => sameSchoolName(text(i.display_name), university)) ?? insts[0],
+  );
+  const top = tops.map(idOf).filter(Boolean).join("|");
   if (!inst || !top) return [];
   const body = asRecord(
     await getJson(
-      `https://api.openalex.org/authors?filter=last_known_institutions.id:${inst},topics.id:${top}&sort=works_count:desc&per-page=25`,
+      `https://api.openalex.org/authors?filter=last_known_institutions.id:${inst},topics.id:${top}&sort=works_count:desc&per-page=50`,
     ),
   );
   return asArray(body.results)

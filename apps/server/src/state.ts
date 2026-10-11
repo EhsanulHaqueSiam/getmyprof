@@ -13,6 +13,7 @@ export const DEFAULT_SETTINGS: Settings = {
   setupDone: false,
   mcpServers: [],
   mcpToken: "",
+  openalexKey: "",
   freeSources: [...FREE_SOURCES],
   firstEmails: "own",
 };

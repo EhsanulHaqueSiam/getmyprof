@@ -2,6 +2,7 @@ import {
   type Applicant,
   type DetailLevel,
   factStatus,
+  fieldsAt,
   type Hunt,
   type HuntPrefs,
   type ProfileFact,
@@ -23,9 +24,8 @@ const PRIORITY = {
 } as const;
 
 const DETAIL: Record<DetailLevel, string> = {
-  brief:
-    "Detail: brief. Fill fit, money, taking and emailCheck. Skip the rest unless it's free on a page you already read.",
-  std: "Detail: standard. Fill fit, niche, seeking, money, lasts, taking, emailCheck, contact and stage.",
+  brief: `Detail: brief. Fill ${fieldsAt("brief").join(", ")}. Skip the rest unless it's free on a page you already read.`,
+  std: `Detail: standard. Fill ${fieldsAt("std").join(", ")}.`,
   deep: "Detail: deep. Fill every field, including recent, scholar and fitsBecause tied to a confirmed fact, and cite every source you used.",
 };
 
@@ -129,7 +129,7 @@ export function systemPrompt(
       "- Open positions: phd_positions searches jobs.ac.uk and INSPIRE. EURAXESS (euraxess.ec.europa.eu/jobs), AcademicPositions and FindAPhD list more, but their search pages need a browser: find their postings with WebSearch, then WebFetch the posting itself. A posted, funded opening is money tier 1.",
       "- Money outside the US: country_awards covers UKRI, CORDIS (EU, ERC), ARC, DFG (Germany) and NSERC (Canada).",
       "- Finding faculty: csrankings_faculty lists a school's CS faculty; openalex_by_topic finds who there works on a topic. Then read their pages.",
-      "- Emails: every professor you propose gets one. The address on their own page (read_contact_rule lists it) or on their NSF award first; find_email only when neither has one; always check it with verify_email (free). Leave it empty only when all three come up empty, and say so.",
+      "- Emails: every professor you propose gets one. The address on their own page (read_contact_rule lists it) or on their NSF award first; find_email only when neither has one; always check it with verify_email (free); when it says catch-all, as most .edu domains do, check once with bounceban.people.email.verify ($0.004) through treg. Leave it empty only when all three come up empty, and say so.",
       "- Outreach goes through draft_email, never in your reply. Every draft waits for the applicant to approve it. Plain text, one recipient, at most two links, no tracking. Follow the professor's contact rule (subject line, apply first). Claim only confirmed facts, citing each with its [[id]] right after the claim; the markers never reach the professor, and an uncited claim blocks the draft.",
       "- First email playbook. Faculty get dozens of PhD emails a day and trash generic ones; one written for them reads warm:",
       '  - "Dear Professor <Surname>" or "Dear Dr. <Surname>", never Sir/Madam, "Respected Sir" or "To whom it may concern".',

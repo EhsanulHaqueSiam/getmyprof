@@ -1,4 +1,10 @@
-import { type Professor, ROW_OPS, type RowOp, type ThreadView } from "@getmyprof/contracts";
+import {
+  DETAIL_RANK,
+  type Professor,
+  ROW_OPS,
+  type RowOp,
+  type ThreadView,
+} from "@getmyprof/contracts";
 import { Link } from "@tanstack/react-router";
 import {
   BanknoteIcon,
@@ -17,7 +23,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Composer } from "~/components/Composer";
-import { COLUMNS, dimmed, haystack, RANK, TIER_LABEL, tone } from "~/lib/columns";
+import { COLUMNS, dimmed, haystack, TIER_LABEL, tone } from "~/lib/columns";
 import { plural, usd } from "~/lib/format";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
@@ -54,7 +60,7 @@ export function Results({
   const detail = view.thread.detail ?? settings?.detail ?? "std";
   const needle = filter.trim().toLowerCase();
   const rows = needle ? view.rows.filter((r) => haystack(r).includes(needle)) : view.rows;
-  const cols = COLUMNS.filter((c) => RANK[c.level] <= RANK[detail]);
+  const cols = COLUMNS.filter((c) => DETAIL_RANK[c.level] <= DETAIL_RANK[detail]);
   const working = view.thread.status !== "idle";
 
   useEffect(() => {

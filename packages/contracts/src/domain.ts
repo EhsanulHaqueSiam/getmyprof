@@ -149,6 +149,8 @@ export const Settings = z.object({
   mcpServers: z.array(McpServer),
   /** Bearer token other agents use to reach getmyprof's own MCP endpoint, /api/mcp. */
   mcpToken: z.string(),
+  /** The user's free OpenAlex key: 10x the 1,000 credits a day OpenAlex allows without one. */
+  openalexKey: z.string(),
   /** Free sources the agent may use; switching one off removes its tools. No default, as above. */
   freeSources: z.array(FreeSource),
   /**
@@ -292,6 +294,38 @@ export const Professor = z.object({
   updatedAt: z.string(),
 });
 export type Professor = z.infer<typeof Professor>;
+
+export const DETAIL_RANK: Record<DetailLevel, number> = { brief: 0, std: 1, deep: 2 };
+
+/**
+ * The detail level each professor field comes in at: the agent fills it from that level up and the
+ * Results grid shows its column from there, so the two never disagree.
+ */
+export const FIELD_LEVEL = {
+  fit: "brief",
+  name: "brief",
+  moneyTier: "brief",
+  taking: "brief",
+  money: "brief",
+  emailCheck: "brief",
+  niche: "std",
+  seeking: "std",
+  lasts: "std",
+  eligibility: "std",
+  contact: "std",
+  stage: "std",
+  recent: "deep",
+  scholar: "deep",
+  hook: "deep",
+  fitsBecause: "deep",
+  sources: "deep",
+} as const satisfies Partial<Record<keyof Professor, DetailLevel>>;
+
+/** The fields the agent fills at a detail level, beyond the name it always gives. */
+export const fieldsAt = (level: DetailLevel) =>
+  Object.entries(FIELD_LEVEL)
+    .filter(([f, l]) => f !== "name" && f !== "sources" && DETAIL_RANK[l] <= DETAIL_RANK[level])
+    .map(([f]) => f);
 
 /** Fields a proposal may change. key, origin and updatedAt are the store's to manage. */
 export const PROFESSOR_FIELDS = [

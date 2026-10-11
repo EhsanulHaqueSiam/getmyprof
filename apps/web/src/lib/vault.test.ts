@@ -26,6 +26,10 @@ describe("the Vault", () => {
     expect(fitsMe(scholarship({ citizenship: [], tracks: ["funded_ms"] }), me, ["phd"])).toBe(
       false,
     );
+    // Citizenship not given yet: nothing is ruled out on it.
+    expect(fitsMe(scholarship({ citizenship: ["India"] }), { citizenship: [] }, ["phd"])).toBe(
+      true,
+    );
   });
 
   it("lists what's coming up soonest first: expiring documents, open applications, closing rounds", () => {

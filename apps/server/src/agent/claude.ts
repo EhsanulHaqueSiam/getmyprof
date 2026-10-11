@@ -14,6 +14,8 @@ import type { AgentProvider, Attachment, SessionStart } from "./provider.ts";
 import { askBlocked, capProblem, type HuntTool } from "./tools.ts";
 
 const IDLE_CLOSE_MS = 60_000;
+const EFFORTS = ["low", "medium", "high", "xhigh", "max"] as const;
+const effortOf = (e: string) => EFFORTS.find((x) => x === e);
 const BUILTIN = ["WebSearch", "WebFetch"];
 const mcpName = (t: HuntTool) => `mcp__hunt__${t.name}`;
 
@@ -165,6 +167,7 @@ export const claudeProvider: AgentProvider = {
       ),
     });
 
+    const effort = effortOf(s.effort);
     const cwd = NodePath.join(homeDir(), "work");
     NodeFS.mkdirSync(cwd, { recursive: true });
 
@@ -178,6 +181,7 @@ export const claudeProvider: AgentProvider = {
       options: {
         ...(binary ? { pathToClaudeCodeExecutable: binary } : {}),
         model: s.model,
+        ...(effort ? { effort } : {}),
         cwd,
         systemPrompt: s.systemPrompt,
         settingSources: [],
@@ -343,6 +347,8 @@ export const claudeProvider: AgentProvider = {
       interrupt: async () => {
         await q.interrupt();
       },
+      // The model switches at once; a new effort takes effect when the session next starts.
+      setModel: (model) => void q.setModel(model).catch(() => undefined),
       close: () => input.end(),
     };
   },

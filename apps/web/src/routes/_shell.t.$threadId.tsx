@@ -275,6 +275,7 @@ function ThreadPage() {
                     : "Ask anything, or tell it what to find next."
                 }
                 scope={view.thread.scope}
+                thread={view.thread}
                 detail={{
                   value: view.thread.detail ?? installDetail,
                   set: (d) => void call("threads.setDetail", { id: threadId, detail: d }),

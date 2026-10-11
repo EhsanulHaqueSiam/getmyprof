@@ -1,6 +1,7 @@
 // The WebSocket API. Each method pairs an input schema with an output schema; the server
 // validates inputs before dispatch and the client's `call` infers both sides from this map.
 import { z } from "zod";
+import { AgentInfo } from "./agents.ts";
 import { BetterOdds } from "./fields.ts";
 import {
   Applicant,
@@ -59,6 +60,8 @@ export const AppState = z.object({
   /** Whether Claude Code can run: its binary is here (release builds fetch it on first run), and
    * it's signed in (and as whom). */
   claude: z.object({ signedIn: z.boolean(), who: z.string(), binary: ClaudeBinary }),
+  /** Every agent and whether it can run, from the last look (agents.refresh looks again). */
+  agents: z.array(AgentInfo),
   /** The sidebar's counts: awards from the last search worth a look (running past the intake,
    * on topic, PI not in the sheet), loops on, the last day's spend outside any thread, and the
    * students connected to this install as a hub. */
@@ -126,6 +129,13 @@ export const Methods = {
     output: ok,
   },
   /** A thread's own detail level, or null to follow the install's. */
+  /** A thread's model and effort for its next turns. Its agent can't change. */
+  "threads.setModel": {
+    input: z.object({ id: z.string(), model: z.string(), effort: z.string() }),
+    output: ok,
+  },
+  /** Looks at every agent again: installed, signed in, its models. */
+  "agents.refresh": { input: z.object({}), output: z.array(AgentInfo) },
   "threads.setDetail": {
     input: z.object({ id: z.string(), detail: DetailLevel.nullable() }),
     output: ok,

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { modelLabel } from "~/components/Composer";
+import { AgentCards } from "~/components/AgentCards";
 import { BackupSettings } from "~/components/BackupSettings";
 import { HubSettings } from "~/components/HubSettings";
 import { MailSettings } from "~/components/MailSettings";
@@ -118,12 +118,10 @@ function SettingsPage() {
             </Toggle>
           ))}
         </Row>
-        <Row label="Model">
-          {["claude-opus-5-5", "claude-sonnet-5-5"].map((m) => (
-            <Toggle key={m} on={s.model === m} onClick={() => void save({ model: m })}>
-              {modelLabel(m)}
-            </Toggle>
-          ))}
+        <Row label="Agents">
+          <div className="w-full">
+            <AgentCards />
+          </div>
         </Row>
         <Row label="Budget">
           {(

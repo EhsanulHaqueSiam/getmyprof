@@ -17,6 +17,7 @@ import { betterOdds } from "./better-odds.ts";
 import { listRecords } from "./records.ts";
 import { listSchools } from "./vault.ts";
 import { intakeStart, setOpenAlexKey } from "./sources.ts";
+import { agentList, CLAUDE_MODELS, refreshAgents } from "./agent/agents.ts";
 import { claudeStatus, ensureClaude, loginCode, startLogin } from "./agent/binary.ts";
 import { extractFacts, fakeFacts } from "./agent/extract.ts";
 import type { Runner } from "./agent/runner.ts";
@@ -91,6 +92,10 @@ export function createHandlers(svc: Services): Handlers {
     if (!t) throw new Error(`No thread ${id}`);
     return t;
   };
+  const claude = () =>
+    svc.fake
+      ? { signedIn: true, who: "the scripted agent", binary: { state: "ready" as const } }
+      : { ...claudeLogin(), binary: claudeStatus() };
 
   return {
     "state.get": () => {
@@ -110,9 +115,8 @@ export function createHandlers(svc: Services): Handlers {
         mail: outreach.status(),
         treg: tregStatus(db),
         tailnet: svc.fake ? null : tailnetLink(),
-        claude: svc.fake
-          ? { signedIn: true, who: "the scripted agent", binary: { state: "ready" } }
-          : { ...claudeLogin(), binary: claudeStatus() },
+        claude: claude(),
+        agents: agentList(claude(), svc.fake),
         counts: {
           funding: getKv(db, "funding.waiting", Number, 0),
           loops: listLoops(db).filter((l) => l.enabled).length,
@@ -120,6 +124,10 @@ export function createHandlers(svc: Services): Handlers {
           students: studentCount(db),
         },
       };
+    },
+    "agents.refresh": async () => {
+      if (!svc.fake) await refreshAgents(changedState);
+      return agentList(claude(), svc.fake);
     },
     "settings.update": (patch) => {
       const before = getSettings(db);
@@ -148,7 +156,15 @@ export function createHandlers(svc: Services): Handlers {
       return saved;
     },
     "facts.extract": async (input) =>
-      svc.fake ? fakeFacts() : extractFacts(input, getSettings(db).model),
+      // Facts are read by the SDK agent whichever agent hunts, so a model of its own.
+      svc.fake
+        ? fakeFacts()
+        : extractFacts(
+            input,
+            getSettings(db).agent === "claude"
+              ? getSettings(db).model
+              : (CLAUDE_MODELS[0]?.id ?? ""),
+          ),
 
     ...threadHandlers(svc),
 

@@ -6,7 +6,12 @@ import { type Db, getKv, newId, setKv } from "./db.ts";
 export const DEFAULT_SETTINGS: Settings = {
   detail: "std",
   budget: { perThread: 0.5, perLoopRun: 0.5, perDay: 2, askOver: 0.01 },
+  agent: "claude",
   model: "claude-opus-5-5",
+  effort: "",
+  agentsOff: [],
+  favoriteModels: [],
+  hiddenModels: [],
   treg: false,
   profileSource: "app",
   gradhunt: false,

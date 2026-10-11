@@ -64,7 +64,7 @@ export function openDb(file = NodePath.join(homeDir(), "getmyprof.sqlite")) {
   // Columns added after a store was first made. CREATE TABLE IF NOT EXISTS leaves old tables alone.
   const added = {
     spend: ["call_id", "feature", "subject"],
-    threads: ["scope", "detail", "allow_under"],
+    threads: ["scope", "detail", "allow_under", "agent", "model", "effort"],
   };
   for (const [table, columns] of Object.entries(added)) {
     const have = new Set(

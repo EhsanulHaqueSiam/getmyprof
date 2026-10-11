@@ -1,10 +1,10 @@
-import { ROW_OPS, type RowOp, type ThreadEvent } from "@getmyprof/contracts";
+import { type AgentKind, ROW_OPS, type RowOp, type ThreadEvent } from "@getmyprof/contracts";
 import type { Bus } from "../bus.ts";
 import { type Db, newId, now } from "../db.ts";
 import { getRecord, recordLine, threadProposals } from "../records.ts";
 import { profileFacts } from "../adapters.ts";
 import { getApplicant, getHunt, getSettings } from "../state.ts";
-import { allowLoopUnder, listLoops, noteRun } from "../loops.ts";
+import { allowLoopUnder, listLoops, noteRun, runSummary } from "../loops.ts";
 import { listSchools } from "../vault.ts";
 import {
   allowUnder,
@@ -22,29 +22,15 @@ import {
   listEvents,
   pendingQuestion,
   sharesSession,
+  setThreadModel,
   threadSpend,
 } from "../threads.ts";
+import { threadAgent } from "./agents.ts";
 import { systemPrompt } from "./prompt.ts";
 import type { AgentProvider, AgentSession, Attachment, SessionHooks } from "./provider.ts";
 import { noteSwept, sweepNudge } from "./sweep.ts";
 import { ROW_INSTRUCTIONS } from "./row-actions.ts";
 import { type Sources, toolsFor } from "./tools.ts";
-
-/** A loop run in a line: "2 new, 1 change, 1 accepted", why it stopped, or "nothing new". */
-export function runSummary(
-  proposals: { kind: "add" | "update"; status: string }[],
-  stop: string | null,
-) {
-  const n = (k: "add" | "update") => proposals.filter((p) => p.kind === k).length;
-  const accepted = proposals.filter((p) => p.status === "accepted").length;
-  const found = [
-    n("add") ? `${n("add")} new` : "",
-    n("update") ? `${n("update")} change${n("update") === 1 ? "" : "s"}` : "",
-    accepted ? `${accepted} accepted` : "",
-  ].filter(Boolean);
-  if (stop && stop !== "interrupted") return [stop, ...found].join(" · ");
-  return found.length ? found.join(", ") : "nothing new";
-}
 
 const RESTARTED = "The server restarted mid-turn · picking up where it left off";
 
@@ -56,7 +42,8 @@ const RESTARTED = "The server restarted mid-turn · picking up where it left off
 export function createRunner(deps: {
   db: Db;
   bus: Bus;
-  provider: AgentProvider;
+  /** One backend for every agent (the fake), or the backend for each agent. */
+  provider: AgentProvider | ((agent: AgentKind) => AgentProvider);
   sources: Sources;
   /** The name drafts are signed with: the connected mailbox's display name. */
   signAs?: () => string;
@@ -217,7 +204,9 @@ export function createRunner(deps: {
     // A thread may dig deeper or lighter than the install.
     const settings = { ...install, detail: getThread(db, threadId)?.detail ?? install.detail };
     const hunt = getHunt(db);
-    const session = provider.start({
+    const { agent, model, effort } = threadAgent(db, threadId, install);
+    const backend = typeof provider === "function" ? provider(agent) : provider;
+    const session = backend.start({
       threadId,
       resumeId: sessionId(db, threadId),
       fork: sharesSession(db, threadId),
@@ -231,7 +220,8 @@ export function createRunner(deps: {
         deps.signAs?.() ?? "",
         listSchools(db),
       ),
-      model: settings.model,
+      model,
+      effort,
       tools: toolsFor(settings),
       askOver: () => allowance(threadId),
       mcpServers: settings.mcpServers,
@@ -429,6 +419,12 @@ export function createRunner(deps: {
         "send",
         `Row action: ${ROW_OPS[op].label} · ${keys.length} row${keys.length === 1 ? "" : "s"}`,
       );
+    },
+    /** A thread's model and effort for its next turns; a running session switches at once. */
+    setModel(threadId: string, model: string, effort: string) {
+      setThreadModel(db, threadId, model, effort);
+      sessions.get(threadId)?.setModel?.(model, effort);
+      pushThreads();
     },
     async stop(threadId: string) {
       for (const a of approvals.values()) if (a.threadId === threadId) a.resolve(false);

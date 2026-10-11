@@ -74,7 +74,7 @@ export const PEOPLE_TOOLS = [
   define({
     name: "read_contact_rule",
     description:
-      "Read what a professor's homepage or lab page, and the prospective-students page it links to, tells prospective students, quoted and dated: whether they're taking students and from when, words the subject line must carry, a form to use instead of email, don't email, apply to the program first, and a CV ask. Free.",
+      "Read what a professor's homepage or lab page, and the prospective-students page it links to, tells prospective students, quoted and dated: whether they're taking students and from when, words the subject line must carry, a form to use instead of email, don't email, apply to the program first, a CV ask, and the email addresses the pages give. Free.",
     shape: { url: z.string().describe("Their homepage or lab page") },
     paid: false,
     price: () => 0,
@@ -88,6 +88,7 @@ export const PEOPLE_TOOLS = [
         ...said("Don't email", r.noEmail),
         ...said("Apply first", r.applyFirst),
         ...said("Wants", r.cv),
+        ...(r.emails.length ? [`Emails on the page: ${r.emails.join(", ")}`] : []),
       ];
       const where = `${r.urls.join(" and ")} on ${r.readOn}`;
       return {

@@ -215,34 +215,44 @@ export function sourcesFor(places: string[]): Award["source"][] {
   return picked.size || where.trim() ? [...picked] : ["NSF", "NIH"];
 }
 
+/** NSF's page size; a full page means there may be more. */
+const NSF_PAGE = 25;
+
 export async function nsfAwards(q: AwardQuery): Promise<RawAward[]> {
   const out = new Map<string, RawAward>();
   for (const term of q.terms.length ? q.terms : [""]) {
-    const params = new URLSearchParams({
-      printFields:
-        "id,title,piFirstName,piLastName,awardeeName,startDate,expDate,estimatedTotalAmt,abstractText",
-      rpp: "25",
-    });
-    if (term) params.set("keyword", `"${term}"`);
-    if (q.university) params.set("awardeeName", `"${q.university}"`);
-    if (q.pi) params.set("pdPIName", q.pi);
-    if (q.activeAfter) params.set("expDateStart", toNsfDate(q.activeAfter));
-    const body = asRecord(await getJson(`https://api.nsf.gov/services/v1/awards.json?${params}`));
-    for (const a of asArray(asRecord(body.response).award).map(asRecord)) {
-      const id = text(a.id);
-      out.set(id, {
-        source: "NSF",
-        id,
-        title: text(a.title),
-        pi: `${text(a.piFirstName)} ${text(a.piLastName)}`.trim(),
-        university: text(a.awardeeName),
-        amount: a.estimatedTotalAmt == null ? null : Number(a.estimatedTotalAmt),
-        currency: "USD",
-        url: `https://www.nsf.gov/awardsearch/showAward?AWD_ID=${id}`,
-        starts: nsfDate(a.startDate),
-        ends: nsfDate(a.expDate),
-        abstract: text(a.abstractText).slice(0, 600),
+    // ponytail: two pages (50 awards) a term; more when a school's list runs past that.
+    for (const offset of [1, NSF_PAGE + 1]) {
+      const params = new URLSearchParams({
+        printFields:
+          "id,title,piFirstName,piLastName,piEmail,awardeeName,startDate,expDate,estimatedTotalAmt,abstractText",
+        rpp: String(NSF_PAGE),
+        offset: String(offset),
       });
+      if (term) params.set("keyword", `"${term}"`);
+      if (q.university) params.set("awardeeName", `"${q.university}"`);
+      if (q.pi) params.set("pdPIName", q.pi);
+      if (q.activeAfter) params.set("expDateStart", toNsfDate(q.activeAfter));
+      const body = asRecord(await getJson(`https://api.nsf.gov/services/v1/awards.json?${params}`));
+      const page = asArray(asRecord(body.response).award).map(asRecord);
+      for (const a of page) {
+        const id = text(a.id);
+        out.set(id, {
+          source: "NSF",
+          id,
+          title: text(a.title),
+          pi: `${text(a.piFirstName)} ${text(a.piLastName)}`.trim(),
+          ...(text(a.piEmail) ? { piEmail: text(a.piEmail).toLowerCase() } : {}),
+          university: text(a.awardeeName),
+          amount: a.estimatedTotalAmt == null ? null : Number(a.estimatedTotalAmt),
+          currency: "USD",
+          url: `https://www.nsf.gov/awardsearch/showAward?AWD_ID=${id}`,
+          starts: nsfDate(a.startDate),
+          ends: nsfDate(a.expDate),
+          abstract: text(a.abstractText).slice(0, 600),
+        });
+      }
+      if (page.length < NSF_PAGE) break;
     }
   }
   return [...out.values()];
@@ -275,7 +285,8 @@ export async function nihAwards(q: AwardQuery): Promise<RawAward[]> {
           "ContactPiName",
           "AbstractText",
         ],
-        limit: 25,
+        // Grouped by PI for the agent, so a full page of 50 reads as a short list of labs.
+        limit: 50,
       }),
     }),
   );

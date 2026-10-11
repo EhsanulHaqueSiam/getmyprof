@@ -467,6 +467,8 @@ export const Award = z.object({
   title: z.string(),
   /** Empty when the database doesn't name one (CORDIS lists the host, not the PI). */
   pi: z.string(),
+  /** The PI's email when the database lists it (NSF does), from the award record itself. */
+  piEmail: z.string().optional(),
   university: z.string(),
   amount: z.number().nullable(),
   /** ISO 4217: USD, GBP, EUR, AUD. */

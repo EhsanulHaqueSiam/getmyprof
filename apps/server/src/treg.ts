@@ -8,7 +8,7 @@ import * as NodePath from "node:path";
 import { TagValue } from "@getmyprof/contracts";
 import { z } from "zod";
 import { homeDir } from "./db.ts";
-import { asRecord } from "./sources.ts";
+import { asArray, asRecord, text } from "./sources.ts";
 
 export const TREG_BASE = "https://treg.to";
 
@@ -20,7 +20,14 @@ export const TREG_BASE = "https://treg.to";
  */
 export const TREG_ENDPOINTS: Record<
   string,
-  { method: "GET" | "POST"; usd: number; max: number; args: string }
+  {
+    method: "GET" | "POST";
+    usd: number;
+    max: number;
+    args: string;
+    /** Fields the endpoint always needs, sent whatever the agent passes. */
+    fixed?: Record<string, string>;
+  }
 > = {
   "treg.people.email.verify": { method: "POST", usd: 0, max: 0.014, args: "email" },
   "treg.people.search": {
@@ -41,11 +48,21 @@ export const TREG_ENDPOINTS: Record<
     max: 0.01,
     args: "items: [{linkedin_url}]",
   },
+  // Free search and papers (99% and 100% measured success), so they come first; Google is the
+  // paid fallback for when they find too little.
   "tinyfish.web.search": {
     method: "GET",
     usd: 0,
     max: 0,
-    args: 'query, domain_type: "web", location',
+    args: "query, location, page",
+    fixed: { domain_type: "web" },
+  },
+  "tinyfish.web.search.publications": {
+    method: "GET",
+    usd: 0,
+    max: 0,
+    args: "query, pub_year_min, page",
+    fixed: { domain_type: "research_paper" },
   },
   "tinyfish.web.fetch": {
     method: "POST",
@@ -85,6 +102,12 @@ export const TREG_ENDPOINTS: Record<
     usd: 0.0009,
     max: 0.015,
     args: "q, country, limit",
+  },
+  "anyapi.google.serp.organic": {
+    method: "POST",
+    usd: 0.0009,
+    max: 0.0009,
+    args: "query, gl, page",
   },
   "serper.google.serp.scholar": { method: "POST", usd: 0.001, max: 0.001, args: "q" },
   "anyapi.google.scholar": { method: "POST", usd: 0.001, max: 0.001, args: "query" },
@@ -260,9 +283,10 @@ export async function tregCall(
     .filter(([, v]) => v && TagValue.safeParse(v).success)
     .map(([k, v]) => `${k}=${v}`)
     .join(", ");
+  const data = { ...req.data, ...spec.fixed };
   const query =
     spec.method === "GET"
-      ? `?${new URLSearchParams(Object.entries(req.data).map(([k, v]) => [k, typeof v === "string" ? v : JSON.stringify(v)]))}`
+      ? `?${new URLSearchParams(Object.entries(data).map(([k, v]) => [k, typeof v === "string" ? v : JSON.stringify(v)]))}`
       : "";
   const init: RequestInit = {
     method: spec.method,
@@ -273,7 +297,7 @@ export async function tregCall(
       "Idempotency-Key": crypto.randomUUID(),
       ...(spec.method === "POST" ? { "content-type": "application/json" } : {}),
     },
-    ...(spec.method === "POST" ? { body: JSON.stringify(req.data) } : {}),
+    ...(spec.method === "POST" ? { body: JSON.stringify(data) } : {}),
     signal: AbortSignal.timeout(120_000),
   };
 
@@ -345,4 +369,53 @@ export function invoiceLines(report: unknown) {
     lines: r.rows.map((x) => ({ customer: x.value, calls: x.calls, usd: x.charged_micro / 1e6 })),
     unattributedUsd: r.unattributed_micro / 1e6,
   };
+}
+
+/** The first list of hits or pages in a treg result, however deep its provider put it. */
+function hitsIn(v: unknown, depth = 0): Record<string, unknown>[] | null {
+  if (depth > 4 || !v || typeof v !== "object") return null;
+  if (Array.isArray(v)) {
+    const rows = v.map(asRecord);
+    return rows.length && rows.every((r) => "url" in r || "link" in r) ? rows : null;
+  }
+  for (const x of Object.values(v)) {
+    const found = hitsIn(x, depth + 1);
+    if (found) return found;
+  }
+  return null;
+}
+
+const cut = (s: string, n: number) =>
+  s.length > n ? `${s.slice(0, n)} …(cut at ${n} of ${s.length} characters)` : s;
+
+/**
+ * A treg result as the agent reads it: one line per search hit (with a paper's authors, year,
+ * citations and PDF), each fetched page's own text with its share of the limit, failures by URL,
+ * and anything else as JSON. Every cut says so.
+ */
+export function tregText(result: unknown, limit = 16_000) {
+  const rows = hitsIn(result);
+  if (!rows) return cut(JSON.stringify(result) ?? "", limit);
+  const perPage = Math.min(6000, Math.floor(limit / rows.length));
+  const lines = rows.map((r) => {
+    const url = text(r.final_url || r.url || r.link);
+    const page = text(r.text || r.markdown || r.content);
+    if (page) return `## ${text(r.title)} (${url})\n${cut(page, perPage)}`;
+    const paper = [
+      asArray(r.authors).map(text).join(", "),
+      text(r.year),
+      text(r.venue),
+      r.cited_by_count == null ? "" : `cited ${text(r.cited_by_count)}`,
+      text(r.pdf_url),
+    ];
+    return cut(
+      [text(r.title), url, text(r.snippet || r.description), ...paper].filter(Boolean).join(" | "),
+      600,
+    );
+  });
+  const failed = asArray(asRecord(result).errors).map(
+    (e) => `failed: ${text(asRecord(e).url)} (${text(asRecord(e).error || asRecord(e).message)})`,
+  );
+  // Each page and hit is cut on its own, so the whole needs no second cut.
+  return [...lines, ...failed].join("\n");
 }

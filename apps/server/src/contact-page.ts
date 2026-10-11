@@ -24,6 +24,8 @@ export type ContactRead = {
   noEmail: string | null;
   applyFirst: string | null;
   cv: string | null;
+  /** Addresses the pages give, so the agent needn't look for one elsewhere. */
+  emails: string[];
 };
 
 const ENTITIES: Record<string, string> = {
@@ -103,6 +105,18 @@ export function prospectivePage(html: string, base: string): string | null {
   return hit?.url ?? null;
 }
 
+/** Addresses a page gives: mailto links and spelled-out ones ("ada [at] cs [dot] edu"). */
+export function emailsIn(html: string): string[] {
+  const plain = html
+    .replace(/&#0*64;|&#x40;/gi, "@")
+    .replace(/\s*[[({]\s*at\s*[\])}]\s*/gi, "@")
+    .replace(/\s*[[({]\s*dot\s*[\])}]\s*/gi, ".");
+  const found = plain.match(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g) ?? [];
+  return [...new Set(found.map((e) => e.toLowerCase()))]
+    .filter((e) => !/\.(png|jpe?g|gif|svg|webp)$/.test(e))
+    .slice(0, 5);
+}
+
 /** Reads the rules out of one or more pages' HTML (pure; contactPage adds the fetching). */
 export function readContactRule(pages: { url: string; html: string }[], today: Date): ContactRead {
   const all = pages.flatMap((p) => sentences(p.html));
@@ -132,6 +146,7 @@ export function readContactRule(pages: { url: string; html: string }[], today: D
     noEmail: first(NO_EMAIL),
     applyFirst: first(APPLY_FIRST),
     cv: first(CV),
+    emails: [...new Set(pages.flatMap((p) => emailsIn(p.html)))].slice(0, 5),
   };
 }
 

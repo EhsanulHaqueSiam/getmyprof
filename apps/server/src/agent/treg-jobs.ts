@@ -26,9 +26,15 @@ const JOBS = [
   ],
   [
     "web_search",
-    "treg.google.serp.organic",
-    "Google results, for faculty directories, program pages and scholarships",
-    "q, country, limit",
+    "tinyfish.web.search",
+    "Web search, for faculty directories, lab pages, program pages and scholarships; page 1, 2... for more",
+    "query, location, page",
+  ],
+  [
+    "google_search",
+    "anyapi.google.serp.organic",
+    "Google results, when web_search finds too little",
+    "query, gl, page",
   ],
   [
     "render_page",
@@ -38,9 +44,9 @@ const JOBS = [
   ],
   [
     "scholar_search",
-    "serper.google.serp.scholar",
-    "Google Scholar results, for recent papers when OpenAlex is thin",
-    "q",
+    "tinyfish.web.search.publications",
+    "Papers with authors, year, citations and a PDF link, for recent work when OpenAlex is thin",
+    "query, pub_year_min, page",
   ],
   [
     "x_posts",
@@ -78,7 +84,7 @@ const shape = {
 export const tregJobs = (treg: HuntTool) =>
   JOBS.map(([name, endpoint, what, args]): HuntTool<typeof shape> => ({
     name,
-    description: `${what}. Paid through treg (${endpoint}), about $${TREG_ENDPOINTS[endpoint]?.usd ?? 0} a call. data: {${args}}.`,
+    description: `${what}. ${TREG_ENDPOINTS[endpoint]?.usd ? `Paid through treg (${endpoint}), about $${TREG_ENDPOINTS[endpoint]?.usd} a call` : `Free through treg (${endpoint})`}. data: {${args}}.`,
     shape,
     paid: true,
     price: () => TREG_ENDPOINTS[endpoint]?.usd ?? 0,

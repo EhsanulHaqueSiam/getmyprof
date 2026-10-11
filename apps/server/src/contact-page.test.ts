@@ -18,6 +18,13 @@ describe("a professor's page about prospective students", () => {
     });
   });
 
+  it("lists the addresses a page gives, spelled out or linked", () => {
+    const r = read(`
+      <p>Email: ada [at] cs [dot] example [dot] edu</p>
+      <a href="mailto:Lab-Admin@cs.example.edu">lab</a> <img src="photo@2x.png">`);
+    expect(r.emails).toEqual(["ada@cs.example.edu", "lab-admin@cs.example.edu"]);
+  });
+
   it("reads the subject words, the CV ask and a yes", () => {
     const r = read(`
       <div><p>I am recruiting PhD students for Fall 2027.</p>

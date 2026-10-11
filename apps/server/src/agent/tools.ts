@@ -6,9 +6,9 @@ import { z } from "zod";
 import type { Db } from "../db.ts";
 import { acceptByRules, listLoops } from "../loops.ts";
 import { searchVault } from "../okf.ts";
-import { listRecords, notInSheet, propose } from "../records.ts";
+import { listRecords, notInSheet, personKey, propose } from "../records.ts";
 import { intakeStart, monthsAfter, sameSchool } from "../sources.ts";
-import { TREG_ENDPOINTS } from "../treg.ts";
+import { TREG_ENDPOINTS, tregText } from "../treg.ts";
 import { daySpend, getThread, recordSpend, threadSpend } from "../threads.ts";
 import { APPLICANT_TOOLS } from "./applicant-tools.ts";
 import { DISCOVERY_TOOLS } from "./discovery-tools.ts";
@@ -99,13 +99,27 @@ const awardLines = async (
     ...(activeAfter ? { activeAfter } : {}),
   };
   const awards = await ctx.sources[which](q);
-  const lines = awards.map(
-    (a) =>
-      `${a.source} ${a.id} | PI ${a.pi || "not listed"} | ${a.university} | ${money(a.amount, a.currency)} | ends ${a.ends ?? "?"} | ${monthsAfter(a.ends, start) ?? "?"} months after intake | ${a.title}`,
-  );
+  // One block per PI: a lab's five awards read as one lead, with the email the award lists.
+  const byPi = new Map<string, { pi: string; university: string; awards: typeof awards }>();
+  for (const a of awards) {
+    const who = `${a.pi ? personKey(a.pi) : a.id}@${a.university.toLowerCase()}`;
+    const at = byPi.get(who) ?? { pi: a.pi, university: a.university, awards: [] };
+    at.awards.push(a);
+    byPi.set(who, at);
+  }
+  const blocks = [...byPi.values()].map((p) => {
+    const email = p.awards.find((a) => a.piEmail)?.piEmail;
+    return [
+      `PI ${p.pi || "not listed"}${email ? ` <${email}> (from the award)` : ""} | ${p.university}`,
+      ...p.awards.map(
+        (a) =>
+          `  ${a.source} ${a.id} | ${money(a.amount, a.currency)} | ends ${a.ends ?? "?"} | ${monthsAfter(a.ends, start) ?? "?"} months after intake | ${a.title}`,
+      ),
+    ].join("\n");
+  });
   return {
-    summary: `${awards.length} award${awards.length === 1 ? "" : "s"} · free`,
-    text: lines.join("\n") || "No active awards found.",
+    summary: `${awards.length} award${awards.length === 1 ? "" : "s"}, ${byPi.size} PI${byPi.size === 1 ? "" : "s"} · free`,
+    text: blocks.join("\n") || "No active awards found.",
   };
 };
 
@@ -268,7 +282,7 @@ export const HUNT_TOOLS = [
   ...PEOPLE_TOOLS,
   define({
     name: "treg",
-    description: `Paid data lookups through treg, for when free sources fail. Allowed endpoints with their data fields, usual USD per call and the most one call may cost:\n${Object.entries(
+    description: `Data lookups through treg: free web search, papers and page fetches (the $0 endpoints), and paid people, email and Google lookups for when free sources fail. Allowed endpoints with their data fields, usual USD per call and the most one call may cost:\n${Object.entries(
       TREG_ENDPOINTS,
     )
       .map(([e, p]) => `- ${e} {${p.args}} $${p.usd}${p.max > p.usd ? ` (up to $${p.max})` : ""}`)
@@ -318,7 +332,7 @@ export const HUNT_TOOLS = [
         if (out.stop) ctx.capHit(out.reason);
         return { summary: `${out.stop ? "stopped" : "failed"} · ${cost}`, text: out.reason };
       }
-      return { summary: cost, text: JSON.stringify(out.result).slice(0, 4000) };
+      return { summary: cost, text: tregText(out.result) };
     },
   }),
 ];

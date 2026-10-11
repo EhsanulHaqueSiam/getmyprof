@@ -171,13 +171,27 @@ async function getHtml(url: string) {
     headers: { "user-agent": UA, accept: "text/html" },
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
+  if (res.status === 404 || res.status === 410)
+    throw new Error(`${url} is gone (${res.status}); find their current page with web_search`);
   if (!res.ok) throw new Error(`${new URL(url).host} answered ${res.status}`);
   return res.text();
 }
 
-/** Reads a professor's page, and the prospective-students page it links to, if any. */
-export async function contactPage(url: string): Promise<ContactRead> {
-  const html = await getHtml(url);
+/**
+ * Reads a professor's page, and the prospective-students page it links to, if any. A page this
+ * server can't load, or one built by JavaScript (almost no text), is read through `render`
+ * (treg's free fetch) instead; 33 of 39 GMU pages Node couldn't load read that way.
+ */
+export async function contactPage(
+  url: string,
+  render: (url: string) => Promise<string | null> = async () => null,
+): Promise<ContactRead> {
+  const fetched = await getHtml(url).catch(async (error: unknown) => {
+    const page = await render(url);
+    if (page === null) throw error;
+    return page;
+  });
+  const html = sentences(fetched).length < 3 ? ((await render(url)) ?? fetched) : fetched;
   const next = prospectivePage(html, url);
   const more = next ? await getHtml(next).catch(() => null) : null;
   return readContactRule(

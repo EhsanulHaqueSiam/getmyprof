@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
+import { sameSchoolName } from "@getmyprof/contracts";
 import { openAlexMatch, sameSchool, sourcesFor } from "./sources.ts";
 
 describe("grant databases", () => {
@@ -13,6 +14,8 @@ describe("grant databases", () => {
   it("match a school however each database spells it", () => {
     expect(sameSchool("UNIVERSITY OF READING", "University of Reading")).toBe(true);
     expect(sameSchool("The University of Melbourne", "Monash University")).toBe(false);
+    expect(sameSchoolName("Univ. of Utah", "University of Utah")).toBe(true);
+    expect(sameSchoolName("Utah State University", "University of Utah")).toBe(false);
   });
 });
 

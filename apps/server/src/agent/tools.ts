@@ -13,6 +13,7 @@ import { daySpend, getThread, recordSpend, threadSpend } from "../threads.ts";
 import { APPLICANT_TOOLS } from "./applicant-tools.ts";
 import { DISCOVERY_TOOLS } from "./discovery-tools.ts";
 import { PEOPLE_TOOLS } from "./people-tools.ts";
+import { surface } from "./sweep.ts";
 import { professorFields } from "./professor-fields.ts";
 import { TREG_TOOL_NAMES, tregJobs } from "./treg-jobs.ts";
 
@@ -57,6 +58,7 @@ export const READ_ONLY = new Set([
   "lab_members",
   "warm_paths",
   "read_contact_rule",
+  "sweep_status",
 ]);
 
 /** Why a tool can't run in this turn, or null: an Ask changes nothing and spends nothing. */
@@ -99,6 +101,13 @@ const awardLines = async (
     ...(activeAfter ? { activeAfter } : {}),
   };
   const awards = await ctx.sources[which](q);
+  surface(
+    ctx.db,
+    ctx.threadId,
+    awards
+      .filter((a) => a.pi)
+      .map((a) => ({ name: a.pi, university: a.university, via: `${a.source} ${a.id}` })),
+  );
   // One block per PI: a lab's five awards read as one lead, with the email the award lists.
   const byPi = new Map<string, { pi: string; university: string; awards: typeof awards }>();
   for (const a of awards) {

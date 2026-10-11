@@ -30,7 +30,7 @@ import {
   type PositionQuery,
   type RawPosition,
 } from "../sources-positions.ts";
-import { tregCall, type TregOutcome, type TregRequest } from "../treg.ts";
+import { renderedPage, tregCall, type TregOutcome, type TregRequest } from "../treg.ts";
 
 type AwardFetch = (q: AwardQuery) => Promise<RawAward[]>;
 type PositionFetch = (q: PositionQuery) => Promise<RawPosition[]>;
@@ -79,7 +79,7 @@ export const realSources: Sources = {
   adjacent: adjacentTopics,
   lab: openAlexLab,
   warm: openAlexWarm,
-  contactPage,
+  contactPage: (url) => contactPage(url, (u) => renderedPage(u).catch(() => null)),
   treg: (req) => tregCall(req),
 };
 

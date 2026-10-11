@@ -44,6 +44,7 @@ const runner = createRunner({
   provider: fake ? fakeProvider() : claudeProvider,
   sources,
   signAs: () => outreach.status().name,
+  sweepNudges: fake ? 0 : 2,
 });
 // The fake agent pairs with a fake mailbox: nothing leaves this machine in tests or e2e.
 const sandboxMail = fakeMailer();

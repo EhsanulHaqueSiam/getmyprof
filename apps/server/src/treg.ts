@@ -419,3 +419,23 @@ export function tregText(result: unknown, limit = 16_000) {
   // Each page and hit is cut on its own, so the whole needs no second cut.
   return [...lines, ...failed].join("\n");
 }
+
+/**
+ * A page's text through treg's free fetch, which renders JavaScript and reads pages this server
+ * can't load (some departments' TLS chains). Null without a treg login or when it fails too. Free,
+ * so it runs even with paid lookups off.
+ */
+export async function renderedPage(url: string, login = readTregLogin()) {
+  if (!login) return null;
+  const r = await tregCall(
+    {
+      endpoint: "tinyfish.web.fetch",
+      data: { urls: [url], format: "markdown" },
+      maxUsd: 0,
+      // Free and not tied to one thread, so nothing to bill or tag beyond what it was for.
+      tags: { thread: "", feature: "page" },
+    },
+    login,
+  );
+  return r.ok ? text(asRecord(asArray(asRecord(r.result).results)[0]).text) || null : null;
+}

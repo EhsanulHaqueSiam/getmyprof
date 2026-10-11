@@ -26,22 +26,9 @@ import {
 } from "../threads.ts";
 import { systemPrompt } from "./prompt.ts";
 import type { AgentProvider, AgentSession, Attachment, SessionHooks } from "./provider.ts";
+import { sweepNudge } from "./sweep.ts";
+import { ROW_INSTRUCTIONS } from "./row-actions.ts";
 import { type Sources, toolsFor } from "./tools.ts";
-
-const ROW_INSTRUCTIONS: Record<RowOp, string> = {
-  email:
-    "Find and check the email address of each professor below. Look for it on an official page first. If treg is available: only when no official page lists one, find it with treg.people.email.find, then verify each address with treg.people.email.verify (usually free). Pass the professor's sheet key as `about` on every treg call. Record email and emailCheck for each with propose_professor.",
-  lasts:
-    "For each professor below, look up their active NSF and NIH awards and record money and how long it lasts after the intake (lasts) with propose_professor.",
-  taking:
-    "For each professor below, run read_contact_rule on their homepage or lab page (WebFetch a page it can't read), then record with propose_professor: taking (yes, no or not stated, then their words in quotes with the page and date read), contact (how they want to be reached, with any form's link), subjectRule (the words their subject line must carry) and stage apply-only when they say not to email, to apply first or to use a form.",
-  work: 'For each professor below, look them up with openalex_author, then read their homepage or lab page (and their Google Scholar page when OpenAlex is thin), and record with propose_professor: recent (their latest two or three papers or projects, newest first, each dated), niche (their area and current topics), seeking (what they want students to work on or bring, in their words, or "not stated") and scholar (their Google Scholar profile URL, when their page or CSRankings links it).',
-  lab: "For each professor below, run lab_members, then read their lab's people page, and record lab with propose_professor: how many students are in the lab now, recent graduates and where they went, and who to ask about the lab (a current student, with the address their page prints).",
-  personalize:
-    'For each professor below, run warm_paths and openalex_author, then vault_search for the applicant\'s fact closest to their recent work, and record with propose_professor: warm (a true path to them, e.g. a co-author of the applicant who wrote with them, with the paper; or "none found") and hook (one line tying that fact to one of their recent papers, by title).',
-  draft:
-    "Draft a short first message for each professor below with draft_email (touch first), by the first email playbook. When their recent or hook is empty, find one recent paper and one detail of it first (openalex_author, warm_paths). Email goes only to a reviewed address. Without one, if the sheet has their LinkedIn profile, draft a LinkedIn note instead (channel linkedin, to that URL, under 200 characters so it also fits a connection request). Skip apply-only professors, anyone whose taking says no (unless the applicant asked to write anyway) and anyone with neither, and say so. The applicant approves each draft in Pipeline before anything is sent.",
-};
 
 /** A loop run in a line: "2 new, 1 change, 1 accepted", why it stopped, or "nothing new". */
 export function runSummary(
@@ -73,6 +60,8 @@ export function createRunner(deps: {
   sources: Sources;
   /** The name drafts are signed with: the connected mailbox's display name. */
   signAs?: () => string;
+  /** Times one message may send the agent back to finish its sweep (sweep.ts); 0 for the fake. */
+  sweepNudges?: number;
 }) {
   const { db, bus, provider, sources } = deps;
   const sessions = new Map<string, AgentSession>();
@@ -86,6 +75,8 @@ export function createRunner(deps: {
   const features = new Map<string, string>();
   /** Threads whose latest message is an Ask: read-only and free. */
   const asks = new Set<string>();
+  /** How many times each thread's latest message was sent back to finish its sweep. */
+  const nudged = new Map<string, number>();
 
   /** Queued messages held until the next tool call ends, editable and reorderable until then. */
   const held = new Map<string, { eventId: string; text: string; files: Attachment[] }[]>();
@@ -151,6 +142,16 @@ export function createRunner(deps: {
         const mine = threadProposals(db, threadId).filter((p) => p.createdAt >= started);
         // Messages still held when a turn ends become the next turn; a stopped turn dropped them.
         flush(threadId, undefined);
+        // People the hunt surfaced and never checked: back to work, a bounded number of times.
+        const sentBack = nudged.get(threadId) ?? 0;
+        const nudge =
+          !error && !asks.has(threadId) && sentBack < (deps.sweepNudges ?? 0)
+            ? sweepNudge(db, threadId)
+            : null;
+        if (nudge) {
+          nudged.set(threadId, sentBack + 1);
+          setTimeout(() => send(threadId, nudge, "send", "Finish the sweep", [], true));
+        }
         if (mine.length > 0 && settleIfDone(db, threadId))
           emit(threadId, {
             id: newId("sys"),
@@ -284,7 +285,10 @@ export function createRunner(deps: {
     delivery: "send" | "queued" | "steered",
     shown = text,
     files: Attachment[] = [],
+    fromSweep = false,
   ) {
+    // The applicant's message resets the sweep's count; the sweep's own doesn't.
+    if (!fromSweep) nudged.delete(threadId);
     // "[ask] ..." from the composer: answer only, change nothing, spend nothing.
     const ask = /^\[ask\]\s*/.exec(text);
     if (ask) {

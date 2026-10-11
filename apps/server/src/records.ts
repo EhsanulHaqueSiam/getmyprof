@@ -216,26 +216,22 @@ function pendingAdd(db: Db, key: string): Professor | null {
 const parseProposal = (r: Record<string, unknown>) => Proposal.parse(JSON.parse(String(r.body)));
 
 /**
- * People not in the sheet whom the agent shouldn't research again: new ones waiting in Review,
- * and rejected ones (named from their key, so lowercase).
+ * People not in the sheet whom the agent shouldn't research again: new ones waiting in Review and
+ * rejected ones (a rejection is always of a proposed add), with the area their proposal gave.
  */
 export function notInSheet(db: Db) {
-  const waiting = db
+  return db
     .prepare(
-      "SELECT body FROM proposals WHERE status = 'pending' AND body LIKE '%\"kind\":\"add\"%'",
+      "SELECT body FROM proposals WHERE status IN ('pending', 'rejected') AND body LIKE '%\"kind\":\"add\"%'",
     )
     .all()
     .map(parseProposal)
-    .map((p) => ({ name: p.recordName, university: p.university, status: "waiting in Review" }));
-  const rejected = db
-    .prepare("SELECT record_key, reason FROM exclusions")
-    .all()
-    .map((r) => {
-      const [name = "", university = ""] = String(r.record_key).split("@");
-      const words = (x: string) => x.replaceAll("-", " ");
-      return { name: words(name), university: words(university), status: `rejected: ${r.reason}` };
-    });
-  return [...waiting, ...rejected];
+    .map((p) => ({
+      name: p.recordName,
+      university: p.university,
+      niche: p.changes.find((c) => c.field === "niche")?.to ?? "",
+      status: p.status === "pending" ? "waiting in Review" : "rejected",
+    }));
 }
 
 export function getProposal(db: Db, id: string) {

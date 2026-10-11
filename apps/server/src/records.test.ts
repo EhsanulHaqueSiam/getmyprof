@@ -6,6 +6,7 @@ import { exportCsv, importCsv, importGradhunt, parseCsv } from "./adapters.ts";
 import { openDb } from "./db.ts";
 import {
   getRecord,
+  notInSheet,
   putRecord,
   propose,
   recordKey,
@@ -71,6 +72,28 @@ describe("proposals", () => {
     propose(db, thread, { ...lybarger, name: "Wei Wang", fields: { fit: 3 } });
     const other = propose(db, thread, { ...lybarger, name: "William Wang", fields: { fit: 3 } });
     expect("proposal" in other && other.proposal.kind).toBe("add");
+  });
+
+  it("tells the agent who waits in Review and who was rejected, with their area", () => {
+    const { db, thread } = setup();
+    const add = propose(db, thread, { ...lybarger, fields: { niche: "clinical NLP" } });
+    propose(db, thread, { ...lybarger, name: "Natalie Parde", fields: { niche: "dialogue" } });
+    if (!("proposal" in add)) throw new Error("expected a proposal");
+    resolveProposal(db, add.proposal.id, "reject");
+    expect(notInSheet(db).toSorted((a, b) => a.name.localeCompare(b.name))).toEqual([
+      {
+        name: "Kevin Lybarger",
+        university: lybarger.university,
+        niche: "clinical NLP",
+        status: "rejected",
+      },
+      {
+        name: "Natalie Parde",
+        university: lybarger.university,
+        niche: "dialogue",
+        status: "waiting in Review",
+      },
+    ]);
   });
 
   it("never proposes a rejected person again", () => {

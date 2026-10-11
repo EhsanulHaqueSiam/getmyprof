@@ -215,7 +215,7 @@ export const HUNT_TOOLS = [
         (p) => school(p.university) && want(`${p.name} ${p.niche}`, args.query),
       );
       const others = notInSheet(ctx.db).filter(
-        (x) => school(x.university) && want(x.name, args.query),
+        (x) => school(x.university) && want(`${x.name} ${x.niche}`, args.query),
       );
       return {
         summary: `${rows.length} in the sheet${others.length ? `, ${others.length} waiting or rejected` : ""}`,

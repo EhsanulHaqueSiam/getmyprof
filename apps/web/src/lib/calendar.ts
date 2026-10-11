@@ -7,7 +7,7 @@ import { daysLeft, due } from "./vault";
 export const FILTERS = [
   { label: "All", kinds: null },
   { label: "Programs", kinds: ["program"] },
-  { label: "Money", kinds: ["waiver", "scholarship", "offer"] },
+  { label: "Money", kinds: ["waiver", "scholarship", "offer", "window"] },
   { label: "Tests", kinds: ["test"] },
   { label: "Letters", kinds: ["letters"] },
 ] as const satisfies readonly { label: string; kinds: readonly DeadlineKind[] | null }[];
@@ -23,6 +23,8 @@ export const SECTION = {
   interview: "applications",
   offer: "offers",
   document: "documents",
+  // A country's window has its own page, in the row's url.
+  window: null,
 } as const satisfies Record<DeadlineKind, string | null>;
 
 export type CalendarRow = Deadline & {

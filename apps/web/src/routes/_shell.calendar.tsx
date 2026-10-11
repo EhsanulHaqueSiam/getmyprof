@@ -19,11 +19,14 @@ export const Route = createFileRoute("/_shell/calendar")({ component: CalendarPa
 function CalendarPage() {
   const vault = useStore((s) => s.vault);
   const applicant = useStore((s) => s.app?.applicant);
+  const hunt = useStore((s) => s.app?.hunt);
   const token = useStore((s) => s.app?.settings.mcpToken) ?? "";
   const [filter, setFilter] = useState<CalendarFilter>("All");
   const [copied, setCopied] = useState(false);
   const now = new Date();
-  const groups = vault ? calendarGroups(deadlines(vault, applicant, now), filter, now) : [];
+  const groups = vault
+    ? calendarGroups(deadlines(vault, applicant, now, hunt?.prefs), filter, now)
+    : [];
   // Built from where the app was opened, never baked in, so any client gets a URL that reaches it.
   const feed = `${window.location.origin}/api/calendar.ics?token=${encodeURIComponent(token)}`;
 

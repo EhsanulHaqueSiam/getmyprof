@@ -2,8 +2,9 @@
 // for fee waivers and letters, scholarship rounds, tests, interviews, offers and expiring
 // documents. The calendar feed (GET /api/calendar.ics) carries it; the Vault's "Coming up"
 // (apps/web/src/lib/vault.ts comingUp) is the short window of it that needs action now.
-import type { Applicant } from "./domain.ts";
+import type { Applicant, HuntPrefs } from "./domain.ts";
 import type { VaultState } from "./vault.ts";
+import { windowsFor } from "./windows.ts";
 
 export type DeadlineKind =
   | "program"
@@ -13,7 +14,9 @@ export type DeadlineKind =
   | "letters"
   | "interview"
   | "offer"
-  | "document";
+  | "document"
+  /** A country's own season: Italy's bandi, a national scholarship round. */
+  | "window";
 
 /** One dated item. `id` is stable across calls, so a calendar updates an event in place. */
 export type Deadline = {
@@ -52,6 +55,8 @@ export function deadlines(
   v: VaultState,
   applicant: Pick<Applicant, "tests"> | undefined,
   now = new Date(),
+  /** The hunt's places and intake turn on each country's windows, dated for that intake. */
+  hunt?: Pick<HuntPrefs, "places" | "intake">,
 ): Deadline[] {
   const today = [now.getFullYear(), now.getMonth() + 1, now.getDate()]
     .map((n) => String(n).padStart(2, "0"))
@@ -170,6 +175,16 @@ export function deadlines(
       url: "",
     });
   }
+
+  for (const w of windowsFor(hunt?.places ?? [], hunt?.intake ?? ""))
+    out.push({
+      id: `window-${w.country}-${w.closes}`,
+      date: w.date,
+      kind: "window",
+      title: w.title,
+      detail: w.detail,
+      url: w.url,
+    });
 
   // Dates come from the agent and the applicant; one that isn't YYYY-MM-DD can't be placed.
   return out.filter((d) => ISO.test(d.date)).toSorted((a, b) => a.date.localeCompare(b.date));

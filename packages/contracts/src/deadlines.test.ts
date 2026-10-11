@@ -104,6 +104,19 @@ describe("the deadline list", () => {
     ]);
   });
 
+  it("dates a country's own window for the hunt's intake", () => {
+    const v = vault({});
+    const rows = deadlines(v, undefined, now, {
+      places: ["Italy", "Germany"],
+      intake: "Fall 2027",
+    });
+    expect(rows.map((d) => `${d.date} ${d.kind} ${d.id}`)).toEqual([
+      "2026-10-30 window window-germany-10-30",
+      "2027-06-10 window window-italy-06-10",
+    ]);
+    expect(deadlines(v, undefined, now, { places: ["USA"], intake: "Fall 2027" })).toEqual([]);
+  });
+
   it("adds open scholarships, booked tests, interviews, offers to answer and expiring documents", () => {
     const v = vault({
       programs: [program("gmu", "2026-12-01")],

@@ -3,7 +3,13 @@
 // money tiers, facts); nothing here guesses. The Next moves page renders it.
 import { feeBudget, scoreGaps } from "./applying.ts";
 import { deadlines } from "./deadlines.ts";
-import { type Applicant, factStatus, type Professor, type ProfileFact } from "./domain.ts";
+import {
+  type Applicant,
+  factStatus,
+  type HuntPrefs,
+  type Professor,
+  type ProfileFact,
+} from "./domain.ts";
 import type { Conversation } from "./outreach.ts";
 import type { VaultState } from "./vault.ts";
 
@@ -47,10 +53,12 @@ export function nextMoves(
     facts: ProfileFact[];
     records: Professor[];
     conversations: Pick<Conversation, "turn" | "record">[];
+    /** The hunt's places and intake, for each country's own windows. */
+    hunt?: Pick<HuntPrefs, "places" | "intake">;
   },
   now = new Date(),
 ): Move[] {
-  const { vault, applicant, facts, records, conversations } = input;
+  const { vault, applicant, facts, records, conversations, hunt } = input;
   const today = iso(now);
   const moves: Move[] = [];
 
@@ -97,7 +105,20 @@ export function nextMoves(
     });
 
   const horizon = plus(now, HORIZON);
-  for (const d of deadlines(vault, applicant, now)) {
+  // A posted opening closes in weeks: the professor it named carries "apply by <date>".
+  for (const r of records) {
+    const by = /apply by (\d{4}-\d\d-\d\d)/.exec(r.lasts)?.[1];
+    if (!by || by < today || by > horizon || r.stage !== "new" || r.fit === 0) continue;
+    moves.push({
+      id: `position-${r.key}`,
+      lane: "Money",
+      title: `${r.name}'s posted opening closes`,
+      why: `${r.university}: ${r.money || "a funded position"}. Apply or write before ${by}.`,
+      by,
+      to: { page: "professors" },
+    });
+  }
+  for (const d of deadlines(vault, applicant, now, hunt)) {
     if (d.date < today || d.date > horizon) continue;
     const base = { id: d.id, title: d.title, why: d.detail, by: d.date };
     if (d.kind === "letters")
@@ -122,6 +143,7 @@ export function nextMoves(
       });
     else if (d.kind === "document")
       moves.push({ ...base, lane: "Profile", to: { page: "vault", section: "documents" } });
+    else if (d.kind === "window") moves.push({ ...base, lane: "Money", to: { page: "calendar" } });
   }
 
   if (applicant)

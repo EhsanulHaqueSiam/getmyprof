@@ -104,9 +104,14 @@ const awardLines = async (
   surface(
     ctx.db,
     ctx.threadId,
-    awards
-      .filter((a) => a.pi)
-      .map((a) => ({ name: a.pi, university: a.university, via: `${a.source} ${a.id}` })),
+    awards.flatMap((a) => [
+      ...(a.pi ? [{ name: a.pi, university: a.university, via: `${a.source} ${a.id}` }] : []),
+      ...(a.coPis ?? []).map((c) => ({
+        name: c.name,
+        university: a.university,
+        via: `${a.source} ${a.id} co-PI`,
+      })),
+    ]),
   );
   // One block per PI: a lab's five awards read as one lead, with the email the award lists.
   const byPi = new Map<string, { pi: string; university: string; awards: typeof awards }>();
@@ -122,7 +127,7 @@ const awardLines = async (
       `PI ${p.pi || "not listed"}${email ? ` <${email}> (from the award)` : ""} | ${p.university}`,
       ...p.awards.map(
         (a) =>
-          `  ${a.source} ${a.id} | ${money(a.amount, a.currency)} | ends ${a.ends ?? "?"} | ${monthsAfter(a.ends, start) ?? "?"} months after intake | ${a.title}`,
+          `  ${a.source} ${a.id} | ${money(a.amount, a.currency)} | ends ${a.ends ?? "?"} | ${monthsAfter(a.ends, start) ?? "?"} months after intake | ${a.title}${a.coPis?.length ? ` | co-PIs here: ${a.coPis.map((c) => `${c.name} <${c.email}>`).join(", ")}` : ""}`,
       ),
     ].join("\n");
   });

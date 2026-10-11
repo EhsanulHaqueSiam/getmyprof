@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { sameSchoolName } from "@getmyprof/contracts";
-import { openAlexMatch, sameSchool, sourcesFor } from "./sources.ts";
+import { nsfAwards, openAlexMatch, sameSchool, sourcesFor } from "./sources.ts";
 
 describe("grant databases", () => {
   it("follow the hunt's places, defaulting to NSF and NIH", () => {
@@ -40,5 +40,31 @@ describe("which OpenAlex author a professor is", () => {
     expect(await openAlexMatch("Bo Smith", "University of Illinois Chicago")).toBeNull();
     authors("Stanford University", "University of Illinois Chicago");
     expect((await openAlexMatch("Cy Smith", "University of Illinois Chicago"))?.id).toBe("A1");
+  });
+});
+
+describe("NSF awards", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("keep the co-PIs at the PI's own school, with the email the award lists", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json({
+        response: {
+          award: [
+            {
+              id: "2531369",
+              piFirstName: "Hemant",
+              piLastName: "Purohit",
+              piEmail: "hpurohit@gmu.edu",
+              awardeeName: "George Mason University",
+              coPDPI: ["Joshua G Behr Jbehr@odu.edu", "Jennifer M Suh jsuh4@gmu.edu"],
+            },
+          ],
+        },
+      }),
+    );
+    const [award] = await nsfAwards({ terms: ["crisis informatics"] });
+    expect(award?.piEmail).toBe("hpurohit@gmu.edu");
+    expect(award?.coPis).toEqual([{ name: "Jennifer M Suh", email: "jsuh4@gmu.edu" }]);
   });
 });

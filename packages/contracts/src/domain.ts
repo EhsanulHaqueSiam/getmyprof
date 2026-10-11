@@ -486,6 +486,8 @@ export const Award = z.object({
   pi: z.string(),
   /** The PI's email when the database lists it (NSF does), from the award record itself. */
   piEmail: z.string().optional(),
+  /** Co-PIs at the same school, with the email the award lists (NSF): funded faculty too. */
+  coPis: z.array(z.object({ name: z.string(), email: z.string() })).optional(),
   university: z.string(),
   amount: z.number().nullable(),
   /** ISO 4217: USD, GBP, EUR, AUD. */

@@ -246,6 +246,24 @@ export function sourcesFor(places: string[]): Award["source"][] {
   return picked.size || where.trim() ? [...picked] : ["NSF", "NIH"];
 }
 
+/** "uni.edu" from "a@cs.uni.edu"; "ox.ac.uk" from "a@cs.ox.ac.uk". */
+const schoolDomain = (email: string) => {
+  const parts = email.toLowerCase().split("@")[1]?.split(".") ?? [];
+  return parts.slice(/^(ac|edu|co)$/.test(parts.at(-2) ?? "") ? -3 : -2).join(".");
+};
+
+/** NSF's co-PIs ("Ada Smith ada@uni.edu") at the PI's own school, by email domain. */
+function coPisHere(entries: string[], piEmail: string) {
+  const here = schoolDomain(piEmail);
+  const coPis = entries.flatMap((e) => {
+    const email = /\S+@\S+$/.exec(e)?.[0] ?? "";
+    return email && here && schoolDomain(email) === here
+      ? [{ name: e.slice(0, -email.length).trim(), email: email.toLowerCase() }]
+      : [];
+  });
+  return coPis.length ? { coPis } : {};
+}
+
 /** NSF's page size; a full page means there may be more. */
 const NSF_PAGE = 25;
 
@@ -256,7 +274,7 @@ export async function nsfAwards(q: AwardQuery): Promise<RawAward[]> {
     for (const offset of [1, NSF_PAGE + 1]) {
       const params = new URLSearchParams({
         printFields:
-          "id,title,piFirstName,piLastName,piEmail,awardeeName,startDate,expDate,estimatedTotalAmt,abstractText",
+          "id,title,piFirstName,piLastName,piEmail,coPDPI,awardeeName,startDate,expDate,estimatedTotalAmt,abstractText",
         rpp: String(NSF_PAGE),
         offset: String(offset),
       });
@@ -274,6 +292,7 @@ export async function nsfAwards(q: AwardQuery): Promise<RawAward[]> {
           title: text(a.title),
           pi: `${text(a.piFirstName)} ${text(a.piLastName)}`.trim(),
           ...(text(a.piEmail) ? { piEmail: text(a.piEmail).toLowerCase() } : {}),
+          ...coPisHere(asArray(a.coPDPI).map(text), text(a.piEmail)),
           university: text(a.awardeeName),
           amount: a.estimatedTotalAmt == null ? null : Number(a.estimatedTotalAmt),
           currency: "USD",

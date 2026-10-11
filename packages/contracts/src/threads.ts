@@ -2,6 +2,7 @@
 // them by id, so a later event with the same id replaces the earlier one (a tool call that
 // finishes, an approval that resolves).
 import { z } from "zod";
+import { AgentKind } from "./agents.ts";
 import { DetailLevel, ScopeItem } from "./domain.ts";
 
 export const ThreadStatus = z.enum(["idle", "working", "approval", "input", "failed"]);
@@ -25,6 +26,13 @@ export const ThreadSummary = z.object({
   scope: z.array(ScopeItem),
   /** This thread's detail level; null follows the install's. */
   detail: DetailLevel.nullable(),
+  /**
+   * The agent, model and effort this thread runs on, taken from Settings at its first message.
+   * The agent stays for good; the model and effort can change. Null before then.
+   */
+  agent: AgentKind.nullable(),
+  model: z.string().nullable(),
+  effort: z.string().nullable(),
 });
 export type ThreadSummary = z.infer<typeof ThreadSummary>;
 

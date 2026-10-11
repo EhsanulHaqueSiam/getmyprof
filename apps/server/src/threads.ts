@@ -1,4 +1,5 @@
 import {
+  AgentKind,
   DetailLevel,
   ScopeItem,
   ThreadEvent,
@@ -41,8 +42,25 @@ function summarize(db: Db, r: Row): ThreadSummary {
     ),
     scope: r.scope ? z.array(ScopeItem).parse(JSON.parse(String(r.scope))) : [],
     detail: r.detail ? DetailLevel.parse(r.detail) : null,
+    agent: r.agent ? AgentKind.parse(r.agent) : null,
+    model: str(r.model),
+    effort: str(r.effort),
   };
 }
+
+/** Fixes the agent a thread runs on, with its model and effort: at its first message. */
+export const setThreadAgent = (
+  db: Db,
+  id: string,
+  a: { agent: AgentKind; model: string; effort: string },
+) =>
+  db
+    .prepare("UPDATE threads SET agent = ?, model = ?, effort = ? WHERE id = ?")
+    .run(a.agent, a.model, a.effort, id);
+
+/** A thread's model and effort for its next turns. */
+export const setThreadModel = (db: Db, id: string, model: string, effort: string) =>
+  db.prepare("UPDATE threads SET model = ?, effort = ? WHERE id = ?").run(model, effort, id);
 
 const sameItem = (a: ScopeItem, b: ScopeItem) =>
   a.kind === b.kind &&
@@ -278,6 +296,13 @@ export function forkThread(db: Db, id: string) {
   const copy = createThread(db, `${source.title} (fork)`);
   addScope(db, copy.id, source.scope);
   setDetail(db, copy.id, source.detail);
+  // The copy resumes the same conversation, so it stays on the same agent.
+  if (source.agent)
+    setThreadAgent(db, copy.id, {
+      agent: source.agent,
+      model: source.model ?? "",
+      effort: source.effort ?? "",
+    });
   const session = sessionId(db, id);
   if (session) setSession(db, copy.id, session);
   for (const e of listEvents(db, id)) putEvent(db, copy.id, e);

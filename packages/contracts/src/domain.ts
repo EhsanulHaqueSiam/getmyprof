@@ -1,6 +1,7 @@
 // The hunt's records: preferences, profile facts, professors, proposals, loops. Shared by the
 // server's store and the client's views, so a field added here shows up on both sides.
 import { z } from "zod";
+import { AgentKind } from "./agents.ts";
 
 export const DetailLevel = z.enum(["brief", "std", "deep"]);
 export type DetailLevel = z.infer<typeof DetailLevel>;
@@ -137,7 +138,17 @@ export type TregCustomers = z.infer<typeof TregCustomers>;
 export const Settings = z.object({
   detail: DetailLevel,
   budget: Budget,
+  /** The agent, model and reasoning effort new threads, loops and row actions start on. */
+  agent: AgentKind,
   model: z.string(),
+  /** Empty: the agent's own default. */
+  effort: z.string(),
+  /** Agents switched off in Settings: the picker leaves them out. */
+  agentsOff: z.array(AgentKind),
+  /** Starred models, as modelKey: the picker's Favorites. */
+  favoriteModels: z.array(z.string()),
+  /** Models kept out of the picker, as modelKey. */
+  hiddenModels: z.array(z.string()),
   /** Paid lookups through the treg CLI. Off means free sources only. */
   treg: z.boolean(),
   profileSource: z.enum(["app", "hq"]),

@@ -256,3 +256,19 @@ export const STARTER_LOOPS = [
     schedule: { kind: "at", at: "10:00", weekdays: [6] },
   },
 ] satisfies { name: string; instructions: string; schedule: Schedule }[];
+
+/** A loop run in a line: "2 new, 1 change, 1 accepted", why it stopped, or "nothing new". */
+export function runSummary(
+  proposals: { kind: "add" | "update"; status: string }[],
+  stop: string | null,
+) {
+  const n = (k: "add" | "update") => proposals.filter((p) => p.kind === k).length;
+  const accepted = proposals.filter((p) => p.status === "accepted").length;
+  const found = [
+    n("add") ? `${n("add")} new` : "",
+    n("update") ? `${n("update")} change${n("update") === 1 ? "" : "s"}` : "",
+    accepted ? `${accepted} accepted` : "",
+  ].filter(Boolean);
+  if (stop && stop !== "interrupted") return [stop, ...found].join(" · ");
+  return found.length ? found.join(", ") : "nothing new";
+}

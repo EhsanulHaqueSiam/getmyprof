@@ -9,7 +9,7 @@ import {
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CheckIcon, FileTextIcon } from "lucide-react";
 import { useEffect, useState } from "react";
-import { ClaudeConnect } from "~/components/ClaudeConnect";
+import { AgentCards } from "~/components/AgentCards";
 import { Chip, Row } from "~/components/FormParts";
 import { EligibilityFields } from "~/components/EligibilityFields";
 import { BudgetStep, HuntStep, LOOP_NAMES } from "~/components/SetupSteps";
@@ -174,11 +174,13 @@ function Setup() {
             <>
               <h1 className="font-semibold text-lg tracking-tight">Connect</h1>
               <p className="mt-0.5 mb-3 text-muted-foreground text-xs">
-                getmyprof runs Claude Code on this machine with your own login. Nothing goes through
-                a getmyprof server.
+                getmyprof runs a coding agent on this machine with your own login. Nothing goes
+                through a getmyprof server.
               </p>
-              <Row label="Agent">
-                <ClaudeConnect claude={app?.claude} />
+              <Row label="Agents">
+                <div className="w-full">
+                  <AgentCards />
+                </div>
               </Row>
               <Row label="Runs on">
                 {app?.host ?? "this machine"}{" "}

@@ -4,7 +4,7 @@
 browser (React) ⇄ /api, /ws ⇄ Vite (127.0.0.1:5174) ⇄ server (127.0.0.1:4311)
                                                       ├ rpc.ts: contract methods → services
                                                       ├ SQLite: ~/.getmyprof/getmyprof.sqlite
-                                                      ├ agent runner ── provider: claude | fake
+                                                      ├ agent runner ── provider: claude | acp | fake
                                                       │    └ hunt tools: nsf_awards, nih_awards, openalex_author,
                                                       │      sheet_search, propose_professor, treg (paid)
                                                       ├ adapters: hq facts, gradhunt (scout.py), CSV
@@ -146,9 +146,26 @@ tool call on a human: an MCP call held open for hours would time out.
 
 ## Providers
 
-`claude` runs the Agent SDK's bundled Claude Code with the user's login. `fake` runs the same hunt
-tools on fixture sources with scripted turns (approval, proposals, row actions), so e2e covers the
-real store, approval and settle paths without spending anything. Pick with `GETMYPROF_AGENT=fake`.
+`claude` runs the Agent SDK's bundled Claude Code with the user's login. Codex, OpenCode, Gemini
+CLI, Copilot and Cursor run through one Agent Client Protocol client (`agent/acp.ts`), each from the
+copy installed and signed in on the machine (Codex through `npx @agentclientprotocol/codex-acp`,
+which reads Codex's login). `fake` runs the same hunt tools on fixture sources with scripted turns
+(approval, proposals, row actions), so e2e covers the real store, approval and settle paths without
+spending anything. Pick it with `GETMYPROF_AGENT=fake`; it then stands in for every agent.
+
+A thread's first message fixes its agent, model and effort from Settings (the composer's picker on
+the home page sets those); the agent never changes after that, since a conversation can't move
+between agents, and the model and effort can. Threads from before the picker stay on Claude Code.
+
+ACP agents get the hunt tools over MCP at `/api/mcp/hunt`, one bearer token per live session
+(`agent/mcp-hunt.ts`), with the same Ask-mode, cap and "ask above $x" gate as Claude Code's
+`canUseTool`. They have no system prompt, so a new conversation gets the instructions with its first
+message. They run in an empty folder under `GETMYPROF_HOME/work/<agent>` and are kept read-only:
+Codex in its read-only mode, OpenCode with edits denied and every command asking, and every
+permission request other than a hunt tool or a web read refused. Codex asks about an MCP call as
+kind `execute` with no name, so a request is matched to the tool call it follows by id. An agent
+without HTTP MCP can't take the tools and shows as unsupported. `agents.ts` asks each agent over
+ACP at startup and on "Check again" for its sign-in, models and effort levels.
 
 ## Outreach
 

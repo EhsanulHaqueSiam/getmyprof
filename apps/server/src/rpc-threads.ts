@@ -91,6 +91,11 @@ export function threadHandlers(svc: Services): Pick<Handlers, ThreadMethods> {
       send(id, text, delivery, attachments, scope);
       return OK;
     },
+    "threads.setModel": ({ id, model, effort }) => {
+      thread(id);
+      runner.setModel(id, model, effort);
+      return OK;
+    },
     "threads.setDetail": ({ id, detail }) => {
       thread(id);
       setDetail(db, id, detail);

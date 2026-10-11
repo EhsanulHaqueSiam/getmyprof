@@ -29,6 +29,8 @@ export type SessionStart = {
   firstFiles: Attachment[];
   systemPrompt: string;
   model: string;
+  /** Reasoning effort; empty leaves the agent's default. */
+  effort: string;
   tools: HuntTool[];
   toolContext: ToolContext;
   /**
@@ -45,8 +47,10 @@ export type SessionStart = {
 export type AgentSession = {
   push: (text: string, priority?: "next" | "now", files?: Attachment[]) => void;
   interrupt: () => Promise<void>;
+  /** Switches model and effort for the turns after this one. */
+  setModel?: (model: string, effort: string) => void;
   close: () => void;
 };
 
-/** One agent backend: Claude through the Agent SDK, or the scripted fake for e2e. */
+/** One agent backend: Claude through the Agent SDK, an ACP agent (acp.ts), or the scripted fake. */
 export type AgentProvider = { start: (s: SessionStart) => AgentSession };

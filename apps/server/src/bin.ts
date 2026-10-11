@@ -6,7 +6,10 @@ import { z } from "zod";
 import { setOpenAlexKey } from "./sources.ts";
 import { importGradhunt, profileFacts } from "./adapters.ts";
 import { ensureClaude } from "./agent/binary.ts";
+import { acpProvider } from "./agent/acp.ts";
+import { refreshAgents } from "./agent/agents.ts";
 import { claudeProvider } from "./agent/claude.ts";
+import { serveHunt, setHuntUrl } from "./agent/mcp-hunt.ts";
 import { fakeProvider } from "./agent/fake.ts";
 import { fixtureSources } from "./agent/fixtures.ts";
 import { createRunner } from "./agent/runner.ts";
@@ -43,7 +46,7 @@ const sources = fake ? fixtureSources : realSources;
 const runner = createRunner({
   db,
   bus,
-  provider: fake ? fakeProvider() : claudeProvider,
+  provider: fake ? fakeProvider() : (a) => (a === "claude" ? claudeProvider : acpProvider(a)),
   sources,
   signAs: () => outreach.status().name,
   sweepNudges: fake ? 0 : 2,
@@ -285,6 +288,15 @@ const server = NodeHttp.createServer((req, res) => {
       return;
     }
   }
+  // The hunt tools for a running ACP agent session, behind that session's token (mcp-hunt.ts).
+  if (req.url === "/api/mcp/hunt" && req.method === "POST") {
+    void readBody(req)
+      .then((body) => serveHunt(req, res, body))
+      .catch((error: unknown) => {
+        if (!res.headersSent) res.writeHead(500).end(String(error));
+      });
+    return;
+  }
   // getmyprof's own MCP endpoint for other agents (stateless streamable HTTP: POST only).
   if (req.url === "/api/mcp") {
     if (req.method !== "POST") {
@@ -363,6 +375,9 @@ new WebSocketServer({
   send({ type: "hello" });
 });
 
+setHuntUrl(`http://127.0.0.1:${PORT}`);
+// A first look at which agents are installed and signed in, for Settings and the picker.
+if (!fake) void refreshAgents(() => bus.push({ type: "changed", what: "state" }));
 server.listen(PORT, "127.0.0.1", () =>
   console.log(`getmyprof server on http://127.0.0.1:${PORT}${fake ? " (fake agent)" : ""}`),
 );

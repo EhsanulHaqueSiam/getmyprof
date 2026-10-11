@@ -12,16 +12,10 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { Kbd } from "~/components/ui/kbd";
 import { guessKind, toBase64 } from "~/lib/files";
+import { AgentPicker, type AgentThread, EffortPicker } from "~/components/AgentPicker";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
-
-/** A model id like "claude-opus-5-5" as the label "Opus 5.5". */
-export const modelLabel = (id: string) =>
-  id
-    .replace("claude-", "")
-    .replace(/-(\d)-(\d)$/, " $1.$2")
-    .replace(/^\w/, (c) => c.toUpperCase());
 
 const DETAIL_LABEL = { brief: "Brief", std: "Standard", deep: "Deep" } as const;
 const NEXT_DETAIL = { brief: "std", std: "deep", deep: "brief" } as const;
@@ -49,6 +43,8 @@ type Props = {
   ask?: boolean;
   /** A thread's own detail level; without it the toggle sets the install's. */
   detail?: { value: DetailLevel; set: (d: DetailLevel) => void };
+  /** The thread's agent and model; without it the picker sets what new threads start on. */
+  thread?: AgentThread;
 };
 
 const NONE: ScopeItem[] = [];
@@ -97,6 +93,7 @@ export function Composer({
   mentions: initialMentions = NONE,
   ask: initialAsk = false,
   detail,
+  thread,
 }: Props) {
   const [text, setText] = useState(() => initialMentions.map((m) => `@${m.name} `).join(""));
   const [files, setFiles] = useState<{ id: string; name: string }[]>([]);
@@ -293,9 +290,8 @@ export function Composer({
         {uploading ? <span className="px-1">attaching</span> : null}
         {!compact && settings ? (
           <>
-            <span className="flex h-6.5 items-center gap-1.5 rounded-lg px-2">
-              {modelLabel(settings.model)}
-            </span>
+            <AgentPicker thread={thread} />
+            <EffortPicker thread={thread} />
             <button
               type="button"
               aria-pressed={ask}

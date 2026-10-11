@@ -1,14 +1,20 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import { sameSchoolName } from "@getmyprof/contracts";
+import { placeCountries } from "./places.ts";
 import { nsfAwards, openAlexMatch, sameSchool, sourcesFor } from "./sources.ts";
 
 describe("grant databases", () => {
   it("follow the hunt's places, defaulting to NSF and NIH", () => {
-    expect(sourcesFor(["UK", "Germany"])).toEqual(["UKRI", "CORDIS", "DFG"]);
-    expect(sourcesFor(["USA", "Australia"])).toEqual(["NSF", "NIH", "ARC"]);
+    expect(sourcesFor(["UK", "Germany"])).toEqual(["UKRI", "CORDIS", "DFG", "OpenAlex"]);
+    expect(sourcesFor(["USA", "Australia"])).toEqual(["NSF", "NIH", "ARC", "OpenAlex"]);
     expect(sourcesFor([])).toEqual(["NSF", "NIH"]);
-    expect(sourcesFor(["Canada"])).toEqual(["NSERC"]);
-    expect(sourcesFor(["India"])).toEqual([]);
+    expect(sourcesFor(["Canada"])).toEqual(["NSERC", "OpenAlex"]);
+    // Japan has no direct database; OpenAlex's awards carry JSPS.
+    expect(sourcesFor(["Japan"])).toEqual(["OpenAlex"]);
+    expect(sourcesFor(["Mars"])).toEqual([]);
+    expect(placeCountries(["Japan", "Hong Kong", "UK"])).toEqual(["gb", "jp", "hk"]);
+    // Whole words only: "us" isn't in "Russia" or "status".
+    expect(placeCountries(["Russia status"])).toEqual([]);
   });
 
   it("match a school however each database spells it", () => {

@@ -49,6 +49,12 @@ const JOBS = [
     "query, pub_year_min, page",
   ],
   [
+    "scholar_profile",
+    "serpapi.x.google-scholar",
+    'A professor\'s Google Scholar profile: title and school, verified email domain, homepage, interests, citations and h-index, co-authors, newest works. For when who they are or their homepage is unclear. Get the author_id free first: web_search "<name> <school> site:scholar.google.com" and take user= from the profile link',
+    "author_id",
+  ],
+  [
     "x_posts",
     "treg.x.search.posts",
     'Posts on X, for "looking for PhD students" announcements',

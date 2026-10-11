@@ -1,5 +1,5 @@
 // Every free and paid source the agent reads, by key: the grant databases, OpenAlex (people,
-// topics, labs, warm paths), CSRankings and treg. The fake provider swaps in fixtures
+// topics, labs, warm paths, awards), Europe PMC (emails on papers), CSRankings and treg. The fake provider swaps in fixtures
 // (fixtures.ts).
 import type { AwardSource, PositionSource } from "@getmyprof/contracts";
 import {
@@ -19,7 +19,10 @@ import {
   dfgAwards,
   type Faculty,
   nsercAwards,
+  openAlexAwards,
   openAlexByTopic,
+  type PaperEmail,
+  paperEmails,
   type TopicAuthor,
 } from "../sources-more.ts";
 import { type Lab, openAlexLab, openAlexWarm, type Warm } from "../sources-people.ts";
@@ -44,6 +47,8 @@ export type Sources = {
   arc: AwardFetch;
   dfg: AwardFetch;
   nserc: AwardFetch;
+  /** Every other funder (JSPS, SNSF, DoD...), from OpenAlex's award index. */
+  openalexAwards: AwardFetch;
   /** Advertised PhD positions, by board. */
   jobsacuk: PositionFetch;
   inspire: PositionFetch;
@@ -58,6 +63,8 @@ export type Sources = {
   lab: (name: string, university: string) => Promise<Lab | null>;
   /** What links the applicant's papers (fact texts) to a professor, by OpenAlex. */
   warm: (name: string, university: string, papers: string[]) => Promise<Warm | null>;
+  /** Emails a professor printed on their papers (Europe PMC), each with its paper. */
+  paperEmails: (name: string, university: string) => Promise<PaperEmail[]>;
   /** What a professor's page says about prospective students, quoted and dated. */
   contactPage: (url: string) => Promise<ContactRead>;
   treg: (req: TregRequest) => Promise<TregOutcome>;
@@ -71,6 +78,7 @@ export const realSources: Sources = {
   arc: arcAwards,
   dfg: dfgAwards,
   nserc: nsercAwards,
+  openalexAwards: openAlexAwards,
   jobsacuk: jobsAcUkPositions,
   inspire: inspirePositions,
   openalex: openAlexAuthor,
@@ -79,6 +87,7 @@ export const realSources: Sources = {
   adjacent: adjacentTopics,
   lab: openAlexLab,
   warm: openAlexWarm,
+  paperEmails,
   contactPage: (url) => contactPage(url, (u) => renderedPage(u).catch(() => null)),
   treg: (req) => tregCall(req),
 };
@@ -91,6 +100,7 @@ const SOURCE_KEY = {
   ARC: "arc",
   DFG: "dfg",
   NSERC: "nserc",
+  OpenAlex: "openalexAwards",
 } as const satisfies Record<AwardSource, keyof Sources>;
 
 /** An award source's key in Sources. */

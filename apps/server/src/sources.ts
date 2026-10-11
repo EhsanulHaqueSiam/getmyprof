@@ -1,6 +1,7 @@
 // Data sources the agent and the Funding view use: free public APIs (NSF, NIH RePORTER, UKRI,
 // CORDIS, ARC, OpenAlex). Paid lookups go through treg.ts.
 import { type Award, sameSchool, sameSchoolName, schoolWords } from "@getmyprof/contracts";
+import { placeCountries } from "./places.ts";
 
 export { sameSchool };
 
@@ -83,11 +84,13 @@ export type AwardQuery = {
   university?: string;
   pi?: string;
   activeAfter?: string;
+  /** ISO codes of the hunt's countries; only OpenAlex, which spans them all, reads them. */
+  countries?: string[];
 };
 export type RawAward = Omit<Award, "monthsAfterIntake" | "inSheet" | "fit">;
 
 /** Keeps awards that match the query's school, PI and end date, for APIs that can't filter. */
-const narrow = (q: AwardQuery, awards: RawAward[]) =>
+export const narrow = (q: AwardQuery, awards: RawAward[]) =>
   awards.filter(
     (a) =>
       (!q.university || sameSchool(a.university, q.university)) &&
@@ -244,6 +247,8 @@ export function sourcesFor(places: string[]): Award["source"][] {
   if (/\baustralia\b/.test(where)) picked.add("ARC");
   if (/\bgermany\b/.test(where)) picked.add("DFG");
   if (/\bcanada\b/.test(where)) picked.add("NSERC");
+  // Every other funder in the hunt's countries: JSPS, SNSF, CIHR, the US DoD...
+  if (placeCountries(places).length) picked.add("OpenAlex");
   // Places none of these cover (India...) get none: the agent searches the web for their
   // funders instead of quietly reading US awards.
   return picked.size || where.trim() ? [...picked] : ["NSF", "NIH"];

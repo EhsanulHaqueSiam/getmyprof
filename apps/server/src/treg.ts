@@ -97,12 +97,6 @@ export const TREG_ENDPOINTS: Record<
   },
   "treg.x.search.posts": { method: "POST", usd: 0.00075, max: 0.015, args: "q" },
   "anyapi.x.search.posts": { method: "POST", usd: 0.00075, max: 0.00075, args: "query, limit" },
-  "treg.google.serp.organic": {
-    method: "POST",
-    usd: 0.0009,
-    max: 0.015,
-    args: "q, country, limit",
-  },
   "anyapi.google.serp.organic": {
     method: "POST",
     usd: 0.0009,
@@ -110,6 +104,14 @@ export const TREG_ENDPOINTS: Record<
     args: "query, gl, page",
   },
   "serper.google.serp.scholar": { method: "POST", usd: 0.001, max: 0.001, args: "q" },
+  // One professor's Scholar profile (SerpApi's author engine); treg's schema wants a q it ignores.
+  "serpapi.x.google-scholar": {
+    method: "GET",
+    usd: 0.015,
+    max: 0.015,
+    args: "author_id (the user= part of a scholar.google.com/citations link)",
+    fixed: { engine: "google_scholar_author", sort: "pubdate", q: "profile" },
+  },
   "anyapi.google.scholar": { method: "POST", usd: 0.001, max: 0.001, args: "query" },
   "tikhub.x.reddit-app-fetch-dynamic-search": {
     method: "GET",
@@ -394,6 +396,7 @@ const cut = (s: string, n: number) =>
  * and anything else as JSON. Every cut says so.
  */
 export function tregText(result: unknown, limit = 16_000) {
+  if (asRecord(result).author && asRecord(result).articles) return scholarText(asRecord(result));
   const rows = hitsIn(result);
   if (!rows) return cut(JSON.stringify(result) ?? "", limit);
   const perPage = Math.min(6000, Math.floor(limit / rows.length));
@@ -418,6 +421,33 @@ export function tregText(result: unknown, limit = 16_000) {
   );
   // Each page and hit is cut on its own, so the whole needs no second cut.
   return [...lines, ...failed].join("\n");
+}
+
+/** A Google Scholar profile in a few lines; SerpApi's answer runs to 25 KB. Paper links are left
+ * out: they are Scholar pages, which refuse anything but a browser. */
+function scholarText(r: Record<string, unknown>) {
+  const a = asRecord(r.author);
+  const table = asArray(asRecord(r.cited_by).table).map(asRecord);
+  const stat = (k: string) => text(asRecord(table.find((t) => k in t)?.[k]).all) || "?";
+  return [
+    [text(a.name), text(a.affiliations), text(a.email), text(a.website)]
+      .filter(Boolean)
+      .join(" | "),
+    `Interests: ${asArray(a.interests)
+      .map((i) => text(asRecord(i).title))
+      .join(", ")}`,
+    `Cited ${stat("citations")} | h-index ${stat("h_index")} | i10 ${stat("i10_index")}`,
+    `Co-authors: ${asArray(r.co_authors)
+      .slice(0, 10)
+      .map(asRecord)
+      .map((c) => `${text(c.name)} (${text(c.affiliations)})`)
+      .join("; ")}`,
+    "Newest works:",
+    ...asArray(r.articles)
+      .slice(0, 10)
+      .map(asRecord)
+      .map((w) => `- ${text(w.title)} (${text(w.year)})`),
+  ].join("\n");
 }
 
 /**

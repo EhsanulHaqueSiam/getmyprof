@@ -1,6 +1,7 @@
-// More free sources: DFG (Germany, GEPRIS) and NSERC (Canada) awards, CSRankings' faculty
-// lists, and OpenAlex by topic (who works on it at a school; topics next to a field). The big
-// public files (CSRankings, NSERC) are kept under GETMYPROF_HOME/cache for a month.
+// More free sources: DFG (Germany, GEPRIS), NSERC (Canada) and OpenAlex (every other funder)
+// awards, CSRankings' faculty lists, OpenAlex by topic (who works on it at a school; topics next
+// to a field) and emails printed on papers (Europe PMC). The big public files (CSRankings,
+// NSERC) are kept under GETMYPROF_HOME/cache for a month.
 import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
 import { parseCsv } from "./adapters.ts";
@@ -13,6 +14,7 @@ import {
   asArray,
   asRecord,
   getJson,
+  narrow,
   sameSchool,
   text,
 } from "./sources.ts";
@@ -237,17 +239,21 @@ export type TopicAuthor = {
   link: string;
 };
 
+/** A school's OpenAlex id: the very school, not the first hit ("University of Utah", not Utah State). */
+async function institutionId(university: string) {
+  const insts = await openAlexResults(
+    `institutions?search=${encodeURIComponent(university)}&per-page=5`,
+  );
+  return idOf(insts.find((i) => sameSchoolName(text(i.display_name), university)) ?? insts[0]);
+}
+
 /** Who at a school works on a topic, by OpenAlex: most published first. */
 export async function openAlexByTopic(topic: string, university: string): Promise<TopicAuthor[]> {
-  const [insts, tops] = await Promise.all([
-    openAlexResults(`institutions?search=${encodeURIComponent(university)}&per-page=5`),
+  const [inst, tops] = await Promise.all([
+    institutionId(university),
     openAlexResults(`topics?search=${encodeURIComponent(topic)}&per-page=3`),
   ]);
-  // The very school, not the first hit ("University of Utah", not Utah State); any of the three
-  // closest topics, since one topic name rarely covers a field.
-  const inst = idOf(
-    insts.find((i) => sameSchoolName(text(i.display_name), university)) ?? insts[0],
-  );
+  // Any of the three closest topics, since one topic name rarely covers a field.
   const top = tops.map(idOf).filter(Boolean).join("|");
   if (!inst || !top) return [];
   const body = asRecord(
@@ -294,4 +300,125 @@ export async function adjacentTopics(fields: string[]): Promise<string[]> {
       return true;
     })
     .slice(0, 10);
+}
+
+// NSF and NIH: their direct sources carry emails and co-PIs, so OpenAlex leaves them out.
+const DIRECT_FUNDERS = ["F4320306076", "F4320332161"];
+
+/** An OpenAlex awards page as awards. SNSF's names arrive as "Rinaldi, Fabio"; this rights them. */
+export const parseOpenAlexAwards = (body: unknown): RawAward[] =>
+  asArray(asRecord(body).results)
+    .map(asRecord)
+    .map((a) => {
+      const lead = asRecord(a.lead_investigator);
+      const full = `${text(lead.given_name)} ${text(lead.family_name)}`.trim();
+      const [last = "", first = ""] = full.split(/,\s*/);
+      return {
+        source: "OpenAlex" as const,
+        funder: text(asRecord(a.funder).display_name),
+        id: idOf(a),
+        title: text(a.display_name),
+        pi: full.includes(",") ? `${first} ${last}` : full,
+        university:
+          text(asRecord(asArray(a.institution_awarded)[0]).display_name) ||
+          text(asRecord(lead.affiliation).name),
+        amount: a.amount == null ? null : Number(a.amount),
+        currency: text(a.currency) || "USD",
+        url: text(a.landing_page_url) || text(a.id),
+        starts: text(a.start_date) || null,
+        ends: text(a.end_date) || null,
+        abstract: text(a.description).slice(0, 600),
+      };
+    });
+
+/**
+ * Awards from OpenAlex's index, for the funders no direct source reads: JSPS (Japan), SNSF, ERC,
+ * CIHR and FRQ (Canada), the US DoD, Sweden, Norway, Hong Kong... At one school, else in the
+ * hunt's countries. Its search reads titles and abstracts, not names, so a PI goes by family name.
+ */
+export async function openAlexAwards(q: AwardQuery): Promise<RawAward[]> {
+  const inst = q.university ? await institutionId(q.university) : "";
+  if (q.university && !inst) return [];
+  // The name filters match lowercase only.
+  const last =
+    (q.pi ?? "")
+      .split(/\s+/)
+      .at(-1)
+      ?.replace(/[^\p{L}'-]/gu, "")
+      .toLowerCase() ?? "";
+  const base = [
+    inst
+      ? `institution_awarded.id:${inst}`
+      : q.countries?.length
+        ? `institution_awarded.country_code:${q.countries.join("|")}`
+        : "",
+    q.activeAfter ? `end_year:>${Number(q.activeAfter.slice(0, 4)) - 1}` : "",
+    ...DIRECT_FUNDERS.map((f) => `funder.id:!${f}`),
+  ];
+  const search = q.terms.map((t) => `"${t.replaceAll('"', " ")}"`).join(" OR ");
+  // A PI goes by family name; SNSF files that as the given name ("Rinaldi,"), so ask both.
+  const pages = await Promise.all(
+    (last ? [`family_name:${last}`, `given_name:${last}`] : [""]).map((who) => {
+      const filter = [...base, who && `lead_investigator.${who}`].filter(Boolean).join(",");
+      return getJson(
+        `https://api.openalex.org/awards?${new URLSearchParams({ filter, ...(search ? { search } : {}), "per-page": "50" })}`,
+      );
+    }),
+  );
+  const awards = new Map(pages.flatMap(parseOpenAlexAwards).map((a) => [a.id, a]));
+  return narrow(q, [...awards.values()]);
+}
+
+export type PaperEmail = { email: string; paper: string; year: string };
+
+const letters = (s: string) => s.toLowerCase().replace(/[^a-z]/g, "");
+
+/**
+ * One person's emails on their affiliation lines at a school, newest paper first, once each. A
+ * line can carry a co-author's address, so an address counts only if it holds their own name.
+ */
+export function emailsIn(body: unknown, name: string, university: string): PaperEmail[] {
+  const who = personKey(name);
+  const seen = new Map<string, PaperEmail>();
+  for (const r of asArray(asRecord(asRecord(body).resultList).result).map(asRecord)) {
+    for (const a of asArray(asRecord(r.authorList).author).map(asRecord)) {
+      if (personKey(`${text(a.firstName)} ${text(a.lastName)}`) !== who) continue;
+      const own = [letters(text(a.firstName)), letters(text(a.lastName))].filter(
+        (w) => w.length > 2,
+      );
+      const lines = asArray(asRecord(a.authorAffiliationDetailsList).authorAffiliation)
+        .map((x) => text(asRecord(x).affiliation))
+        .filter((x) => sameSchool(x, university));
+      for (const found of lines.join(" ").match(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g) ?? []) {
+        const email = found.toLowerCase();
+        const local = letters(email.split("@")[0] ?? "");
+        if (own.some((w) => local.includes(w)) && !seen.has(email))
+          seen.set(email, {
+            email,
+            paper: `https://europepmc.org/article/${text(r.source)}/${text(r.id)}`,
+            year: text(r.pubYear),
+          });
+      }
+    }
+  }
+  return [...seen.values()];
+}
+
+/**
+ * Emails a professor printed on their papers (Europe PMC, so mostly biomedical and clinical
+ * faculty), each with the paper it is on. Free.
+ */
+export async function paperEmails(name: string, university: string): Promise<PaperEmail[]> {
+  // "Guilherme Del Fiol" as "Del Fiol", "Kevin J. Lybarger" as "Lybarger".
+  const surname = name
+    .split(/\s+/)
+    .slice(1)
+    .filter((w) => !/^\p{L}\.?$/u.test(w))
+    .join(" ");
+  if (!surname) return [];
+  const query = `AUTH:"${surname.replaceAll('"', " ")}" AND AFF:"${university.replaceAll('"', " ")}"`;
+  const body = await getJson(
+    `https://www.ebi.ac.uk/europepmc/webservices/rest/search?${new URLSearchParams({ query, resultType: "core", format: "json", pageSize: "25", sort: "P_PDATE_D desc" })}`,
+  );
+  return emailsIn(body, name, university);
 }

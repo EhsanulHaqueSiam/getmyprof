@@ -25,6 +25,7 @@ const SOURCE_NOTE: Record<AwardSource, string> = {
   ARC: "Australia",
   DFG: "Germany",
   NSERC: "Canada",
+  OpenAlex: "Japan, Switzerland, US DoD, more",
 };
 const BOARD_NOTE: Record<PositionSource, string> = {
   "jobs.ac.uk": "UK",
@@ -109,8 +110,8 @@ function Funding() {
   const vet = async (a: Award) => {
     const t = await call("threads.create", {
       text: a.pi
-        ? `Vet ${a.pi} at ${a.university}. They hold ${a.source} award ${a.id} ("${a.title}", ends ${a.ends ?? "unknown"}). Are they taking students for my intake, and do they fit me? Propose them if they do.`
-        : `${a.source} project ${a.id} ("${a.title}") at ${a.university} doesn't name its PI. Find who leads it (${a.url}), whether they take students for my intake, and propose them if they fit me.`,
+        ? `Vet ${a.pi} at ${a.university}. They hold ${a.funder || a.source} award ${a.id} ("${a.title}", ends ${a.ends ?? "unknown"}). Are they taking students for my intake, and do they fit me? Propose them if they do.`
+        : `${a.funder || a.source} project ${a.id} ("${a.title}") at ${a.university} doesn't name its PI. Find who leads it (${a.url}), whether they take students for my intake, and propose them if they fit me.`,
       title: a.pi ? `Vet ${a.pi}` : `Find the PI of ${a.id}`,
     });
     void navigate({ to: "/t/$threadId", params: { threadId: t.id } });
@@ -357,7 +358,7 @@ function Funding() {
         ) : picked ? (
           <>
             <div className="text-muted-foreground text-xs">
-              {picked.source} {picked.id} · {picked.starts?.slice(0, 7)} to{" "}
+              {picked.funder || picked.source} {picked.id} · {picked.starts?.slice(0, 7)} to{" "}
               {picked.ends?.slice(0, 7)}
             </div>
             <h2 className="font-semibold text-sm leading-snug">{picked.title}</h2>

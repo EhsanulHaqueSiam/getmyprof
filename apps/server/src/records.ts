@@ -6,6 +6,7 @@ import {
   Professor,
   type ProfessorField,
   Proposal,
+  fullName,
   sameSchoolName,
   type ScopeItem,
 } from "@getmyprof/contracts";
@@ -22,17 +23,6 @@ const slug = (s: string) =>
 
 /** One key per person per school, so the same professor found twice is one row. */
 export const recordKey = (name: string, university: string) => `${slug(name)}@${slug(university)}`;
-
-/**
- * First and last name, initials and order aside: "Kevin J. Lybarger", "LYBARGER, KEVIN" and the
- * key part "kevin-j-lybarger" agree. Unlike personKey, "Wei Wang" and "William Wang" don't.
- */
-const fullName = (name: string) => {
-  const w = slug(name)
-    .split("-")
-    .filter((x) => x.length > 1);
-  return [w[0] ?? "", w.at(-1) ?? ""].toSorted().join(" ");
-};
 
 /**
  * The key a person already has at this very school, in the sheet, waiting in Review or rejected,

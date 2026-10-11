@@ -443,6 +443,20 @@ export const sameSchool = (a: string, b: string) => {
   return schoolWords(b).some((w) => wa.includes(w));
 };
 
+/**
+ * First and last name, initials and order aside: "Kevin J. Lybarger", "LYBARGER, KEVIN" and the
+ * key part "kevin-j-lybarger" agree. Unlike personKey, "Wei Wang" and "William Wang" don't.
+ */
+export const fullName = (name: string) => {
+  const w = name
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((x) => x.length > 1);
+  return [w[0] ?? "", w.at(-1) ?? ""].toSorted().join(" ");
+};
+
 /** The very same school, only spelled differently: all its telling words, nothing else. */
 export const sameSchoolName = (a: string, b: string) => {
   const wa = schoolWords(a).join(" ");

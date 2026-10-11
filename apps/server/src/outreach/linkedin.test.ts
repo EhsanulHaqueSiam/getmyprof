@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { Sources } from "../agent/sourcing.ts";
-import { fixtureSources } from "../agent/fixtures.ts";
+import { fixtureSources } from "../agent/fixture-sources.ts";
 import { openDb } from "../db.ts";
 import { updateSettings } from "../state.ts";
 import { daySpend, daySpendOutsideThreads } from "../threads.ts";

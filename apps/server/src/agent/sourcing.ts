@@ -28,8 +28,11 @@ import {
 import { type Lab, openAlexLab, openAlexWarm, type Warm } from "../sources-people.ts";
 import { type ContactRead, contactPage } from "../contact-page.ts";
 import {
+  academicTransferPositions,
+  daadPositions,
   inspirePositions,
   jobsAcUkPositions,
+  murPositions,
   type PositionQuery,
   type RawPosition,
 } from "../sources-positions.ts";
@@ -56,6 +59,9 @@ export type Sources = {
   /** Advertised PhD positions, by board. */
   jobsacuk: PositionFetch;
   inspire: PositionFetch;
+  daad: PositionFetch;
+  academictransfer: PositionFetch;
+  mur: PositionFetch;
   openalex: (name: string, university?: string) => Promise<Author | null>;
   /** Faculty CSRankings lists at a school. */
   csrankings: (university: string) => Promise<Faculty[]>;
@@ -88,6 +94,9 @@ export const realSources: Sources = {
   radon: radonAwards,
   jobsacuk: jobsAcUkPositions,
   inspire: inspirePositions,
+  daad: daadPositions,
+  academictransfer: academicTransferPositions,
+  mur: murPositions,
   openalex: openAlexAuthor,
   csrankings: csrankingsFaculty,
   byTopic: openAlexByTopic,
@@ -119,6 +128,9 @@ export const sourceKey = (s: AwardSource) => SOURCE_KEY[s];
 const POSITION_KEY = {
   "jobs.ac.uk": "jobsacuk",
   INSPIRE: "inspire",
+  DAAD: "daad",
+  AcademicTransfer: "academictransfer",
+  MUR: "mur",
 } as const satisfies Record<PositionSource, keyof Sources>;
 
 /** A position board's key in Sources. */

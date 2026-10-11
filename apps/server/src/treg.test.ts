@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { fixtureSources } from "./agent/fixtures.ts";
+import { fixtureSources } from "./agent/fixture-sources.ts";
 import { HUNT_TOOLS, type HuntTool } from "./agent/tools.ts";
 import { openDb } from "./db.ts";
 import { DEFAULT_SETTINGS } from "./state.ts";

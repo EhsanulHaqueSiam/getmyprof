@@ -6,7 +6,7 @@ import { describe, expect, it } from "vite-plus/test";
 import { scoutLoop } from "./adapters.ts";
 import { createBus } from "./bus.ts";
 import { fakeProvider } from "./agent/fake.ts";
-import { fixtureSources } from "./agent/fixtures.ts";
+import { fixtureSources } from "./agent/fixture-sources.ts";
 import { createRunner } from "./agent/runner.ts";
 import { openDb } from "./db.ts";
 import { acceptByRules, autoAccepts, listLoops, loopStats, runSummary, saveLoop } from "./loops.ts";

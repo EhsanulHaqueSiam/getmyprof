@@ -6,6 +6,9 @@ import { cn } from "~/lib/utils";
 const th =
   "sticky top-0 border-b border-input bg-background px-3 py-1.5 text-left font-medium text-muted-foreground text-xs whitespace-nowrap";
 
+/** A salaried post or a scholarship, in one word. */
+const KIND = { employment: "salary", scholarship: "stipend" } as const;
+
 /** "closes in 9 days", "closed", or "no deadline". */
 const closes = (p: Position) =>
   p.daysLeft === null
@@ -61,6 +64,9 @@ export function PositionsTable({
               {p.university}
             </td>
             <td className="max-w-[200px] truncate border-b px-3 text-secondary-label">
+              {p.kind !== "unknown" ? (
+                <span className="text-muted-foreground">{KIND[p.kind]} · </span>
+              ) : null}
               {p.funding || "?"}
             </td>
             <td
@@ -132,7 +138,12 @@ export function PositionDetail({
           {p.country ? `, ${p.country}` : ""}
         </span>
       </div>
-      {p.funding ? <p className="text-foreground text-xs">{p.funding}</p> : null}
+      {p.funding ? (
+        <p className="text-foreground text-xs">
+          {p.kind !== "unknown" ? `${KIND[p.kind]}: ` : ""}
+          {p.funding}
+        </p>
+      ) : null}
       {p.abstract ? (
         <p className="text-secondary-label text-xs leading-relaxed">{p.abstract}</p>
       ) : null}

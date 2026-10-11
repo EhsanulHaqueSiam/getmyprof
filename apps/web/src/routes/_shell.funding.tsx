@@ -33,6 +33,9 @@ const SOURCE_NOTE: Record<AwardSource, string> = {
 const BOARD_NOTE: Record<PositionSource, string> = {
   "jobs.ac.uk": "UK",
   INSPIRE: "Physics",
+  DAAD: "Germany",
+  AcademicTransfer: "Netherlands",
+  MUR: "Italy",
 };
 
 /**

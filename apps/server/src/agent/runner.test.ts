@@ -20,7 +20,8 @@ import {
 } from "../threads.ts";
 import { listPrograms, listSchools, proposeSchool, saveEdit } from "../vault.ts";
 import { fakeProvider } from "./fake.ts";
-import { FIXTURE_DECISIONS, fixtureSources } from "./fixtures.ts";
+import { fixtureSources } from "./fixture-sources.ts";
+import { FIXTURE_DECISIONS } from "./fixtures.ts";
 import { createRunner } from "./runner.ts";
 
 const until = async (check: () => boolean, ms = 5000) => {

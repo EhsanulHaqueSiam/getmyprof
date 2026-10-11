@@ -539,8 +539,11 @@ export const Award = z.object({
 });
 export type Award = z.infer<typeof Award>;
 
-/** Boards that post funded PhD positions and answer a plain fetch: jobs.ac.uk (UK), INSPIRE (physics). */
-export const PositionSource = z.enum(["jobs.ac.uk", "INSPIRE"]);
+/**
+ * Boards that post funded PhD positions and answer a plain fetch: jobs.ac.uk (UK), INSPIRE
+ * (physics), DAAD (Germany), AcademicTransfer (Netherlands), MUR (Italy's doctorate calls).
+ */
+export const PositionSource = z.enum(["jobs.ac.uk", "INSPIRE", "DAAD", "AcademicTransfer", "MUR"]);
 export type PositionSource = z.infer<typeof PositionSource>;
 
 /** An advertised PhD position. A posted, funded opening is money tier 1 for the professor it names. */
@@ -552,8 +555,10 @@ export const Position = z.object({
   professor: z.string(),
   university: z.string(),
   country: z.string(),
-  /** The funding line in the posting's words, e.g. "fully funded, EPSRC stipend"; empty when unstated. */
+  /** The funding line in the posting's words, e.g. "fully funded, EPSRC stipend", "TV-L E13 50%"; empty when unstated. */
   funding: z.string(),
+  /** How it pays: a salaried contract (most of Europe) or a scholarship stipend; unknown when the post does not say. */
+  kind: z.enum(["employment", "scholarship", "unknown"]).default("unknown"),
   deadline: z.string().nullable(),
   posted: z.string().nullable(),
   /** The posting's own page. */

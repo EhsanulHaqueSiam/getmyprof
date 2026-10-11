@@ -300,6 +300,13 @@ export const claudeProvider: AgentProvider = {
             }
           }
           if (m.type === "result") {
+            // What the turn read and wrote, for server.log: tokens drive cost on any plan.
+            const used = Object.values(m.modelUsage);
+            const sum = (k: "inputTokens" | "outputTokens" | "cacheReadInputTokens") =>
+              used.reduce((n, u) => n + u[k], 0);
+            console.log(
+              `turn ${s.threadId}: ${m.num_turns} model calls, ${sum("inputTokens")} in, ${sum("cacheReadInputTokens")} cached, ${sum("outputTokens")} out, $${m.total_cost_usd.toFixed(4)} at API prices so far`,
+            );
             busy = false;
             hooks.turnEnded({
               durationMs: m.duration_ms,

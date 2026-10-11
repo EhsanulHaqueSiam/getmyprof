@@ -5,6 +5,8 @@ import { describe, expect, it } from "vite-plus/test";
 import { exportCsv, importCsv, importGradhunt, parseCsv } from "./adapters.ts";
 import { openDb } from "./db.ts";
 import {
+  addKey,
+  blankProfessor,
   getRecord,
   notInSheet,
   putRecord,
@@ -68,6 +70,11 @@ describe("proposals", () => {
     expect(propose(db, thread, { ...lybarger, name: "Kevin J. Lybarger", fields: {} })).toEqual({
       skipped: "excluded earlier: rejected in Review",
     });
+    // NIH writes "DEL FIOL, GUILHERME": the same person as "Guilherme Del Fiol".
+    propose(db, thread, { ...lybarger, name: "Guilherme Del Fiol", fields: { fit: 4 } });
+    expect(
+      propose(db, thread, { ...lybarger, name: "DEL FIOL, GUILHERME", fields: { fit: 4 } }),
+    ).toEqual({ skipped: "no change" });
     // Same initial and last name is a different person: "Wei Wang" isn't "William Wang".
     propose(db, thread, { ...lybarger, name: "Wei Wang", fields: { fit: 3 } });
     const other = propose(db, thread, { ...lybarger, name: "William Wang", fields: { fit: 3 } });
@@ -94,6 +101,19 @@ describe("proposals", () => {
         status: "waiting in Review",
       },
     ]);
+  });
+
+  it("adds from Funding to a known person's row, and never brings back someone rejected", () => {
+    const { db, thread } = setup();
+    putRecord(db, { ...blankProfessor("Kevin Lybarger", lybarger.university), fit: 4 });
+    expect(addKey(db, "LYBARGER, KEVIN J.", lybarger.university)).toBe(
+      recordKey("Kevin Lybarger", lybarger.university),
+    );
+    const add = propose(db, thread, { ...lybarger, name: "Natalie Parde", fields: { fit: 3 } });
+    expect(() => addKey(db, "Natalie Parde", lybarger.university)).toThrow("waiting in Review");
+    if (!("proposal" in add)) throw new Error("expected a proposal");
+    resolveProposal(db, add.proposal.id, "reject");
+    expect(() => addKey(db, "Natalie Parde", lybarger.university)).toThrow("rejected in Review");
   });
 
   it("never proposes a rejected person again", () => {

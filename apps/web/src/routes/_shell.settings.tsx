@@ -153,6 +153,20 @@ function SettingsPage() {
         <Row label="Paid lookups (treg)">
           <TregSettings />
         </Row>
+        <Row label="OpenAlex key">
+          <label className="flex flex-wrap items-center gap-2 text-muted-foreground text-xs">
+            <input
+              type="password"
+              defaultValue={s.openalexKey}
+              aria-label="OpenAlex key"
+              placeholder="optional"
+              onBlur={(e) => void save({ openalexKey: e.target.value.trim() })}
+              onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+              className="h-7 w-56 rounded-lg border border-input bg-transparent px-2 text-foreground outline-none"
+            />
+            Free at openalex.org. Without one, OpenAlex allows about 90 professor lookups a day.
+          </label>
+        </Row>
         <Row label="Profile from">
           <Toggle
             on={s.profileSource === "app"}

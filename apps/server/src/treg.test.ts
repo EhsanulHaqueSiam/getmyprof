@@ -4,7 +4,7 @@ import { HUNT_TOOLS, type HuntTool } from "./agent/tools.ts";
 import { openDb } from "./db.ts";
 import { DEFAULT_SETTINGS } from "./state.ts";
 import { createThread, rowCosts, usageSince } from "./threads.ts";
-import { invoiceLines, tregCall } from "./treg.ts";
+import { invoiceLines, tregCall, tregText } from "./treg.ts";
 
 const login = { customer: "cust_8123", token: "tok_secret_123" };
 const noWait = async () => {};
@@ -55,6 +55,24 @@ describe("tregCall", () => {
     );
     expect(header(req.init, "X-Treg-Route-Max-Cost")).toBe("0.02");
     expect(header(req.init, "X-Treg-Token")).toBe("tok_secret_123");
+  });
+
+  it("sends the fields an endpoint always needs, whatever the agent passed", async () => {
+    const { f, seen } = fakeFetch([() => Response.json({ results: [] })]);
+    await tregCall(
+      {
+        endpoint: "tinyfish.web.search",
+        data: { query: "clinical NLP faculty", domain_type: "news" },
+        maxUsd: 0,
+        tags: { thread: "thr_1", feature: "thread" },
+      },
+      login,
+      f,
+      noWait,
+    );
+    const url = new URL(seen[0]!.url);
+    expect(url.searchParams.get("domain_type")).toBe("web");
+    expect(url.searchParams.get("query")).toBe("clinical NLP faculty");
   });
 
   it("retries a lost answer with the same Idempotency-Key, paying once and logging that charge", async () => {
@@ -205,5 +223,56 @@ describe("invoice lines", () => {
 
   it("refuses a report that doesn't add up", () => {
     expect(() => invoiceLines({ ...report, total_micro: 50000 })).toThrow(/reconcile/);
+  });
+});
+
+describe("what the agent reads from treg", () => {
+  it("gives a line per hit, wherever the provider put the list, with a paper's details", () => {
+    const google = {
+      output: {
+        data: {
+          results: [{ title: "CS faculty", link: "https://u.edu/people", snippet: "Our faculty" }],
+        },
+      },
+    };
+    expect(tregText(google)).toBe("CS faculty | https://u.edu/people | Our faculty");
+    const paper = {
+      results: [
+        {
+          title: "Notes at scale",
+          url: "https://arxiv.org/abs/1",
+          authors: ["K Lybarger"],
+          year: 2026,
+          cited_by_count: 4,
+          pdf_url: "https://arxiv.org/pdf/1",
+        },
+      ],
+    };
+    expect(tregText(paper)).toBe(
+      "Notes at scale | https://arxiv.org/abs/1 | K Lybarger | 2026 | cited 4 | https://arxiv.org/pdf/1",
+    );
+  });
+
+  it("gives each fetched page its share and says where it cut, and which failed", () => {
+    const text = tregText(
+      {
+        results: [
+          { url: "https://a.edu", title: "A", text: "x".repeat(50) },
+          { url: "https://b.edu", title: "B", text: "short" },
+        ],
+        errors: [{ url: "https://c.edu", error: "timeout" }],
+      },
+      40,
+    );
+    expect(text).toContain(`## A (https://a.edu)\n${"x".repeat(20)} …(cut at 20 of 50 characters)`);
+    expect(text).toContain("## B (https://b.edu)\nshort");
+    expect(text).toContain("failed: https://c.edu (timeout)");
+  });
+
+  it("shows anything else as JSON, marked when cut", () => {
+    expect(tregText({ email: "a@uni.edu", status: "deliverable" })).toBe(
+      '{"email":"a@uni.edu","status":"deliverable"}',
+    );
+    expect(tregText({ blob: "y".repeat(30) }, 10)).toBe('{"blob":"y …(cut at 10 of 41 characters)');
   });
 });

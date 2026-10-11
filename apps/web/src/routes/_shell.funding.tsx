@@ -53,10 +53,16 @@ function Funding() {
   const [positions, setPositions] = useState<Position[] | null>(null);
   const [pickedPosition, setPickedPosition] = useState<Position | null>(null);
   const [boards, setBoards] = useState<PositionSource[] | null>(null);
+  // Why the last one-click add was refused: rejected in Review, or waiting there.
+  const [notAdded, setNotAdded] = useState("");
+  const refused = (error: unknown) =>
+    setNotAdded(error instanceof Error ? error.message : String(error));
 
   /** One click: the PI goes into the sheet with this award as their grant. */
   const addPi = async (a: Award) => {
-    await call("records.addFromAward", { award: a });
+    const ok = await call("records.addFromAward", { award: a }).then(() => true, refused);
+    if (!ok) return;
+    setNotAdded("");
     const added = { ...a, inSheet: true };
     setAwards((all) => all?.map((x) => (x === a ? added : x)) ?? null);
     setPicked((p) => (p === a ? added : p));
@@ -64,7 +70,9 @@ function Funding() {
 
   /** One click: the professor a posting names goes into the sheet at money tier 1. */
   const addContact = async (p: Position) => {
-    await call("records.addFromPosition", { position: p });
+    const ok = await call("records.addFromPosition", { position: p }).then(() => true, refused);
+    if (!ok) return;
+    setNotAdded("");
     const added = { ...p, inSheet: true };
     setPositions((all) => all?.map((x) => (x === p ? added : x)) ?? null);
     setPickedPosition((x) => (x === p ? added : x));
@@ -195,6 +203,11 @@ function Funding() {
             {busy ? "Searching" : "Search"}
           </Button>
         </form>
+        {notAdded ? (
+          <p className="mx-4 mb-2 text-warning-foreground text-xs" role="status">
+            Not added: {notAdded}
+          </p>
+        ) : null}
         {tab === "positions" ? (
           <div className="min-h-0 flex-1 overflow-auto border-t">
             {positions?.length ? (

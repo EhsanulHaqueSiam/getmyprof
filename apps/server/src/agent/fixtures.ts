@@ -319,6 +319,7 @@ export const fixtureSources: Sources = {
             name: "Ziyu Yao",
             homepage: "https://ziyuyao.org",
             scholar: "https://scholar.google.com/citations?user=fixture",
+            venues: "acl 6, emnlp 4, naacl 2",
           },
         ]
       : [],

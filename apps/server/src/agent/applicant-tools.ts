@@ -3,6 +3,7 @@
 import {
   Channel,
   Degree,
+  fitsMe,
   ReplyClass,
   School,
   SchoolTier,
@@ -13,6 +14,7 @@ import { z } from "zod";
 import { classify } from "../outreach/inbox.ts";
 import { getMessage, issuesFor, saveDraft } from "../outreach/store.ts";
 import { recordKey } from "../records.ts";
+import { getApplicant } from "../state.ts";
 import {
   listApplications,
   listOffers,
@@ -353,6 +355,13 @@ export const APPLICANT_TOOLS = [
     paid: false,
     price: () => 0,
     run: async ({ why, ...item }, ctx) => {
+      const applicant = getApplicant(ctx.db);
+      const degrees = ctx.hunt?.prefs.degrees ?? [];
+      if (applicant && !fitsMe(item, applicant, degrees))
+        return {
+          summary: "not eligible",
+          text: `Not filed: it's open to ${item.citizenship.join(", ") || "any citizenship"} for ${item.tracks.join(", ")}, and the applicant is ${applicant.citizenship.join(", ")} hunting ${degrees.join(", ")}. File only what they can win.`,
+        };
       const r = proposeFinding(ctx.db, { kind: "scholarship", item, why, threadId: ctx.threadId });
       if ("skipped" in r) return { summary: r.skipped, text: `Not filed: ${r.skipped}.` };
       ctx.vaultChanged();

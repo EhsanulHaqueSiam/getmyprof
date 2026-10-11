@@ -7,11 +7,13 @@ import type { Db } from "../db.ts";
 import { acceptByRules, listLoops } from "../loops.ts";
 import { searchVault } from "../okf.ts";
 import { listRecords, notInSheet, propose } from "../records.ts";
-import { intakeStart, monthsAfter, sameSchool } from "../sources.ts";
-import { TREG_ENDPOINTS } from "../treg.ts";
+import { sameSchool } from "../sources.ts";
+import { TREG_ENDPOINTS, tregText } from "../treg.ts";
 import { daySpend, getThread, recordSpend, threadSpend } from "../threads.ts";
 import { APPLICANT_TOOLS } from "./applicant-tools.ts";
 import { DISCOVERY_TOOLS } from "./discovery-tools.ts";
+import { awardLines } from "./awards.ts";
+import { sweptSchools } from "./sweep.ts";
 import { PEOPLE_TOOLS } from "./people-tools.ts";
 import { professorFields } from "./professor-fields.ts";
 import { TREG_TOOL_NAMES, tregJobs } from "./treg-jobs.ts";
@@ -57,6 +59,8 @@ export const READ_ONLY = new Set([
   "lab_members",
   "warm_paths",
   "read_contact_rule",
+  "sweep_status",
+  "professor_dossier",
 ]);
 
 /** Why a tool can't run in this turn, or null: an Ask changes nothing and spends nothing. */
@@ -79,36 +83,6 @@ export type HuntTool<S extends z.ZodRawShape = z.ZodRawShape> = {
 };
 
 const define = <S extends z.ZodRawShape>(t: HuntTool<S>) => t;
-const SYMBOL: Record<string, string> = { USD: "$", GBP: "£", EUR: "€", AUD: "A$" };
-const money = (amount: number | null, currency = "USD") =>
-  amount == null
-    ? "?"
-    : `${SYMBOL[currency] ?? `${currency} `}${Math.round(amount).toLocaleString("en-US")}`;
-
-const awardLines = async (
-  ctx: ToolContext,
-  which: ReturnType<typeof sourceKey>,
-  args: { terms: string[]; university?: string | undefined; pi?: string | undefined },
-) => {
-  const start = intakeStart(ctx.hunt?.prefs.intake ?? "");
-  const activeAfter = start?.toISOString().slice(0, 10);
-  const q = {
-    terms: args.terms,
-    ...(args.university ? { university: args.university } : {}),
-    ...(args.pi ? { pi: args.pi } : {}),
-    ...(activeAfter ? { activeAfter } : {}),
-  };
-  const awards = await ctx.sources[which](q);
-  const lines = awards.map(
-    (a) =>
-      `${a.source} ${a.id} | PI ${a.pi || "not listed"} | ${a.university} | ${money(a.amount, a.currency)} | ends ${a.ends ?? "?"} | ${monthsAfter(a.ends, start) ?? "?"} months after intake | ${a.title}`,
-  );
-  return {
-    summary: `${awards.length} award${awards.length === 1 ? "" : "s"} · free`,
-    text: lines.join("\n") || "No active awards found.",
-  };
-};
-
 export const HUNT_TOOLS = [
   define({
     name: "nsf_awards",
@@ -217,6 +191,7 @@ export const HUNT_TOOLS = [
       const others = notInSheet(ctx.db).filter(
         (x) => school(x.university) && want(`${x.name} ${x.niche}`, args.query),
       );
+      const swept = Object.entries(sweptSchools(ctx.db)).map(([s, day]) => `${s} (${day})`);
       return {
         summary: `${rows.length} in the sheet${others.length ? `, ${others.length} waiting or rejected` : ""}`,
         text:
@@ -228,6 +203,7 @@ export const HUNT_TOOLS = [
                   `${p.name} | ${p.university} | fit ${p.fit} | money ${p.money || "?"} | taking ${p.taking || "?"} | email ${p.emailCheck || "?"} | ${p.stage}`,
               ),
             ...others.slice(0, 40).map((x) => `${x.name} | ${x.university} | ${x.status}`),
+            ...(swept.length ? [`Schools already swept, pick others: ${swept.join(", ")}`] : []),
           ].join("\n") || "Nothing yet.",
       };
     },
@@ -268,7 +244,7 @@ export const HUNT_TOOLS = [
   ...PEOPLE_TOOLS,
   define({
     name: "treg",
-    description: `Paid data lookups through treg, for when free sources fail. Allowed endpoints with their data fields, usual USD per call and the most one call may cost:\n${Object.entries(
+    description: `Data lookups through treg: free web search, papers and page fetches (the $0 endpoints), and paid people, email and Google lookups for when free sources fail. Allowed endpoints with their data fields, usual USD per call and the most one call may cost:\n${Object.entries(
       TREG_ENDPOINTS,
     )
       .map(([e, p]) => `- ${e} {${p.args}} $${p.usd}${p.max > p.usd ? ` (up to $${p.max})` : ""}`)
@@ -318,7 +294,7 @@ export const HUNT_TOOLS = [
         if (out.stop) ctx.capHit(out.reason);
         return { summary: `${out.stop ? "stopped" : "failed"} · ${cost}`, text: out.reason };
       }
-      return { summary: cost, text: JSON.stringify(out.result).slice(0, 4000) };
+      return { summary: cost, text: tregText(out.result) };
     },
   }),
 ];

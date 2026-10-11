@@ -216,20 +216,16 @@ test("vault: the agent's finds wait in To file, and submitting an application dr
 
   await page.goto("/vault?section=scholarships");
   await page.getByRole("button", { name: "Find scholarships" }).click();
-  await expect(page.getByText("2 wait in your To file.")).toBeVisible();
+  // The agent proposed two; the server refused Chevening, which funds master's only (a PhD hunt).
+  await expect(page.getByText("1 waits in your To file.")).toBeVisible();
   await page.goto("/vault?section=scholarships");
-  await expect(page.getByTestId("to-file")).toHaveCount(2);
+  await expect(page.getByTestId("to-file")).toHaveCount(1);
+  await expect(page.getByTestId("to-file")).not.toContainText("Chevening");
   await page
     .getByTestId("to-file")
     .filter({ hasText: "Fulbright" })
     .getByRole("button", { name: "File" })
     .click();
-  await page
-    .getByTestId("to-file")
-    .filter({ hasText: "Chevening" })
-    .getByRole("button", { name: "File" })
-    .click();
-  // "Fits me" keeps the one open to this applicant's citizenship and PhD track.
   await expect(page.getByTestId("scholarships").locator("tbody tr")).toHaveCount(1);
   await expect(page.getByTestId("scholarships")).toContainText("Fulbright");
 

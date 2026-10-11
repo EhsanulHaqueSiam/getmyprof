@@ -3,6 +3,7 @@ import {
   ChevronRightIcon,
   GraduationCapIcon,
   LandmarkIcon,
+  ScaleIcon,
   UserIcon,
   UsersIcon,
 } from "lucide-react";
@@ -58,6 +59,13 @@ const STARTERS: { icon: ReactNode; title: string; detail: string; prompt: string
     prompt:
       "Pick the next school that fits my preferences and isn't in my sheet, and sweep it for professors who can fund me.",
   },
+  {
+    icon: <ScaleIcon />,
+    title: "Fields with better odds",
+    detail: "related fields where a funded admit is likelier",
+    prompt:
+      "Compare the fields next to mine at my shortlisted schools (or the schools that fit me) for my chance of a funded admit: the money I can hold there (NSF and NIH awards past my intake; training grants for US citizens only don't count unless I'm eligible), how much of my confirmed work fits each, and how competitive each program is (admit rates, whether every admit is funded), citing program and department pages. Rank them with the reasons and the one line my statement of purpose would need to bridge into each, and say which to add to my hunt.",
+  },
 ];
 
 const typingIn = (t: EventTarget | null) =>
@@ -83,12 +91,12 @@ function NewThread() {
     void navigate({ to: "/t/$threadId", params: { threadId: t.id } });
   };
 
-  // 1 to 5 start a starter; any other key starts typing in the composer.
+  // 1 to 6 start a starter; any other key starts typing in the composer.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (typingIn(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
       const starter = STARTERS[Number(e.key) - 1];
-      if (/^[1-5]$/.test(e.key) && starter) {
+      if (/^[1-9]$/.test(e.key) && starter) {
         e.preventDefault();
         void start(starter.prompt, starter.title);
       } else if (e.key.length === 1)

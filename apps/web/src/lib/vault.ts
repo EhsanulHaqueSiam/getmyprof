@@ -1,27 +1,7 @@
 // What the Vault shows: which scholarships fit, and what's coming up.
-import {
-  type Applicant,
-  type Degree,
-  LETTERS,
-  type Offer,
-  type Scholarship,
-  type VaultState,
-} from "@getmyprof/contracts";
+import { type Applicant, LETTERS, type Offer, type VaultState } from "@getmyprof/contracts";
 
-const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
-
-/** Open to the applicant's citizenship, and to a degree they're hunting. */
-export function fitsMe(
-  s: Scholarship,
-  applicant: Pick<Applicant, "citizenship">,
-  degrees: Degree[],
-) {
-  const citizen =
-    s.citizenship.length === 0 ||
-    s.citizenship.some((c) => applicant.citizenship.some((mine) => same(c, mine)));
-  const track = degrees.length === 0 || s.tracks.some((t) => degrees.includes(t));
-  return citizen && track;
-}
+export { fitsMe } from "@getmyprof/contracts";
 
 /** Whole days from today until a YYYY-MM-DD date; negative once it has passed. */
 export function daysLeft(date: string, now = new Date()) {

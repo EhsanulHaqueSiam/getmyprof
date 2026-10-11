@@ -225,14 +225,17 @@ export const STARTER_LOOPS = [
   {
     name: "Nightly sweep",
     instructions:
-      "Pick the next school that fits my preferences and isn't in my sheet yet (use sheet_search). Sweep its department for professors in my fields and adjacent domains who can fund a student for my intake. Propose each one.",
+      "Pick the next three schools that fit my preferences and aren't in my sheet yet (use sheet_search; kept schools on the shortlist first). Sweep each department for professors in my fields and adjacent domains who can fund a student for my intake, and propose each one. A school is done when sweep_status shows nobody left unchecked there.",
+    // ponytail: a school that had no fits leaves no rows, so a later night may pick it again; a
+    // ledger of swept schools when that starts wasting runs.
     schedule: { kind: "at", at: "23:00", weekdays: [] },
   },
   {
     name: "Recruiting watch",
     instructions:
       "For professors in my sheet with fit 4 or more, re-read their homepage or lab page. Propose an update when 'taking students' or their contact rule changed.",
-    schedule: { kind: "every", hours: 6 },
+    // Weekly: pages rarely change faster, and every run is an agent turn.
+    schedule: { kind: "at", at: "07:00", weekdays: [3] },
   },
   {
     name: "New awards",

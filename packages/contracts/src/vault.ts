@@ -1,7 +1,7 @@
 // The vault: an hq inside the app. Documents with their files, opportunities (scholarships,
 // programs, applications) and "To file", where the agent's finds wait for a click.
 import { z } from "zod";
-import { Degree } from "./domain.ts";
+import { type Applicant, Degree } from "./domain.ts";
 
 export const DocKind = z.enum([
   "cv",
@@ -267,3 +267,22 @@ export const VaultEdit = z.discriminatedUnion("kind", [
 ]);
 export type VaultEdit = z.infer<typeof VaultEdit>;
 export type VaultKind = VaultEdit["kind"];
+
+const sameWord = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+
+/**
+ * Open to the applicant's citizenship and to a degree they're hunting. Unknown citizenship or no
+ * degrees yet never rule a scholarship out. The Vault's Fits me and propose_scholarship share it.
+ */
+export function fitsMe(
+  s: Pick<Scholarship, "citizenship" | "tracks">,
+  applicant: Pick<Applicant, "citizenship">,
+  degrees: Degree[],
+) {
+  const citizen =
+    s.citizenship.length === 0 ||
+    applicant.citizenship.length === 0 ||
+    s.citizenship.some((c) => applicant.citizenship.some((mine) => sameWord(c, mine)));
+  const track = degrees.length === 0 || s.tracks.some((t) => degrees.includes(t));
+  return citizen && track;
+}

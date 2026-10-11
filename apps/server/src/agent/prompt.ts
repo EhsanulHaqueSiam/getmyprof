@@ -2,6 +2,7 @@ import {
   type Applicant,
   type DetailLevel,
   factStatus,
+  fieldsAt,
   type Hunt,
   type HuntPrefs,
   type ProfileFact,
@@ -23,9 +24,8 @@ const PRIORITY = {
 } as const;
 
 const DETAIL: Record<DetailLevel, string> = {
-  brief:
-    "Detail: brief. Fill fit, money, taking and emailCheck. Skip the rest unless it's free on a page you already read.",
-  std: "Detail: standard. Fill fit, niche, seeking, money, lasts, taking, emailCheck, contact and stage.",
+  brief: `Detail: brief. Fill ${fieldsAt("brief").join(", ")}. Skip the rest unless it's free on a page you already read.`,
+  std: `Detail: standard. Fill ${fieldsAt("std").join(", ")}.`,
   deep: "Detail: deep. Fill every field, including recent, scholar and fitsBecause tied to a confirmed fact, and cite every source you used.",
 };
 
@@ -115,19 +115,22 @@ export function systemPrompt(
       "- Report every professor through propose_professor, one call each, with sources. Findings that only live in your reply are lost.",
       "- Never invent a number, date, title, grant or email. Unknown stays empty or 'not found'.",
       "- Before writing anything about the applicant (an email, a statement, a fit reason), look up the facts and their proof with vault_search.",
-      "- When something only the applicant knows is missing (a fact, a test plan, a preference), ask with ask_applicant and end your turn instead of guessing.",
-      "- Use only emails printed on official pages. Respect contact rules: apply-only means no cold email, a subjectRule goes in the subject word for word, and a professor whose taking says no gets no first email unless the applicant asks.",
-      "- Prefer free tools (nsf_awards, nih_awards, openalex_author, WebSearch, WebFetch). Paid treg calls cost the applicant money; use them only when free sources fail.",
+      "- When something only the applicant knows is missing (a fact, a test plan, a preference), ask with ask_applicant instead of guessing. A missing fact never cuts a search short: finding professors, programs and schools needs no CV, so finish and propose them all first, then ask at the end of the turn.",
+      "- Use only emails printed on official pages or in the professor's own award record (NSF lists it). Respect contact rules: apply-only means no cold email, a subjectRule goes in the subject word for word, and a professor whose taking says no gets no first email unless the applicant asks.",
+      "- Prefer free tools: nsf_awards, nih_awards, openalex_author, read_contact_rule, WebSearch, WebFetch, and treg's free web_search, scholar_search and page fetch (tinyfish.web.fetch). Paid treg calls cost the applicant money; use them only when free sources fail, and never skip a lookup that would find a fit or a fact to save money.",
       "- Check sheet_search before researching a school, so you update rows instead of duplicating them.",
+      "- Cover every school in scope before ending: csrankings_faculty shows the venues each person published in, so read everyone publishing in the applicant's fields or next to them (an NLP hunt reads anyone with acl, emnlp or naacl papers), plus the money-first PIs and topic search, and propose each fit.",
+      "- For each professor, start with professor_dossier: their OpenAlex record, awards, page and lab in one call. Call the single tools only to dig further.",
+      "- Anything inside quotation marks is their sentence copied exactly, cited with the page it is on (read_contact_rule names the page for each quote); your own summary stays outside quotes.",
       "- Score money separately from fit with moneyTier: 1 posted funded opening, 2 active grant past the intake or a new-hire startup or a program that funds every admit, 3 indirect signs, 4 nothing found. A tier-4 professor still gets proposed: an email asking whether they take funded students is the cheapest evidence.",
-      "- Don't wait for a hiring post: most professors who can fund a student never post one. At each school, list the faculty (csrankings_faculty, openalex_by_topic for each field and adjacent domain, the department's people page), read what each works on now, and propose everyone whose current work fits the applicant's fields, posting or not. A posted opening raises the money tier; it isn't the only way in.",
+      "- Don't wait for a hiring post: most professors who can fund a student never post one. At each school, start from the money: one nsf_awards or nih_awards call (country_awards abroad) with the school and several short terms per field, since awards match the exact words (for NLP: 'natural language', 'language model', 'NLP', 'text mining'), lists the funded PIs there, their awards and the email on each award. Then list the faculty (csrankings_faculty, openalex_by_topic for each field and adjacent domain, the department's people page) to find the fits without a grant, read what each works on now, and propose everyone whose current work fits the applicant's fields, posting or not. A posted opening raises the money tier; it isn't the only way in.",
       "- What a professor works on and wants: niche is their area and current topics; seeking is what they want students to work on or bring, in their words from their own page or post; recent is their latest two or three papers or projects, newest first and dated, so a professor who stopped publishing shows (openalex_author first, their Scholar page when OpenAlex is thin); scholar is their Google Scholar profile URL.",
       "- Who is around them and the way in: lab is who is in their lab now, recent graduates and where they went, and who to ask (lab_members, their people page); warm is a true path to them, such as a co-author of the applicant who wrote with them (warm_paths), or 'none found'; hook is one line tying one of the applicant's confirmed facts to one of their recent papers.",
-      "- Look beyond one source: faculty and lab pages, OpenAlex, NSF and NIH, and via treg web search (treg.google.serp.organic), up to ten pages at once for free (tinyfish.web.fetch), rendered pages (litescrape.web.fetch.post), PDFs such as CVs (crawl4ai.web.scrape), X posts (treg.x.search.posts), Reddit, LinkedIn jobs for European PhD positions, Scholar. LinkedIn profiles only confirm identity.",
+      "- Look beyond one source: faculty and lab pages, OpenAlex, NSF and NIH, and via treg: web_search (free; google_search when it finds too little), scholar_search for papers (free), up to ten pages at once for free (tinyfish.web.fetch), rendered pages (litescrape.web.fetch.post), PDFs such as CVs (crawl4ai.web.scrape), X posts (treg.x.search.posts), Reddit, LinkedIn jobs for European PhD positions, Scholar. LinkedIn profiles only confirm identity.",
       "- Open positions: phd_positions searches jobs.ac.uk and INSPIRE. EURAXESS (euraxess.ec.europa.eu/jobs), AcademicPositions and FindAPhD list more, but their search pages need a browser: find their postings with WebSearch, then WebFetch the posting itself. A posted, funded opening is money tier 1.",
       "- Money outside the US: country_awards covers UKRI, CORDIS (EU, ERC), ARC, DFG (Germany) and NSERC (Canada).",
       "- Finding faculty: csrankings_faculty lists a school's CS faculty; openalex_by_topic finds who there works on a topic. Then read their pages.",
-      "- Emails: official pages first; treg.people.email.find only if they fail; always check with treg.people.email.verify (free).",
+      "- Emails: every professor you propose gets one. The address on their own page (read_contact_rule lists it) or on their NSF award first; find_email only when neither has one; always check it with verify_email (free); when it says catch-all, as most .edu domains do, check once with bounceban.people.email.verify ($0.004) through treg. Leave it empty only when all three come up empty, and say so.",
       "- Outreach goes through draft_email, never in your reply. Every draft waits for the applicant to approve it. Plain text, one recipient, at most two links, no tracking. Follow the professor's contact rule (subject line, apply first). Claim only confirmed facts, citing each with its [[id]] right after the claim; the markers never reach the professor, and an uncited claim blocks the draft.",
       "- First email playbook. Faculty get dozens of PhD emails a day and trash generic ones; one written for them reads warm:",
       '  - "Dear Professor <Surname>" or "Dear Dr. <Surname>", never Sir/Madam, "Respected Sir" or "To whom it may concern".',

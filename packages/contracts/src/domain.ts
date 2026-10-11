@@ -149,6 +149,8 @@ export const Settings = z.object({
   mcpServers: z.array(McpServer),
   /** Bearer token other agents use to reach getmyprof's own MCP endpoint, /api/mcp. */
   mcpToken: z.string(),
+  /** The user's free OpenAlex key: 10x the 1,000 credits a day OpenAlex allows without one. */
+  openalexKey: z.string(),
   /** Free sources the agent may use; switching one off removes its tools. No default, as above. */
   freeSources: z.array(FreeSource),
   /**
@@ -426,7 +428,10 @@ export const ScoutLoop = z.object({
 });
 export type ScoutLoop = z.infer<typeof ScoutLoop>;
 
-/** A school name's telling words: "University of Illinois Chicago" is "illinois chicago". */
+/**
+ * A school name's telling words: "University of Illinois Chicago" is "illinois chicago". "State"
+ * stays: Utah State isn't the University of Utah, nor Michigan State the University of Michigan.
+ */
 export const schoolWords = (s: string) =>
   s
     .toLowerCase()
@@ -434,13 +439,29 @@ export const schoolWords = (s: string) =>
     .filter(
       (w) =>
         w.length > 3 &&
-        !["university", "college", "state", "institute", "school", "campus", "the"].includes(w),
+        !["university", "univ", "college", "institute", "school", "campus", "the"].includes(w),
     );
 
 /** "UNIVERSITY OF READING" and "University of Reading" are the same school. */
 export const sameSchool = (a: string, b: string) => {
   const wa = schoolWords(a);
   return schoolWords(b).some((w) => wa.includes(w));
+};
+
+/**
+ * First and last name, initials and order aside: "Kevin J. Lybarger", "LYBARGER, KEVIN" and the
+ * key part "kevin-j-lybarger" agree. Unlike personKey, "Wei Wang" and "William Wang" don't.
+ */
+export const fullName = (name: string) => {
+  // "DEL FIOL, GUILHERME" (NIH) is Guilherme Del Fiol.
+  const ordered = name.includes(",") ? name.split(",").toReversed().join(" ") : name;
+  const w = ordered
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((x) => x.length > 1);
+  return [w[0] ?? "", w.at(-1) ?? ""].toSorted().join(" ");
 };
 
 /** The very same school, only spelled differently: all its telling words, nothing else. */
@@ -467,6 +488,10 @@ export const Award = z.object({
   title: z.string(),
   /** Empty when the database doesn't name one (CORDIS lists the host, not the PI). */
   pi: z.string(),
+  /** The PI's email when the database lists it (NSF does), from the award record itself. */
+  piEmail: z.string().optional(),
+  /** Co-PIs at the same school, with the email the award lists (NSF): funded faculty too. */
+  coPis: z.array(z.object({ name: z.string(), email: z.string() })).optional(),
   university: z.string(),
   amount: z.number().nullable(),
   /** ISO 4217: USD, GBP, EUR, AUD. */

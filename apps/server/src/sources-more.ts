@@ -162,10 +162,40 @@ export async function nsercAwards(q: AwardQuery): Promise<RawAward[]> {
     .slice(0, 50);
 }
 
-export type Faculty = { name: string; homepage: string; scholar: string };
+export type Faculty = {
+  name: string;
+  homepage: string;
+  scholar: string;
+  /** Where they published in the last five years, most first: "acl 5, emnlp 3" means NLP. */
+  venues: string;
+};
 let rankings: string[][] | null = null;
+let venuesByName: Map<string, Map<string, number>> | null = null;
 
-/** The faculty CSRankings lists at a school, with their homepage and Google Scholar page. */
+/** Each CSRankings name's papers per venue in the last five years, from its per-paper counts. */
+async function recentVenues() {
+  if (venuesByName) return venuesByName;
+  const since = new Date().getFullYear() - 5;
+  const out = new Map<string, Map<string, number>>();
+  const rows = parseCsv(
+    await cached(
+      "csrankings-authors.csv",
+      "https://raw.githubusercontent.com/emeryberger/CSrankings/gh-pages/generated-author-info.csv",
+    ),
+  );
+  for (const [name = "", , venue = "", count = "0", , year = "0"] of rows.slice(1)) {
+    if (Number(year) < since) continue;
+    const at = out.get(name) ?? new Map<string, number>();
+    at.set(venue, (at.get(venue) ?? 0) + Number(count));
+    out.set(name, at);
+  }
+  return (venuesByName = out);
+}
+
+/**
+ * The faculty CSRankings lists at a school, with their homepage, Google Scholar page and the
+ * venues they published in lately, so a sweep can spot everyone in a field at a glance.
+ */
 export async function csrankingsFaculty(university: string): Promise<Faculty[]> {
   rankings ??= parseCsv(
     await cached(
@@ -173,6 +203,7 @@ export async function csrankingsFaculty(university: string): Promise<Faculty[]> 
       "https://raw.githubusercontent.com/emeryberger/CSrankings/gh-pages/csrankings.csv",
     ),
   );
+  const venues = await recentVenues().catch(() => new Map<string, Map<string, number>>());
   const rows = rankings.slice(1);
   // The very school first: "University of Illinois Chicago" alone, not UIUC and UChicago too.
   const exact = rows.filter((r) => sameSchoolName(r[1] ?? "", university));
@@ -185,14 +216,18 @@ export async function csrankingsFaculty(university: string): Promise<Faculty[]> 
         scholar && scholar !== "NOSCHOLARPAGE"
           ? `https://scholar.google.com/citations?user=${scholar}`
           : "",
+      venues: [...(venues.get(name) ?? [])]
+        .toSorted((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([v, n]) => `${v} ${Math.round(n)}`)
+        .join(", "),
     }),
   );
 }
 
-const firstId = async (path: string) =>
-  text(asRecord(asArray(asRecord(await getJson(`https://api.openalex.org/${path}`)).results)[0]).id)
-    .split("/")
-    .at(-1) ?? "";
+const openAlexResults = async (path: string) =>
+  asArray(asRecord(await getJson(`https://api.openalex.org/${path}`)).results).map(asRecord);
+const idOf = (r: Record<string, unknown> | undefined) => text(r?.id).split("/").at(-1) ?? "";
 
 export type TopicAuthor = {
   name: string;
@@ -204,14 +239,20 @@ export type TopicAuthor = {
 
 /** Who at a school works on a topic, by OpenAlex: most published first. */
 export async function openAlexByTopic(topic: string, university: string): Promise<TopicAuthor[]> {
-  const [inst, top] = await Promise.all([
-    firstId(`institutions?search=${encodeURIComponent(university)}&per-page=1`),
-    firstId(`topics?search=${encodeURIComponent(topic)}&per-page=1`),
+  const [insts, tops] = await Promise.all([
+    openAlexResults(`institutions?search=${encodeURIComponent(university)}&per-page=5`),
+    openAlexResults(`topics?search=${encodeURIComponent(topic)}&per-page=3`),
   ]);
+  // The very school, not the first hit ("University of Utah", not Utah State); any of the three
+  // closest topics, since one topic name rarely covers a field.
+  const inst = idOf(
+    insts.find((i) => sameSchoolName(text(i.display_name), university)) ?? insts[0],
+  );
+  const top = tops.map(idOf).filter(Boolean).join("|");
   if (!inst || !top) return [];
   const body = asRecord(
     await getJson(
-      `https://api.openalex.org/authors?filter=last_known_institutions.id:${inst},topics.id:${top}&sort=works_count:desc&per-page=25`,
+      `https://api.openalex.org/authors?filter=last_known_institutions.id:${inst},topics.id:${top}&sort=works_count:desc&per-page=50`,
     ),
   );
   return asArray(body.results)

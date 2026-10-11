@@ -13,6 +13,10 @@ import {
   scoutLoop,
   writeBackToGradhunt,
 } from "./adapters.ts";
+import { betterOdds } from "./better-odds.ts";
+import { listRecords } from "./records.ts";
+import { listSchools } from "./vault.ts";
+import { intakeStart, setOpenAlexKey } from "./sources.ts";
 import { claudeStatus, ensureClaude, loginCode, startLogin } from "./agent/binary.ts";
 import { extractFacts, fakeFacts } from "./agent/extract.ts";
 import type { Runner } from "./agent/runner.ts";
@@ -120,6 +124,7 @@ export function createHandlers(svc: Services): Handlers {
     "settings.update": (patch) => {
       const before = getSettings(db);
       const next = updateSettings(db, patch);
+      setOpenAlexKey(next.openalexKey);
       if (next.gradhunt && !before.gradhunt) importGradhunt(db);
       if (next.setupDone && !before.setupDone && listLoops(db).length === 0)
         for (const l of STARTER_LOOPS)
@@ -182,6 +187,21 @@ export function createHandlers(svc: Services): Handlers {
 
     "hunt.adjacent": async ({ fields }) =>
       fields.length ? await svc.sources.adjacent(fields).catch(() => []) : [],
+    "hunt.betterOdds": async ({ fields, intake }) => {
+      // The kept shortlist, else the sheet's busiest schools: where the money has to be.
+      const kept = listSchools(db)
+        .filter((s) => s.status === "kept")
+        .map((s) => s.name);
+      const bySheet = Map.groupBy(listRecords(db), (r) => r.university);
+      const schools = (
+        kept.length
+          ? kept
+          : [...bySheet].toSorted((a, b) => b[1].length - a[1].length).map(([u]) => u)
+      ).slice(0, 6);
+      const after = intakeStart(intake)?.toISOString().slice(0, 10) ?? "";
+      if (!fields.length || !schools.length) return { schools, core: 0, fields: [] };
+      return { schools, ...(await betterOdds(svc.sources, fields, schools, after)) };
+    },
     "loops.list": () => listLoops(db).map((l) => ({ ...l, ...loopStats(db, l.id) })),
     // Only where gradhunt sync is on: Siam's install. Read-only.
     "loops.scout": () => (getSettings(db).gradhunt ? scoutLoop() : null),

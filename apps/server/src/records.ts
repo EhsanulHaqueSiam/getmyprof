@@ -28,7 +28,7 @@ export const recordKey = (name: string, university: string) => `${slug(name)}@${
  * The key a person already has at this very school, in the sheet, waiting in Review or rejected,
  * when the agent spells them another way. Null when they're new.
  */
-function knownKey(db: Db, name: string, university: string) {
+export function knownKey(db: Db, name: string, university: string) {
   const who = fullName(name);
   return (
     db
@@ -376,6 +376,19 @@ export const personKey = (name: string) => {
  * A professor from a posting that names them: money tier 1 (a posted, funded opening), the
  * posting as their source and their "taking" line. One already in the sheet gains the posting.
  */
+/**
+ * The sheet key for a one-click add from Funding: the row a known person already has, or a new one.
+ * Throws for someone rejected in Review (they never come back) or waiting there (accept them there).
+ */
+export function addKey(db: Db, name: string, university: string) {
+  const key = knownKey(db, name, university) ?? recordKey(name, university);
+  const excluded = exclusionFor(db, key);
+  if (excluded) throw new Error(`${name} was ${excluded}, so they stay off the sheet.`);
+  if (!getRecord(db, key) && pendingAdd(db, key))
+    throw new Error(`${name} is waiting in Review; accept them there.`);
+  return key;
+}
+
 export function professorFromPosition(existing: Professor | null, p: Position): Professor {
   const note = `${p.source} posting${p.deadline ? `, closes ${p.deadline}` : ""}: ${p.title}`;
   const base = existing ?? {

@@ -5,6 +5,8 @@ import { describe, expect, it } from "vite-plus/test";
 import { exportCsv, importCsv, importGradhunt, parseCsv } from "./adapters.ts";
 import { openDb } from "./db.ts";
 import {
+  addKey,
+  blankProfessor,
   getRecord,
   notInSheet,
   putRecord,
@@ -94,6 +96,19 @@ describe("proposals", () => {
         status: "waiting in Review",
       },
     ]);
+  });
+
+  it("adds from Funding to a known person's row, and never brings back someone rejected", () => {
+    const { db, thread } = setup();
+    putRecord(db, { ...blankProfessor("Kevin Lybarger", lybarger.university), fit: 4 });
+    expect(addKey(db, "LYBARGER, KEVIN J.", lybarger.university)).toBe(
+      recordKey("Kevin Lybarger", lybarger.university),
+    );
+    const add = propose(db, thread, { ...lybarger, name: "Natalie Parde", fields: { fit: 3 } });
+    expect(() => addKey(db, "Natalie Parde", lybarger.university)).toThrow("waiting in Review");
+    if (!("proposal" in add)) throw new Error("expected a proposal");
+    resolveProposal(db, add.proposal.id, "reject");
+    expect(() => addKey(db, "Natalie Parde", lybarger.university)).toThrow("rejected in Review");
   });
 
   it("never proposes a rejected person again", () => {

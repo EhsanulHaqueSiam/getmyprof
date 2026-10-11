@@ -26,6 +26,8 @@ export type ContactRead = {
   cv: string | null;
   /** Addresses the pages give, so the agent needn't look for one elsewhere. */
   emails: string[];
+  /** The page each quoted sentence is on, so a quote cites where it really is. */
+  from: Record<string, string>;
 };
 
 const ENTITIES: Record<string, string> = {
@@ -50,15 +52,23 @@ export function sentences(html: string): string[] {
       /&(amp|quot|#39|#x27|nbsp|rsquo|lsquo|ldquo|rdquo);/g,
       (_, e: string) => ENTITIES[e] ?? " ",
     );
-  return body
-    .split(/\n|(?<=[.!?])\s+(?=[A-Z"“(])/)
-    .map((s) => s.replace(/\s+/g, " ").trim())
-    .filter((s) => s.length > 8 && s.length < 400);
+  return (
+    body
+      .split(/\n|(?<=[.!?])\s+(?=[A-Z"“(])/)
+      // Bullets and bold marks ("** I plan to recruit...") aren't their words.
+      .map((s) =>
+        s
+          .replace(/\s+/g, " ")
+          .trim()
+          .replace(/^[*\-•·#>\s]+/, ""),
+      )
+      .filter((s) => s.length > 8 && s.length < 400)
+  );
 }
 
 const STUDENTS = /\b(students?|ph\.?\s?d|doctoral|graduate|applicants?|positions?|openings?)\b/i;
 const RECRUITING =
-  /\b(recruit(?:ing|s)?|accept(?:ing|s)?|taking|looking for|hiring|openings?|positions? (?:is|are) available|join (?:my|our|the) (?:lab|group))\b/i;
+  /\b(recruit(?:ing|s)?|accept(?:ing|s)?|admit(?:ting)?|taking|looking for|hiring|openings?|positions? (?:is|are) available|join (?:my|our|the) (?:lab|group))\b/i;
 const NOT_TAKING =
   /\b(not|no longer|n[o']t)\s+(?:currently\s+|be\s+|actively\s+)?(?:taking|accepting|recruiting|looking for|hiring|admitting)\b|\bno (?:open )?(?:positions|openings|funding)\b|\b(?:lab|group) is (?:currently )?full\b/i;
 // Their words for the subject line, quoted after "subject" or before it.
@@ -119,7 +129,8 @@ export function emailsIn(html: string): string[] {
 
 /** Reads the rules out of one or more pages' HTML (pure; contactPage adds the fetching). */
 export function readContactRule(pages: { url: string; html: string }[], today: Date): ContactRead {
-  const all = pages.flatMap((p) => sentences(p.html));
+  const read = pages.flatMap((p) => sentences(p.html).map((s) => ({ s, url: p.url })));
+  const all = read.map((x) => x.s);
   const first = (re: RegExp) => all.find((s) => re.test(s)) ?? null;
   // A sentence, not a heading ("Prospective students" alone says nothing). A contact rule ("please
   // do not email me") is noEmail, not a yes; a no counts even inside one.
@@ -135,6 +146,10 @@ export function readContactRule(pages: { url: string; html: string }[], today: D
   ].slice(0, 3);
   const form =
     pages.flatMap((p) => links(p.html, p.url)).find((l) => FORM_HOST.test(l.url))?.url ?? null;
+  const noEmail = first(NO_EMAIL);
+  const applyFirst = first(APPLY_FIRST);
+  const cv = first(CV);
+  const quoted = [...statements, noEmail, applyFirst, cv].filter((q) => q !== null);
   return {
     urls: pages.map((p) => p.url),
     readOn: today.toISOString().slice(0, 10),
@@ -143,10 +158,11 @@ export function readContactRule(pages: { url: string; html: string }[], today: D
     subject:
       all.flatMap((s) => SUBJECT.map((re) => re.exec(s)?.[1]?.trim() ?? "")).find(Boolean) ?? null,
     form,
-    noEmail: first(NO_EMAIL),
-    applyFirst: first(APPLY_FIRST),
-    cv: first(CV),
+    noEmail,
+    applyFirst,
+    cv,
     emails: [...new Set(pages.flatMap((p) => emailsIn(p.html)))].slice(0, 5),
+    from: Object.fromEntries(quoted.map((q) => [q, read.find((x) => x.s === q)?.url ?? ""])),
   };
 }
 

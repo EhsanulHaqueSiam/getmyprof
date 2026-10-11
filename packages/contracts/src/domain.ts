@@ -434,7 +434,16 @@ export const schoolWords = (s: string) =>
     .filter(
       (w) =>
         w.length > 3 &&
-        !["university", "college", "state", "institute", "school", "campus", "the"].includes(w),
+        ![
+          "university",
+          "univ",
+          "college",
+          "state",
+          "institute",
+          "school",
+          "campus",
+          "the",
+        ].includes(w),
     );
 
 /** "UNIVERSITY OF READING" and "University of Reading" are the same school. */

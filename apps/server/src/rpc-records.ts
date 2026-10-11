@@ -6,13 +6,13 @@ import { positionKey, sourceKey } from "./agent/sourcing.ts";
 import { getKv, setKv } from "./db.ts";
 import { pageExtras, scholarly } from "./professor-page.ts";
 import {
+  addKey,
   getRecord,
   listRecords,
   personKey,
   professorFromAward,
   professorFromPosition,
   putRecord,
-  recordKey,
   threadProposals,
 } from "./records.ts";
 import type { Handlers, Services } from "./rpc.ts";
@@ -51,7 +51,7 @@ export function recordHandlers(svc: Services): Pick<Handlers, RecordMethods> {
     },
     "records.addFromAward": ({ award }) => {
       const record = professorFromAward(
-        getRecord(db, recordKey(award.pi, award.university)),
+        getRecord(db, addKey(db, award.pi, award.university)),
         award,
       );
       putRecord(db, record);
@@ -65,7 +65,7 @@ export function recordHandlers(svc: Services): Pick<Handlers, RecordMethods> {
     "records.addFromPosition": ({ position }) => {
       if (!position.professor) throw new Error("This posting names no professor");
       const record = professorFromPosition(
-        getRecord(db, recordKey(position.professor, position.university)),
+        getRecord(db, addKey(db, position.professor, position.university)),
         position,
       );
       putRecord(db, record);

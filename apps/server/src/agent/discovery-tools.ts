@@ -12,7 +12,7 @@ export const DISCOVERY_TOOLS = [
   define({
     name: "csrankings_faculty",
     description:
-      "The computer science faculty CSRankings lists at one university, with homepage and Google Scholar links. Use it to sweep a department before reading pages. Free.",
+      "The computer science faculty CSRankings lists at one university, with homepage, Google Scholar link and the venues each published in over the last five years (acl, emnlp, naacl: NLP; icml, nips, iclr: ML; cvpr, iccv: vision...). Use it to sweep a department: anyone publishing in the applicant's fields or next to them is a candidate to read. Free.",
     shape: { university: z.string() },
     paid: false,
     price: () => 0,
@@ -23,7 +23,10 @@ export const DISCOVERY_TOOLS = [
         text: found.length
           ? found
               .slice(0, 80)
-              .map((f) => `- ${f.name} | ${f.homepage || "?"} | ${f.scholar || "no Scholar page"}`)
+              .map(
+                (f) =>
+                  `- ${f.name} | ${f.venues || "no papers counted lately"} | ${f.homepage || "?"} | ${f.scholar || "no Scholar page"}`,
+              )
               .join("\n")
           : `CSRankings lists nobody at ${university}; try its exact name, or the department's page.`,
       };

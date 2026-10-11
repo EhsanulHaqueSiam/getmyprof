@@ -80,9 +80,10 @@ export const PEOPLE_TOOLS = [
     price: () => 0,
     run: async ({ url }, ctx) => {
       const r = await ctx.sources.contactPage(url);
-      const said = (label: string, quote: string | null) => (quote ? [`${label}: "${quote}"`] : []);
+      const said = (label: string, quote: string | null) =>
+        quote ? [`${label} (${r.from[quote]}): "${quote}"`] : [];
       const lines = [
-        ...r.statements.map((q) => `Says: "${q}"`),
+        ...r.statements.map((q) => `Says (${r.from[q]}): "${q}"`),
         ...(r.subject ? [`Subject must carry: "${r.subject}"`] : []),
         ...(r.form ? [`Form instead of email: ${r.form}`] : []),
         ...said("Don't email", r.noEmail),

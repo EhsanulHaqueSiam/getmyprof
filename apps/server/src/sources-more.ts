@@ -162,10 +162,40 @@ export async function nsercAwards(q: AwardQuery): Promise<RawAward[]> {
     .slice(0, 50);
 }
 
-export type Faculty = { name: string; homepage: string; scholar: string };
+export type Faculty = {
+  name: string;
+  homepage: string;
+  scholar: string;
+  /** Where they published in the last five years, most first: "acl 5, emnlp 3" means NLP. */
+  venues: string;
+};
 let rankings: string[][] | null = null;
+let venuesByName: Map<string, Map<string, number>> | null = null;
 
-/** The faculty CSRankings lists at a school, with their homepage and Google Scholar page. */
+/** Each CSRankings name's papers per venue in the last five years, from its per-paper counts. */
+async function recentVenues() {
+  if (venuesByName) return venuesByName;
+  const since = new Date().getFullYear() - 5;
+  const out = new Map<string, Map<string, number>>();
+  const rows = parseCsv(
+    await cached(
+      "csrankings-authors.csv",
+      "https://raw.githubusercontent.com/emeryberger/CSrankings/gh-pages/generated-author-info.csv",
+    ),
+  );
+  for (const [name = "", , venue = "", count = "0", , year = "0"] of rows.slice(1)) {
+    if (Number(year) < since) continue;
+    const at = out.get(name) ?? new Map<string, number>();
+    at.set(venue, (at.get(venue) ?? 0) + Number(count));
+    out.set(name, at);
+  }
+  return (venuesByName = out);
+}
+
+/**
+ * The faculty CSRankings lists at a school, with their homepage, Google Scholar page and the
+ * venues they published in lately, so a sweep can spot everyone in a field at a glance.
+ */
 export async function csrankingsFaculty(university: string): Promise<Faculty[]> {
   rankings ??= parseCsv(
     await cached(
@@ -173,6 +203,7 @@ export async function csrankingsFaculty(university: string): Promise<Faculty[]> 
       "https://raw.githubusercontent.com/emeryberger/CSrankings/gh-pages/csrankings.csv",
     ),
   );
+  const venues = await recentVenues().catch(() => new Map<string, Map<string, number>>());
   const rows = rankings.slice(1);
   // The very school first: "University of Illinois Chicago" alone, not UIUC and UChicago too.
   const exact = rows.filter((r) => sameSchoolName(r[1] ?? "", university));
@@ -185,6 +216,11 @@ export async function csrankingsFaculty(university: string): Promise<Faculty[]> 
         scholar && scholar !== "NOSCHOLARPAGE"
           ? `https://scholar.google.com/citations?user=${scholar}`
           : "",
+      venues: [...(venues.get(name) ?? [])]
+        .toSorted((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([v, n]) => `${v} ${Math.round(n)}`)
+        .join(", "),
     }),
   );
 }

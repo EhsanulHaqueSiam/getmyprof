@@ -5,11 +5,42 @@ import { type Award, sameSchool, sameSchoolName, schoolWords } from "@getmyprof/
 export { sameSchool };
 
 const TIMEOUT_MS = 20_000;
+const DAY = 864e5;
+
+/**
+ * OpenAlex answers for a day, by URL: a hunt asks for the same author or topic from several tools,
+ * and without a key OpenAlex allows 1,000 credits a day (a search costs 10).
+ * ponytail: in memory, so a restart starts over; a table when restarts start to matter.
+ */
+const openAlexSeen = new Map<string, { at: number; body: unknown }>();
+
+/** OpenAlex's own key (GETMYPROF_OPENALEX_KEY, free at openalex.org) lifts the daily budget 10x. */
+const openAlex = (url: string) => {
+  const u = new URL(url);
+  u.searchParams.set("mailto", "hunt@getmyprof.dev");
+  if (process.env.GETMYPROF_OPENALEX_KEY)
+    u.searchParams.set("api_key", process.env.GETMYPROF_OPENALEX_KEY);
+  return u.toString();
+};
 
 export async function getJson(url: string, init?: RequestInit): Promise<unknown> {
-  const res = await fetch(url, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS) });
+  const isOpenAlex = new URL(url).host === "api.openalex.org" && !init;
+  const seen = isOpenAlex ? openAlexSeen.get(url) : undefined;
+  if (seen && Date.now() - seen.at < DAY) return seen.body;
+  const res = await fetch(isOpenAlex ? openAlex(url) : url, {
+    ...init,
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+  if (isOpenAlex && res.status === 429) {
+    const hours = Math.ceil(Number(res.headers.get("x-ratelimit-reset") ?? 0) / 3600);
+    throw new Error(
+      `OpenAlex's free daily limit is used up${hours ? ` for about ${hours} more hours` : ""}. Until then find papers with scholar_search and read their own pages; a free OpenAlex key (GETMYPROF_OPENALEX_KEY) raises the limit.`,
+    );
+  }
   if (!res.ok) throw new Error(`${new URL(url).host} answered ${res.status}`);
-  return res.json();
+  const body: unknown = await res.json();
+  if (isOpenAlex) openAlexSeen.set(url, { at: Date.now(), body });
+  return body;
 }
 
 export const asRecord = (v: unknown): Record<string, unknown> =>

@@ -109,6 +109,20 @@ describe("the school shortlist", () => {
     expect(proposeSchool(db, gmu)).toEqual({ skipped: "dropped earlier" });
   });
 
+  it("keeps an institute with its cycle and no rank", () => {
+    const db = openDb(":memory:");
+    const r = proposeSchool(db, {
+      ...gmu,
+      name: "ISTA",
+      country: "Austria",
+      kind: "institute",
+      cycle: "closes 8 Jan 2027",
+      rank: "",
+    });
+    expect(r).toMatchObject({ kind: "institute", cycle: "closes 8 Jan 2027", rank: "" });
+    expect(vaultState(db).schools[0]).toMatchObject({ kind: "institute" });
+  });
+
   it("records a school's stipend and rent with their page, and a newer suggestion keeps them", () => {
     const db = openDb(":memory:");
     expect(setSchoolMoney(db, "George Mason University", { rentUsd: 1100 }, "rent.page")).toBe(

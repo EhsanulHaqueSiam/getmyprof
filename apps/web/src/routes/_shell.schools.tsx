@@ -254,9 +254,16 @@ function Row({
           {s.admits === "advisor" ? " · advisor hires" : ""}
         </span>
       </td>
-      <td className={cn(cell, "max-w-[110px] text-xs")} title={s.rank}>
-        {/* The number first, so truncation never cuts it; the source is in the tooltip. */}
-        {s.rank.match(/#\s*\d.*/)?.[0] ?? (s.rank || <span className="text-placeholder">?</span>)}
+      <td
+        className={cn(cell, "max-w-[110px] text-xs")}
+        title={s.kind === "institute" ? s.cycle : s.rank}
+      >
+        {/* An institute has no rank: its cycle goes here. The number first for a university, so
+            truncation never cuts it; the source is in the tooltip. */}
+        {s.kind === "institute"
+          ? s.cycle || "institute"
+          : (s.rank.match(/#\s*\d.*/)?.[0] ??
+            (s.rank || <span className="text-placeholder">?</span>))}
       </td>
       <td
         className={cn(

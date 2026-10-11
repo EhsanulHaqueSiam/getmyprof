@@ -129,11 +129,11 @@ test("schools: the agent suggests a shortlist by tier, you keep or drop, then sw
 }) => {
   await page.goto("/schools");
   await page.getByRole("button", { name: "Suggest schools" }).click();
-  await expect(page.getByText("4 schools wait on the Schools page.")).toBeVisible();
+  await expect(page.getByText("5 schools wait on the Schools page.")).toBeVisible();
 
   await page.goto("/schools");
   const waiting = page.getByTestId("school-suggestion");
-  await expect(waiting).toHaveCount(4);
+  await expect(waiting).toHaveCount(5);
   await page.getByRole("button", { name: "Drop Kansas State University" }).click();
   await page.getByRole("button", { name: "Keep all" }).click();
   await expect(waiting).toHaveCount(0);

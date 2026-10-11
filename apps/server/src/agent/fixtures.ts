@@ -172,6 +172,17 @@ export const FIXTURE_SCHOOLS = [
     sources: ["https://csrankings.org/#/index?nlp&us"],
   },
   {
+    name: "ISTA (Institute of Science and Technology Austria)",
+    country: "Austria",
+    kind: "institute",
+    cycle: "opens late Oct 2026, closes 8 Jan 2027; starts Sep 2027",
+    tier: "reach",
+    rank: "",
+    admits: "committee",
+    why: "Its own funded PhD, no rank; machine learning groups fit your fields.",
+    sources: ["https://phd.pages.ista.ac.at/phd-application-admission/"],
+  },
+  {
     name: "Kansas State University",
     country: "USA",
     tier: "safety",

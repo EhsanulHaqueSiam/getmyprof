@@ -101,7 +101,7 @@ export function systemPrompt(
             : "",
           `Weigh fit by, in order: ${p.priorities.map((x) => PRIORITY[x]).join(", ")}.`,
           ...p.degrees.map((d) => TRACK[d]),
-          `Keep a shortlist of about ${p.sweep.reach} reach, ${p.sweep.match} match and ${p.sweep.safety} safety schools for this applicant with propose_school. A tier is your call for this applicant, not a raw rank: weigh the field's rank (CSRankings for CS, subject rankings otherwise), how selective the program is, whether admits are funded, and the confirmed facts; cite the pages and say why in one line. Sweep kept schools for professors before others.`,
+          `Keep a shortlist of about ${p.sweep.reach} reach, ${p.sweep.match} match and ${p.sweep.safety} safety schools for this applicant with propose_school. A tier is your call for this applicant, not a raw rank: weigh the field's rank (CSRankings for CS, subject rankings otherwise), how selective the program is, whether admits are funded, and the confirmed facts; cite the pages and say why in one line. Sweep kept schools for professors before others. In Europe also check the institutes tool: a research institute (EMBL, IMPRS, ISTA, CERN...) joins the shortlist as kind institute with its cycle and no rank.`,
         ].join("\n")
       : "The applicant hasn't set preferences yet: ask what they're hunting for.",
     confirmed.length

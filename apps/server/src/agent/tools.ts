@@ -51,6 +51,7 @@ export const READ_ONLY = new Set([
   "nih_awards",
   "country_awards",
   "phd_positions",
+  "institutes",
   "openalex_author",
   "sheet_search",
   "vault_search",

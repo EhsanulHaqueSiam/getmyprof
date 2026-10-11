@@ -226,8 +226,14 @@ export const APPLICANT_TOOLS = [
     shape: {
       name: z.string().describe("The university's own name, as professors' pages write it"),
       country: z.string(),
+      kind: School.shape.kind
+        .optional()
+        .describe("institute: a research institute (EMBL, ISTA...)"),
+      cycle: School.shape.cycle
+        .optional()
+        .describe("An institute's cycle, from the institutes tool"),
       tier: SchoolTier,
-      rank: z.string().describe("Its rank in the field and the source, e.g. 'CSRankings #52, NLP'"),
+      rank: z.string().describe("Rank and source, e.g. 'CSRankings #52, NLP'; '' for institutes"),
       admits: School.shape.admits.describe(
         "committee: a program admits; advisor: professors hire for their labs",
       ),

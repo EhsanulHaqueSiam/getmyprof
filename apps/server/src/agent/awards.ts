@@ -1,6 +1,7 @@
 // NSF, NIH and other award lookups as the agent reads them: one block per PI, with the email the
 // award lists and its co-PIs here; every PI surfaced for the sweep. The award tools and
 // professor_dossier share it.
+import { placeCountries } from "../places.ts";
 import { intakeStart, monthsAfter } from "../sources.ts";
 import { personKey } from "../records.ts";
 import type { sourceKey } from "./sourcing.ts";
@@ -25,6 +26,7 @@ export const awardLines = async (
     ...(args.university ? { university: args.university } : {}),
     ...(args.pi ? { pi: args.pi } : {}),
     ...(activeAfter ? { activeAfter } : {}),
+    countries: placeCountries(ctx.hunt?.prefs.places ?? []),
   };
   const awards = await ctx.sources[which](q);
   surface(
@@ -53,7 +55,7 @@ export const awardLines = async (
       `PI ${p.pi || "not listed"}${email ? ` <${email}> (from the award)` : ""} | ${p.university}`,
       ...p.awards.map(
         (a) =>
-          `  ${a.source} ${a.id} | ${money(a.amount, a.currency)} | ends ${a.ends ?? "?"} | ${monthsAfter(a.ends, start) ?? "?"} months after intake | ${a.title}${a.coPis?.length ? ` | co-PIs here: ${a.coPis.map((c) => `${c.name} <${c.email}>`).join(", ")}` : ""}`,
+          `  ${a.funder ? `${a.funder} (${a.source})` : a.source} ${a.id} | ${money(a.amount, a.currency)} | ends ${a.ends ?? "?"} | ${monthsAfter(a.ends, start) ?? "?"} months after intake | ${a.title}${a.coPis?.length ? ` | co-PIs here: ${a.coPis.map((c) => `${c.name} <${c.email}>`).join(", ")}` : ""}`,
       ),
     ].join("\n");
   });

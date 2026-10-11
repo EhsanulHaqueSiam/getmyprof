@@ -111,9 +111,9 @@ describe("tregCall", () => {
     const refuse = (status: number, body: unknown) => () =>
       new Response(JSON.stringify(body), { status, headers: { "X-Treg-Error": "1" } });
     const req = {
-      endpoint: "treg.google.serp.organic",
+      endpoint: "anyapi.google.serp.organic",
       data: {},
-      maxUsd: 0.015,
+      maxUsd: 0.0009,
       tags: { thread: "t", feature: "loop" },
     };
     const capped = await tregCall(
@@ -267,6 +267,31 @@ describe("what the agent reads from treg", () => {
     expect(text).toContain(`## A (https://a.edu)\n${"x".repeat(20)} …(cut at 20 of 50 characters)`);
     expect(text).toContain("## B (https://b.edu)\nshort");
     expect(text).toContain("failed: https://c.edu (timeout)");
+  });
+
+  it("reads a Scholar profile as a few lines, newest works first", () => {
+    const profile = {
+      author: {
+        name: "Ada Lovelace",
+        affiliations: "Professor of Informatics, University of Utah",
+        email: "Verified email at utah.edu",
+        website: "https://ada.utah.edu",
+        interests: [{ title: "NLP" }, { title: "Health" }],
+      },
+      cited_by: { table: [{ citations: { all: 812 } }, { h_index: { all: 14 } }] },
+      co_authors: [{ name: "Ben Byron", affiliations: "University of Utah", link: "x" }],
+      articles: [{ title: "Notes", year: "2026", link: "https://scholar/1" }],
+    };
+    expect(tregText(profile)).toBe(
+      [
+        "Ada Lovelace | Professor of Informatics, University of Utah | Verified email at utah.edu | https://ada.utah.edu",
+        "Interests: NLP, Health",
+        "Cited 812 | h-index 14 | i10 ?",
+        "Co-authors: Ben Byron (University of Utah)",
+        "Newest works:",
+        "- Notes (2026)",
+      ].join("\n"),
+    );
   });
 
   it("shows anything else as JSON, marked when cut", () => {

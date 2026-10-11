@@ -296,6 +296,7 @@ export const fixtureSources: Sources = {
     },
   ],
   nserc: async () => [],
+  openalexAwards: async () => [],
   jobsacuk: async () => [
     {
       source: "jobs.ac.uk",
@@ -399,6 +400,7 @@ export const fixtureSources: Sources = {
       },
     ],
   }),
+  paperEmails: async () => [],
   contactPage: async (url) =>
     readContactRule(
       [{ url, html: FIXTURE_PAGES[url] ?? "<p>Research on language.</p>" }],

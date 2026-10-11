@@ -113,9 +113,9 @@ export const HUNT_TOOLS = [
   define({
     name: "country_awards",
     description:
-      "Search active grants outside the US by topic terms, optionally at one university or for one PI: UKRI (UK), CORDIS (EU Horizon and ERC; names the host, not the PI), ARC (Australia), DFG (Germany; no amounts), NSERC (Canada; amounts per year). Free.",
+      "Search active grants beyond NSF and NIH by topic terms, optionally at one university or for one PI: UKRI (UK), CORDIS (EU Horizon and ERC; names the host, not the PI), ARC (Australia), DFG (Germany; no amounts), NSERC (Canada; amounts per year), and OpenAlex for every other funder (JSPS Japan, SNSF Switzerland, ERC, CIHR and FRQ Canada, the US DoD and DOE, Sweden, Norway, Hong Kong...; without a university it searches the hunt's countries). Free.",
     shape: {
-      source: z.enum(["UKRI", "CORDIS", "ARC", "DFG", "NSERC"]),
+      source: z.enum(["UKRI", "CORDIS", "ARC", "DFG", "NSERC", "OpenAlex"]),
       terms: z.array(z.string()),
       university: z.string().optional(),
       pi: z.string().optional(),

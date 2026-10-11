@@ -478,12 +478,26 @@ export const schoolFor = <T extends { name: string }>(list: T[], university: str
   list.find((s) => sameSchoolName(s.name, university)) ??
   list.find((s) => sameSchool(s.name, university));
 
-/** Free grant databases: NSF and NIH (US), UKRI (UK), CORDIS (EU, ERC), ARC (Australia), DFG (Germany), NSERC (Canada). */
-export const AwardSource = z.enum(["NSF", "NIH", "UKRI", "CORDIS", "ARC", "DFG", "NSERC"]);
+/**
+ * Free grant databases: NSF and NIH (US), UKRI (UK), CORDIS (EU, ERC), ARC (Australia), DFG
+ * (Germany), NSERC (Canada), and OpenAlex's award index for every other funder (JSPS, SNSF, DoD...).
+ */
+export const AwardSource = z.enum([
+  "NSF",
+  "NIH",
+  "UKRI",
+  "CORDIS",
+  "ARC",
+  "DFG",
+  "NSERC",
+  "OpenAlex",
+]);
 export type AwardSource = z.infer<typeof AwardSource>;
 
 export const Award = z.object({
   source: AwardSource,
+  /** The funder, when the source spans many (OpenAlex): "Japan Society for the Promotion of Science". */
+  funder: z.string().optional(),
   id: z.string(),
   title: z.string(),
   /** Empty when the database doesn't name one (CORDIS lists the host, not the PI). */
@@ -494,7 +508,7 @@ export const Award = z.object({
   coPis: z.array(z.object({ name: z.string(), email: z.string() })).optional(),
   university: z.string(),
   amount: z.number().nullable(),
-  /** ISO 4217: USD, GBP, EUR, AUD. */
+  /** ISO 4217: USD, GBP, EUR, AUD, JPY, CHF... */
   currency: z.string(),
   /** The award's own page. */
   url: z.string(),

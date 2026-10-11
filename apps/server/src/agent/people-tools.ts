@@ -15,7 +15,7 @@ export const PEOPLE_TOOLS = [
   define({
     name: "professor_dossier",
     description:
-      "Everything free about one professor in one call, instead of five: their OpenAlex record and newest works, their NSF and NIH awards past the intake (with the emails awards list), what their page tells prospective students (each quote with its page, and the emails it gives), and who is in their lab. Free.",
+      "Everything free about one professor in one call, instead of five: their OpenAlex record and newest works, their awards past the intake (NSF and NIH with the emails awards list, and every other funder OpenAlex knows: JSPS, SNSF, DoD...), what their page tells prospective students (each quote with its page, and the emails it gives), emails they printed on their papers (Europe PMC), and who is in their lab. Free.",
     shape: {
       name: z.string(),
       university: z.string(),
@@ -25,12 +25,14 @@ export const PEOPLE_TOOLS = [
     price: () => 0,
     run: async ({ name, university, homepage }, ctx) => {
       const each = { terms: [], university, pi: name };
-      const [author, nsf, nih, page, lab] = await Promise.allSettled([
+      const [author, nsf, nih, other, page, lab, papers] = await Promise.allSettled([
         ctx.sources.openalex(name, university),
         awardLines(ctx, "nsf", each),
         awardLines(ctx, "nih", each),
+        awardLines(ctx, "openalexAwards", each),
         homepage ? ctx.sources.contactPage(homepage) : Promise.resolve(null),
         ctx.sources.lab(name, university),
+        ctx.sources.paperEmails(name, university),
       ]);
       // A source that fails says so in its own section; the rest still arrive.
       const failed = (r: PromiseRejectedResult) => `unavailable: ${String(r.reason).slice(0, 160)}`;
@@ -43,7 +45,7 @@ export const PEOPLE_TOOLS = [
               ? `${a.name}, ${a.institution} · ${a.works} works, ${a.citations} citations\nTopics: ${a.topics.join(", ")}\n${a.recent.map((w) => `- ${w.title} (${w.date}) ${w.link}`).join("\n")}`
               : "No matching author at this school."
         }`,
-        `## Awards\n${[nsf, nih].map((r) => (r.status === "fulfilled" ? r.value.text : failed(r))).join("\n")}`,
+        `## Awards\n${[nsf, nih, other].map((r) => (r.status === "fulfilled" ? r.value.text : failed(r))).join("\n")}`,
         `## Their page\n${
           page.status === "rejected"
             ? failed(page)
@@ -54,6 +56,12 @@ export const PEOPLE_TOOLS = [
                   ...(page.value.emails.length ? [`Emails: ${page.value.emails.join(", ")}`] : []),
                 ].join("\n")
               : "No homepage given: pass one, or read_contact_rule it later."
+        }`,
+        `## Emails on their papers\n${
+          papers.status === "rejected"
+            ? failed(papers)
+            : papers.value.map((e) => `${e.email} (on ${e.paper}, ${e.year})`).join("\n") ||
+              "None printed on their recent papers."
         }`,
         `## Lab\n${
           lab.status === "rejected"

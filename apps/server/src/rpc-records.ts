@@ -16,6 +16,7 @@ import {
   threadProposals,
 } from "./records.ts";
 import type { Handlers, Services } from "./rpc.ts";
+import { placeCountries } from "./places.ts";
 import { intakeStart, monthsAfter, sameSchool, sourcesFor } from "./sources.ts";
 import { daysLeft, positionSourcesFor } from "./sources-positions.ts";
 import { getHunt } from "./state.ts";
@@ -85,7 +86,11 @@ export function recordHandlers(svc: Services): Pick<Handlers, RecordMethods> {
       const which = picked?.length ? picked : sourcesFor(hunt?.prefs.places ?? []);
       const start = intakeStart(hunt?.prefs.intake ?? "");
       const activeAfter = start?.toISOString().slice(0, 10);
-      const base = { terms, ...(activeAfter ? { activeAfter } : {}) };
+      const base = {
+        terms,
+        ...(activeAfter ? { activeAfter } : {}),
+        countries: placeCountries(hunt?.prefs.places ?? []),
+      };
       // Named schools filter every source. By default the sheet's schools filter the US pair,
       // and the other databases search the topic everywhere: the sheet's schools are mostly US.
       const sheetSchools = [...new Set(records.map((r) => r.university))].slice(0, 8);

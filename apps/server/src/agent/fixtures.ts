@@ -297,6 +297,9 @@ export const fixtureSources: Sources = {
   ],
   nserc: async () => [],
   openalexAwards: async () => [],
+  nwo: async () => [],
+  researchfi: async () => [],
+  radon: async () => [],
   jobsacuk: async () => [
     {
       source: "jobs.ac.uk",

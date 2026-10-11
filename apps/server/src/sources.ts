@@ -245,6 +245,9 @@ export function sourcesFor(places: string[]): Award["source"][] {
   if (EU_PLACES.test(where)) picked.add("CORDIS");
   if (/\baustralia\b/.test(where)) picked.add("ARC");
   if (/\bgermany\b/.test(where)) picked.add("DFG");
+  if (/\bnetherlands\b/.test(where)) picked.add("NWO");
+  if (/\bfinland\b/.test(where)) picked.add("RESEARCHFI");
+  if (/\bpoland\b/.test(where)) picked.add("RADON");
   if (/\bcanada\b/.test(where)) picked.add("NSERC");
   // Every other funder in the hunt's countries: JSPS, SNSF, CIHR, the US DoD...
   if (placeCountries(places).length) picked.add("OpenAlex");

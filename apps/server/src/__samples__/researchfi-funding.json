@@ -1,0 +1,62 @@
+{
+ "took": 15,
+ "timed_out": false,
+ "_shards": {
+  "total": 1,
+  "successful": 1,
+  "skipped": 0,
+  "failed": 0
+ },
+ "hits": {
+  "total": {
+   "value": 1286,
+   "relation": "eq"
+  },
+  "max_score": 13.155779,
+  "hits": [
+   {
+    "_index": "funding_20261010084328",
+    "_id": "26882",
+    "_score": 13.155779,
+    "_ignored": [
+     "projectDescriptionFi.keyword"
+    ],
+    "_source": {
+     "amount_in_EUR": 600000.0,
+     "funderNameEn": "Innovaatiorahoituskeskus Business Finland",
+     "projectId": 26882,
+     "projectNameFi": "Machine Learning for Industry Applications",
+     "projectNameEn": " ",
+     "projectDescriptionFi": "Tekoäly ja koneoppiminen kehittyvät parhaillaan kovaa vauhtia, ja mahdollistavat jo nyt esimerkiksi kuluttajille suunnattuja ennennäkemättömiä videokuvaan perustuvia mobiililaiteratkaisuja kuten eleiden analysointi. On arvioitu, että yksinomaan tekoälyyn pohjautuvat teknologiat nostavat Pohjois-Euroopan kansantaloutta yli 10% vuoteen 2030 mennessä. Koneoppimisessa niin sanottu deep learning eli syväoppiminen on nopeasti kehittyvä tekoälyn haara, joka näennäisesti mahdollistaa koneiden intuitiivisen ajattelun ja oppimisen.  Tässä Machine Learning for Industry Applications (MIDAS) -hankkeessa kehitetään ja tutkitaan uusia syväoppimiseen perustuvia ratkaisuja erityisesti valmistavan teollisuuden tarpeisiin. Hanke rakentuu kolmesta tutkimuspäätavoitteesta: 1) kohteen seuranta ja paikannus reaaliaikaisesta kuvadatasta syväoppimisen keinoin, 2) paikannuksesta kerätyn tiedon jatkojalostaminen yksittäistä (työ)konetta laajemmassa kontekstissa, jolloin tiedon kerääminen keskitetysti älykkäälle alustalle voi luoda uusia tuotteita ja asiakastarpeita esimerkiksi logistiikan alueella, sekä 3) kuvatiedon yhdistäminen muuhun mittausaineistoon kuten esimerkiksi koneiden anturointiin ja muihin kameroihin.   MIDAS-hankkeen keskeinen tavoite on myös lisätä tiedonvaihtoa ja luoda uutta osaamista yhteistyökumppaneiden kesken. Tätä tavoitetetta edistetään esimerkiksi yhteisillä työpajoilla, joissa eri liiketoimintasektoreita edustavat yritysyhteistyökumppanit voivat jakaa kokemuksiaan ja kertoa omista projektitavoitteistaan. Kunkin yhteistyökumppanin kanssa on myös räätälöity yksityiskohtainen työsuunnitelma.    Hankkeen kokonaistavoitteena on löytää myös uusia tekoälyyn perustuvia digitaalisen alustatalouden mahdollisuuksia.  Hankkeen tutkimusosuutta koordinoi Tampereen yliopiston signaalinkäsittelyn laboratorion koneoppimisen tutkimusryhmä yhdessä automaation ja hydrauliikan laboratorion kanssa. Hankkeen yrityskumppanit ovat Epec, Glaston, Nokia ja Novatron.",
+     "projectDescriptionEn": " ",
+     "fundingStartYear": 2018,
+     "fundingEndDate": "2020-09-30",
+     "fundingContactPersonLastName": "Huttunen",
+     "fundingContactPersonFirstNames": "Heikki",
+     "fundingGroupPerson": [
+      {
+       "fundedPerson": 1,
+       "projectId": 26882,
+       "fundedPersonOrganizationSectorId": "1",
+       "fundedPersonOrganizationNameFi": "Yliopisto",
+       "fundedPersonOrganizationNameEn": "University",
+       "fundedPersonOrganizationNameSv": "Universitet",
+       "consortiumOrganizationNameFi": "Tampereen yliopisto",
+       "consortiumOrganizationNameEn": "Tampere University",
+       "consortiumOrganizationNameSv": "Tammerfors universitet",
+       "consortiumProject": "408/31/2018",
+       "fundingGroupPersonFirstNames": " ",
+       "fundingGroupPersonLastName": " ",
+       "roleInFundingGroup": "leader",
+       "shareOfFundingInEur": 600000.0,
+       "consortiumOrganizationId": "10122",
+       "consortiumOrganizationBusinessId": "2844561-8",
+       "source_id": "408/31/2018",
+       "source_description": "business_finland"
+      }
+     ]
+    }
+   }
+  ]
+ }
+}

@@ -26,6 +26,9 @@ const SOURCE_NOTE: Record<AwardSource, string> = {
   DFG: "Germany",
   NSERC: "Canada",
   OpenAlex: "Japan, Switzerland, US DoD, more",
+  NWO: "Netherlands",
+  RESEARCHFI: "Finland",
+  RADON: "Poland",
 };
 const BOARD_NOTE: Record<PositionSource, string> = {
   "jobs.ac.uk": "UK",

@@ -6,8 +6,8 @@ import { z } from "zod";
 import type { Db } from "../db.ts";
 import { acceptByRules, listLoops } from "../loops.ts";
 import { searchVault } from "../okf.ts";
-import { listRecords, propose } from "../records.ts";
-import { intakeStart, monthsAfter } from "../sources.ts";
+import { listRecords, notInSheet, propose } from "../records.ts";
+import { intakeStart, monthsAfter, sameSchool } from "../sources.ts";
 import { TREG_ENDPOINTS } from "../treg.ts";
 import { daySpend, getThread, recordSpend, threadSpend } from "../threads.ts";
 import { APPLICANT_TOOLS } from "./applicant-tools.ts";
@@ -203,25 +203,32 @@ export const HUNT_TOOLS = [
   define({
     name: "sheet_search",
     description:
-      "List professors already in the applicant's sheet, so you don't re-research them. Free.",
+      "List professors already in the applicant's sheet, waiting in Review or rejected, so you don't re-research them. Free.",
     shape: { university: z.string().optional(), query: z.string().optional() },
     paid: false,
     price: () => 0,
     run: async (args, ctx) => {
       const want = (s: string, q?: string) => !q || s.toLowerCase().includes(q.toLowerCase());
+      const school = (u: string) =>
+        !args.university || sameSchool(u, args.university) || want(u, args.university);
       const rows = listRecords(ctx.db).filter(
-        (p) => want(p.university, args.university) && want(`${p.name} ${p.niche}`, args.query),
+        (p) => school(p.university) && want(`${p.name} ${p.niche}`, args.query),
+      );
+      const others = notInSheet(ctx.db).filter(
+        (x) => school(x.university) && want(`${x.name} ${x.niche}`, args.query),
       );
       return {
-        summary: `${rows.length} in the sheet`,
+        summary: `${rows.length} in the sheet${others.length ? `, ${others.length} waiting or rejected` : ""}`,
         text:
-          rows
-            .slice(0, 40)
-            .map(
-              (p) =>
-                `${p.name} | ${p.university} | fit ${p.fit} | money ${p.money || "?"} | taking ${p.taking || "?"} | email ${p.emailCheck || "?"} | ${p.stage}`,
-            )
-            .join("\n") || "Nothing yet.",
+          [
+            ...rows
+              .slice(0, 40)
+              .map(
+                (p) =>
+                  `${p.name} | ${p.university} | fit ${p.fit} | money ${p.money || "?"} | taking ${p.taking || "?"} | email ${p.emailCheck || "?"} | ${p.stage}`,
+              ),
+            ...others.slice(0, 40).map((x) => `${x.name} | ${x.university} | ${x.status}`),
+          ].join("\n") || "Nothing yet.",
       };
     },
   }),

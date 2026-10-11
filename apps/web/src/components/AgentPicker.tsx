@@ -364,9 +364,11 @@ export function EffortPicker({ thread }: { thread?: AgentThread | undefined }) {
             picked.set({ agent: picked.agent, model: picked.model, effort: v })
           }
         >
-          <MenuRadioItem value="">Default</MenuRadioItem>
+          <MenuRadioItem value="" closeOnClick>
+            Default
+          </MenuRadioItem>
           {efforts.map((e) => (
-            <MenuRadioItem key={e} value={e}>
+            <MenuRadioItem key={e} value={e} closeOnClick>
               {EFFORT_LABEL[e] ?? e}
             </MenuRadioItem>
           ))}

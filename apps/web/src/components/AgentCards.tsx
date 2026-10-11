@@ -72,9 +72,15 @@ export function AgentCards() {
                 <Button
                   variant="ghost-muted"
                   size="xs"
-                  onClick={() =>
-                    void saveSettings({ agent: a.kind, model: a.defaultModel, effort: "" })
-                  }
+                  onClick={() => {
+                    // Its own default, unless that's hidden from the picker: then the first shown.
+                    const shown = (id: string) =>
+                      !settings.hiddenModels.includes(modelKey(a.kind, id));
+                    const model = shown(a.defaultModel)
+                      ? a.defaultModel
+                      : (a.models.find((m) => shown(m.id))?.id ?? a.defaultModel);
+                    void saveSettings({ agent: a.kind, model, effort: "" });
+                  }}
                 >
                   Make default
                 </Button>

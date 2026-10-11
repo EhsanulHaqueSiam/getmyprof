@@ -36,6 +36,8 @@ const program = {
   fee: "$75",
   waiver: "on request",
   english: "IELTS 6.5",
+  language: "",
+  country: "USA",
   funding: "GRA/GTA",
   asks: "",
   limit: "",

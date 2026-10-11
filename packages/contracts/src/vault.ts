@@ -59,6 +59,10 @@ export const Program = z.object({
   waiver: z.string(),
   /** English rules, e.g. "IELTS 7.0; MOI accepted". */
   english: z.string(),
+  /** Another language the program asks for, e.g. "Italian B2 for teaching duties"; empty when English only. */
+  language: z.string().default(""),
+  /** The program's country, as its page names it; decides the visa lane. Empty when unknown. */
+  country: z.string().default(""),
   /** How admits are funded, e.g. "5 years guaranteed, RA/TA". */
   funding: z.string(),
   /** What the statement must cover, in the program's words, one item per line. */

@@ -191,6 +191,8 @@ export const APPLICANT_TOOLS = [
       fee: z.string().describe("Application fee, e.g. '$75'"),
       waiver: z.string().describe("Fee waiver rules for this applicant, or 'none found'"),
       english: z.string().describe("English rules, e.g. 'IELTS 6.5; MOI considered'"),
+      language: z.string().optional().describe("Another language it asks for, e.g. 'Italian B2'"),
+      country: z.string().optional().describe("The program's country, as its page names it"),
       funding: z.string().describe("How admits are funded, e.g. '5 years guaranteed, RA/TA'"),
       asks: z
         .string()

@@ -67,6 +67,8 @@ describe("the Vault", () => {
           fee: "",
           waiver: "",
           english: "",
+          language: "",
+          country: "",
           funding: "",
           asks: "",
           limit: "",

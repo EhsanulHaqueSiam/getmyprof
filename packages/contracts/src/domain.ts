@@ -485,7 +485,9 @@ export const sameSchool = (a: string, b: string) => {
  * key part "kevin-j-lybarger" agree. Unlike personKey, "Wei Wang" and "William Wang" don't.
  */
 export const fullName = (name: string) => {
-  const w = name
+  // "DEL FIOL, GUILHERME" (NIH) is Guilherme Del Fiol.
+  const ordered = name.includes(",") ? name.split(",").toReversed().join(" ") : name;
+  const w = ordered
     .normalize("NFKD")
     .replace(/\p{M}/gu, "")
     .toLowerCase()

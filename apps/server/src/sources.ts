@@ -274,7 +274,8 @@ export async function nsfAwards(q: AwardQuery): Promise<RawAward[]> {
   const out = new Map<string, RawAward>();
   for (const term of q.terms.length ? q.terms : [""]) {
     // ponytail: two pages (50 awards) a term; more when a school's list runs past that.
-    for (const offset of [1, NSF_PAGE + 1]) {
+    // NSF counts from 0: offset 1 would skip each search's first award.
+    for (const offset of [0, NSF_PAGE]) {
       const params = new URLSearchParams({
         printFields:
           "id,title,piFirstName,piLastName,piEmail,coPDPI,awardeeName,startDate,expDate,estimatedTotalAmt,abstractText",

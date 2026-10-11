@@ -35,7 +35,7 @@ describe("a hunt's sweep", () => {
   });
 
   it("reads NLP authors from acl, emnlp and naacl, two papers or more", () => {
-    const nlp = fieldVenues({ fields: ["clinical NLP"], adjacent: [] });
+    const nlp = fieldVenues({ fields: ["clinical NLP"] });
     expect([...nlp]).toEqual(["acl", "emnlp", "naacl"]);
     expect(papersIn("www 4, acl 3, aaai 2, naacl 2, emnlp 1", nlp)).toBe(6);
     expect(papersIn("dac 7, iccad 7, emnlp 1", nlp)).toBe(1);

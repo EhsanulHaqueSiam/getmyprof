@@ -82,9 +82,12 @@ const FIELD_VENUES: [RegExp, string[]][] = [
   [/artificial intelligence|\bai\b|reasoning|planning/i, ["aaai", "ijcai"]],
 ];
 
-/** The venues that put a CSRankings author in the hunt's fields or the ones next to them. */
-export function fieldVenues(prefs?: Pick<HuntPrefs, "fields" | "adjacent">) {
-  const words = [...(prefs?.fields ?? []), ...(prefs?.adjacent ?? [])].join(" ");
+/**
+ * The venues that put a CSRankings author in the hunt's own fields. Not the adjacent ones: "machine
+ * learning for health" would bring in every ML theorist; topic search and awards cover those.
+ */
+export function fieldVenues(prefs?: Pick<HuntPrefs, "fields">) {
+  const words = (prefs?.fields ?? []).join(" ");
   return new Set(FIELD_VENUES.flatMap(([re, venues]) => (re.test(words) ? venues : [])));
 }
 

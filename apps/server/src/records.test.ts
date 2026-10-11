@@ -70,6 +70,11 @@ describe("proposals", () => {
     expect(propose(db, thread, { ...lybarger, name: "Kevin J. Lybarger", fields: {} })).toEqual({
       skipped: "excluded earlier: rejected in Review",
     });
+    // NIH writes "DEL FIOL, GUILHERME": the same person as "Guilherme Del Fiol".
+    propose(db, thread, { ...lybarger, name: "Guilherme Del Fiol", fields: { fit: 4 } });
+    expect(
+      propose(db, thread, { ...lybarger, name: "DEL FIOL, GUILHERME", fields: { fit: 4 } }),
+    ).toEqual({ skipped: "no change" });
     // Same initial and last name is a different person: "Wei Wang" isn't "William Wang".
     propose(db, thread, { ...lybarger, name: "Wei Wang", fields: { fit: 3 } });
     const other = propose(db, thread, { ...lybarger, name: "William Wang", fields: { fit: 3 } });

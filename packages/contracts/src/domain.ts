@@ -491,7 +491,9 @@ export const schoolFor = <T extends { name: string }>(list: T[], university: str
 
 /**
  * Free grant databases: NSF and NIH (US), UKRI (UK), CORDIS (EU, ERC), ARC (Australia), DFG
- * (Germany), NSERC (Canada), and OpenAlex's award index for every other funder (JSPS, SNSF, DoD...).
+ * (Germany), NSERC (Canada), NWO (Netherlands), research.fi (Finland), RAD-on (Poland), and
+ * OpenAlex's award index for every other funder (JSPS, SNSF, DoD...). NWO, research.fi and RAD-on
+ * name the PI; CORDIS doesn't.
  */
 export const AwardSource = z.enum([
   "NSF",
@@ -502,6 +504,9 @@ export const AwardSource = z.enum([
   "DFG",
   "NSERC",
   "OpenAlex",
+  "NWO",
+  "RESEARCHFI",
+  "RADON",
 ]);
 export type AwardSource = z.infer<typeof AwardSource>;
 
@@ -519,7 +524,7 @@ export const Award = z.object({
   coPis: z.array(z.object({ name: z.string(), email: z.string() })).optional(),
   university: z.string(),
   amount: z.number().nullable(),
-  /** ISO 4217: USD, GBP, EUR, AUD, JPY, CHF... */
+  /** ISO 4217: USD, GBP, EUR, AUD, PLN, JPY, CHF... */
   currency: z.string(),
   /** The award's own page. */
   url: z.string(),

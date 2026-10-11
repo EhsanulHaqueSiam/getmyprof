@@ -1,7 +1,7 @@
 // The hunt tools the agent calls. Both providers run these same handlers: Claude through an
 // in-process MCP server, the fake provider directly. A handler returns a one-line summary
 // (shown in the work log) and the full text the model reads.
-import type { FreeSource, Hunt, Settings } from "@getmyprof/contracts";
+import { AwardSource, type FreeSource, type Hunt, type Settings } from "@getmyprof/contracts";
 import { z } from "zod";
 import type { Db } from "../db.ts";
 import { acceptByRules, listLoops } from "../loops.ts";
@@ -113,9 +113,9 @@ export const HUNT_TOOLS = [
   define({
     name: "country_awards",
     description:
-      "Search active grants beyond NSF and NIH by topic terms, optionally at one university or for one PI: UKRI (UK), CORDIS (EU Horizon and ERC; names the host, not the PI), ARC (Australia), DFG (Germany; no amounts), NSERC (Canada; amounts per year), and OpenAlex for every other funder (JSPS Japan, SNSF Switzerland, ERC, CIHR and FRQ Canada, the US DoD and DOE, Sweden, Norway, Hong Kong...; without a university it searches the hunt's countries). Free.",
+      "Search active grants beyond NSF and NIH by topic terms, optionally at one university or for one PI: UKRI (UK), CORDIS (EU Horizon and ERC; names the host, not the PI), ARC (Australia), DFG (Germany; no amounts), NSERC (Canada; amounts per year), NWO (Netherlands), RESEARCHFI (Finland), RADON (Poland; PLN), and OpenAlex for every other funder (JSPS Japan, SNSF Switzerland, ERC, CIHR and FRQ Canada, the US DoD and DOE, Sweden, Norway, Hong Kong...; without a university it searches the hunt's countries). Free.",
     shape: {
-      source: z.enum(["UKRI", "CORDIS", "ARC", "DFG", "NSERC", "OpenAlex"]),
+      source: AwardSource.exclude(["NSF", "NIH"]),
       terms: z.array(z.string()),
       university: z.string().optional(),
       pi: z.string().optional(),

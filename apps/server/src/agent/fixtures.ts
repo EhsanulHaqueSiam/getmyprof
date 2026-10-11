@@ -245,6 +245,16 @@ export const FIXTURE_PROGRAMS = [
   },
 ];
 
+const award = {
+  title: "Fixture: machine learning for large 3D tomographic images",
+  university: "CWI - Centrum Wiskunde & Informatica",
+  amount: 249837,
+  url: "https://www.nwo.nl/en/projects/016.Veni.192.235",
+  starts: "2025-09-01",
+  ends: "2030-02-28",
+  abstract: "Fixture award.",
+};
+
 export const fixtureSources: Sources = {
   nsf: async () => [
     {
@@ -297,6 +307,12 @@ export const fixtureSources: Sources = {
   ],
   nserc: async () => [],
   openalexAwards: async () => [],
+  // One European award that names its PI, so Add PI has something to propose in the fake.
+  nwo: async () => [
+    { ...award, source: "NWO", id: "016.Veni.192.235", pi: "Daniël Pelt", currency: "EUR" },
+  ],
+  researchfi: async () => [],
+  radon: async () => [],
   jobsacuk: async () => [
     {
       source: "jobs.ac.uk",

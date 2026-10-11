@@ -21,6 +21,8 @@ describe("grant databases", () => {
     expect(sourcesFor(["Czechia"])).toEqual(["CORDIS"]);
     expect(sourcesFor(["Schengen countries"])).toEqual(["CORDIS"]);
     expect(sourcesFor(["Ireland", "Italy"])).toEqual(["CORDIS", "OpenAlex"]);
+    expect(sourcesFor(["Finland", "France"])).toEqual(["CORDIS", "RESEARCHFI", "OpenAlex"]);
+    expect(sourcesFor(["Netherlands", "Poland"])).toEqual(["CORDIS", "NWO", "RADON", "OpenAlex"]);
     expect(sourcesFor(["Dhaka"])).toEqual([]);
   });
 

@@ -1,0 +1,86 @@
+{
+ "meta": {
+  "api_type": "NWO Projects API",
+  "version": "1.0.2",
+  "licence": {
+   "name": "CC0 1.0 Universal",
+   "url": "https://creativecommons.org/publicdomain/zero/1.0",
+   "description": "To the extent possible under law, all copyright and related or neighbouring rights have been waived worldwide to the data made available through this API."
+  },
+  "documentation": "https://doi.org/10.5281/zenodo.14918287",
+  "release_date": "2025-08-20T00:00:00",
+  "funder": "https://doi.org/10.13039/501100003246",
+  "ror_id": "https://ror.org/04jsz6e67",
+  "date": "2026-10-11T00:00:00",
+  "count": 84,
+  "per_page": 1,
+  "pages": 42,
+  "page": 1
+ },
+ "projects": [
+  {
+   "project_id": "016.Veni.192.235",
+   "title": "Machine learning for large 3D tomographic images",
+   "funding_scheme_id": 3351,
+   "funding_scheme": "NWO-Talentprogramma Veni ENW 2018",
+   "department": "Exacte en Natuurwetenschappen",
+   "sub_department": "Exacte en Natuurwetenschappen",
+   "start_date": "2018-09-01T00:00:00",
+   "end_date": "2023-02-28T00:00:00",
+   "reporting_year": 2018,
+   "summary_nl": "Het doel van dit project was het ontwikkelen van nieuwe technieken die het mogelijk maken om lerende algoritmes toe te passen op grote 3D beelden. Tijdens het project zijn meerdere technieken ontwikkeld en vervolgens succesvol toegepast op uitdagende problemen uit verschillende toepassingsgebieden. Zo hebben de technieken bijvoorbeeld geholpen bij het analyseren van bacteriofagen die wellicht een alternatief voor antibiotica kunnen zijn en het analyseren van de oorzaken van botbreuken.",
+   "summary_en": "The goal of this project was to develop new techniques that allow learning algorithms to be applied to large 3D images. During the project, several techniques were developed and then successfully applied to challenging problems from different application areas. For example, the techniques helped analyze bacteriophages that might be an alternative to antibiotics and analyze the causes of bone fractures.",
+   "award_amount": 249837,
+   "project_members": [
+    {
+     "role": "Project leader",
+     "member_id": 244818,
+     "last_name": "Pelt",
+     "degree_pre_nominal": "dr.",
+     "initials": "D.M.",
+     "first_name": "Daniël",
+     "organisation": "NWO-institutenorganisatie||CWI - Centrum Wiskunde & Informatica||Modelling Analysis and Computing",
+     "organisation_id": 69192,
+     "ror": "-",
+     "active": false
+    },
+    {
+     "role": "Researcher",
+     "member_id": 244818,
+     "last_name": "Pelt",
+     "degree_pre_nominal": "dr.",
+     "initials": "D.M.",
+     "first_name": "Daniël",
+     "organisation": "NWO-institutenorganisatie||CWI - Centrum Wiskunde & Informatica||Modelling Analysis and Computing",
+     "organisation_id": 69192,
+     "ror": "-",
+     "active": false
+    },
+    {
+     "role": "Researcher",
+     "member_id": 244818,
+     "last_name": "Pelt",
+     "degree_pre_nominal": "dr.",
+     "initials": "D.M.",
+     "first_name": "Daniël",
+     "organisation": "Universiteit Leiden||Faculteit der Wiskunde en Natuurwetenschappen||Leiden Institute of Advanced Computer Science (LIACS)",
+     "organisation_id": 76843,
+     "ror": "https://ror.org/027bh9e22",
+     "active": false
+    },
+    {
+     "role": "Main Applicant",
+     "member_id": 244818,
+     "last_name": "Pelt",
+     "degree_pre_nominal": "dr.",
+     "initials": "D.M.",
+     "first_name": "Daniël",
+     "organisation": "NWO-institutenorganisatie||CWI - Centrum Wiskunde & Informatica||Modelling Analysis and Computing",
+     "organisation_id": 69192,
+     "ror": "-",
+     "active": true
+    }
+   ]
+  }
+ ]
+}

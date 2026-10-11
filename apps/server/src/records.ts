@@ -6,6 +6,7 @@ import {
   Professor,
   type ProfessorField,
   Proposal,
+  sameSchoolName,
   type ScopeItem,
 } from "@getmyprof/contracts";
 import { type Db, newId, now } from "./db.ts";
@@ -21,6 +22,37 @@ const slug = (s: string) =>
 
 /** One key per person per school, so the same professor found twice is one row. */
 export const recordKey = (name: string, university: string) => `${slug(name)}@${slug(university)}`;
+
+/**
+ * First and last name, initials and order aside: "Kevin J. Lybarger", "LYBARGER, KEVIN" and the
+ * key part "kevin-j-lybarger" agree. Unlike personKey, "Wei Wang" and "William Wang" don't.
+ */
+const fullName = (name: string) => {
+  const w = slug(name)
+    .split("-")
+    .filter((x) => x.length > 1);
+  return [w[0] ?? "", w.at(-1) ?? ""].toSorted().join(" ");
+};
+
+/**
+ * The key a person already has at this very school, in the sheet, waiting in Review or rejected,
+ * when the agent spells them another way. Null when they're new.
+ */
+function knownKey(db: Db, name: string, university: string) {
+  const who = fullName(name);
+  return (
+    db
+      .prepare(
+        "SELECT key AS k FROM records UNION SELECT record_key FROM proposals WHERE status = 'pending' UNION SELECT record_key FROM exclusions",
+      )
+      .all()
+      .map((r) => String(r.k))
+      .find((k) => {
+        const [n = "", u = ""] = k.split("@");
+        return fullName(n) === who && sameSchoolName(u, university);
+      }) ?? null
+  );
+}
 
 export function blankProfessor(name: string, university: string): Professor {
   return {
@@ -101,20 +133,23 @@ type Fields = { [F in ProfessorField]?: string | number | undefined };
 
 /**
  * Turns what the agent found into a pending proposal: an `add` for someone new, an `update`
- * holding only the fields that differ. Returns null when nothing changed, or the reason when
- * the person was rejected before (a rejected row never comes back).
+ * holding only the fields that differ. Someone spelled another way at the same school is the same
+ * person (knownKey). Returns null when nothing changed, or the reason when the person was rejected
+ * before (a rejected row never comes back).
  */
 export function propose(
   db: Db,
   threadId: string,
   input: { name: string; university: string; fields: Fields; sources: string[] },
 ): { proposal: Proposal } | { skipped: string } {
-  const key = recordKey(input.name, input.university);
+  const key = knownKey(db, input.name, input.university) ?? recordKey(input.name, input.university);
   const excluded = exclusionFor(db, key);
   if (excluded) return { skipped: `excluded earlier: ${excluded}` };
   const current = getRecord(db, key) ?? pendingAdd(db, key);
   const changes: Change[] = [];
   for (const field of PROFESSOR_FIELDS) {
+    // Someone already known keeps the name and school they have; another spelling isn't news.
+    if (current && (field === "name" || field === "university")) continue;
     const raw =
       field === "name"
         ? input.name
@@ -179,6 +214,29 @@ function pendingAdd(db: Db, key: string): Professor | null {
 }
 
 const parseProposal = (r: Record<string, unknown>) => Proposal.parse(JSON.parse(String(r.body)));
+
+/**
+ * People not in the sheet whom the agent shouldn't research again: new ones waiting in Review,
+ * and rejected ones (named from their key, so lowercase).
+ */
+export function notInSheet(db: Db) {
+  const waiting = db
+    .prepare(
+      "SELECT body FROM proposals WHERE status = 'pending' AND body LIKE '%\"kind\":\"add\"%'",
+    )
+    .all()
+    .map(parseProposal)
+    .map((p) => ({ name: p.recordName, university: p.university, status: "waiting in Review" }));
+  const rejected = db
+    .prepare("SELECT record_key, reason FROM exclusions")
+    .all()
+    .map((r) => {
+      const [name = "", university = ""] = String(r.record_key).split("@");
+      const words = (x: string) => x.replaceAll("-", " ");
+      return { name: words(name), university: words(university), status: `rejected: ${r.reason}` };
+    });
+  return [...waiting, ...rejected];
+}
 
 export function getProposal(db: Db, id: string) {
   const row = db.prepare("SELECT body FROM proposals WHERE id = ?").get(id);

@@ -1,6 +1,6 @@
 // Data sources the agent and the Funding view use: free public APIs (NSF, NIH RePORTER, UKRI,
 // CORDIS, ARC, OpenAlex). Paid lookups go through treg.ts.
-import { type Award, sameSchool } from "@getmyprof/contracts";
+import { type Award, sameSchool, sameSchoolName, schoolWords } from "@getmyprof/contracts";
 
 export { sameSchool };
 
@@ -320,7 +320,10 @@ export const lastInstitution = (a: Record<string, unknown>) =>
     .map((i) => text(asRecord(i).display_name))
     .join(", ");
 
-/** The OpenAlex author record a name most likely is: the first match last seen at the university. */
+/**
+ * The OpenAlex author record a name most likely is: one last seen at that very school, else at a
+ * school sharing its telling words, else none. With no school (or only "MIT"), the first match.
+ */
 export async function openAlexMatch(name: string, university?: string) {
   const found = asArray(
     asRecord(
@@ -329,16 +332,12 @@ export async function openAlexMatch(name: string, university?: string) {
       ),
     ).results,
   ).map(asRecord);
-  const want =
-    university
-      ?.toLowerCase()
-      .split(/\W+/)
-      .filter((w) => w.length > 3) ?? [];
-  return (
-    found.find(
-      (a) => want.length === 0 || want.some((w) => lastInstitution(a).toLowerCase().includes(w)),
-    ) ?? null
-  );
+  if (!university || schoolWords(university).length === 0) return found[0] ?? null;
+  const at = (a: Record<string, unknown>, same: (x: string, y: string) => boolean) =>
+    asArray(a.last_known_institutions).some((i) =>
+      same(text(asRecord(i).display_name), university),
+    );
+  return found.find((a) => at(a, sameSchoolName)) ?? found.find((a) => at(a, sameSchool)) ?? null;
 }
 
 export async function openAlexAuthor(name: string, university?: string): Promise<Author | null> {

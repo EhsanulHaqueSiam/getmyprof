@@ -6,6 +6,7 @@ import * as NodePath from "node:path";
 import { parseCsv } from "./adapters.ts";
 import { homeDir } from "./db.ts";
 import { personKey } from "./records.ts";
+import { sameSchoolName } from "@getmyprof/contracts";
 import {
   type AwardQuery,
   type RawAward,
@@ -172,10 +173,11 @@ export async function csrankingsFaculty(university: string): Promise<Faculty[]> 
       "https://raw.githubusercontent.com/emeryberger/CSrankings/gh-pages/csrankings.csv",
     ),
   );
-  return rankings
-    .slice(1)
-    .filter((r) => sameSchool(r[1] ?? "", university))
-    .map(([name = "", , homepage = "", scholar = ""]) => ({
+  const rows = rankings.slice(1);
+  // The very school first: "University of Illinois Chicago" alone, not UIUC and UChicago too.
+  const exact = rows.filter((r) => sameSchoolName(r[1] ?? "", university));
+  return (exact.length ? exact : rows.filter((r) => sameSchool(r[1] ?? "", university))).map(
+    ([name = "", , homepage = "", scholar = ""]) => ({
       // CSRankings marks namesakes with a number: "Wei Wang 0001".
       name: name.replace(/\s+\d{4}$/, ""),
       homepage,
@@ -183,7 +185,8 @@ export async function csrankingsFaculty(university: string): Promise<Faculty[]> 
         scholar && scholar !== "NOSCHOLARPAGE"
           ? `https://scholar.google.com/citations?user=${scholar}`
           : "",
-    }));
+    }),
+  );
 }
 
 const firstId = async (path: string) =>

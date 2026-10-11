@@ -426,7 +426,8 @@ export const ScoutLoop = z.object({
 });
 export type ScoutLoop = z.infer<typeof ScoutLoop>;
 
-const schoolWords = (s: string) =>
+/** A school name's telling words: "University of Illinois Chicago" is "illinois chicago". */
+export const schoolWords = (s: string) =>
   s
     .toLowerCase()
     .split(/[^a-z]+/)
@@ -442,17 +443,19 @@ export const sameSchool = (a: string, b: string) => {
   return schoolWords(b).some((w) => wa.includes(w));
 };
 
+/** The very same school, only spelled differently: all its telling words, nothing else. */
+export const sameSchoolName = (a: string, b: string) => {
+  const wa = schoolWords(a).join(" ");
+  return wa !== "" && wa === schoolWords(b).join(" ");
+};
+
 /**
  * The school on a list that a university belongs to: the same name first, then a loose match,
  * so "University of Illinois Chicago" doesn't land on "University of Chicago" when both are listed.
  */
-export const schoolFor = <T extends { name: string }>(list: T[], university: string) => {
-  const exact = schoolWords(university).join(" ");
-  return (
-    list.find((s) => schoolWords(s.name).join(" ") === exact) ??
-    list.find((s) => sameSchool(s.name, university))
-  );
-};
+export const schoolFor = <T extends { name: string }>(list: T[], university: string) =>
+  list.find((s) => sameSchoolName(s.name, university)) ??
+  list.find((s) => sameSchool(s.name, university));
 
 /** Free grant databases: NSF and NIH (US), UKRI (UK), CORDIS (EU, ERC), ARC (Australia), DFG (Germany), NSERC (Canada). */
 export const AwardSource = z.enum(["NSF", "NIH", "UKRI", "CORDIS", "ARC", "DFG", "NSERC"]);

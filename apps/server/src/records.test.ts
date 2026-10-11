@@ -53,6 +53,26 @@ describe("proposals", () => {
     expect(getRecord(db, add.proposal.recordKey)?.sources).toEqual(["https://example.edu"]);
   });
 
+  it("knows a person spelled another way at the same school, but not a namesake", () => {
+    const { db, thread } = setup();
+    const add = propose(db, thread, { ...lybarger, fields: { fit: 4 } });
+    if (!("proposal" in add)) throw new Error("expected a proposal");
+    const again = propose(db, thread, {
+      ...lybarger,
+      name: "LYBARGER, KEVIN J.",
+      fields: { fit: 4 },
+    });
+    expect(again).toEqual({ skipped: "no change" });
+    resolveProposal(db, add.proposal.id, "reject");
+    expect(propose(db, thread, { ...lybarger, name: "Kevin J. Lybarger", fields: {} })).toEqual({
+      skipped: "excluded earlier: rejected in Review",
+    });
+    // Same initial and last name is a different person: "Wei Wang" isn't "William Wang".
+    propose(db, thread, { ...lybarger, name: "Wei Wang", fields: { fit: 3 } });
+    const other = propose(db, thread, { ...lybarger, name: "William Wang", fields: { fit: 3 } });
+    expect("proposal" in other && other.proposal.kind).toBe("add");
+  });
+
   it("never proposes a rejected person again", () => {
     const { db, thread } = setup();
     const add = propose(db, thread, { ...lybarger, fields: { fit: 4 } });

@@ -1,0 +1,104 @@
+{
+ "results": [
+  {
+   "projectAbstractEn": null,
+   "keywords": "LULC, Polska, klasyfikacja zobrazowań satelitarnych, klasyfikatory, konwolucyjne sieci neuronowe",
+   "edition": "5",
+   "projectUuid": "61c05ac10dbab45c9121d8d4",
+   "projectAbstractPl": "Analiza porównawcza możliwości wykorzystania klasyfikatorów opartych na konwolucyjnych sieciach neuronowych do klasyfikacji zobrazowań satelitarnych",
+   "projectStartDate": "2021-08-31",
+   "implementingInstitutions": [
+    {
+     "institutionUuid": "5011bcd5-dfb1-41ed-84b0-5bd51ce0832c",
+     "institutionName": "Uniwersytet Łódzki",
+     "leader": "Tak",
+     "foreignInstitutionLeader": "Nie",
+     "higherEducationAndScience": "Tak",
+     "ownFunds": "0"
+    }
+   ],
+   "disseminationOfScience": "Nie",
+   "nationalFunds": "42350",
+   "partnership": "Projekt realizowany samodzielnie",
+   "projectGrantDate": "2021-08-31",
+   "anotherProjectClassification": null,
+   "acronym": null,
+   "lastRefresh": "1747043695453",
+   "projectNumber": "DEC-2021/05/X/HS4/00018",
+   "projectEndDate": "2022-08-30",
+   "projectTitleEn": "Comparison of the possibility of using classifiers based on convolutional neural networks to classify satellite images in order to obtai data on land use/land cover - LULC for the territory of Poland",
+   "financedCompetition": "Tak",
+   "projectManagers": [
+    {
+     "institutionUuid": "5011bcd5-dfb1-41ed-84b0-5bd51ce0832c",
+     "institutionName": "Uniwersytet Łódzki",
+     "employeeId": "114CDE471C9F236AA43D67E83B04261E95DF817B",
+     "kindManagerCode": "KP",
+     "kindManager": "Kierownik Projektu",
+     "firstName": "Marta",
+     "middleName": "Maja",
+     "lastName": "Nalej",
+     "ORCID": "0000-0002-5182-9770",
+     "startDate": "2021-08-31",
+     "endDate": "2022-08-30"
+    }
+   ],
+   "entityShowingAchievementsName": "Uniwersytet Łódzki",
+   "namePriority": null,
+   "receivedFunds": [
+    {
+     "institutionUuid": "5011bcd5-dfb1-41ed-84b0-5bd51ce0832c",
+     "institutionName": "Uniwersytet Łódzki",
+     "nationalFunds": "42350",
+     "foreignFunds": "0",
+     "totalFunds": "42350",
+     "financingInstitutionUuid": "f1244717-78c4-45d5-889f-ea59691bd4ba",
+     "financingInstitutionName": "Narodowe Centrum Nauki"
+    }
+   ],
+   "projectClassification": "MINIATURA",
+   "relatedProjects": [],
+   "foreignFunds": "0",
+   "disciplines": [
+    {
+     "institutionUuid": "5011bcd5-dfb1-41ed-84b0-5bd51ce0832c",
+     "institutionName": "Uniwersytet Łódzki",
+     "disciplineCode": "DS010502N",
+     "disciplineName": "geografia społeczno-ekonomiczna i gospodarka przestrzenna",
+     "percentageShare": "100"
+    }
+   ],
+   "projectTitlePl": "Porównanie możliwości wykorzystania klasyfikatorów opartych na konwolucyjnych sieciach neuronowych do klasyfikacji zobrazowań satelitarnych w celu uzyskania danych o użytkowaniu/pokryciu terenu (land use/land cover - LULC) dla obszaru Polski",
+   "financingInstitutions": [
+    {
+     "financingInstitutionUuid": "f1244717-78c4-45d5-889f-ea59691bd4ba",
+     "financingInstitutionName": "Narodowe Centrum Nauki",
+     "kindOfFinancingInstitution": "Krajowa",
+     "grantDate": "2021-08-31",
+     "settlementDate": "2022-08-30",
+     "sourceOfFinancing": "Projekt finansowany przez Narodowe Centrum Nauki",
+     "anotherSourceOfFinancing": null,
+     "receivedFunds": "42350",
+     "nationalFunds": "42350",
+     "foreignFunds": "0",
+     "urlAddress": "https://www.ncn.gov.pl/",
+     "country": "Polska",
+     "voivodeship": "małopolskie",
+     "addressCity": "Kraków [woj. małopolskie, pow. Kraków, gm. Kraków,miasto]",
+     "addressPostalCode": "30-312",
+     "addressStreet": "Twardowskiego [Kraków-Podgórze]",
+     "addressBuildingNumber": "16",
+     "addressApartmentNumber": null
+    }
+   ],
+   "dataSource": "POLON",
+   "entityShowingAchievementsUuid": "5011bcd5-dfb1-41ed-84b0-5bd51ce0832c",
+   "totalFunds": "42350"
+  }
+ ],
+ "pagination": {
+  "maxCount": 84,
+  "token": "MTc0NzA0MzY5NTQ1Mw=="
+ },
+ "version": "1.1.5"
+}

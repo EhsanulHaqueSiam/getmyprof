@@ -33,6 +33,7 @@ import {
   type PositionQuery,
   type RawPosition,
 } from "../sources-positions.ts";
+import { nwoAwards, radonAwards, researchFiAwards } from "../sources-eu.ts";
 import { renderedPage, tregCall, type TregOutcome, type TregRequest } from "../treg.ts";
 
 type AwardFetch = (q: AwardQuery) => Promise<RawAward[]>;
@@ -49,6 +50,9 @@ export type Sources = {
   nserc: AwardFetch;
   /** Every other funder (JSPS, SNSF, DoD...), from OpenAlex's award index. */
   openalexAwards: AwardFetch;
+  nwo: AwardFetch;
+  researchfi: AwardFetch;
+  radon: AwardFetch;
   /** Advertised PhD positions, by board. */
   jobsacuk: PositionFetch;
   inspire: PositionFetch;
@@ -79,6 +83,9 @@ export const realSources: Sources = {
   dfg: dfgAwards,
   nserc: nsercAwards,
   openalexAwards: openAlexAwards,
+  nwo: nwoAwards,
+  researchfi: researchFiAwards,
+  radon: radonAwards,
   jobsacuk: jobsAcUkPositions,
   inspire: inspirePositions,
   openalex: openAlexAuthor,
@@ -101,6 +108,9 @@ const SOURCE_KEY = {
   DFG: "dfg",
   NSERC: "nserc",
   OpenAlex: "openalexAwards",
+  NWO: "nwo",
+  RESEARCHFI: "researchfi",
+  RADON: "radon",
 } as const satisfies Record<AwardSource, keyof Sources>;
 
 /** An award source's key in Sources. */

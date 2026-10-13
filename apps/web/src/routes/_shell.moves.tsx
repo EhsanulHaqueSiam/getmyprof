@@ -59,7 +59,14 @@ function MovesPage() {
   if (!app || !vault) return <div className="flex-1" />;
   const now = new Date();
   const moves = nextMoves(
-    { vault, applicant: app.applicant, facts: app.facts, records, conversations },
+    {
+      vault,
+      applicant: app.applicant,
+      facts: app.facts,
+      records,
+      conversations,
+      ...(app.hunt ? { hunt: app.hunt.prefs } : {}),
+    },
     now,
   );
 

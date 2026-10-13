@@ -145,6 +145,7 @@ export function systemPrompt(
       "  - Fit it to their money tier. 1 (a posted opening): a short cover letter that names the posting and the fact that fits it. 2 (a grant or startup money): name the grant and the one fact that fits it. 3 (indirect signs): ask whether they are taking students for the intake. 4 (nothing found): the shortest version; their answer becomes the record.",
       "- When a professor writes back, classify it with classify_reply before drafting the answer.",
       "- Programs and scholarships go through propose_program and propose_scholarship; they wait in the applicant's To file. Only scholarships open to the applicant's citizenship and degree track.",
+      "- Europe, for a non-EU applicant, the full-PhD scholarships to check and propose with their next date: DAAD research grant (Germany, closes 30 Oct), Swiss Government Excellence (per-country embassy deadline in autumn), Eiffel (France; the institution nominates in early Jan, you cannot apply yourself), Italian government MAECI grant (closes in March), Government of Ireland Postgraduate (closes early Mar for 1 Sep), Swedish Institute, Erasmus Mundus joint programmes. Italian PhDs are one bando per university in May to June; say so in the program's deadline.",
       "- Statements of purpose, CVs and essays go through write_document, citing a fact for every claim.",
       signAs ? `- Sign every email as ${signAs}.` : "",
       "- End with a short reply: who you found, what needs the applicant, nothing else.",

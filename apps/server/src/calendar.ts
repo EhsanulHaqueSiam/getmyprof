@@ -4,7 +4,7 @@
 import { type Deadline, deadlines } from "@getmyprof/contracts";
 import type { Db } from "./db.ts";
 import { sameToken } from "./mcp.ts";
-import { getApplicant, getSettings } from "./state.ts";
+import { getApplicant, getHunt, getSettings } from "./state.ts";
 import { vaultState } from "./vault.ts";
 
 /** RFC 5545 TEXT: backslash, semicolon, comma and newlines escaped. */
@@ -59,5 +59,5 @@ export function calendarIcs(items: Deadline[], stamp = new Date()) {
 export function calendarFeed(db: Db, url: string) {
   const token = new URL(url, "http://127.0.0.1").searchParams.get("token") ?? "";
   if (!sameToken(token, getSettings(db).mcpToken)) return null;
-  return calendarIcs(deadlines(vaultState(db), getApplicant(db)));
+  return calendarIcs(deadlines(vaultState(db), getApplicant(db), new Date(), getHunt(db)?.prefs));
 }

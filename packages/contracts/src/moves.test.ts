@@ -123,6 +123,34 @@ describe("next moves", () => {
     });
   });
 
+  it("surface a posted opening about to close and a country's own window", () => {
+    const moves = nextMoves(
+      {
+        vault: vault({}),
+        applicant,
+        facts: [],
+        records: [
+          professor("Nikolay Fixture", {
+            moneyTier: 1,
+            fit: 5,
+            stage: "new",
+            money: "DAAD posting, closes 2026-10-30: PhD Position (TV-L E13, 50%)",
+            lasts: "apply by 2026-10-30",
+          }),
+        ],
+        conversations: [],
+        hunt: { places: ["Germany"], intake: "Fall 2027" },
+      },
+      now,
+    );
+    expect(moves.map((m) => [m.by, m.lane, m.title])).toEqual([
+      ["2026-10-09", "Profile", "Add your CV"],
+      ["2026-10-12", "Outreach", "Email 1 professor who can fund you"],
+      ["2026-10-30", "Money", "Nikolay Fixture's posted opening closes"],
+      ["2026-10-30", "Money", "DAAD doctoral scholarship closes"],
+    ]);
+  });
+
   it("are empty when nothing waits", () => {
     expect(
       nextMoves(

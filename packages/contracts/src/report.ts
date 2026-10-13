@@ -106,7 +106,7 @@ export function buildReport(input: {
           : [];
       })
       .toSorted((a, b) => b.at.localeCompare(a.at)),
-    upcoming: deadlines(vault, applicant, now)
+    upcoming: deadlines(vault, applicant, now, hunt?.prefs)
       .filter((d) => d.date <= until)
       .map((d) => ({ date: d.date, title: d.title })),
   };

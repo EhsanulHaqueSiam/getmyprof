@@ -229,6 +229,10 @@ export async function arcAwards(q: AwardQuery): Promise<RawAward[]> {
 /** A hunt's places that name the UK; shared by the award and position source pickers. */
 export const UK_PLACES = /\b(uk|united kingdom|england|scotland|wales|britain)\b/;
 
+/** A hunt's places that name Europe: the EU, the EEA and Schengen, by bloc word or by country. */
+export const EU_PLACES =
+  /\b(eu|europe|european|eea|schengen|nordic|nordics|scandinavia|baltics|austria|belgium|bulgaria|croatia|cyprus|czechia|czech republic|denmark|estonia|finland|france|germany|greece|hungary|iceland|ireland|italy|latvia|liechtenstein|lithuania|luxembourg|malta|netherlands|norway|poland|portugal|romania|slovakia|slovenia|spain|sweden|switzerland)\b/;
+
 /** The databases that cover a hunt's places. Places that name none default to the US pair. */
 export function sourcesFor(places: string[]): Award["source"][] {
   const where = places.join(" ").toLowerCase();
@@ -238,12 +242,7 @@ export function sourcesFor(places: string[]): Award["source"][] {
     picked.add("NIH");
   }
   if (UK_PLACES.test(where)) picked.add("UKRI");
-  if (
-    /\b(eu|europe|germany|france|netherlands|sweden|denmark|finland|switzerland|spain|italy|ireland|austria|belgium|norway|portugal|poland)\b/.test(
-      where,
-    )
-  )
-    picked.add("CORDIS");
+  if (EU_PLACES.test(where)) picked.add("CORDIS");
   if (/\baustralia\b/.test(where)) picked.add("ARC");
   if (/\bgermany\b/.test(where)) picked.add("DFG");
   if (/\bcanada\b/.test(where)) picked.add("NSERC");

@@ -17,6 +17,13 @@ describe("grant databases", () => {
     expect(placeCountries(["Russia status"])).toEqual([]);
   });
 
+  it("read CORDIS for any European country or bloc word", () => {
+    expect(sourcesFor(["Czechia"])).toEqual(["CORDIS"]);
+    expect(sourcesFor(["Schengen countries"])).toEqual(["CORDIS"]);
+    expect(sourcesFor(["Ireland", "Italy"])).toEqual(["CORDIS", "OpenAlex"]);
+    expect(sourcesFor(["Dhaka"])).toEqual([]);
+  });
+
   it("match a school however each database spells it", () => {
     expect(sameSchool("UNIVERSITY OF READING", "University of Reading")).toBe(true);
     expect(sameSchool("The University of Melbourne", "Monash University")).toBe(false);

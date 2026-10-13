@@ -6,6 +6,8 @@ const school = (id: string, name: string, over: Partial<School> = {}): School =>
   id,
   name,
   country: "USA",
+  kind: "university",
+  cycle: "",
   tier: "match",
   rank: "",
   admits: "committee",

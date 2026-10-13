@@ -3,6 +3,7 @@
 // surface (sweep.ts). Free; tools.ts spreads them into the hunt tools.
 import { PositionSource } from "@getmyprof/contracts";
 import { z } from "zod";
+import { institutesFor } from "../institutes.ts";
 import { positionKey } from "./sourcing.ts";
 import { fieldVenues, papersIn, skip, surface, sweepNudge, unchecked } from "./sweep.ts";
 import type { HuntTool } from "./tools.ts";
@@ -42,6 +43,23 @@ export const DISCOVERY_TOOLS = [
       return {
         summary: `${people.length} skipped`,
         text: `Skipped ${people.length}. ${left ? `${left} still unchecked: sweep_status lists them.` : "The sweep is done."}`,
+      };
+    },
+  }),
+  define({
+    name: "institutes",
+    description:
+      "European research institutes with their own funded doctoral programmes (EMBL, Max Planck IMPRS, ISTA, CERN, ETH, EPFL, CNRS, CSIC...), with each one's application cycle, next dates, degree partner and page. Propose a fitting one with propose_school as kind institute, no rank, its cycle copied. Free.",
+    shape: { fields: z.array(z.string()).describe("The fields to match; empty lists all") },
+    paid: false,
+    price: () => 0,
+    run: async ({ fields }) => {
+      const found = institutesFor(fields);
+      return {
+        summary: `${found.length} institutes`,
+        text: found
+          .map((i) => `- ${i.name} (${i.country}) | ${i.cycle} | degree: ${i.degree} | ${i.url}`)
+          .join("\n"),
       };
     },
   }),

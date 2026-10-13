@@ -205,6 +205,10 @@ export const School = z.object({
   id: z.string(),
   name: z.string(),
   country: z.string(),
+  /** A ranked university, or a research institute with its own programme and no rank. */
+  kind: z.enum(["university", "institute"]).default("university"),
+  /** An institute's application cycle in one line, e.g. "opens late Oct, closes 8 Jan; starts Sep". */
+  cycle: z.string().default(""),
   tier: SchoolTier,
   /** Its rank in the applicant's field and where that comes from, e.g. "CSRankings #52, NLP". */
   rank: z.string(),

@@ -3,6 +3,8 @@ import {
   AppStatus,
   feeBudget,
   type Professor,
+  laneFor,
+  laneLine,
   type Program,
   programChance,
 } from "@getmyprof/contracts";
@@ -162,6 +164,8 @@ function ApplicationView({
   const here = people.filter((p) => program && school(p.university) === school(program.university));
   const left = app.documents.filter((d) => !d.done).length;
   const me = useStore((st) => st.app);
+  // The country's lane for a non-EU researcher, where the program names a European country.
+  const lane = program ? laneFor(program.country) : null;
   const chance =
     program &&
     programChance(program, { applicant: me?.applicant, facts: me?.facts ?? [], records: people });
@@ -222,6 +226,16 @@ function ApplicationView({
       {chance ? (
         <Row label="Chance">
           <ChanceLines lines={chance.lines} moves={chance.moves} />
+        </Row>
+      ) : null}
+      {lane ? (
+        <Row label="Visa">
+          <span className="text-secondary-label text-xs">
+            {program?.country}: {laneLine(lane)}{" "}
+            <a href={lane.url} target="_blank" rel="noreferrer" className="hover:underline">
+              source
+            </a>
+          </span>
         </Row>
       ) : null}
       <Row label={`Checklist · ${left} left`}>

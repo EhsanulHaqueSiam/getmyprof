@@ -113,6 +113,22 @@ describe("a program's chance", () => {
     });
   });
 
+  it("asks for a second language and for degree recognition where the country wants it", () => {
+    const ctx = { applicant: applicant("7.0"), facts: [paper], records: [] };
+    const italy = programChance(
+      program({ university: "Università di Bologna", country: "Italy", language: "Italian B2" }),
+      ctx,
+    );
+    expect(italy.lines.find((l) => l.what === "Language")).toMatchObject({ status: "gap" });
+    expect(italy.moves).toContain("proof of Italian B2");
+    expect(italy.band).toBe("match");
+    const belgium = programChance(program({ university: "KU Leuven", country: "Belgium" }), ctx);
+    expect(belgium.lines.find((l) => l.what === "Degree recognised")).toMatchObject({
+      status: "unknown",
+    });
+    expect(programChance(program({}), ctx).lines.map((l) => l.what)).not.toContain("Language");
+  });
+
   it("never compares a GPA on another scale", () => {
     const c = programChance(program({}), {
       applicant: applicant("7.0", "8.9", "10"),

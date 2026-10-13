@@ -11,6 +11,7 @@ import {
   sameSchool,
 } from "./domain.ts";
 import type { Program } from "./vault.ts";
+import { laneFor } from "./visa.ts";
 
 export type Band = "reach" | "match" | "likely";
 
@@ -89,7 +90,44 @@ export function programChance(
       moves.push("ask whether they consider a GPA below their minimum");
   }
 
-  const papers = ctx.facts.filter((f) => f.kind === "paper" && factStatus(f) === "confirmed");
+  const confirmed = ctx.facts.filter((f) => factStatus(f) === "confirmed");
+  const covered = (words: string) => {
+    const w = words
+      .toLowerCase()
+      .split(/\W+/)
+      .find((x) => x.length > 3);
+    return !!w && confirmed.some((f) => f.text.toLowerCase().includes(w));
+  };
+
+  // A second language the program asks for is a gap until a confirmed fact or test names it.
+  if (p.language) {
+    const has =
+      covered(p.language) ||
+      (ctx.applicant?.tests.some(
+        (t) => t.status === "taken" && p.language.toLowerCase().includes(t.name.toLowerCase()),
+      ) ??
+        false);
+    lines.push({
+      what: "Language",
+      program: p.language,
+      you: has ? "on file" : "nothing on file",
+      status: has ? "meets" : "gap",
+    });
+    if (!has) moves.push(`proof of ${p.language.split(/[,;(]/)[0]?.trim()}`);
+  }
+
+  // Where the country asks a body to recognise a foreign Master's, it reads unknown until a
+  // confirmed fact says it was done.
+  const lane = laneFor(p.country);
+  if (lane?.recognition)
+    lines.push({
+      what: "Degree recognised",
+      program: lane.recognition,
+      you: covered("recognised recognition") ? "done" : "not yet",
+      status: covered("recognised recognition") ? "meets" : "unknown",
+    });
+
+  const papers = confirmed.filter((f) => f.kind === "paper");
   lines.push({
     what: "Research",
     program: "papers help most for a PhD",

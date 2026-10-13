@@ -4,7 +4,7 @@ import { DEFAULT_SETTINGS } from "../state.ts";
 import { createThread, getThread, setSession } from "../threads.ts";
 import { decide } from "./acp.ts";
 import { CLAUDE_MODELS, threadAgent } from "./agents.ts";
-import { fixtureSources } from "./fixtures.ts";
+import { fixtureSources } from "./fixture-sources.ts";
 import { gatedRun } from "./mcp-hunt.ts";
 import type { HuntTool } from "./tools.ts";
 

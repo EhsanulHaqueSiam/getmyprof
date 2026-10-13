@@ -16,7 +16,7 @@ import { saveFacts, updateSettings } from "../state.ts";
 import { createThread, getThread, listEvents } from "../threads.ts";
 import { listApplications, saveEdit, startApplication } from "../vault.ts";
 import { fakeProvider } from "./fake.ts";
-import { fixtureSources } from "./fixtures.ts";
+import { fixtureSources } from "./fixture-sources.ts";
 import { createRunner } from "./runner.ts";
 
 const until = async (check: () => boolean, ms = 5000) => {

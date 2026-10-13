@@ -4,7 +4,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { describe, expect, it } from "vite-plus/test";
 import { fakeProvider } from "./agent/fake.ts";
-import { fixtureSources } from "./agent/fixtures.ts";
+import { fixtureSources } from "./agent/fixture-sources.ts";
 import { createRunner } from "./agent/runner.ts";
 import { createBus } from "./bus.ts";
 import { openDb } from "./db.ts";

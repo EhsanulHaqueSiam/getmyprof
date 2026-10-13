@@ -3,8 +3,12 @@ import * as NodePath from "node:path";
 import { describe, expect, it } from "vite-plus/test";
 import {
   daysLeft,
+  parseAcademicTransfer,
+  parseDaad,
   parseInspire,
   parseJobsAcUk,
+  parseMur,
+  payKind,
   positionSourcesFor,
   shortDate,
 } from "./sources-positions.ts";
@@ -80,9 +84,75 @@ describe("INSPIRE jobs", () => {
   });
 });
 
+describe("DAAD's PhDGermany feed", () => {
+  it("reads the pay line, the supervisor and both dates from each item", () => {
+    const [row] = parseDaad(sample("daad-phd.xml"));
+    expect(row).toMatchObject({
+      source: "DAAD",
+      id: "10485",
+      title: "PhD Position",
+      professor: "Nikolay Kornienko",
+      university: "University of Bonn",
+      country: "Germany",
+      funding: "TV-L E13, 50%",
+      kind: "employment",
+      deadline: "2026-10-30",
+      posted: "2026-10-09",
+      url: "https://www.daad.de/en/studying-in-germany/phd-studies-research/phd-germany/detail/10485/?phd-id=10485",
+    });
+  });
+});
+
+describe("AcademicTransfer's embedded vacancies", () => {
+  it("resolves the Nuxt payload into salaried PhD posts", () => {
+    const [row] = parseAcademicTransfer(sample("academictransfer-jobs.html"));
+    expect(row).toMatchObject({
+      source: "AcademicTransfer",
+      id: "364611",
+      university: "Universiteit Leiden",
+      country: "Netherlands",
+      funding: "EUR 3204 to 4051 a month",
+      kind: "employment",
+      deadline: "2026-11-07",
+      posted: "2026-10-09",
+    });
+    expect(row?.title).toMatch(/^PhD Candidate/);
+  });
+});
+
+describe("MUR's doctorate calls", () => {
+  it("reads each open call with its university, closing date and sectors", () => {
+    const rows = parseMur(sample("mur-fellowships.html"));
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({
+      source: "MUR",
+      id: "316140",
+      university: "Univ.Stran.REGGIO C.",
+      country: "Italy",
+      kind: "scholarship",
+      funding: "PhD scholarship (borsa), 5 seats",
+      deadline: "2026-10-11",
+      url: "https://bandi.mur.gov.it/doctorate.php/public/fellowship/id_fellow/316140",
+    });
+    expect(rows[0]?.abstract).toContain("GSPS-06/A");
+  });
+});
+
+describe("salary or stipend", () => {
+  it("reads the posting's own words", () => {
+    expect(payKind("Funding: fully funded. Standard EPSRC stipend")).toBe("scholarship");
+    expect(payKind("TV-L E13 65%")).toBe("employment");
+    expect(payKind("")).toBe("unknown");
+  });
+});
+
 describe("which boards", () => {
   it("follow the places and the fields", () => {
-    expect(positionSourcesFor(["UK", "Germany"], ["NLP"])).toEqual(["jobs.ac.uk"]);
+    expect(positionSourcesFor(["UK", "Germany"], ["NLP"])).toEqual(["jobs.ac.uk", "DAAD"]);
+    expect(positionSourcesFor(["Netherlands", "Italy"], ["NLP"])).toEqual([
+      "AcademicTransfer",
+      "MUR",
+    ]);
     expect(positionSourcesFor([], ["astrophysics"])).toEqual(["jobs.ac.uk", "INSPIRE"]);
     expect(positionSourcesFor(["Japan"], ["particle physics"])).toEqual(["INSPIRE"]);
     expect(positionSourcesFor(["USA"], ["NLP"])).toEqual([]);

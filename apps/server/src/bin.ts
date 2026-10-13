@@ -11,7 +11,7 @@ import { refreshAgents } from "./agent/agents.ts";
 import { claudeProvider } from "./agent/claude.ts";
 import { serveHunt, setHuntUrl } from "./agent/mcp-hunt.ts";
 import { fakeProvider } from "./agent/fake.ts";
-import { fixtureSources } from "./agent/fixtures.ts";
+import { fixtureSources } from "./agent/fixture-sources.ts";
 import { createRunner } from "./agent/runner.ts";
 import { realSources } from "./agent/tools.ts";
 import { createBus } from "./bus.ts";

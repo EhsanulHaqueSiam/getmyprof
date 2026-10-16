@@ -158,6 +158,21 @@ export const fixtureSources: Sources = {
   ],
   academictransfer: async () => [],
   mur: async () => [],
+  // A doctoral post found through EURAXESS's country listing, salaried as in Sweden.
+  euraxess: async () => [
+    {
+      ...posting,
+      source: "EURAXESS",
+      id: "473209",
+      title: "Doctoral student in natural language processing",
+      professor: "",
+      university: "Uppsala University",
+      country: "Sweden",
+      funding: "",
+      kind: "employment",
+      url: "https://euraxess.ec.europa.eu/jobs/473209",
+    },
+  ],
   csrankings: async (university) =>
     university.toLowerCase().includes("george mason")
       ? [

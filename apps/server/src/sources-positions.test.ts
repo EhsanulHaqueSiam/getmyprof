@@ -156,6 +156,9 @@ describe("which boards", () => {
     expect(positionSourcesFor([], ["astrophysics"])).toEqual(["jobs.ac.uk", "INSPIRE"]);
     expect(positionSourcesFor(["Japan"], ["particle physics"])).toEqual(["INSPIRE"]);
     expect(positionSourcesFor(["USA"], ["NLP"])).toEqual([]);
+    // The rest of Europe reads EURAXESS by country; the UK keeps its own board.
+    expect(positionSourcesFor(["Ireland", "Sweden"], ["NLP"])).toEqual(["EURAXESS"]);
+    expect(positionSourcesFor(["UK"], ["NLP"])).toEqual(["jobs.ac.uk"]);
   });
 
   it("count days to a deadline", () => {

@@ -1,7 +1,7 @@
 // Faculty discovery beyond names: who CSRankings lists at a school, who at a school works on a
 // topic by OpenAlex, and who has a PhD position advertised; and the sweep over everyone they
 // surface (sweep.ts). Free; tools.ts spreads them into the hunt tools.
-import { PositionSource } from "@getmyprof/contracts";
+import { placeCountries, PositionSource } from "@getmyprof/contracts";
 import { z } from "zod";
 import { institutesFor } from "../institutes.ts";
 import { positionKey } from "./sourcing.ts";
@@ -127,7 +127,7 @@ export const DISCOVERY_TOOLS = [
   define({
     name: "phd_positions",
     description:
-      "Search advertised PhD positions by topic terms, optionally at one university: jobs.ac.uk (UK studentships), INSPIRE (physics worldwide; names the contact), DAAD (Germany; salaried posts, often naming the professor), AcademicTransfer (Netherlands; salaried), MUR (Italy's doctorate calls, scholarships; May to June season). A posted, funded opening is money tier 1. Free.",
+      "Search advertised PhD positions by topic terms, optionally at one university: jobs.ac.uk (UK studentships), INSPIRE (physics worldwide; names the contact), DAAD (Germany; salaried posts, often naming the professor), AcademicTransfer (Netherlands; salaried), MUR (Italy's doctorate calls, scholarships; May to June season), EURAXESS (the newest doctoral posts in the hunt's other European countries). A posted, funded opening is money tier 1. Free.",
     shape: {
       source: PositionSource,
       terms: z.array(z.string()),
@@ -138,6 +138,7 @@ export const DISCOVERY_TOOLS = [
     run: async ({ source, terms, university }, ctx) => {
       const found = await ctx.sources[positionKey(source)]({
         terms,
+        countries: placeCountries(ctx.hunt?.prefs.places ?? []),
         ...(university ? { university } : {}),
       });
       const lines = found.map(

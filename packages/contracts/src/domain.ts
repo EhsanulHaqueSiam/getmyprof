@@ -491,9 +491,9 @@ export const schoolFor = <T extends { name: string }>(list: T[], university: str
 
 /**
  * Free grant databases: NSF and NIH (US), UKRI (UK), CORDIS (EU, ERC), ARC (Australia), DFG
- * (Germany), NSERC (Canada), NWO (Netherlands), research.fi (Finland), RAD-on (Poland), and
- * OpenAlex's award index for every other funder (JSPS, SNSF, DoD...). NWO, research.fi and RAD-on
- * name the PI; CORDIS doesn't.
+ * (Germany), NSERC (Canada), NWO (Netherlands), research.fi (Finland), RAD-on (Poland), the
+ * national files of Ireland, Norway (RCN) and Chile (ANID), and OpenAlex's award index for every
+ * other funder (JSPS, SNSF, DoD...). All but CORDIS name the PI.
  */
 export const AwardSource = z.enum([
   "NSF",
@@ -507,6 +507,9 @@ export const AwardSource = z.enum([
   "NWO",
   "RESEARCHFI",
   "RADON",
+  "IRELAND",
+  "RCN",
+  "ANID",
 ]);
 export type AwardSource = z.infer<typeof AwardSource>;
 

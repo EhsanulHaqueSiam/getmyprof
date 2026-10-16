@@ -1,3 +1,4 @@
+import type { AwardSource, PositionSource } from "@getmyprof/contracts";
 import { Link } from "@tanstack/react-router";
 import { cn } from "~/lib/utils";
 import { useStore } from "~/state/store";
@@ -91,6 +92,31 @@ function Empty({ children }: { children: string }) {
     </div>
   );
 }
+
+/** Where each award source and board looks, beside its toggle. */
+export const SOURCE_NOTE: Record<AwardSource, string> = {
+  NSF: "US",
+  NIH: "US",
+  UKRI: "UK",
+  CORDIS: "EU, ERC",
+  ARC: "Australia",
+  DFG: "Germany",
+  NSERC: "Canada",
+  OpenAlex: "Japan, Switzerland, US DoD, more",
+  NWO: "Netherlands",
+  RESEARCHFI: "Finland",
+  RADON: "Poland",
+  IRELAND: "Ireland",
+  RCN: "Norway",
+  ANID: "Chile",
+};
+export const BOARD_NOTE: Record<PositionSource, string> = {
+  "jobs.ac.uk": "UK",
+  INSPIRE: "Physics",
+  DAAD: "Germany",
+  AcademicTransfer: "Netherlands",
+  MUR: "Italy",
+};
 
 /** The source toggles in Funding's header; none chosen means the hunt's places decide. */
 export function Picks<S extends string>({

@@ -15,7 +15,7 @@ describe("grant databases", () => {
     // Whole words only: "us" isn't in "Russia" or "status".
     expect(placeCountries(["Russia status"])).toEqual(["ru"]);
     // "America" inside "Latin America" isn't the US.
-    expect(sourcesFor(["Latin America"])).toEqual(["OpenAlex"]);
+    expect(sourcesFor(["Latin America"])).toEqual(["ANID", "OpenAlex"]);
   });
 
   it("read CORDIS for any European country or bloc word", () => {
@@ -27,10 +27,12 @@ describe("grant databases", () => {
       "NWO",
       "RESEARCHFI",
       "RADON",
+      "RCN",
       "OpenAlex",
     ]);
     expect(sourcesFor(["UK"])).toEqual(["UKRI", "OpenAlex"]);
-    expect(sourcesFor(["Ireland", "Italy"])).toEqual(["CORDIS", "OpenAlex"]);
+    expect(sourcesFor(["Ireland", "Norway"])).toEqual(["CORDIS", "IRELAND", "RCN", "OpenAlex"]);
+    expect(sourcesFor(["Ireland", "Italy"])).toEqual(["CORDIS", "IRELAND", "OpenAlex"]);
     expect(sourcesFor(["Finland", "France"])).toEqual(["CORDIS", "RESEARCHFI", "OpenAlex"]);
     expect(sourcesFor(["Netherlands", "Poland"])).toEqual(["CORDIS", "NWO", "RADON", "OpenAlex"]);
     expect(sourcesFor(["Dhaka"])).toEqual([]);

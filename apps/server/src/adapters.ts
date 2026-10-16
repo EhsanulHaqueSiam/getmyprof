@@ -261,35 +261,49 @@ export function exportCsv(db: Db) {
   return [CSV_FIELDS.join(","), ...lines].join("\n");
 }
 
-/** RFC 4180-ish parsing: quoted cells, doubled quotes, newlines inside quotes. */
-export function parseCsv(text: string): string[][] {
+/**
+ * RFC 4180-ish parsing: quoted cells, doubled quotes, newlines inside quotes. Plain runs are
+ * sliced, not built a character at a time, so a 50 MB grant file parses in one pass.
+ */
+export function parseCsv(text: string, delimiter = ","): string[][] {
   const rows: string[][] = [];
   let row: string[] = [];
   let cell = "";
   let quoted = false;
-  const endCell = () => {
-    row.push(cell);
-    cell = "";
+  // Where the run of plain characters not yet in `cell` starts.
+  let from = 0;
+  const take = (to: number) => {
+    if (to > from) cell += text.slice(from, to);
   };
   for (let i = 0; i < text.length; i++) {
     const c = text[i];
     if (quoted) {
-      if (c === '"' && text[i + 1] === '"') {
+      if (c !== '"') continue;
+      take(i);
+      if (text[i + 1] === '"') {
         cell += '"';
         i++;
-      } else if (c === '"') quoted = false;
-      else cell += c;
-    } else if (c === '"') quoted = true;
-    else if (c === ",") endCell();
-    else if (c === "\n" || c === "\r") {
-      if (c === "\r" && text[i + 1] === "\n") i++;
-      endCell();
+      } else quoted = false;
+    } else if (c === '"') {
+      take(i);
+      quoted = true;
+    } else if (c === delimiter) {
+      take(i);
+      row.push(cell);
+      cell = "";
+    } else if (c === "\n" || c === "\r") {
+      take(i);
+      row.push(cell);
+      cell = "";
       rows.push(row);
       row = [];
-    } else cell += c;
+      if (c === "\r" && text[i + 1] === "\n") i++;
+    } else continue;
+    from = i + 1;
   }
+  take(text.length);
   if (cell || row.length) {
-    endCell();
+    row.push(cell);
     rows.push(row);
   }
   return rows.filter((r) => r.some((x) => x.trim()));

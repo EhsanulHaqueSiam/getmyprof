@@ -4,6 +4,7 @@
 // a term. The parsers are pure and tested on a saved page.
 import { COUNTRIES, placeCountries } from "@getmyprof/contracts";
 import {
+  EURAXESS_COUNTRIES,
   getText,
   mentions,
   narrow,
@@ -82,27 +83,49 @@ export function parseEuraxess(html: string, country: string): RawPosition[] {
 
 let countries: Promise<Map<string, string>> | null = null;
 
+/** Pages read in the last half hour, by URL: one search per school asks for the same pages. */
+const pages = new Map<string, { at: number; posts: Promise<RawPosition[]> }>();
+const HALF_HOUR = 30 * 60_000;
+
+function page(url: string, country: string) {
+  const hit = pages.get(url);
+  if (hit && Date.now() - hit.at < HALF_HOUR) return hit.posts;
+  const posts = getText(url).then((html) => parseEuraxess(html, country));
+  pages.set(url, { at: Date.now(), posts });
+  posts.catch(() => pages.delete(url));
+  return posts;
+}
+
 /**
- * The newest R1 posts in each of the hunt's countries that EURAXESS lists, naming a term.
- * shortcut: the first six countries, three pages (30 posts) each; read more if hunts miss posts.
+ * The newest R1 posts in each of the hunt's European countries without a board of their own,
+ * naming a term. shortcut: the first six such countries, three pages (30 posts) each; read more
+ * if hunts miss posts.
  */
 export async function euraxessPositions(q: PositionQuery): Promise<RawPosition[]> {
-  countries ??= getText(SEARCH).then(parseEuraxessCountries);
+  // A page that parses to no countries (changed markup, a bot wall) isn't kept.
+  countries ??= getText(SEARCH).then((html) => {
+    const ids = parseEuraxessCountries(html);
+    if (!ids.size) throw new Error("EURAXESS listed no countries");
+    return ids;
+  });
   const ids = await countries.catch((e: unknown) => {
     countries = null;
     throw e;
   });
-  const wanted = (q.countries ?? []).filter((c) => ids.has(c)).slice(0, 6);
-  const pages = await Promise.allSettled(
+  const wanted = (q.countries ?? [])
+    .filter((c) => EURAXESS_COUNTRIES.has(c) && ids.has(c))
+    .slice(0, 6);
+  const read = await Promise.allSettled(
     wanted.flatMap((code) =>
-      [0, 1, 2].map(async (page) => {
-        const url = `${SEARCH}?f%5B0%5D=job_country%3A${ids.get(code)}&f%5B1%5D=job_research_profile%3A${R1}&page=${page}`;
-        const name = COUNTRIES.find((c) => c.code === code)?.name ?? code;
-        return parseEuraxess(await getText(url), name);
-      }),
+      [0, 1, 2].map((n) =>
+        page(
+          `${SEARCH}?f%5B0%5D=job_country%3A${ids.get(code)}&f%5B1%5D=job_research_profile%3A${R1}&page=${n}`,
+          COUNTRIES.find((c) => c.code === code)?.name ?? code,
+        ),
+      ),
     ),
   );
-  const found = pages.flatMap((p) => (p.status === "fulfilled" ? p.value : []));
+  const found = read.flatMap((p) => (p.status === "fulfilled" ? p.value : []));
   return narrow(
     q,
     found.filter((p) => mentions(q.terms, p)),

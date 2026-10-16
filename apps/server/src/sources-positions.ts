@@ -1,10 +1,9 @@
 // Advertised PhD positions from free boards: jobs.ac.uk (HTML search; UK studentships), INSPIRE
 // (JSON API; physics, worldwide), DAAD's PhDGermany feed (RSS; Germany), AcademicTransfer (the
 // job data its own page embeds; Netherlands) and MUR's doctorate calls (HTML; Italy). Each parser
-// is pure and tested on saved markup; the fetchers only add the request. Euraxess renders its
-// results in the browser behind an antibot form (a fetch sees the newest ten posts whatever the
-// query), and FindAPhD and AcademicPositions sit behind a bot wall, so the agent finds those
-// postings with WebSearch.
+// is pure and tested on saved markup; the fetchers only add the request. EURAXESS reads by
+// country (sources-euraxess.ts). FindAPhD and AcademicPositions sit behind a bot wall, so the
+// agent finds those postings with WebSearch.
 import { placeCountries, type Position, type PositionSource } from "@getmyprof/contracts";
 import { asArray, asRecord, sameSchool, text } from "./sources.ts";
 
@@ -12,7 +11,7 @@ const TIMEOUT_MS = 20_000;
 // The boards answer a browser's User-Agent and refuse a bare one.
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) getmyprof";
 
-async function getText(url: string): Promise<string> {
+export async function getText(url: string): Promise<string> {
   const res = await fetch(url, {
     headers: { "user-agent": UA, accept: "text/html" },
     signal: AbortSignal.timeout(TIMEOUT_MS),
@@ -21,7 +20,12 @@ async function getText(url: string): Promise<string> {
   return res.text();
 }
 
-export type PositionQuery = { terms: string[]; university?: string };
+export type PositionQuery = {
+  terms: string[];
+  university?: string;
+  /** ISO codes of the hunt's countries; only EURAXESS, which spans them, reads them. */
+  countries?: string[];
+};
 export type RawPosition = Omit<Position, "daysLeft" | "inSheet" | "fit">;
 
 /** Salary or stipend, from the posting's words: a contract is a job, a studentship a scholarship. */
@@ -37,7 +41,7 @@ export function payKind(words: string): Position["kind"] {
   return "unknown";
 }
 
-const strip = (html: string) =>
+export const strip = (html: string) =>
   html
     .replace(/<[^>]+>/g, " ")
     .replace(/&amp;/g, "&")
@@ -48,12 +52,12 @@ const strip = (html: string) =>
     .trim();
 
 /** A PhD-level posting by its title: studentships and doctoral posts, not postdocs. */
-const phdLevel = (title: string) =>
+export const phdLevel = (title: string) =>
   /\b(phd|ph\.d|doctoral|doctorate|studentship|dphil|promotion|doktorand)/i.test(title) &&
   !/\bpost-?doc/i.test(title);
 
 /** Keeps postings at the query's school, for boards that can't filter by it. */
-const narrow = (q: PositionQuery, found: RawPosition[]) =>
+export const narrow = (q: PositionQuery, found: RawPosition[]) =>
   found.filter((p) => !q.university || sameSchool(p.university, q.university));
 
 const MONTHS = "jan feb mar apr may jun jul aug sep oct nov dec".split(" ");
@@ -238,7 +242,7 @@ export function parseDaad(xml: string): RawPosition[] {
 }
 
 /** A feed has no search: keep posts naming any word of a term ("machine" or "learning"). */
-const mentions = (terms: string[], p: RawPosition) => {
+export const mentions = (terms: string[], p: RawPosition) => {
   const words = terms.flatMap((t) => t.toLowerCase().split(/\W+/)).filter((w) => w.length > 3);
   const body = `${p.title} ${p.abstract}`.toLowerCase();
   return !words.length || words.some((w) => body.includes(w));
@@ -375,10 +379,15 @@ export async function murPositions(q: PositionQuery): Promise<RawPosition[]> {
   );
 }
 
+/** European countries without a board of their own; EURAXESS reads them by country. */
+export const EURAXESS_COUNTRIES = new Set(
+  placeCountries(["Europe"]).filter((c) => !["gb", "de", "nl", "it"].includes(c)),
+);
+
 /**
  * The boards that cover a hunt: jobs.ac.uk for the UK or no place named, DAAD for Germany,
- * AcademicTransfer for the Netherlands, MUR for Italy, INSPIRE when the fields are physics.
- * Elsewhere none: US programs admit through applications, not adverts.
+ * AcademicTransfer for the Netherlands, MUR for Italy, EURAXESS for the rest of Europe, INSPIRE
+ * when the fields are physics. Elsewhere none: US programs admit through applications, not adverts.
  */
 export function positionSourcesFor(places: string[], fields: string[]): PositionSource[] {
   const codes = placeCountries(places);
@@ -387,6 +396,7 @@ export function positionSourcesFor(places: string[], fields: string[]): Position
   if (codes.includes("de")) picked.add("DAAD");
   if (codes.includes("nl")) picked.add("AcademicTransfer");
   if (codes.includes("it")) picked.add("MUR");
+  if (codes.some((c) => EURAXESS_COUNTRIES.has(c))) picked.add("EURAXESS");
   if (/\b(physics|astro|particle|hep|cosmolog|nuclear)/i.test(fields.join(" ")))
     picked.add("INSPIRE");
   return [...picked];

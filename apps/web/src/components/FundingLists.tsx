@@ -119,6 +119,7 @@ export const BOARD_NOTE: Record<PositionSource, string> = {
   DAAD: "Germany",
   AcademicTransfer: "Netherlands",
   MUR: "Italy",
+  EURAXESS: "Europe, by your countries",
 };
 
 /** The source toggles in Funding's header; none chosen means the hunt's places decide. */

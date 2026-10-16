@@ -61,7 +61,14 @@ export type Award = z.infer<typeof Award>;
  * Boards that post funded PhD positions and answer a plain fetch: jobs.ac.uk (UK), INSPIRE
  * (physics), DAAD (Germany), AcademicTransfer (Netherlands), MUR (Italy's doctorate calls).
  */
-export const PositionSource = z.enum(["jobs.ac.uk", "INSPIRE", "DAAD", "AcademicTransfer", "MUR"]);
+export const PositionSource = z.enum([
+  "jobs.ac.uk",
+  "INSPIRE",
+  "DAAD",
+  "AcademicTransfer",
+  "MUR",
+  "EURAXESS",
+]);
 export type PositionSource = z.infer<typeof PositionSource>;
 
 /** An advertised PhD position. A posted, funded opening is money tier 1 for the professor it names. */

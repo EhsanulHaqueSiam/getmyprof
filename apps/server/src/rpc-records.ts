@@ -152,7 +152,11 @@ export function recordHandlers(svc: Services): Pick<Handlers, RecordMethods> {
         : positionSourcesFor(hunt?.prefs.places ?? [], hunt?.prefs.fields ?? []);
       const runs = which.flatMap((s) =>
         (universities.length ? universities : [undefined]).map((u) =>
-          sources[positionKey(s)]({ terms, ...(u ? { university: u } : {}) }),
+          sources[positionKey(s)]({
+            terms,
+            countries: placeCountries(hunt?.prefs.places ?? []),
+            ...(u ? { university: u } : {}),
+          }),
         ),
       );
       const found = (await Promise.allSettled(runs)).flatMap((r) =>

@@ -36,6 +36,7 @@ import {
   type RawPosition,
 } from "../sources-positions.ts";
 import { etisAwards, fwfAwards, nwoAwards, radonAwards, researchFiAwards } from "../sources-eu.ts";
+import { euraxessPositions } from "../sources-euraxess.ts";
 import { anidAwards, anrAwards, irelandAwards, nsercAwards, rcnAwards } from "../sources-files.ts";
 import { renderedPage, tregCall, type TregOutcome, type TregRequest } from "../treg.ts";
 
@@ -68,6 +69,7 @@ export type Sources = {
   daad: PositionFetch;
   academictransfer: PositionFetch;
   mur: PositionFetch;
+  euraxess: PositionFetch;
   openalex: (name: string, university?: string) => Promise<Author | null>;
   /** Faculty CSRankings lists at a school. */
   csrankings: (university: string) => Promise<Faculty[]>;
@@ -109,6 +111,7 @@ export const realSources: Sources = {
   daad: daadPositions,
   academictransfer: academicTransferPositions,
   mur: murPositions,
+  euraxess: euraxessPositions,
   openalex: openAlexAuthor,
   csrankings: csrankingsFaculty,
   byTopic: openAlexByTopic,
@@ -149,6 +152,7 @@ const POSITION_KEY = {
   DAAD: "daad",
   AcademicTransfer: "academictransfer",
   MUR: "mur",
+  EURAXESS: "euraxess",
 } as const satisfies Record<PositionSource, keyof Sources>;
 
 /** A position board's key in Sources. */

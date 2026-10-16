@@ -1,6 +1,7 @@
 // National grant files: big public CSVs, downloaded at most once a month into
 // GETMYPROF_HOME/cache and searched in memory. Each source is a spec, where its file lives and how
-// one row reads as an award: NSERC (Canada), Research Ireland and SFI, RCN (Norway), ANID (Chile).
+// one row reads as an award: NSERC (Canada), Research Ireland and SFI, RCN (Norway), ANID (Chile)
+// and ANR (France, whose coordinators sit in a second file).
 import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
 import { parseCsv } from "./adapters.ts";
@@ -72,7 +73,8 @@ export function readAwards(spec: FileSpec, csv: string) {
     }
     return at.get(c) ?? -1;
   };
-  return rows.flatMap((r) => spec.award((c) => r[index(c)]?.trim() ?? "") ?? []);
+  // A copy, so the awards don't keep the whole file's text alive through their substrings.
+  return structuredClone(rows.flatMap((r) => spec.award((c) => r[index(c)]?.trim() ?? "") ?? []));
 }
 
 const loaded = new Map<FileSpec, Promise<RawAward[]>>();
@@ -88,20 +90,26 @@ async function load(spec: FileSpec) {
   throw new Error(`${spec.files[0]?.name ?? "a grant file"} is unreachable`);
 }
 
+/** An award as a result: searches read its whole text, results carry 600 characters of it. */
+const excerpt = (a: RawAward) => ({ ...a, abstract: a.abstract.slice(0, 600) });
+
+/** A spec's awards, read once per run; a failed read is tried again next time. */
+function once(spec: FileSpec) {
+  let all = loaded.get(spec);
+  if (!all) {
+    all = load(spec);
+    loaded.set(spec, all);
+    all.catch(() => loaded.delete(spec));
+  }
+  return all;
+}
+
 /** A source over a file spec: loads it once, then filters by terms, school, PI and end date. */
 export const fileAwards =
   (spec: FileSpec) =>
   async (q: AwardQuery): Promise<RawAward[]> => {
-    let all = loaded.get(spec);
-    if (!all) {
-      all = load(spec);
-      loaded.set(spec, all);
-      all.catch(() => loaded.delete(spec));
-    }
-    const hits = (await all).filter((a) => matches(`${a.title} ${a.abstract}`, q.terms));
-    return narrow(q, hits)
-      .slice(0, 50)
-      .map((a) => ({ ...a, abstract: a.abstract.slice(0, 600) }));
+    const hits = (await once(spec)).filter((a) => matches(`${a.title} ${a.abstract}`, q.terms));
+    return narrow(q, hits).slice(0, 50).map(excerpt);
   };
 
 /** A number in "€ 645,734.00" or "24000"; null when absent or not positive. */
@@ -298,6 +306,81 @@ export const ANID: FileSpec = {
     };
   },
 };
+
+/** Today's URL of one of ANR's files since 2010 on data.gouv: "projets" or "partenaires". */
+const anrFile = (which: string) => async () => {
+  const pkg = asRecord(
+    await getJson(
+      "https://www.data.gouv.fr/api/1/datasets/anr-01-projets-anr-dos-et-dgds-detail-des-projets-et-des-partenaires/",
+    ),
+  );
+  const url = asArray(pkg.resources)
+    .map((r) => text(asRecord(r).url))
+    .find((u) => u.includes("depuis-2010") && u.endsWith(`-${which}.csv`));
+  if (!url) throw new Error(`data.gouv lists no ANR ${which} file`);
+  return url;
+};
+
+/** ANR's funded projects since 2010 (France, 140 MB): English title and summary, no PI. */
+export const ANR: FileSpec = {
+  files: [{ name: "anr-projects.csv", url: anrFile("projets") }],
+  delimiter: ";",
+  award: (get) => {
+    const id = get("Projet.Code_Decision");
+    const start = get("Projet.T0 scientifique");
+    // shortcut: ANR publishes no end date; its projects run up to four years, so that's the end.
+    const end = start ? `${Number(start.slice(0, 4)) + 4}${start.slice(4)}` : null;
+    return {
+      source: "ANR",
+      id,
+      title: get("Projet.Titre.Anglais") || get("Projet.Titre.Francais"),
+      pi: "",
+      university: "",
+      amount: amount(get("Projet.Montant.AF.Aide_allouee.ANR")),
+      currency: "EUR",
+      url: `https://anr.fr/Projet-${id}`,
+      starts: start || null,
+      ends: end,
+      abstract: `${get("Programme.Acronyme")}. Ends about four years after its start. ${get("Projet.Resume.Anglais") || get("Projet.Resume.Francais")}`,
+    };
+  },
+};
+
+/** ANR's partners: the coordinator's row names the project's PI and host. */
+export const ANR_LEADS: FileSpec = {
+  files: [{ name: "anr-partners.csv", url: anrFile("partenaires") }],
+  delimiter: ";",
+  award: (get) =>
+    get("Projet.Partenaire.Est_coordinateur") === "True"
+      ? {
+          source: "ANR",
+          id: get("Projet.Code_Decision"),
+          title: "",
+          pi: `${get("Projet.Partenaire.Responsable_scientifique.Prenom")} ${titleCase(get("Projet.Partenaire.Responsable_scientifique.Nom"))}`.trim(),
+          university: get("Projet.Partenaire.Nom_organisme"),
+          amount: null,
+          currency: "EUR",
+          url: "",
+          starts: null,
+          ends: null,
+          abstract: "",
+        }
+      : null,
+};
+
+/** ANR's projects with their coordinator as the PI. */
+export async function anrAwards(q: AwardQuery): Promise<RawAward[]> {
+  const [projects, leads] = await Promise.all([once(ANR), once(ANR_LEADS)]);
+  const lead = new Map(leads.map((l) => [l.id, l]));
+  const hits = projects
+    .filter((a) => matches(`${a.title} ${a.abstract}`, q.terms))
+    .map((a) => ({
+      ...a,
+      pi: lead.get(a.id)?.pi ?? "",
+      university: lead.get(a.id)?.university ?? "",
+    }));
+  return narrow(q, hits).slice(0, 50).map(excerpt);
+}
 
 export const nsercAwards = fileAwards(NSERC);
 export const rcnAwards = fileAwards(RCN);

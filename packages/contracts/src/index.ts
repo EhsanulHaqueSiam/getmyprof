@@ -17,6 +17,7 @@ export type Health = z.infer<typeof Health>;
 
 export * from "./agents.ts";
 export * from "./domain.ts";
+export * from "./funding.ts";
 export * from "./fields.ts";
 export * from "./threads.ts";
 export * from "./rpc.ts";

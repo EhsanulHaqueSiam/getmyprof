@@ -114,7 +114,7 @@ export const HUNT_TOOLS = [
   define({
     name: "country_awards",
     description:
-      "Search active grants beyond NSF and NIH by topic terms, optionally at one university or for one PI: UKRI (UK), CORDIS (EU Horizon and ERC; names the host, not the PI), ARC (Australia), DFG (Germany; no amounts), NSERC (Canada; amounts per year), NWO (Netherlands), RESEARCHFI (Finland), RADON (Poland; PLN), IRELAND (Research Ireland and SFI), RCN (Norway; NOK; Norwegian or English titles, and the PhD years a project funds), ANID (Chile; CLP; Spanish titles, so search in Spanish), and OpenAlex for every other funder (JSPS Japan, SNSF Switzerland, ERC, CIHR and FRQ Canada, the US DoD and DOE, Sweden, Norway, Hong Kong...; without a university it searches the hunt's countries). Free.",
+      "Search active grants beyond NSF and NIH by topic terms, optionally at one university or for one PI: UKRI (UK), CORDIS (EU Horizon and ERC; names the host, not the PI), ARC (Australia), DFG (Germany; no amounts), NSERC (Canada; amounts per year), NWO (Netherlands), RESEARCHFI (Finland), RADON (Poland; PLN), IRELAND (Research Ireland and SFI), RCN (Norway; NOK; Norwegian or English titles, and the PhD years a project funds), ANID (Chile; CLP; Spanish titles, so search in Spanish), ETIS (Estonia; title words), ANR (France; the coordinator as PI; end dates estimated at four years), and OpenAlex for every other funder (JSPS Japan, SNSF Switzerland, ERC, CIHR and FRQ Canada, the US DoD and DOE, Sweden, Norway, Hong Kong...; without a university it searches the hunt's countries). Free.",
     shape: {
       source: AwardSource.exclude(["NSF", "NIH"]),
       terms: z.array(z.string()),

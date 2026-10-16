@@ -94,6 +94,23 @@ export const fixtureSources: Sources = {
     },
   ],
   anid: async () => [],
+  etis: async () => [],
+  // France's grants name the coordinator; ANR gives no end date, so it's four years from the start.
+  anr: async () => [
+    {
+      ...award,
+      source: "ANR",
+      id: "ANR-26-TSIA-0010",
+      pi: "Claire Martin",
+      university: "Université Paris Cité",
+      amount: 695693.72,
+      currency: "EUR",
+      url: "https://anr.fr/Projet-ANR-26-TSIA-0010",
+      starts: "2026-04-01",
+      ends: "2030-04-01",
+      abstract: "TSIA. Ends about four years after its start. Fixture award.",
+    },
+  ],
   radon: async () => [],
   jobsacuk: async () => [
     {

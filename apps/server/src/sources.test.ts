@@ -28,12 +28,15 @@ describe("grant databases", () => {
       "RESEARCHFI",
       "RADON",
       "RCN",
+      "ETIS",
+      "ANR",
       "OpenAlex",
     ]);
     expect(sourcesFor(["UK"])).toEqual(["UKRI", "OpenAlex"]);
     expect(sourcesFor(["Ireland", "Norway"])).toEqual(["CORDIS", "IRELAND", "RCN", "OpenAlex"]);
     expect(sourcesFor(["Ireland", "Italy"])).toEqual(["CORDIS", "IRELAND", "OpenAlex"]);
-    expect(sourcesFor(["Finland", "France"])).toEqual(["CORDIS", "RESEARCHFI", "OpenAlex"]);
+    expect(sourcesFor(["Finland", "France"])).toEqual(["CORDIS", "RESEARCHFI", "ANR", "OpenAlex"]);
+    expect(sourcesFor(["Estonia"])).toEqual(["CORDIS", "ETIS", "OpenAlex"]);
     expect(sourcesFor(["Netherlands", "Poland"])).toEqual(["CORDIS", "NWO", "RADON", "OpenAlex"]);
     expect(sourcesFor(["Dhaka"])).toEqual([]);
   });

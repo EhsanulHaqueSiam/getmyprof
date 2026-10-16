@@ -109,6 +109,8 @@ export const SOURCE_NOTE: Record<AwardSource, string> = {
   IRELAND: "Ireland",
   RCN: "Norway",
   ANID: "Chile",
+  ETIS: "Estonia",
+  ANR: "France",
 };
 export const BOARD_NOTE: Record<PositionSource, string> = {
   "jobs.ac.uk": "UK",

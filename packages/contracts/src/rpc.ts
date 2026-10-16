@@ -6,15 +6,11 @@ import { BetterOdds } from "./fields.ts";
 import {
   Applicant,
   AutoRules,
-  Award,
-  AwardSource,
   DetailLevel,
   Hunt,
   HuntPrefs,
   Loop,
   LoopRow,
-  Position,
-  PositionSource,
   Professor,
   ProfileFact,
   Proposal,
@@ -28,6 +24,7 @@ import {
   TregStatus,
 } from "./domain.ts";
 import { ClaudeBinary } from "./desktop.ts";
+import { Award, AwardSource, Position, PositionSource } from "./funding.ts";
 import { HubMethods } from "./hub.ts";
 import { ProgressReport } from "./report.ts";
 import { Conversation, MailConnect, MailSignIn, MailStatus } from "./outreach.ts";

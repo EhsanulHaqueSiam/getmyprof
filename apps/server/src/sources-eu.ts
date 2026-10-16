@@ -1,8 +1,7 @@
 // European funders that name the PI, which CORDIS can't: NWO (Netherlands), research.fi
-// (Finland) and RAD-on (Poland). Each is a free, anonymous JSON API. The parsers are pure and
-// tested on saved responses under __samples__; the fetchers only add the request. France has no
-// current source naming the PI (ANR's open data with coordinators stops at 2016; scanR lists
-// organisations), so the agent searches the web there.
+// (Finland), RAD-on (Poland) and ETIS (Estonia). Each is a free, anonymous JSON API. The parsers
+// are pure and tested on saved responses under __samples__; the fetchers only add the request.
+// France's ANR publishes files instead (sources-files.ts).
 import {
   type AwardQuery,
   type RawAward,
@@ -148,6 +147,55 @@ export async function radonAwards(q: AwardQuery): Promise<RawAward[]> {
     if (q.pi) params.set("projectManagerLastName", q.pi.split(/\s+/).at(-1) ?? "");
     const body = await getJson(`https://radon.nauka.gov.pl/opendata/polon/projects?${params}`);
     for (const a of parseRadon(body)) out.set(a.id, a);
+  }
+  return narrow(q, [...out.values()]);
+}
+
+/** "31.12.2028" as "2028-12-31". */
+const dmy = (v: unknown) => {
+  const [d, m, y] = text(v).split(".");
+  return y && m && d ? `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}` : null;
+};
+
+/**
+ * ETIS, Estonia's research register: every national and EU project with its principal
+ * investigator (named in the display line; the responsible executor otherwise) and host, EUR.
+ */
+export function parseEtis(body: unknown): RawAward[] {
+  return asArray(body)
+    .map(asRecord)
+    .map((p) => {
+      const info = text(p.DisplayInfoEng);
+      const responsible = asArray(p.Persons)
+        .map(asRecord)
+        .find((x) => text(x.RoleNameEng) === "Responsible executor");
+      const host = asRecord(asArray(p.Institutions)[0]);
+      return {
+        source: "ETIS" as const,
+        funder: text(asRecord(asArray(p.FinancingInstitutions)[0]).NameEng),
+        id: text(p.FinancierProjectNr) || text(p.Guid),
+        title: text(p.TitleEng) || text(p.Title),
+        pi: /Principal Investigator: ([^;]+);/.exec(info)?.[1]?.trim() ?? text(responsible?.Name),
+        // "University of Tartu, Faculty of Science and Technology, ..." as the university.
+        university: (text(host.NameEng) || text(host.Name)).split(",")[0]?.trim() ?? "",
+        amount: num(p.FinancingInPeriodsTotal),
+        currency: "EUR",
+        url: `https://www.etis.ee/Portal/Projects/Display/${text(p.Guid)}`,
+        starts: dmy(p.ProjectStartDate),
+        ends: dmy(p.ProjectEndDate),
+        abstract: text(p.AnnotationEng).slice(0, 600),
+      };
+    });
+}
+
+/** ETIS: projects whose title contains a term (up to 500 each), with the PI. */
+export async function etisAwards(q: AwardQuery): Promise<RawAward[]> {
+  const out = new Map<string, RawAward>();
+  for (const term of q.terms.length ? q.terms : [""]) {
+    const params = new URLSearchParams({ Format: "json", Take: "500", SearchType: "2" });
+    if (term) params.set("Title", term);
+    const body = await getJson(`https://www.etis.ee:7443/api/project/getitems?${params}`);
+    for (const a of parseEtis(body)) out.set(a.id, a);
   }
   return narrow(q, [...out.values()]);
 }

@@ -4,6 +4,8 @@ import * as NodeOS from "node:os";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import {
   ANID,
+  ANR,
+  ANR_LEADS,
   cached,
   type FileSpec,
   NSERC,
@@ -89,6 +91,25 @@ describe("national grant files name the PI", () => {
       currency: "CLP",
       starts: "2024-01-01",
       ends: "2027-12-31",
+    });
+  });
+
+  it("ANR: English titles, four years from the start, the coordinator from the partners file", () => {
+    expect(first(ANR, "anr-projects.csv")[0]).toMatchObject({
+      source: "ANR",
+      id: "ANR-26-TSIA-0011",
+      title: "Multi-Agent for clinical decision support in Molecular Tumor Board (MA-MTB)",
+      amount: 699951.5,
+      starts: "2026-04-01",
+      ends: "2030-04-01",
+      url: "https://anr.fr/Projet-ANR-26-TSIA-0011",
+    });
+    const leads = first(ANR_LEADS, "anr-partners.csv");
+    // Two of the twenty projects name no coordinator.
+    expect(leads).toHaveLength(18);
+    expect(leads.find((l) => l.id === "ANR-26-TSIA-0011")).toMatchObject({
+      pi: "Loic Verlingue",
+      university: "Centre Léon Bérard",
     });
   });
 });

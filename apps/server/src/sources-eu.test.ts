@@ -1,7 +1,7 @@
 import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
 import { describe, expect, it } from "vite-plus/test";
-import { parseNwo, parseRadon, parseResearchFi } from "./sources-eu.ts";
+import { parseEtis, parseNwo, parseRadon, parseResearchFi } from "./sources-eu.ts";
 
 const sample = (name: string): unknown =>
   JSON.parse(NodeFS.readFileSync(NodePath.join(import.meta.dirname, "__samples__", name), "utf8"));
@@ -39,5 +39,19 @@ describe("European funders name the PI", () => {
     expect(a).toMatchObject({ source: "RADON", currency: "PLN", starts: "2021-08-31" });
     expect(a?.pi).toMatch(/\S+ \S+/);
     expect(a?.university).toBe("Uniwersytet Łódzki");
+  });
+
+  it("ETIS: the principal investigator from the display line, the university without its faculty", () => {
+    expect(parseEtis(sample("etis-projects.json"))[0]).toMatchObject({
+      source: "ETIS",
+      funder: "Estonian Research Council",
+      id: "PRG2006",
+      title: "Language Technology for Low-Resource Finno-Ugric Languages and Dialects",
+      pi: "Mark Fišel",
+      university: "University of Tartu",
+      currency: "EUR",
+      starts: "2024-01-01",
+      ends: "2028-12-31",
+    });
   });
 });

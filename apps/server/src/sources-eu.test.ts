@@ -1,7 +1,7 @@
 import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
 import { describe, expect, it } from "vite-plus/test";
-import { parseEtis, parseNwo, parseRadon, parseResearchFi } from "./sources-eu.ts";
+import { parseEtis, parseFwf, parseNwo, parseRadon, parseResearchFi } from "./sources-eu.ts";
 
 const sample = (name: string): unknown =>
   JSON.parse(NodeFS.readFileSync(NodePath.join(import.meta.dirname, "__samples__", name), "utf8"));
@@ -52,6 +52,24 @@ describe("European funders name the PI", () => {
       currency: "EUR",
       starts: "2024-01-01",
       ends: "2028-12-31",
+    });
+  });
+
+  it("FWF: the principal investigator and their institute, by the grant DOI", () => {
+    const [a, b] = parseFwf(sample("fwf-projects.json"));
+    expect(a).toMatchObject({
+      source: "FWF",
+      id: "PAT4748626",
+      pi: "Dan Alistarh",
+      university: "Institute of Science and Technology - Austria (ISTA)",
+      amount: 449984,
+      currency: "EUR",
+      ends: null,
+    });
+    expect(b).toMatchObject({
+      id: "J4678",
+      university: "Universität Klagenfurt",
+      ends: "2028-06-30",
     });
   });
 });

@@ -111,6 +111,7 @@ export const SOURCE_NOTE: Record<AwardSource, string> = {
   ANID: "Chile",
   ETIS: "Estonia",
   ANR: "France",
+  FWF: "Austria",
 };
 export const BOARD_NOTE: Record<PositionSource, string> = {
   "jobs.ac.uk": "UK",

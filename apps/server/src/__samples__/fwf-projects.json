@@ -1,0 +1,86 @@
+{
+ "hits": [
+  {
+   "id": "projects-PAT4748626",
+   "_str.grantdoi": "10.55776/PAT4748626",
+   "_str.url": "https://fwf.ac.at/forschungsradar/10.55776/PAT4748626",
+   "_str.program.en": "Principal Investigator Projects",
+   "_str.projecttitle.en": "Near-Lossless Compression of Large Language Models",
+   "_str.projecttitle.de": "Verlustfreie Kompression von Large Language Models",
+   "_list.keywords.split": [
+    "Large Language Models",
+    "Compression",
+    "Efficiency",
+    "Inference"
+   ],
+   "_list.researchdisciplines.en": [
+    "Machine learning",
+    "Practical computer science"
+   ],
+   "_long.approvedamount": 449984,
+   "_str.principalinvestigator.firstname": "Dan",
+   "_str.principalinvestigator.lastname": "Alistarh",
+   "_str.principalinvestigator.researchinstitute.name": "Institute of Science and Technology - Austria (ISTA)",
+   "_str.principalinvestigator.webpage": null,
+   "_date.startdate": null,
+   "_date.enddate": null,
+   "_str.status.en": "Pending"
+  },
+  {
+   "id": "projects-J4678",
+   "_str.grantdoi": "10.55776/J4678",
+   "_str.url": "https://fwf.ac.at/forschungsradar/10.55776/J4678",
+   "_str.program.en": "Erwin Schrödinger",
+   "_str.projecttitle.en": "Situational Context Representations",
+   "_str.projecttitle.de": "Repräsentation von Situativem Kontext",
+   "_list.keywords.split": [
+    "Situation Modeling",
+    "High-Level Information Fusion",
+    "Situation Awareness",
+    "Cognitive Situation Management"
+   ],
+   "_list.researchdisciplines.en": [
+    "Artificial intelligence",
+    "Information systems"
+   ],
+   "_long.approvedamount": 172415,
+   "_str.principalinvestigator.firstname": "Andrea",
+   "_str.principalinvestigator.lastname": "Salfinger",
+   "_str.principalinvestigator.researchinstitute.name": "Universität Klagenfurt",
+   "_str.principalinvestigator.webpage": "https://sites.google.com/view/insituevo/the-researcher",
+   "_date.startdate": "2023-07-01",
+   "_date.enddate": "2028-06-30",
+   "_str.status.en": "Ongoing"
+  },
+  {
+   "id": "projects-P32700",
+   "_str.grantdoi": "10.55776/P32700",
+   "_str.url": "https://fwf.ac.at/forschungsradar/10.55776/P32700",
+   "_str.program.en": "Principal Investigator Projects",
+   "_str.projecttitle.en": "Cross-layer language models for conversational speech",
+   "_str.projecttitle.de": "Cross-layer Sprachmodelle für Spontansprache",
+   "_list.keywords.split": [
+    "Conversational Speech",
+    "Automatic Speech Recognition",
+    "Language Modeling",
+    "Speech Perception",
+    "Prosody",
+    "Communicative Functions"
+   ],
+   "_list.researchdisciplines.en": [
+    "Signal processing",
+    "Computational linguistics",
+    "Phonetics"
+   ],
+   "_long.approvedamount": 593189,
+   "_str.principalinvestigator.firstname": "Barbara",
+   "_str.principalinvestigator.lastname": "Schuppler",
+   "_str.principalinvestigator.researchinstitute.name": "Technische Universität Graz",
+   "_str.principalinvestigator.webpage": null,
+   "_date.startdate": "2019-11-01",
+   "_date.enddate": "2024-10-31",
+   "_str.status.en": "Ended"
+  }
+ ],
+ "estimatedTotalHits": 1342
+}

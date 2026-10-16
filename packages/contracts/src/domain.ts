@@ -440,17 +440,21 @@ export const ScoutLoop = z.object({
 export type ScoutLoop = z.infer<typeof ScoutLoop>;
 
 /**
- * A school name's telling words: "University of Illinois Chicago" is "illinois chicago". "State"
- * stays: Utah State isn't the University of Utah, nor Michigan State the University of Michigan.
+ * A school name's telling words: "University of Illinois Chicago" is "illinois chicago", and
+ * "Universität Innsbruck" is "innsbruck" in any language. "State" stays: Utah State isn't the
+ * University of Utah, nor Michigan State the University of Michigan.
  */
 export const schoolWords = (s: string) =>
   s
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
     .toLowerCase()
     .split(/[^a-z]+/)
     .filter(
       (w) =>
         w.length > 3 &&
-        !["university", "univ", "college", "institute", "school", "campus", "the"].includes(w),
+        !w.startsWith("univ") &&
+        !["college", "institute", "school", "campus", "the"].includes(w),
     );
 
 /** "UNIVERSITY OF READING" and "University of Reading" are the same school. */

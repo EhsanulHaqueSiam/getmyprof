@@ -1,5 +1,5 @@
 // European funders that name the PI, which CORDIS can't: NWO (Netherlands), research.fi
-// (Finland), RAD-on (Poland) and ETIS (Estonia). Each is a free, anonymous JSON API. The parsers
+// (Finland), RAD-on (Poland), ETIS (Estonia) and FWF (Austria). Each is a free JSON API. The parsers
 // are pure and tested on saved responses under __samples__; the fetchers only add the request.
 // France's ANR publishes files instead (sources-files.ts).
 import {
@@ -198,4 +198,63 @@ export async function etisAwards(q: AwardQuery): Promise<RawAward[]> {
     for (const a of parseEtis(body)) out.set(a.id, a);
   }
   return narrow(q, [...out.values()]);
+}
+
+/** FWF's Open API, a search index whose read-only key FWF hands out at /fwfkey/. */
+let fwfKey: Promise<string> | null = null;
+
+/** FWF projects: the principal investigator, their research institute and the approved EUR. */
+export function parseFwf(body: unknown): RawAward[] {
+  return asArray(asRecord(body).hits)
+    .map(asRecord)
+    .map((p) => {
+      const doi = text(p["_str.grantdoi"]);
+      const words = [
+        text(p["_str.program.en"]),
+        ...asArray(p["_list.keywords.split"]).map(text),
+        ...asArray(p["_list.researchdisciplines.en"]).map(text),
+      ];
+      return {
+        source: "FWF" as const,
+        id: doi.split("/").at(-1) ?? doi,
+        title: text(p["_str.projecttitle.en"]) || text(p["_str.projecttitle.de"]),
+        pi: [
+          text(p["_str.principalinvestigator.firstname"]),
+          text(p["_str.principalinvestigator.lastname"]),
+        ]
+          .filter(Boolean)
+          .join(" "),
+        university: text(p["_str.principalinvestigator.researchinstitute.name"]),
+        amount: num(p["_long.approvedamount"]),
+        currency: "EUR",
+        url: text(p["_str.url"]) || `https://doi.org/${doi}`,
+        starts: day(p["_date.startdate"]),
+        ends: day(p["_date.enddate"]),
+        abstract: words.filter(Boolean).join(". ").slice(0, 600),
+      };
+    });
+}
+
+/** FWF: Austrian Science Fund projects matching a term (up to 100 each), with the PI. */
+export async function fwfAwards(q: AwardQuery): Promise<RawAward[]> {
+  fwfKey ??= fetch("https://openapi.fwf.ac.at/fwfkey/", { signal: AbortSignal.timeout(20_000) })
+    .then((r) => (r.ok ? r.text() : Promise.reject(new Error(`FWF answered ${r.status}`))))
+    .then((k) => k.trim());
+  try {
+    const key = await fwfKey;
+    const out = new Map<string, RawAward>();
+    for (const term of q.terms.length ? q.terms : [""]) {
+      const body = await getJson("https://openapi.fwf.ac.at/indexes/projects/search", {
+        method: "POST",
+        headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
+        body: JSON.stringify({ q: term, limit: 100 }),
+      });
+      for (const a of parseFwf(body)) out.set(a.id, a);
+    }
+    return narrow(q, [...out.values()]);
+  } catch (e) {
+    // The key may have rotated: read it again next time.
+    fwfKey = null;
+    throw e;
+  }
 }

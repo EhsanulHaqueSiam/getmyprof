@@ -30,6 +30,7 @@ describe("grant databases", () => {
       "RCN",
       "ETIS",
       "ANR",
+      "FWF",
       "OpenAlex",
     ]);
     expect(sourcesFor(["UK"])).toEqual(["UKRI", "OpenAlex"]);
@@ -37,6 +38,7 @@ describe("grant databases", () => {
     expect(sourcesFor(["Ireland", "Italy"])).toEqual(["CORDIS", "IRELAND", "OpenAlex"]);
     expect(sourcesFor(["Finland", "France"])).toEqual(["CORDIS", "RESEARCHFI", "ANR", "OpenAlex"]);
     expect(sourcesFor(["Estonia"])).toEqual(["CORDIS", "ETIS", "OpenAlex"]);
+    expect(sourcesFor(["Austria"])).toEqual(["CORDIS", "FWF", "OpenAlex"]);
     expect(sourcesFor(["Netherlands", "Poland"])).toEqual(["CORDIS", "NWO", "RADON", "OpenAlex"]);
     expect(sourcesFor(["Dhaka"])).toEqual([]);
   });
@@ -45,6 +47,9 @@ describe("grant databases", () => {
     expect(sameSchool("UNIVERSITY OF READING", "University of Reading")).toBe(true);
     expect(sameSchool("The University of Melbourne", "Monash University")).toBe(false);
     expect(sameSchoolName("Univ. of Utah", "University of Utah")).toBe(true);
+    // "Universität" is the word university in another language, not a name.
+    expect(sameSchool("Universität Innsbruck", "University of Innsbruck")).toBe(true);
+    expect(sameSchool("Universität Wien", "Universität Innsbruck")).toBe(false);
     expect(sameSchoolName("Utah State University", "University of Utah")).toBe(false);
   });
 });

@@ -257,6 +257,7 @@ export function sourcesFor(places: string[]): Award["source"][] {
   if (has("cl")) picked.add("ANID");
   if (has("ee")) picked.add("ETIS");
   if (has("fr")) picked.add("ANR");
+  if (has("at")) picked.add("FWF");
   // Every other funder in the hunt's countries: JSPS, SNSF, CIHR, the US DoD...
   if (codes.length) picked.add("OpenAlex");
   // Places none of these cover (Dhaka...) get none: the agent searches the web for their

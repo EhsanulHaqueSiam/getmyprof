@@ -88,6 +88,11 @@ export const COUNTRIES: Country[] = [
     how: "A salaried position (about €2,830 a month, paid 14 times) on an FWF project or doctoral programme, advertised by the university.",
   },
   {
+    code: "li",
+    name: "Liechtenstein",
+    how: "Very few doctoral places, nearly all at the University of Liechtenstein: ask it which are funded.",
+  },
+  {
     code: "lu",
     name: "Luxembourg",
     how: "A salaried position (€44k to €55k a year) at the university or an institute, many funded by FNR's AFdoc calls ending April and November.",

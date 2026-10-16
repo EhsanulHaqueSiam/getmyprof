@@ -1,6 +1,7 @@
 import { type Move, nextMoves, type Professor } from "@getmyprof/contracts";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { CountryLines } from "~/components/CountryLines";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
@@ -79,6 +80,11 @@ function MovesPage() {
         </span>
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto border-t">
+        {app.hunt?.prefs.places.length ? (
+          <div className="space-y-1 border-b px-4 py-2.5">
+            <CountryLines places={app.hunt.prefs.places} />
+          </div>
+        ) : null}
         {moves.map((m) => {
           const days = daysTo(m.by, now);
           return (

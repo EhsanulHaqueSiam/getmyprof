@@ -1,6 +1,7 @@
 import type { DetailLevel, HuntPrefs, MethodOutput } from "@getmyprof/contracts";
 import { ArrowDownIcon, ArrowUpIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { CountryLines } from "~/components/CountryLines";
 import { Chip, ListEditor, Row } from "~/components/FormParts";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
@@ -13,7 +14,22 @@ const PRIORITY_LABEL = {
   deadline: "Nearest deadline",
   rank: "School rank",
 } as const;
-const SUGGESTED_PLACES = ["USA", "Canada", "Germany", "UK", "Switzerland", "Ireland", "Australia"];
+const SUGGESTED_PLACES = [
+  "USA",
+  "Canada",
+  "UK",
+  "Ireland",
+  "Germany",
+  "Netherlands",
+  "Switzerland",
+  "Sweden",
+  "France",
+  "Australia",
+  "Japan",
+  "South Korea",
+  "Hong Kong",
+  "Singapore",
+];
 const SUGGESTED_ADJACENT = [
   "clinical NLP",
   "computational social science",
@@ -168,6 +184,9 @@ export function HuntStep({
           suggested={SUGGESTED_PLACES}
           onChange={(v) => set("places", v)}
         />
+        <div className="mt-2 space-y-1">
+          <CountryLines places={prefs.places} />
+        </div>
       </Row>
       <Row label="Fields">
         <ListEditor

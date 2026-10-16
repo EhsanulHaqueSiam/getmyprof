@@ -2,8 +2,10 @@
 // scholarship round, dated for the hunt's intake. Next moves and the Calendar read them so a
 // Fall 2027 hunt sees Italy's calls in May 2027, not December 2026. Stated as the pages read
 // on 2026-10-11 (Eiffel on 2026-10-17); the url is there to re-check before relying on one.
+import { placeCountries } from "./places.ts";
+
 export type Window = {
-  /** The word in the hunt's places that turns it on, lower case. */
+  /** The ISO code of the country whose places turn it on. */
   country: string;
   title: string;
   detail: string;
@@ -16,7 +18,7 @@ export type Window = {
 
 export const WINDOWS: Window[] = [
   {
-    country: "italy",
+    country: "it",
     title: "Italian bandi: doctorate calls close",
     detail:
       "Each university publishes its bando around May and closes in early June for an October or November start. Shortlist universities before May; the calls are on bandi.mur.gov.it.",
@@ -25,7 +27,7 @@ export const WINDOWS: Window[] = [
     url: "https://bandi.mur.gov.it/doctorate.php/public/cercaFellowship",
   },
   {
-    country: "germany",
+    country: "de",
     title: "DAAD doctoral scholarship closes",
     detail: "DAAD's research grant for a full doctorate closes 30 October for the next year.",
     closes: "10-30",
@@ -33,7 +35,7 @@ export const WINDOWS: Window[] = [
     url: "https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database/?detail=57135739",
   },
   {
-    country: "spain",
+    country: "es",
     title: "Spanish FPI contracts: the PID call closes",
     detail:
       "FPI predoctoral contracts attach to a PI's PID project; the ministry's call runs in the autumn before the start, and the university hires afterwards.",
@@ -42,7 +44,7 @@ export const WINDOWS: Window[] = [
     url: "https://www.aei.gob.es/en/grants-young-researchers",
   },
   {
-    country: "switzerland",
+    country: "ch",
     title: "Swiss Government Excellence Scholarship closes",
     detail:
       "Deadlines are set per country by the Swiss embassy, in the autumn before the start; ask the embassy for the date.",
@@ -51,7 +53,7 @@ export const WINDOWS: Window[] = [
     url: "https://www.sbfi.admin.ch/en/swiss-government-excellence-scholarships",
   },
   {
-    country: "france",
+    country: "fr",
     title: "Eiffel Excellence Scholarship: the host's call closes",
     detail:
       "You cannot apply yourself: the French host nominates you to Campus France in January, and hosts close their own call before that (Université Paris Cité: 2 November). Ask your host for its date in October.",
@@ -68,8 +70,8 @@ const intakeYear = (intake: string) => Number(/\b(20\d\d)\b/.exec(intake)?.[1]) 
 export function windowsFor(places: string[], intake: string) {
   const year = intakeYear(intake);
   if (!year) return [];
-  const where = places.join(" ").toLowerCase();
-  return WINDOWS.filter((w) => new RegExp(`\\b${w.country}\\b`).test(where)).map((w) => ({
+  const codes = placeCountries(places);
+  return WINDOWS.filter((w) => codes.includes(w.country)).map((w) => ({
     ...w,
     date: `${year - w.yearsBefore}-${w.closes}`,
   }));

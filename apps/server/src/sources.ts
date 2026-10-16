@@ -1,7 +1,12 @@
 // Data sources the agent and the Funding view use: free public APIs (NSF, NIH RePORTER, UKRI,
 // CORDIS, ARC, OpenAlex). Paid lookups go through treg.ts.
-import { type Award, sameSchool, sameSchoolName, schoolWords } from "@getmyprof/contracts";
-import { placeCountries } from "./places.ts";
+import {
+  type Award,
+  placeCountries,
+  sameSchool,
+  sameSchoolName,
+  schoolWords,
+} from "@getmyprof/contracts";
 
 export { sameSchool };
 
@@ -226,34 +231,32 @@ export async function arcAwards(q: AwardQuery): Promise<RawAward[]> {
   );
 }
 
-/** A hunt's places that name the UK; shared by the award and position source pickers. */
-export const UK_PLACES = /\b(uk|united kingdom|england|scotland|wales|britain)\b/;
-
-/** A hunt's places that name Europe: the EU, the EEA and Schengen, by bloc word or by country. */
-export const EU_PLACES =
-  /\b(eu|europe|european|eea|schengen|nordic|nordics|scandinavia|baltics|austria|belgium|bulgaria|croatia|cyprus|czechia|czech republic|denmark|estonia|finland|france|germany|greece|hungary|iceland|ireland|italy|latvia|liechtenstein|lithuania|luxembourg|malta|netherlands|norway|poland|portugal|romania|slovakia|slovenia|spain|sweden|switzerland)\b/;
+/** The countries CORDIS reads: the EEA and Switzerland, whose hosts it names. */
+const CORDIS_COUNTRIES = new Set(placeCountries(["EEA", "Switzerland"]));
 
 /** The databases that cover a hunt's places. Places that name none default to the US pair. */
 export function sourcesFor(places: string[]): Award["source"][] {
-  const where = places.join(" ").toLowerCase();
+  const codes = placeCountries(places);
+  const has = (code: string) => codes.includes(code);
+  const named = places.join("").trim();
   const picked = new Set<Award["source"]>();
-  if (!where.trim() || /\b(usa|us|united states|america)\b/.test(where)) {
+  if (!named || has("us")) {
     picked.add("NSF");
     picked.add("NIH");
   }
-  if (UK_PLACES.test(where)) picked.add("UKRI");
-  if (EU_PLACES.test(where)) picked.add("CORDIS");
-  if (/\baustralia\b/.test(where)) picked.add("ARC");
-  if (/\bgermany\b/.test(where)) picked.add("DFG");
-  if (/\bnetherlands\b/.test(where)) picked.add("NWO");
-  if (/\bfinland\b/.test(where)) picked.add("RESEARCHFI");
-  if (/\bpoland\b/.test(where)) picked.add("RADON");
-  if (/\bcanada\b/.test(where)) picked.add("NSERC");
+  if (has("gb")) picked.add("UKRI");
+  if (codes.some((c) => CORDIS_COUNTRIES.has(c))) picked.add("CORDIS");
+  if (has("au")) picked.add("ARC");
+  if (has("de")) picked.add("DFG");
+  if (has("nl")) picked.add("NWO");
+  if (has("fi")) picked.add("RESEARCHFI");
+  if (has("pl")) picked.add("RADON");
+  if (has("ca")) picked.add("NSERC");
   // Every other funder in the hunt's countries: JSPS, SNSF, CIHR, the US DoD...
-  if (placeCountries(places).length) picked.add("OpenAlex");
-  // Places none of these cover (India...) get none: the agent searches the web for their
+  if (codes.length) picked.add("OpenAlex");
+  // Places none of these cover (Dhaka...) get none: the agent searches the web for their
   // funders instead of quietly reading US awards.
-  return picked.size || where.trim() ? [...picked] : ["NSF", "NIH"];
+  return picked.size || named ? [...picked] : ["NSF", "NIH"];
 }
 
 /** "uni.edu" from "a@cs.uni.edu"; "ox.ac.uk" from "a@cs.ox.ac.uk". */

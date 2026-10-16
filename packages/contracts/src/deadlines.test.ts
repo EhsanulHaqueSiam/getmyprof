@@ -111,8 +111,8 @@ describe("the deadline list", () => {
       intake: "Fall 2027",
     });
     expect(rows.map((d) => `${d.date} ${d.kind} ${d.id}`)).toEqual([
-      "2026-10-30 window window-germany-10-30",
-      "2027-06-10 window window-italy-06-10",
+      "2026-10-30 window window-de-10-30",
+      "2027-06-10 window window-it-06-10",
     ]);
     expect(deadlines(v, undefined, now, { places: ["USA"], intake: "Fall 2027" })).toEqual([]);
   });

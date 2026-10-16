@@ -1,5 +1,6 @@
 import {
   type Applicant,
+  countriesIn,
   type DetailLevel,
   factStatus,
   fieldsAt,
@@ -53,6 +54,14 @@ function shortlist(schools: School[]) {
     .join(" ");
 }
 
+/** How each of the hunt's countries pays a PhD, so the agent hunts the way the money flows there. */
+function countryLines(places: string[]) {
+  const lines = countriesIn(places).map((c) => `- ${c.name}: ${c.how}`);
+  return lines.length
+    ? `How each country funds a PhD for someone from abroad; hunt the way it pays (a scholarship first, admission, or a professor's grant):\n${lines.join("\n")}`
+    : "";
+}
+
 /** The system prompt for one thread, built from the applicant's preferences and confirmed facts. */
 export function systemPrompt(
   hunt: Hunt | null,
@@ -93,6 +102,7 @@ export function systemPrompt(
       ? [
           `The applicant wants ${p.degrees.map((d) => DEGREE[d]).join(" or ")} starting ${p.intake}${p.fallbackIntake ? ` (then ${p.fallbackIntake})` : ""}.`,
           `Places: ${p.places.join(", ") || "any"}. Fields: ${p.fields.join(", ")}. Adjacent domains worth hunting: ${p.adjacent.join(", ") || "none"}.`,
+          countryLines(p.places),
           p.fundingFloor === "full"
             ? "Funding floor: full tuition and a stipend for every year. Partly funded programs don't count."
             : "Funding floor: tuition covered is enough.",
@@ -145,7 +155,7 @@ export function systemPrompt(
       "  - Fit it to their money tier. 1 (a posted opening): a short cover letter that names the posting and the fact that fits it. 2 (a grant or startup money): name the grant and the one fact that fits it. 3 (indirect signs): ask whether they are taking students for the intake. 4 (nothing found): the shortest version; their answer becomes the record.",
       "- When a professor writes back, classify it with classify_reply before drafting the answer.",
       "- Programs and scholarships go through propose_program and propose_scholarship; they wait in the applicant's To file. Only scholarships open to the applicant's citizenship and degree track.",
-      "- Europe, for a non-EU applicant, the full-PhD scholarships to check and propose with their next date: DAAD research grant (Germany, closes 30 Oct), Swiss Government Excellence (per-country embassy deadline in autumn), Eiffel (France; you cannot apply yourself: the host nominates you, and hosts close their own call by early November), Erasmus Mundus joint programmes. Italy's MAECI grant is a nine-month top-up once admitted (closes in March), not a PhD scholarship. Italian PhDs are one bando per university in May to June; say so in the program's deadline. Sweden has no PhD scholarship (the Swedish Institute funds master's only): its PhDs are salaried positions. Ireland has no national PhD scholarship for individuals since the Government of Ireland programme closed: Irish PhDs are advertised per project.",
+      "- A country's line above names its scholarships (DAAD, Eiffel, MEXT, GKS...): propose each the applicant's citizenship qualifies for with propose_scholarship and its next date. In Europe also check Erasmus Mundus joint programmes. Italian PhDs are one bando per university in May to June; say so in the program's deadline.",
       "- Statements of purpose, CVs and essays go through write_document, citing a fact for every claim.",
       signAs ? `- Sign every email as ${signAs}.` : "",
       "- End with a short reply: who you found, what needs the applicant, nothing else.",

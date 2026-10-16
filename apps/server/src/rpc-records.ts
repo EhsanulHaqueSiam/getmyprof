@@ -1,6 +1,6 @@
 // The sheet and the money behind it: records (list, page, scholarly, Add PI, CSV) and the
 // funding finder. rpc.ts spreads these into its handlers.
-import type { Award, Position } from "@getmyprof/contracts";
+import { type Award, placeCountries, type Position } from "@getmyprof/contracts";
 import { exportCsv, importCsv } from "./adapters.ts";
 import { positionKey, sourceKey } from "./agent/sourcing.ts";
 import { getKv, setKv } from "./db.ts";
@@ -16,7 +16,6 @@ import {
   threadProposals,
 } from "./records.ts";
 import type { Handlers, Services } from "./rpc.ts";
-import { placeCountries } from "./places.ts";
 import { intakeStart, monthsAfter, sameSchool, sourcesFor } from "./sources.ts";
 import { daysLeft, positionSourcesFor } from "./sources-positions.ts";
 import { getHunt } from "./state.ts";

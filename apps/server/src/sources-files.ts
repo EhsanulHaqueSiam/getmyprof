@@ -20,9 +20,14 @@ const MONTH = 30 * 864e5;
 
 /**
  * A big public file, downloaded at most once a month into GETMYPROF_HOME/cache, as text in its
- * encoding ("utf-8" drops a byte-order mark; Irish files are "windows-1252").
+ * encoding ("utf-8" drops a byte-order mark; Irish files are "windows-1252"). A URL that must be
+ * looked up is looked up only when the cached copy is missing or stale.
  */
-export async function cached(name: string, url: string, encoding = "utf-8") {
+export async function cached(
+  name: string,
+  where: string | (() => Promise<string>),
+  encoding = "utf-8",
+) {
   const file = NodePath.join(homeDir(), "cache", name);
   const decode = (bytes: Uint8Array) => new TextDecoder(encoding).decode(bytes);
   try {
@@ -31,6 +36,7 @@ export async function cached(name: string, url: string, encoding = "utf-8") {
   } catch {
     // Not there yet.
   }
+  const url = typeof where === "string" ? where : await where();
   const r = await fetch(url, { signal: AbortSignal.timeout(300_000) });
   if (!r.ok) throw new Error(`${new URL(url).host} answered ${r.status}`);
   const bytes = Buffer.from(await r.arrayBuffer());
@@ -76,14 +82,16 @@ const loaded = new Map<FileSpec, Promise<RawAward[]>>();
 async function load(spec: FileSpec) {
   for (const f of spec.files) {
     try {
-      const url = typeof f.url === "string" ? f.url : await f.url();
-      return readAwards(spec, await cached(f.name, url, spec.encoding));
+      return readAwards(spec, await cached(f.name, f.url, spec.encoding));
     } catch {
       // Try the next file.
     }
   }
   throw new Error(`${spec.files[0]?.name ?? "a grant file"} is unreachable`);
 }
+
+/** An award as a result: searches read its whole text, results carry 600 characters of it. */
+const excerpt = (a: RawAward) => ({ ...a, abstract: a.abstract.slice(0, 600) });
 
 /** A spec's awards, read once per run; a failed read is tried again next time. */
 function once(spec: FileSpec) {
@@ -101,7 +109,7 @@ export const fileAwards =
   (spec: FileSpec) =>
   async (q: AwardQuery): Promise<RawAward[]> => {
     const hits = (await once(spec)).filter((a) => matches(`${a.title} ${a.abstract}`, q.terms));
-    return narrow(q, hits).slice(0, 50);
+    return narrow(q, hits).slice(0, 50).map(excerpt);
   };
 
 /** A number in "€ 645,734.00" or "24000"; null when absent or not positive. */
@@ -141,11 +149,8 @@ export const NSERC: FileSpec = {
       url: "https://www.nserc-crsng.gc.ca/ase-oro/index_eng.asp",
       starts: competed ? `${competed}-04-01` : null,
       ends: competed ? `${competed + 5}-03-31` : null,
-      abstract:
-        `${get("ProgramNameEN")}. Amount is per year. ${get("Keywords")}. ${get("ApplicationSummary")}`.slice(
-          0,
-          600,
-        ),
+      // The whole summary, so a search reads all of it; results are cut to 600 characters.
+      abstract: `${get("ProgramNameEN")}. Amount is per year. ${get("Keywords")}. ${get("ApplicationSummary")}`,
     };
   },
 };
@@ -211,6 +216,27 @@ export const SFI: FileSpec = {
   }),
 };
 
+/**
+ * RCN's short names for the hosts where most PhDs are, in the English an applicant types. Others
+ * fall back to the project's own host line, often a department.
+ */
+const RCN_HOSTS: Record<string, string> = {
+  UIO: "University of Oslo",
+  NTNU: "Norwegian University of Science and Technology (NTNU)",
+  UIB: "University of Bergen",
+  UIT: "UiT The Arctic University of Norway",
+  NMBU: "Norwegian University of Life Sciences (NMBU)",
+  OSLOMET: "OsloMet - Oslo Metropolitan University",
+  UIS: "University of Stavanger",
+  UIA: "University of Agder",
+  USN: "University of South-Eastern Norway",
+  NORD: "Nord University",
+  NHH: "Norwegian School of Economics (NHH)",
+  BI: "BI Norwegian Business School",
+  HVL: "Western Norway University of Applied Sciences",
+  OUS: "Oslo University Hospital",
+};
+
 /** The Research Council of Norway's projects (54 MB): granted ones only, with the PhD years each funds. */
 export const RCN: FileSpec = {
   files: [
@@ -224,7 +250,7 @@ export const RCN: FileSpec = {
     if (!["Bevilgning", "Avsluttet"].includes(get("prosjektfase"))) return null;
     const id = get("prosjektnummer");
     const phd = Number(get("dr_stip_aarsverk"));
-    const host = get("kortnavn") || get("prosjektansvarlig_navn");
+    const host = RCN_HOSTS[get("kortnavn")] ?? (get("prosjektansvarlig_navn") || get("kortnavn"));
     return {
       source: "RCN",
       id,
@@ -315,11 +341,7 @@ export const ANR: FileSpec = {
       url: `https://anr.fr/Projet-${id}`,
       starts: start || null,
       ends: end,
-      abstract:
-        `${get("Programme.Acronyme")}. Ends about four years after its start. ${get("Projet.Resume.Anglais") || get("Projet.Resume.Francais")}`.slice(
-          0,
-          600,
-        ),
+      abstract: `${get("Programme.Acronyme")}. Ends about four years after its start. ${get("Projet.Resume.Anglais") || get("Projet.Resume.Francais")}`,
     };
   },
 };
@@ -357,7 +379,7 @@ export async function anrAwards(q: AwardQuery): Promise<RawAward[]> {
       pi: lead.get(a.id)?.pi ?? "",
       university: lead.get(a.id)?.university ?? "",
     }));
-  return narrow(q, hits).slice(0, 50);
+  return narrow(q, hits).slice(0, 50).map(excerpt);
 }
 
 export const nsercAwards = fileAwards(NSERC);

@@ -50,6 +50,7 @@ describe("grant databases", () => {
     // "Universität" is the word university in another language, not a name.
     expect(sameSchool("Universität Innsbruck", "University of Innsbruck")).toBe(true);
     expect(sameSchool("Universität Wien", "Universität Innsbruck")).toBe(false);
+    expect(sameSchool("Uniwersytet Warszawski", "Uniwersytet Jagielloński")).toBe(false);
     expect(sameSchoolName("Utah State University", "University of Utah")).toBe(false);
   });
 });

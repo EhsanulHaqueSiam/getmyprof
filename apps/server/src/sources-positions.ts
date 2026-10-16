@@ -380,7 +380,7 @@ export async function murPositions(q: PositionQuery): Promise<RawPosition[]> {
 }
 
 /** European countries without a board of their own; EURAXESS reads them by country. */
-const EURAXESS_COUNTRIES = new Set(
+export const EURAXESS_COUNTRIES = new Set(
   placeCountries(["Europe"]).filter((c) => !["gb", "de", "nl", "it"].includes(c)),
 );
 

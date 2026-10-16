@@ -1,10 +1,12 @@
 import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
-import { describe, expect, it } from "vite-plus/test";
+import * as NodeOS from "node:os";
+import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 import {
   ANID,
   ANR,
   ANR_LEADS,
+  cached,
   type FileSpec,
   NSERC,
   RCN,
@@ -71,6 +73,10 @@ describe("national grant files name the PI", () => {
       ends: "2015-12-31",
       url: "https://prosjektbanken.forskningsradet.no/project/FORISS/101233",
     });
+    // A department's own line ("Institutt for sosiologi...") gives way to its university.
+    expect(first(RCN, "rcn.csv").find((x) => x.id === "105034")?.university).toBe(
+      "University of Oslo",
+    );
   });
 
   it("ANID: research grants without scholarships or postdocs, pesos from thousands", () => {
@@ -105,5 +111,19 @@ describe("national grant files name the PI", () => {
       pi: "Loic Verlingue",
       university: "Centre Léon Bérard",
     });
+  });
+});
+
+describe("the file cache", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("reads a fresh copy without looking up the file's URL", async () => {
+    const home = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "gmp-cache-"));
+    vi.stubEnv("GETMYPROF_HOME", home);
+    NodeFS.mkdirSync(NodePath.join(home, "cache"));
+    NodeFS.writeFileSync(NodePath.join(home, "cache", "x.csv"), "a,b\n");
+    const lookUp = vi.fn(async () => "https://example.invalid/x.csv");
+    expect(await cached("x.csv", lookUp)).toBe("a,b\n");
+    expect(lookUp).not.toHaveBeenCalled();
   });
 });

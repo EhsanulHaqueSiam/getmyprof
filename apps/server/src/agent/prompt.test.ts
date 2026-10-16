@@ -63,6 +63,9 @@ describe("the hunt's shape", () => {
     expect(prompt).toContain("scholarships and program funding matter more than advisors");
     expect(prompt).toContain("about 2 reach, 3 match and 4 safety schools");
     expect(prompt).toContain("EURAXESS");
+    // Germany's own line: how the money flows there, not a generic professor hunt.
+    expect(prompt).toContain("- Germany: A salaried position on a professor's grant");
+    expect(prompt).not.toContain("- Japan:");
     // Professors who never post an opening still get found by what they work on.
     expect(prompt).toContain("propose everyone whose current work fits");
     // A first email is written for one professor: their paper, a short body, no generic praise.

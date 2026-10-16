@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
-import { sameSchoolName } from "@getmyprof/contracts";
-import { placeCountries } from "./places.ts";
+import { placeCountries, sameSchoolName } from "@getmyprof/contracts";
 import { nsfAwards, openAlexMatch, sameSchool, sourcesFor } from "./sources.ts";
 
 describe("grant databases", () => {
@@ -12,14 +11,25 @@ describe("grant databases", () => {
     // Japan has no direct database; OpenAlex's awards carry JSPS.
     expect(sourcesFor(["Japan"])).toEqual(["OpenAlex"]);
     expect(sourcesFor(["Mars"])).toEqual([]);
-    expect(placeCountries(["Japan", "Hong Kong", "UK"])).toEqual(["gb", "jp", "hk"]);
+    expect(placeCountries(["Japan", "Hong Kong", "UK"])).toEqual(["jp", "hk", "gb"]);
     // Whole words only: "us" isn't in "Russia" or "status".
-    expect(placeCountries(["Russia status"])).toEqual([]);
+    expect(placeCountries(["Russia status"])).toEqual(["ru"]);
+    // "America" inside "Latin America" isn't the US.
+    expect(sourcesFor(["Latin America"])).toEqual(["OpenAlex"]);
   });
 
   it("read CORDIS for any European country or bloc word", () => {
-    expect(sourcesFor(["Czechia"])).toEqual(["CORDIS"]);
-    expect(sourcesFor(["Schengen countries"])).toEqual(["CORDIS"]);
+    expect(sourcesFor(["Czechia"])).toEqual(["CORDIS", "OpenAlex"]);
+    // A bloc word reads every database in it.
+    expect(sourcesFor(["Schengen countries"])).toEqual([
+      "CORDIS",
+      "DFG",
+      "NWO",
+      "RESEARCHFI",
+      "RADON",
+      "OpenAlex",
+    ]);
+    expect(sourcesFor(["UK"])).toEqual(["UKRI", "OpenAlex"]);
     expect(sourcesFor(["Ireland", "Italy"])).toEqual(["CORDIS", "OpenAlex"]);
     expect(sourcesFor(["Finland", "France"])).toEqual(["CORDIS", "RESEARCHFI", "OpenAlex"]);
     expect(sourcesFor(["Netherlands", "Poland"])).toEqual(["CORDIS", "NWO", "RADON", "OpenAlex"]);

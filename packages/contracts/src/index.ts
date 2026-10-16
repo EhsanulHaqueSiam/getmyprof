@@ -32,3 +32,5 @@ export * from "./chance.ts";
 export * from "./moves.ts";
 export * from "./visa.ts";
 export * from "./windows.ts";
+export * from "./countries.ts";
+export * from "./places.ts";

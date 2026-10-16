@@ -5,8 +5,8 @@
 // results in the browser behind an antibot form (a fetch sees the newest ten posts whatever the
 // query), and FindAPhD and AcademicPositions sit behind a bot wall, so the agent finds those
 // postings with WebSearch.
-import type { Position, PositionSource } from "@getmyprof/contracts";
-import { asArray, asRecord, sameSchool, text, UK_PLACES } from "./sources.ts";
+import { placeCountries, type Position, type PositionSource } from "@getmyprof/contracts";
+import { asArray, asRecord, sameSchool, text } from "./sources.ts";
 
 const TIMEOUT_MS = 20_000;
 // The boards answer a browser's User-Agent and refuse a bare one.
@@ -381,12 +381,12 @@ export async function murPositions(q: PositionQuery): Promise<RawPosition[]> {
  * Elsewhere none: US programs admit through applications, not adverts.
  */
 export function positionSourcesFor(places: string[], fields: string[]): PositionSource[] {
-  const where = places.join(" ").toLowerCase();
+  const codes = placeCountries(places);
   const picked = new Set<PositionSource>();
-  if (!where.trim() || UK_PLACES.test(where)) picked.add("jobs.ac.uk");
-  if (/\bgermany\b/.test(where)) picked.add("DAAD");
-  if (/\bnetherlands\b/.test(where)) picked.add("AcademicTransfer");
-  if (/\bitaly\b/.test(where)) picked.add("MUR");
+  if (!places.join("").trim() || codes.includes("gb")) picked.add("jobs.ac.uk");
+  if (codes.includes("de")) picked.add("DAAD");
+  if (codes.includes("nl")) picked.add("AcademicTransfer");
+  if (codes.includes("it")) picked.add("MUR");
   if (/\b(physics|astro|particle|hep|cosmolog|nuclear)/i.test(fields.join(" ")))
     picked.add("INSPIRE");
   return [...picked];

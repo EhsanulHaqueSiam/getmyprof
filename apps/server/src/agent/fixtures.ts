@@ -239,6 +239,7 @@ export const FIXTURE_PROGRAMS = [
     university: "George Mason University",
     name: "PhD in Information Technology",
     degree: "phd",
+    country: "United States",
     deadline: "2026-12-01",
     fee: "$75",
     waiver: "on request for international applicants",

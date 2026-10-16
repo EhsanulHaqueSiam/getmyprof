@@ -1,6 +1,7 @@
 import {
   type Application,
   AppStatus,
+  countriesIn,
   feeBudget,
   type Professor,
   laneFor,
@@ -166,6 +167,7 @@ function ApplicationView({
   const me = useStore((st) => st.app);
   // The country's lane for a non-EU researcher, where the program names a European country.
   const lane = program ? laneFor(program.country) : null;
+  const country = program ? countriesIn([program.country], false)[0] : undefined;
   const chance =
     program &&
     programChance(program, { applicant: me?.applicant, facts: me?.facts ?? [], records: people });
@@ -226,6 +228,11 @@ function ApplicationView({
       {chance ? (
         <Row label="Chance">
           <ChanceLines lines={chance.lines} moves={chance.moves} />
+        </Row>
+      ) : null}
+      {country ? (
+        <Row label="Funding">
+          <span className="text-secondary-label text-xs">{country.how}</span>
         </Row>
       ) : null}
       {lane ? (

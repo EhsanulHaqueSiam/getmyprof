@@ -1,11 +1,9 @@
-// More free sources: DFG (Germany, GEPRIS), NSERC (Canada) and OpenAlex (every other funder)
-// awards, CSRankings' faculty lists, OpenAlex by topic (who works on it at a school; topics next
-// to a field) and emails printed on papers (Europe PMC). The big public files (CSRankings,
-// NSERC) are kept under GETMYPROF_HOME/cache for a month.
-import * as NodeFS from "node:fs";
-import * as NodePath from "node:path";
+// More free sources: DFG (Germany, GEPRIS) and OpenAlex (every other funder) awards,
+// CSRankings' faculty lists, OpenAlex by topic (who works on it at a school; topics next to a
+// field) and emails printed on papers (Europe PMC). CSRankings' files are kept under
+// GETMYPROF_HOME/cache for a month (sources-files.ts).
 import { parseCsv } from "./adapters.ts";
-import { homeDir } from "./db.ts";
+import { cached } from "./sources-files.ts";
 import { personKey } from "./records.ts";
 import { sameSchoolName } from "@getmyprof/contracts";
 import {
@@ -19,33 +17,9 @@ import {
   text,
 } from "./sources.ts";
 
-const MONTH = 30 * 864e5;
-
-/** A big public file, downloaded at most once a month into GETMYPROF_HOME/cache. */
-async function cached(name: string, url: string, encoding: BufferEncoding = "utf8") {
-  const file = NodePath.join(homeDir(), "cache", name);
-  try {
-    if (Date.now() - NodeFS.statSync(file).mtimeMs < MONTH)
-      return NodeFS.readFileSync(file, encoding);
-  } catch {
-    // Not there yet.
-  }
-  const r = await fetch(url, { signal: AbortSignal.timeout(300_000) });
-  if (!r.ok) throw new Error(`${new URL(url).host} answered ${r.status}`);
-  const bytes = Buffer.from(await r.arrayBuffer());
-  NodeFS.mkdirSync(NodePath.dirname(file), { recursive: true });
-  NodeFS.writeFileSync(file, bytes);
-  return bytes.toString(encoding);
-}
-
 /** "Professor Dr.-Ing. Ada Lovelace" as "Ada Lovelace". */
 const bareName = (s: string) =>
   s.replace(/\b(Professorin|Professor|Prof\.|Dr\.-Ing\.|Dr\.|PD|Dipl\.-\w+\.?)\s*/g, "").trim();
-
-const matches = (haystack: string, terms: string[]) => {
-  const h = haystack.toLowerCase();
-  return terms.length === 0 || terms.some((t) => h.includes(t.toLowerCase()));
-};
 
 /** DFG projects from GEPRIS by topic, at a university or for a PI. DFG publishes no amounts. */
 export async function dfgAwards(q: AwardQuery): Promise<RawAward[]> {
@@ -91,77 +65,6 @@ export async function dfgAwards(q: AwardQuery): Promise<RawAward[]> {
         },
       ];
     });
-}
-
-// The latest fiscal year NSERC has published; the year before if that one is missing.
-const NSERC_YEARS = ["2024", "2023"];
-let nserc: string[][] | null = null;
-
-/**
- * NSERC awards from its open data (the latest fiscal year's file, about 56 MB, cached). Amounts
- * are per year; a Discovery Grant runs five years from its competition year, so the end date
- * is that, to March 31.
- */
-export async function nsercAwards(q: AwardQuery): Promise<RawAward[]> {
-  if (!nserc) {
-    for (const fy of NSERC_YEARS) {
-      try {
-        nserc = parseCsv(
-          await cached(
-            `nserc-FY${fy}.csv`,
-            `https://www.nserc-crsng.gc.ca/opendata/NSERC_FY${fy}_Expenditures.csv`,
-            "latin1",
-          ),
-        );
-        break;
-      } catch {
-        // Try the year before.
-      }
-    }
-    if (!nserc) throw new Error("NSERC's award data is unreachable");
-  }
-  const [head = [], ...rows] = nserc;
-  const col = (name: string) => head.findIndex((h) => h.replace(/^\W+/, "").startsWith(name));
-  const at = {
-    id: col("ApplicationID"),
-    name: col("Name"),
-    school: col("Institution"),
-    year: col("CompetitionYear"),
-    amount: col("AwardAmount"),
-    program: col("ProgramNameEN"),
-    title: col("ApplicationTitle"),
-    keywords: col("Keywords"),
-    summary: col("ApplicationSummary"),
-  };
-  const after = q.activeAfter?.slice(0, 10);
-  return rows
-    .flatMap((r) => {
-      const get = (i: number) => r[i] ?? "";
-      // "Smol, John JP" as "John JP Smol".
-      const pi = get(at.name).split(",").toReversed().join(" ").trim();
-      const competed = Number(get(at.year));
-      const ends = competed ? `${competed + 5}-03-31` : null;
-      if (after && ends && ends < after) return [];
-      if (q.university && !sameSchool(get(at.school), q.university)) return [];
-      if (q.pi && personKey(pi) !== personKey(q.pi)) return [];
-      if (!matches(`${get(at.title)} ${get(at.keywords)} ${get(at.summary)}`, q.terms)) return [];
-      return [
-        {
-          source: "NSERC" as const,
-          id: get(at.id),
-          title: get(at.title),
-          pi,
-          university: get(at.school),
-          amount: Number(get(at.amount)) || null,
-          currency: "CAD",
-          url: "https://www.nserc-crsng.gc.ca/ase-oro/index_eng.asp",
-          starts: competed ? `${competed}-04-01` : null,
-          ends,
-          abstract: `${get(at.program)}. Amount is per year. ${get(at.summary)}`.slice(0, 600),
-        },
-      ];
-    })
-    .slice(0, 50);
 }
 
 export type Faculty = {

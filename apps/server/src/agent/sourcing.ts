@@ -18,7 +18,6 @@ import {
   csrankingsFaculty,
   dfgAwards,
   type Faculty,
-  nsercAwards,
   openAlexAwards,
   openAlexByTopic,
   type PaperEmail,
@@ -37,6 +36,7 @@ import {
   type RawPosition,
 } from "../sources-positions.ts";
 import { nwoAwards, radonAwards, researchFiAwards } from "../sources-eu.ts";
+import { anidAwards, irelandAwards, nsercAwards, rcnAwards } from "../sources-files.ts";
 import { renderedPage, tregCall, type TregOutcome, type TregRequest } from "../treg.ts";
 
 type AwardFetch = (q: AwardQuery) => Promise<RawAward[]>;
@@ -56,6 +56,9 @@ export type Sources = {
   nwo: AwardFetch;
   researchfi: AwardFetch;
   radon: AwardFetch;
+  ireland: AwardFetch;
+  rcn: AwardFetch;
+  anid: AwardFetch;
   /** Advertised PhD positions, by board. */
   jobsacuk: PositionFetch;
   inspire: PositionFetch;
@@ -92,6 +95,9 @@ export const realSources: Sources = {
   nwo: nwoAwards,
   researchfi: researchFiAwards,
   radon: radonAwards,
+  ireland: irelandAwards,
+  rcn: rcnAwards,
+  anid: anidAwards,
   jobsacuk: jobsAcUkPositions,
   inspire: inspirePositions,
   daad: daadPositions,
@@ -120,6 +126,9 @@ const SOURCE_KEY = {
   NWO: "nwo",
   RESEARCHFI: "researchfi",
   RADON: "radon",
+  IRELAND: "ireland",
+  RCN: "rcn",
+  ANID: "anid",
 } as const satisfies Record<AwardSource, keyof Sources>;
 
 /** An award source's key in Sources. */

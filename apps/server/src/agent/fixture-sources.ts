@@ -78,6 +78,22 @@ export const fixtureSources: Sources = {
     { ...award, source: "NWO", id: "016.Veni.192.235", pi: "Daniël Pelt", currency: "EUR" },
   ],
   researchfi: async () => [],
+  ireland: async () => [],
+  // A national file's award, with the PhD years RCN says it funds.
+  rcn: async () => [
+    {
+      ...award,
+      source: "RCN",
+      id: "313058",
+      pi: "Milna Mandusic",
+      university: "University of Oslo",
+      amount: 1810000,
+      currency: "NOK",
+      url: "https://prosjektbanken.forskningsradet.no/project/FORISS/313058",
+      abstract: "Fixture award. Funds 3 PhD years.",
+    },
+  ],
+  anid: async () => [],
   radon: async () => [],
   jobsacuk: async () => [
     {

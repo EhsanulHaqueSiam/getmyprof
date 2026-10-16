@@ -2,7 +2,13 @@ import { type Award, AwardSource, type Position, PositionSource } from "@getmypr
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ExternalLinkIcon, MessageSquareIcon, PlusIcon, SearchIcon } from "lucide-react";
 import { useState } from "react";
-import { FellowshipsTable, Picks, ProgramsTable } from "~/components/FundingLists";
+import {
+  BOARD_NOTE,
+  FellowshipsTable,
+  Picks,
+  ProgramsTable,
+  SOURCE_NOTE,
+} from "~/components/FundingLists";
 import { PositionDetail, PositionsTable } from "~/components/FundingPositions";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
@@ -17,27 +23,6 @@ const money = (a: Pick<Award, "amount" | "currency">) =>
   a.amount == null
     ? "?"
     : `${SYMBOL[a.currency] ?? `${a.currency} `}${Math.round(a.amount).toLocaleString("en-US")}`;
-const SOURCE_NOTE: Record<AwardSource, string> = {
-  NSF: "US",
-  NIH: "US",
-  UKRI: "UK",
-  CORDIS: "EU, ERC",
-  ARC: "Australia",
-  DFG: "Germany",
-  NSERC: "Canada",
-  OpenAlex: "Japan, Switzerland, US DoD, more",
-  NWO: "Netherlands",
-  RESEARCHFI: "Finland",
-  RADON: "Poland",
-};
-const BOARD_NOTE: Record<PositionSource, string> = {
-  "jobs.ac.uk": "UK",
-  INSPIRE: "Physics",
-  DAAD: "Germany",
-  AcademicTransfer: "Netherlands",
-  MUR: "Italy",
-};
-
 /**
  * Follow the money: active awards in your fields from free databases (NSF, NIH, UKRI, CORDIS,
  * ARC), ranked by how long they last after your intake, and advertised PhD positions on the

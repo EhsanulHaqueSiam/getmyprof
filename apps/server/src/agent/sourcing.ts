@@ -35,7 +35,7 @@ import {
   type PositionQuery,
   type RawPosition,
 } from "../sources-positions.ts";
-import { etisAwards, nwoAwards, radonAwards, researchFiAwards } from "../sources-eu.ts";
+import { etisAwards, fwfAwards, nwoAwards, radonAwards, researchFiAwards } from "../sources-eu.ts";
 import { anidAwards, anrAwards, irelandAwards, nsercAwards, rcnAwards } from "../sources-files.ts";
 import { renderedPage, tregCall, type TregOutcome, type TregRequest } from "../treg.ts";
 
@@ -61,6 +61,7 @@ export type Sources = {
   anid: AwardFetch;
   etis: AwardFetch;
   anr: AwardFetch;
+  fwf: AwardFetch;
   /** Advertised PhD positions, by board. */
   jobsacuk: PositionFetch;
   inspire: PositionFetch;
@@ -102,6 +103,7 @@ export const realSources: Sources = {
   anid: anidAwards,
   etis: etisAwards,
   anr: anrAwards,
+  fwf: fwfAwards,
   jobsacuk: jobsAcUkPositions,
   inspire: inspirePositions,
   daad: daadPositions,
@@ -135,6 +137,7 @@ const SOURCE_KEY = {
   ANID: "anid",
   ETIS: "etis",
   ANR: "anr",
+  FWF: "fwf",
 } as const satisfies Record<AwardSource, keyof Sources>;
 
 /** An award source's key in Sources. */

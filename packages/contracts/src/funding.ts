@@ -4,7 +4,7 @@ import { z } from "zod";
 /**
  * Free grant databases: NSF and NIH (US), UKRI (UK), CORDIS (EU, ERC), ARC (Australia), DFG
  * (Germany), NSERC (Canada), NWO (Netherlands), research.fi (Finland), RAD-on (Poland), ETIS
- * (Estonia), the national files of Ireland, Norway (RCN), Chile (ANID) and France (ANR), and
+ * (Estonia), FWF (Austria), the national files of Ireland, Norway (RCN), Chile (ANID) and France (ANR), and
  * OpenAlex's award index for every other funder (JSPS, SNSF, DoD...). All but CORDIS name the PI.
  */
 export const AwardSource = z.enum([
@@ -24,6 +24,7 @@ export const AwardSource = z.enum([
   "ANID",
   "ETIS",
   "ANR",
+  "FWF",
 ]);
 export type AwardSource = z.infer<typeof AwardSource>;
 

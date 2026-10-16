@@ -95,6 +95,21 @@ export const fixtureSources: Sources = {
   ],
   anid: async () => [],
   etis: async () => [],
+  // An Austrian grant, its host named in German as FWF does.
+  fwf: async () => [
+    {
+      ...award,
+      source: "FWF",
+      id: "PAT5230424",
+      pi: "Samuele Tosatto",
+      university: "Universität Innsbruck",
+      amount: 175677,
+      currency: "EUR",
+      url: "https://fwf.ac.at/forschungsradar/10.55776/PAT5230424",
+      starts: "2026-08-01",
+      ends: "2029-07-31",
+    },
+  ],
   // France's grants name the coordinator; ANR gives no end date, so it's four years from the start.
   anr: async () => [
     {

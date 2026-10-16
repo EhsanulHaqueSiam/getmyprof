@@ -27,6 +27,10 @@ describe("placeCountries", () => {
     expect(placeCountries(["Nordics"]).toSorted()).toEqual(["dk", "fi", "is", "no", "se"]);
     expect(placeCountries(["Europe"])).toContain("gb");
     expect(placeCountries(["EU"])).not.toContain("ch");
+    // Every code a bloc names has a country of its own.
+    expect(placeCountries(["Europe"], false)).toEqual([]);
+    for (const code of placeCountries(["Europe", "Gulf", "ASEAN", "Latin America"]))
+      expect(COUNTRIES.some((c) => c.code === code)).toBe(true);
     expect(placeCountries(["Europe", "Japan"], false)).toEqual(["jp"]);
   });
 });

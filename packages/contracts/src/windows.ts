@@ -1,7 +1,7 @@
 // Application windows Europe runs on a calendar of its own: a country's one bando season or
 // scholarship round, dated for the hunt's intake. Next moves and the Calendar read them so a
 // Fall 2027 hunt sees Italy's calls in May 2027, not December 2026. Stated as the pages read
-// on 2026-10-11; the url is there to re-check before relying on one.
+// on 2026-10-11 (Eiffel on 2026-10-17); the url is there to re-check before relying on one.
 export type Window = {
   /** The word in the hunt's places that turns it on, lower case. */
   country: string;
@@ -23,15 +23,6 @@ export const WINDOWS: Window[] = [
     closes: "06-10",
     yearsBefore: 0,
     url: "https://bandi.mur.gov.it/doctorate.php/public/cercaFellowship",
-  },
-  {
-    country: "ireland",
-    title: "Government of Ireland Postgraduate Scholarship closes",
-    detail:
-      "Research Ireland's call opens around January and closes in early March for a 1 September start: 25,000 EUR stipend, fees, 3,250 EUR research costs.",
-    closes: "03-05",
-    yearsBefore: 0,
-    url: "https://www.researchireland.ie/funding/government-ireland-postgraduate/",
   },
   {
     country: "germany",
@@ -61,11 +52,11 @@ export const WINDOWS: Window[] = [
   },
   {
     country: "france",
-    title: "Eiffel Excellence Scholarship: the institution nominates",
+    title: "Eiffel Excellence Scholarship: the host's call closes",
     detail:
-      "You cannot apply yourself: the French institution nominates you to Campus France in early January, so ask it in the autumn before.",
-    closes: "01-08",
-    yearsBefore: 0,
+      "You cannot apply yourself: the French host nominates you to Campus France in January, and hosts close their own call before that (Université Paris Cité: 2 November). Ask your host for its date in October.",
+    closes: "11-02",
+    yearsBefore: 1,
     url: "https://www.campusfrance.org/en/eiffel-scholarship-program-of-excellence",
   },
 ];

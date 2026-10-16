@@ -165,7 +165,7 @@ function ApplicationView({
   const here = people.filter((p) => program && school(p.university) === school(program.university));
   const left = app.documents.filter((d) => !d.done).length;
   const me = useStore((st) => st.app);
-  // The country's lane for a non-EU researcher, where the program names a European country.
+  // The country's visa lane, where the program names a country the app knows.
   const lane = program ? laneFor(program.country) : null;
   const country = program ? countriesIn([program.country], false)[0] : undefined;
   const chance =

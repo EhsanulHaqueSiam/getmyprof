@@ -1,0 +1,117 @@
+[
+ {
+  "Guid": "5a5f0dc0-181a-4d84-9ef7-25bb8dcddfab",
+  "FinancierProjectNr": "PRG2006",
+  "Title": "Soome-ugri väheste ressurssidega keelte ja murrete keeletehnoloogia",
+  "TitleEng": "Language Technology for Low-Resource Finno-Ugric Languages and Dialects",
+  "DisplayInfoEng": "PRG2006 \"Language Technology for Low-Resource Finno-Ugric Languages and Dialects\" (01.01.2024−31.12.2028); Principal Investigator: Mark Fišel; University of Tartu, Faculty of Science and Technology, Institute of Computer Science; Financier: Estonian Research Council; Financing: 538 800 EUR. ",
+  "Institutions": [
+   {
+    "Name": "Tartu Ülikool, Loodus- ja täppisteaduste valdkond, arvutiteaduse instituut",
+    "NameEng": "University of Tartu, Faculty of Science and Technology, Institute of Computer Science"
+   }
+  ],
+  "FinancingInstitutions": [
+   {
+    "Name": "Sihtasutus Eesti Teadusagentuur",
+    "NameEng": "Estonian Research Council"
+   }
+  ],
+  "FinancingInPeriodsTotal": 538800.0,
+  "ProjectStartDate": "01.01.2024",
+  "ProjectEndDate": "31.12.2028",
+  "AnnotationEng": "This project aims to develop language technology for low-resource Finno-Ugric languages and dialects, which have insufficient data for state-of-the-art natural language processing techniques. We address this gap by exploiting synergies between machine translation, language modeling, speech processin",
+  "Persons": [
+   {
+    "Name": "Lisa Yankovskaya",
+    "RoleNameEng": "Main executor"
+   },
+   {
+    "Name": "Tarmo Vaino",
+    "RoleNameEng": "Executor"
+   },
+   {
+    "Name": "Taido Purason",
+    "RoleNameEng": "Executor"
+   },
+   {
+    "Name": "Yucui Wu",
+    "RoleNameEng": "Executor"
+   }
+  ]
+ },
+ {
+  "Guid": "2b0e79ef-073d-4e27-8e3b-1f824ad01637",
+  "FinancierProjectNr": "INEA/CEF/ICT/A2020/2278398",
+  "Title": "Riiklik keeletehnoloogia platvorm",
+  "TitleEng": "National Language Technology Platform",
+  "DisplayInfoEng": "MLTAT21224 (INEA/CEF/ICT/A2020/2278398) \"National Language Technology Platform\" (5.04.2021−31.03.2023); Principal Investigator: Mark Fišel; University of Tartu, Faculty of Science and Technology, Institute of Computer Science (partner); Financier: European Commission; Financing: 86 670 EUR. [institution project]",
+  "Institutions": [
+   {
+    "Name": "Tartu Ülikool, Loodus- ja täppisteaduste valdkond, arvutiteaduse instituut",
+    "NameEng": "University of Tartu, Faculty of Science and Technology, Institute of Computer Science"
+   }
+  ],
+  "FinancingInstitutions": [
+   {
+    "Name": "Euroopa Komisjon",
+    "NameEng": "European Commission"
+   }
+  ],
+  "FinancingInPeriodsTotal": 86670.0,
+  "ProjectStartDate": "05.04.2021",
+  "ProjectEndDate": "31.03.2023",
+  "AnnotationEng": "NLTP is an online platform that will offer automatic translation, speech-to-text and text-to-speech functionality to public administrations, their employees and general public.",
+  "Persons": [
+   {
+    "Name": "Mark Fišel",
+    "RoleNameEng": "Responsible executor"
+   },
+   {
+    "Name": "Andre Tättar",
+    "RoleNameEng": "Executor"
+   }
+  ]
+ },
+ {
+  "Guid": "507b7e41-f690-4030-8cbe-9a42cd67aebb",
+  "FinancierProjectNr": "EKTR7",
+  "Title": "Võru ja seto integreeritud keeletehnoloogia ja keeleressursid",
+  "TitleEng": "Võro and Seto integrated language technology and language resources",
+  "DisplayInfoEng": "EKTR7 \"Võro and Seto integrated language technology and language resources\" (01.01.2018−31.12.2022); Principal Investigator: Sulev Iva; Võru Institute; Financier: Ministry of Education and Research; Financing: 111 000 EUR. ",
+  "Institutions": [
+   {
+    "Name": "Võru Instituut",
+    "NameEng": "Võru Institute"
+   }
+  ],
+  "FinancingInstitutions": [
+   {
+    "Name": "Haridus- ja Teadusministeerium",
+    "NameEng": "Ministry of Education and Research"
+   }
+  ],
+  "FinancingInPeriodsTotal": 111000.0,
+  "ProjectStartDate": "01.01.2018",
+  "ProjectEndDate": "31.12.2022",
+  "AnnotationEng": "To maintain language diversity it is important to provide language technology support for smaller languages. This has been done for Võro and Seto in several projects. The current project is a continuation of those and it aims at creation and development of further Võro and Seto language resources an",
+  "Persons": [
+   {
+    "Name": "Heiki-Jaan Kaalep",
+    "RoleNameEng": "Main executor"
+   },
+   {
+    "Name": "Heli Uibo",
+    "RoleNameEng": "Main executor"
+   },
+   {
+    "Name": "Kaur Männamaa",
+    "RoleNameEng": "Main executor"
+   },
+   {
+    "Name": "Sulev Iva",
+    "RoleNameEng": "Responsible executor"
+   }
+  ]
+ }
+]

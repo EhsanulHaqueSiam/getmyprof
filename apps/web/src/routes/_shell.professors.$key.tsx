@@ -121,7 +121,8 @@ function ProfessorPage() {
 
   return (
     <div className="grid min-w-0 flex-1 grid-cols-1 overflow-y-auto md:grid-cols-[minmax(0,1fr)_320px] md:overflow-visible">
-      <section className="overflow-y-auto px-8 py-6">
+      {/* The phone scrolls the whole page; wider screens scroll each column. */}
+      <section className="px-4 py-6 sm:px-8 md:overflow-y-auto">
         <div className="text-muted-foreground text-xs">
           <Link to="/professors" className="hover:text-secondary-label">
             Professors
@@ -365,7 +366,10 @@ function ProfessorPage() {
         </Section>
       </section>
 
-      <aside className="overflow-y-auto border-l p-4 text-xs" data-testid="professor-side">
+      <aside
+        className="border-t p-4 text-xs md:overflow-y-auto md:border-t-0 md:border-l"
+        data-testid="professor-side"
+      >
         <h2 className="mb-1.5 text-muted-foreground">Timeline</h2>
         {data.timeline.length ? (
           data.timeline.map((t) => (

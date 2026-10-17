@@ -45,27 +45,29 @@ function Nav({ section, go }: { section: Section; go: (s: Section) => void }) {
       type="button"
       onClick={() => go(id)}
       className={cn(
-        "flex h-8 w-full items-center rounded-lg px-2.5 text-left text-secondary-label text-sm transition-colors hover:bg-accent",
+        "flex h-8 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-2.5 text-left text-secondary-label text-sm transition-colors hover:bg-accent md:w-full",
         section === id && "bg-secondary text-foreground",
       )}
     >
       {label}
-      <span className="ml-auto text-muted-foreground text-xs tabular-nums">{count || ""}</span>
+      <span className="text-muted-foreground text-xs tabular-nums md:ml-auto">{count || ""}</span>
     </button>
   );
   return (
-    <nav className="flex flex-col gap-px border-r px-2 py-3">
-      <div className="px-2.5 pb-1 text-muted-foreground text-xs">You</div>
+    <nav className="flex gap-px overflow-x-auto border-b px-2 py-2 md:flex-col md:border-r md:border-b-0 md:py-3">
+      <div className="px-2.5 pb-1 text-muted-foreground text-xs max-md:hidden">You</div>
       {item("lifeline", "Lifeline", undefined)}
       {item("facts", "Facts", app?.facts.length)}
       {item("documents", "Documents", v?.documents.length)}
       {item("writing", "Writing", v?.writing.length)}
-      <div className="px-2.5 pt-3 pb-1 text-muted-foreground text-xs">Opportunities</div>
+      <div className="px-2.5 pt-3 pb-1 text-muted-foreground text-xs max-md:hidden">
+        Opportunities
+      </div>
       {item("scholarships", "Scholarships", v?.scholarships.length)}
       {item("programs", "Programs", v?.programs.length)}
       {item("applications", "Applications", v?.applications.length)}
       {item("offers", "Offers", v?.offers.length)}
-      <div className="px-2.5 pt-3 pb-1 text-muted-foreground text-xs">Inbox</div>
+      <div className="px-2.5 pt-3 pb-1 text-muted-foreground text-xs max-md:hidden">Inbox</div>
       {item("toFile", "To file", v?.toFile.length)}
     </nav>
   );
@@ -83,7 +85,7 @@ function Side() {
   if (!v) return <aside className="border-l" />;
   const upcoming = comingUp(v, new Date(), applicant);
   return (
-    <aside className="min-h-0 overflow-y-auto border-l px-4 py-3 text-xs">
+    <aside className="min-h-0 border-t px-4 py-3 text-xs md:overflow-y-auto md:border-t-0 md:border-l">
       <div className="mb-1 text-muted-foreground">To file · {v.toFile.length}</div>
       {v.toFile.length === 0 ? (
         <p className="text-muted-foreground">Nothing waiting. The agent's finds land here first.</p>

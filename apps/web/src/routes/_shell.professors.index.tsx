@@ -1,8 +1,18 @@
 import { type Professor, ROW_OPS, type RowOp } from "@getmyprof/contracts";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { DownloadIcon, SearchIcon, UploadIcon } from "lucide-react";
+import { DownloadIcon, UploadIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
+import { Checkbox } from "~/components/ui/checkbox";
+import { Input } from "~/components/ui/input";
+import {
+  Select,
+  SelectItem,
+  SelectPopup,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
+import { Toggle, ToggleGroup } from "~/components/ui/toggle-group";
 import { TIER_LABEL } from "~/lib/columns";
 import { download } from "~/lib/files";
 import { usd } from "~/lib/format";
@@ -27,8 +37,8 @@ const VIEWS = [
 ] as const;
 
 const OPS = Object.keys(ROW_OPS) as RowOp[];
-const select =
-  "h-7 rounded-lg border border-input bg-background px-2 text-muted-foreground text-xs outline-none";
+const TIERS = [0, 1, 2, 3, 4];
+const tierName = (t: number) => (t ? `Tier ${TIER_LABEL[t]}` : "Any tier");
 
 function Professors() {
   const recordsVersion = useStore((s) => s.recordsVersion);
@@ -82,16 +92,15 @@ function Professors() {
       <header className="flex min-h-12 shrink-0 flex-wrap items-center gap-2.5 px-4 py-2">
         <h1 className="font-semibold text-sm">Professors</h1>
         <span className="text-muted-foreground text-xs tabular-nums">{rows.length}</span>
-        <label className="ml-auto flex h-7 w-64 items-center gap-2 rounded-lg border border-input px-2.5 text-xs text-muted-foreground">
-          <SearchIcon className="size-3.5" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search name, school, niche"
-            aria-label="Search"
-            className="flex-1 bg-transparent text-foreground outline-none placeholder:text-placeholder"
-          />
-        </label>
+        <Input
+          size="compact"
+          type="search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search name, school, niche"
+          aria-label="Search"
+          className="ml-auto w-64"
+        />
         <label className="cursor-pointer">
           <span className="sr-only">Import CSV</span>
           <input
@@ -112,47 +121,45 @@ function Professors() {
         </Button>
       </header>
       <div className="flex flex-wrap items-center gap-0.5 px-3 pb-2">
-        {VIEWS.map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setView(id)}
-            className={cn(
-              "h-7 rounded-lg px-2.5 text-xs transition-colors",
-              view === id
-                ? "bg-accent text-foreground"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {label}
-          </button>
-        ))}
-        <select
-          aria-label="Money tier"
-          value={tier}
-          onChange={(e) => setTier(Number(e.target.value))}
-          className={cn(select, "ml-2")}
+        <ToggleGroup
+          value={[view]}
+          onValueChange={(v) => {
+            const next = VIEWS.find((x) => x[0] === v[0]);
+            if (next) setView(next[0]);
+          }}
+          aria-label="View"
         >
-          <option value={0}>Any tier</option>
-          {[1, 2, 3, 4].map((t) => (
-            <option key={t} value={t}>
-              Tier {TIER_LABEL[t]}
-            </option>
+          {VIEWS.map(([id, label]) => (
+            <Toggle key={id} value={id} size="xs">
+              {label}
+            </Toggle>
           ))}
-        </select>
-        <select
-          aria-label="School"
-          value={school}
-          onChange={(e) => setSchool(e.target.value)}
-          className={select}
-        >
-          <option value="">Any school</option>
-          {schools.map((u) => (
-            <option key={u} value={u}>
-              {u}
-            </option>
-          ))}
-        </select>
+        </ToggleGroup>
+        <Select value={tier} onValueChange={(v) => setTier(TIERS.find((t) => t === v) ?? 0)}>
+          <SelectTrigger size="compact" aria-label="Money tier" className="ml-2 w-auto min-w-0">
+            <SelectValue>{tierName(tier)}</SelectValue>
+          </SelectTrigger>
+          <SelectPopup>
+            {TIERS.map((t) => (
+              <SelectItem key={t} value={t}>
+                {tierName(t)}
+              </SelectItem>
+            ))}
+          </SelectPopup>
+        </Select>
+        <Select value={school} onValueChange={(v) => setSchool(schools.find((u) => u === v) ?? "")}>
+          <SelectTrigger size="compact" aria-label="School" className="w-auto min-w-0 max-w-64">
+            <SelectValue>{school || "Any school"}</SelectValue>
+          </SelectTrigger>
+          <SelectPopup>
+            <SelectItem value="">Any school</SelectItem>
+            {schools.map((u) => (
+              <SelectItem key={u} value={u}>
+                {u}
+              </SelectItem>
+            ))}
+          </SelectPopup>
+        </Select>
       </div>
       {keys.length ? (
         <div className="flex flex-wrap items-center gap-1.5 border-t px-4 py-1.5 text-xs">
@@ -183,13 +190,12 @@ function Professors() {
           <thead>
             <tr>
               <th className="sticky top-0 w-8 border-b border-input bg-background px-2">
-                <input
-                  type="checkbox"
+                <Checkbox
                   aria-label="Select all professors"
-                  className="size-3.5 accent-foreground"
                   checked={shown.length > 0 && shown.every((p) => selected.has(p.key))}
-                  onChange={(e) =>
-                    setSelected(new Set(e.target.checked ? shown.map((p) => p.key) : []))
+                  indeterminate={keys.length > 0 && !shown.every((p) => selected.has(p.key))}
+                  onCheckedChange={(checked) =>
+                    setSelected(new Set(checked ? shown.map((p) => p.key) : []))
                   }
                 />
               </th>
@@ -223,12 +229,10 @@ function Professors() {
                 )}
               >
                 <td className="border-b px-2">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     aria-label={`Select ${p.name}`}
                     checked={selected.has(p.key)}
-                    onChange={() => toggle(p.key)}
-                    className="size-3.5 accent-foreground"
+                    onCheckedChange={() => toggle(p.key)}
                   />
                 </td>
                 <td className="h-9 border-b px-3 font-mono font-semibold">{p.fit || "?"}</td>

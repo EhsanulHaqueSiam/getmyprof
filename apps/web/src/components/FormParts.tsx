@@ -1,8 +1,11 @@
-import { PlusIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
-import { cn } from "~/lib/utils";
+import { Input } from "~/components/ui/input";
+import { Toggle } from "~/components/ui/toggle";
 
-/** A pressed-state toggle for a preference value. Setup and Settings share these. */
+/**
+ * One value in a multi-select list, or an on/off preference: the kit Toggle, pressed when on.
+ * Setup and Settings share these. A pick of exactly one value is a ToggleGroup instead.
+ */
 export function Chip({
   on,
   children,
@@ -13,19 +16,9 @@ export function Chip({
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
-      aria-pressed={on}
-      onClick={onClick}
-      className={cn(
-        "inline-flex min-h-6.5 max-w-full items-center gap-1.5 rounded-lg border px-2.5 py-1 text-left text-xs transition-colors",
-        on
-          ? "border-transparent bg-accent text-foreground before:size-1.5 before:rounded-full before:bg-primary"
-          : "border-input text-muted-foreground hover:text-foreground",
-      )}
-    >
+    <Toggle size="xs" variant="outline" pressed={on} onPressedChange={onClick} className="px-2.5">
       {children}
-    </button>
+    </Toggle>
   );
 }
 
@@ -69,15 +62,14 @@ export function ListEditor({
           if (draft.trim()) onChange([...values, draft.trim()]);
           setDraft("");
         }}
-        className="flex h-6.5 items-center gap-1 rounded-lg border border-input px-2 text-xs"
       >
-        <PlusIcon className="size-3 text-muted-foreground" />
-        <input
+        <Input
+          size="compact"
+          className="w-24"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Add"
           aria-label="Add"
-          className="w-20 bg-transparent outline-none placeholder:text-placeholder"
         />
       </form>
     </div>

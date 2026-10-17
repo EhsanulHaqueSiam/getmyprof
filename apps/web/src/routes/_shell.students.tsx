@@ -4,6 +4,7 @@ import { PlusIcon, XIcon } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { Td } from "~/components/Table";
 import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
 import { since } from "~/lib/format";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
@@ -92,19 +93,21 @@ function Invite({ onClose }: { onClose: () => void }) {
         }
       }}
     >
-      <input
+      <Input
+        size="sm"
         autoFocus
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="their name"
         aria-label="Student name"
-        className="h-6.5 w-40 rounded-md border border-input bg-transparent px-1.5 text-foreground outline-none placeholder:text-placeholder"
+        className="w-40"
       />
-      <input
+      <Input
+        size="sm"
         value={url}
         onChange={(e) => setUrl(e.target.value)}
         aria-label="Where students reach this hub"
-        className="h-6.5 w-72 rounded-md border border-input bg-transparent px-1.5 font-mono text-2xs text-foreground outline-none"
+        className="w-72 font-mono"
       />
       <Button size="xs" type="submit" disabled={!name.trim()}>
         Make invite

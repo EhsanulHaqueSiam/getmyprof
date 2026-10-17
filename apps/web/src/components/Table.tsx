@@ -1,4 +1,11 @@
 import type { ReactNode } from "react";
+import {
+  Select,
+  SelectItem,
+  SelectPopup,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 import { cn } from "~/lib/utils";
 
 /** The dense table the Professors page uses: sticky header, hairline rows. Vault sections share it. */
@@ -85,7 +92,7 @@ export function Td({
   );
 }
 
-/** Small native select styled like the page's inputs. */
+/** A small select for a fixed set of values, labelled through `labels` or the value itself. */
 export function Choice<T extends string>({
   value,
   options,
@@ -100,21 +107,26 @@ export function Choice<T extends string>({
   /** Display names for the options; raw values otherwise. */
   labels?: Record<T, string>;
 }) {
+  const name = (o: T) => labels?.[o] ?? o.replace("-", " ");
   return (
-    <select
-      aria-label={label}
+    <Select
       value={value}
-      onChange={(e) => {
-        const next = options.find((o) => o === e.target.value);
+      onValueChange={(v) => {
+        const next = options.find((o) => o === v);
         if (next) onChange(next);
       }}
-      className="h-6.5 rounded-md border border-input bg-background px-1.5 text-foreground text-xs outline-none"
     >
-      {options.map((o) => (
-        <option key={o} value={o}>
-          {labels?.[o] ?? o.replace("-", " ")}
-        </option>
-      ))}
-    </select>
+      <SelectTrigger size="compact" aria-label={label} className="w-auto min-w-0 shrink-0">
+        {/* max-content: a grid cell or flex row must not squeeze the value to nothing. */}
+        <SelectValue className="min-w-max">{name(value)}</SelectValue>
+      </SelectTrigger>
+      <SelectPopup>
+        {options.map((o) => (
+          <SelectItem key={o} value={o}>
+            {name(o)}
+          </SelectItem>
+        ))}
+      </SelectPopup>
+    </Select>
   );
 }

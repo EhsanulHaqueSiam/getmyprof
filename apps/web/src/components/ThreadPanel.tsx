@@ -4,11 +4,12 @@ import { LinkIcon, MessageSquareIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Review } from "~/components/Review";
 import { Button } from "~/components/ui/button";
-import { cn } from "~/lib/utils";
+import { Toggle, ToggleGroup } from "~/components/ui/toggle-group";
 import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
 
-export type PanelTab = "review" | "professor" | "source";
+const PANEL_TABS = ["review", "professor", "source"] as const;
+export type PanelTab = (typeof PANEL_TABS)[number];
 
 const TIER = ["not checked", "1 clear", "2 strong", "3 indirect", "4 none"];
 const host = (url: string) => url.replace(/^https?:\/\/(www\.)?/, "");
@@ -179,27 +180,26 @@ export function ThreadPanel({
   const reviewCount = proposals.filter((p) => p.status === "pending").length;
   return (
     <>
-      <div className="flex h-12 shrink-0 items-center gap-1 px-2 text-xs" role="tablist">
-        {(["review", "professor", "source"] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-            role="tab"
-            aria-selected={tab === t}
-            onClick={() => onTab(t)}
-            className={cn(
-              "flex h-7 items-center gap-1.5 rounded-lg px-2.5 capitalize transition-colors",
-              tab === t
-                ? "bg-accent text-foreground"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {t}
-            {t === "review" ? (
-              <span className="text-info-foreground tabular-nums">{reviewCount}</span>
-            ) : null}
-          </button>
-        ))}
+      <div className="flex h-12 shrink-0 items-center px-2">
+        <ToggleGroup
+          value={[tab]}
+          onValueChange={(v) => {
+            const next = PANEL_TABS.find((t) => t === v[0]);
+            if (next) onTab(next);
+          }}
+          aria-label="Panel"
+        >
+          <Toggle value="review" size="xs">
+            Review
+            <span className="text-info-foreground tabular-nums">{reviewCount}</span>
+          </Toggle>
+          <Toggle value="professor" size="xs">
+            Professor
+          </Toggle>
+          <Toggle value="source" size="xs">
+            Source
+          </Toggle>
+        </ToggleGroup>
       </div>
       {tab === "review" ? (
         <Review

@@ -3,6 +3,7 @@ import { Trash2Icon, UploadIcon } from "lucide-react";
 import { useState } from "react";
 import { Choice, Table, Td } from "~/components/Table";
 import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
 import { guessKind, toBase64 } from "~/lib/files";
 import { cn } from "~/lib/utils";
 import { daysLeft, due } from "~/lib/vault";
@@ -46,12 +47,13 @@ export function VaultDocuments() {
         <Choice label="Document kind" value={kind} options={DocKind.options} onChange={setKind} />
         <label className="flex items-center gap-1.5 text-muted-foreground text-xs">
           expires
-          <input
+          <Input
+            size="compact"
             type="date"
             value={expires}
             onChange={(e) => setExpires(e.target.value)}
             aria-label="Expires"
-            className="h-6.5 rounded-md border border-input bg-background px-1.5 text-foreground text-xs outline-none"
+            className="w-auto"
           />
         </label>
         <label className="cursor-pointer">

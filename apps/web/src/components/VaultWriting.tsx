@@ -3,6 +3,13 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Choice, Table, Td } from "~/components/Table";
 import { Button } from "~/components/ui/button";
+import {
+  Select,
+  SelectItem,
+  SelectPopup,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 import { cn } from "~/lib/utils";
 import { citations, WRITING_LABEL } from "~/lib/writing";
 import { call } from "~/rpc/client";
@@ -37,18 +44,18 @@ function NewPiece() {
         }}
       />
       {options.length ? (
-        <select
-          aria-label="For"
-          value={picked ?? ""}
-          onChange={(e) => setTarget(e.target.value)}
-          className="h-6.5 max-w-56 rounded-md border border-input bg-background px-1.5 text-foreground text-xs outline-none"
-        >
-          {options.map(([id, label]) => (
-            <option key={id} value={id}>
-              {label}
-            </option>
-          ))}
-        </select>
+        <Select value={picked ?? ""} onValueChange={(v) => setTarget(v ?? "")}>
+          <SelectTrigger size="compact" aria-label="For" className="w-auto max-w-56">
+            <SelectValue>{options.find(([id]) => id === picked)?.[1]}</SelectValue>
+          </SelectTrigger>
+          <SelectPopup>
+            {options.map(([id, label]) => (
+              <SelectItem key={id} value={id}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectPopup>
+        </Select>
       ) : kind === "cv" ? null : (
         <span className="text-muted-foreground text-xs">
           File a {kind === "sop" ? "program" : "scholarship"} first

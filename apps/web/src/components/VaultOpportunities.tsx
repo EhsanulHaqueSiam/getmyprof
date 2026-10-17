@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { ChanceBand } from "~/components/Chance";
 import { Choice, Table, Td } from "~/components/Table";
 import { Button } from "~/components/ui/button";
+import { Toggle } from "~/components/ui/toggle";
 import { cn } from "~/lib/utils";
 import { daysLeft, due, fitsMe } from "~/lib/vault";
 import { call } from "~/rpc/client";
@@ -80,17 +81,9 @@ export function VaultScholarships() {
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="flex min-h-12 shrink-0 flex-wrap items-center gap-2 px-4 py-2">
         <h1 className="font-semibold text-sm">Scholarships</h1>
-        <button
-          type="button"
-          aria-pressed={mine}
-          onClick={() => setMine(!mine)}
-          className={cn(
-            "h-7 rounded-lg px-2.5 text-xs transition-colors",
-            mine ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground",
-          )}
-        >
+        <Toggle size="xs" pressed={mine} onPressedChange={setMine}>
           Fits me
-        </button>
+        </Toggle>
         <span className="mr-auto text-muted-foreground text-xs tabular-nums">
           {shown.length} of {list.length}
         </span>

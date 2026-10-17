@@ -60,7 +60,19 @@ function Shell() {
           </Button>
           <span className="font-semibold text-sm">getmyprof</span>
         </div>
-        <div className="flex min-h-0 min-w-0 flex-1">
+        <div className="relative flex min-h-0 min-w-0 flex-1">
+          {/* Desktop: the sidebar can be closed from any page, so every page can reopen it. */}
+          {!sidebarOpen ? (
+            <Button
+              variant="ghost-muted"
+              size="icon-sm"
+              className="absolute top-2 left-2 z-10 animate-fade-up max-md:hidden"
+              aria-label="Show sidebar"
+              onClick={toggleSidebar}
+            >
+              <PanelLeftIcon />
+            </Button>
+          ) : null}
           <Outlet />
         </div>
       </main>

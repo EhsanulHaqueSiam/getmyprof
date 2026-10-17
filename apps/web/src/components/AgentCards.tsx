@@ -5,6 +5,7 @@ import { AgentMark } from "~/components/AgentPicker";
 import { ClaudeConnect } from "~/components/ClaudeConnect";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
+import { Switch } from "~/components/ui/switch";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
@@ -85,10 +86,9 @@ export function AgentCards() {
                   Make default
                 </Button>
               ) : null}
-              <button
-                type="button"
-                role="switch"
-                aria-checked={!off}
+              <Switch
+                size="sm"
+                checked={!off}
                 aria-label={`${AGENT_NAME[a.kind]} ${off ? "off" : "on"}`}
                 disabled={isDefault}
                 title={
@@ -98,21 +98,10 @@ export function AgentCards() {
                       ? "Off: left out of the picker"
                       : "On"
                 }
-                onClick={() =>
+                onCheckedChange={() =>
                   void saveSettings({ agentsOff: toggleIn(settings.agentsOff, a.kind) })
                 }
-                className={cn(
-                  "relative h-4.5 w-8 shrink-0 rounded-full transition-colors disabled:opacity-60",
-                  off ? "bg-input" : "bg-primary",
-                )}
-              >
-                <span
-                  className={cn(
-                    "absolute top-0.5 size-3.5 rounded-full bg-background transition-[left]",
-                    off ? "left-0.5" : "left-4",
-                  )}
-                />
-              </button>
+              />
             </div>
             {a.kind === "claude" && a.state !== "ready" ? (
               <div className="mt-2 text-xs">

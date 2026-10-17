@@ -80,7 +80,7 @@ export default defineConfig({
       {
         // Vendored under MIT (see components/ui/LICENSE there). Keep it identical to upstream.
         files: ["apps/web/src/components/ui/**"],
-        rules: { "react/immutability": "off" },
+        rules: { "react/immutability": "off", "eslint/no-shadow": "off" },
       },
       {
         files: ["apps/server/src/**"],

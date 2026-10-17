@@ -14,6 +14,9 @@ import { Chip, Row } from "~/components/FormParts";
 import { EligibilityFields } from "~/components/EligibilityFields";
 import { BudgetStep, HuntStep, LOOP_NAMES } from "~/components/SetupSteps";
 import { Button } from "~/components/ui/button";
+import { Checkbox } from "~/components/ui/checkbox";
+import { Textarea } from "~/components/ui/textarea";
+import { Toggle, ToggleGroup } from "~/components/ui/toggle-group";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
 import { toBase64 } from "~/lib/files";
@@ -23,6 +26,7 @@ import { useStore } from "~/state/store";
 export const Route = createFileRoute("/setup")({ component: Setup });
 
 const STEPS = ["Connect", "You", "Your hunt", "Detail and budget"] as const;
+const PROFILE_SOURCES = ["app", "hq"] as const;
 const FREE_LABEL: Record<FreeSource, string> = {
   NSF: "NSF awards",
   NIH: "NIH RePORTER",
@@ -57,7 +61,7 @@ function Setup() {
   const [file, setFile] = useState<File | null>(null);
   const [reading, setReading] = useState(false);
   const [error, setError] = useState("");
-  const [profileSource, setProfileSource] = useState<"app" | "hq">("app");
+  const [profileSource, setProfileSource] = useState<(typeof PROFILE_SOURCES)[number]>("app");
   const [gradhunt, setGradhunt] = useState(false);
   const [detail, setDetail] = useState<DetailLevel>("std");
   const [budget, setBudget] = useState({
@@ -214,16 +218,18 @@ function Setup() {
                 <TregSettings />
               </Row>
               <Row label="Profile from">
-                <div className="flex flex-wrap gap-1.5">
-                  <Chip on={profileSource === "app"} onClick={() => setProfileSource("app")}>
-                    This app
-                  </Chip>
-                  {app?.adapters.hq ? (
-                    <Chip on={profileSource === "hq"} onClick={() => setProfileSource("hq")}>
-                      Your hq vault
-                    </Chip>
-                  ) : null}
-                </div>
+                <ToggleGroup
+                  size="xs"
+                  value={[profileSource]}
+                  onValueChange={(v) => {
+                    const next = PROFILE_SOURCES.find((p) => p === v[0]);
+                    if (next) setProfileSource(next);
+                  }}
+                  aria-label="Profile from"
+                >
+                  <Toggle value="app">This app</Toggle>
+                  {app?.adapters.hq ? <Toggle value="hq">Your hq vault</Toggle> : null}
+                </ToggleGroup>
               </Row>
               {app?.adapters.gradhunt ? (
                 <Row label="gradhunt">
@@ -271,13 +277,12 @@ function Setup() {
                       onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                     />
                   </label>
-                  <textarea
+                  <Textarea
                     value={cvText}
                     onChange={(e) => setCvText(e.target.value)}
                     rows={3}
                     placeholder="Or paste your CV text, site, Scholar or LinkedIn"
                     aria-label="CV text"
-                    className="w-full resize-none rounded-xl border border-input bg-transparent px-3.5 py-2.5 text-sm outline-none placeholder:text-placeholder"
                   />
                   <div className="mt-2 flex items-center gap-2">
                     <Button
@@ -301,17 +306,15 @@ function Setup() {
                           f.question ? "text-warning-foreground" : "text-secondary-label",
                         )}
                       >
-                        <input
-                          type="checkbox"
+                        <Checkbox
                           checked={f.confirmed}
-                          onChange={() =>
+                          onCheckedChange={() =>
                             setFacts((all) =>
                               all.map((x) =>
                                 x.id === f.id ? { ...x, confirmed: !x.confirmed } : x,
                               ),
                             )
                           }
-                          className="size-3.5 accent-foreground"
                         />
                         <span>{f.text}</span>
                         <span className="text-2xs text-muted-foreground">{f.source}</span>

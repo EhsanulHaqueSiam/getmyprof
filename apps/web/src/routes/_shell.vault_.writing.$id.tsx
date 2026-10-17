@@ -2,6 +2,8 @@ import type { Writing } from "@getmyprof/contracts";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
+import { Select, SelectItem, SelectPopup, SelectTrigger } from "~/components/ui/select";
+import { Textarea } from "~/components/ui/textarea";
 import { download } from "~/lib/files";
 import { STAGE_LABEL } from "~/lib/outreach";
 import { cn } from "~/lib/utils";
@@ -78,12 +80,11 @@ function Editor({ w, done }: { w: Writing; done: () => void }) {
   const [text, setText] = useState(w.body);
   return (
     <div className="flex flex-col gap-2">
-      <textarea
+      <Textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
         aria-label="Text"
         rows={18}
-        className="w-full resize-y rounded-xl border bg-transparent p-3 text-sm leading-6 outline-none focus:border-ring/40"
       />
       <div className="flex justify-end gap-1.5">
         <Button size="xs" variant="ghost-muted" onClick={done}>
@@ -155,6 +156,8 @@ function WriterPage() {
   const claims = uncited(w);
   const exportable = !mustProve(w) || (blocked.size === 0 && !c.scoreClaimed && !claims.length);
   const others = vault.programs.filter((p) => p.id !== w.programId);
+  // Tailor target: the picked program, else the first other one.
+  const tailor = others.find((p) => p.id === tailorTo) ?? others[0];
 
   const start = async (programId: string | null, basedOn: string) => {
     const t = await call("writing.start", {
@@ -217,22 +220,22 @@ function WriterPage() {
           </Button>
           {w.kind === "sop" && others.length ? (
             <div className="flex items-center gap-1">
-              <select
-                aria-label="Tailor to"
-                value={tailorTo || others[0]?.id}
-                onChange={(e) => setTailorTo(e.target.value)}
-                className="h-6.5 max-w-36 rounded-md border border-input bg-background px-1.5 text-foreground text-xs outline-none"
-              >
-                {others.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.university}
-                  </option>
-                ))}
-              </select>
+              <Select value={tailor?.id} onValueChange={(v) => setTailorTo(v ?? "")}>
+                <SelectTrigger size="compact" aria-label="Tailor to" className="w-auto max-w-36">
+                  <span className="truncate">{tailor?.university}</span>
+                </SelectTrigger>
+                <SelectPopup>
+                  {others.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.university}
+                    </SelectItem>
+                  ))}
+                </SelectPopup>
+              </Select>
               <Button
                 size="xs"
                 variant="ghost-muted"
-                onClick={() => void start(tailorTo || others[0]?.id || null, w.id)}
+                onClick={() => void start(tailor?.id ?? null, w.id)}
               >
                 Tailor
               </Button>

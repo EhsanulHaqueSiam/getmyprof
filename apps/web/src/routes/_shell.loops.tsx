@@ -1,10 +1,15 @@
 import type { AutoRules, LoopRow, Schedule, ScopeItem, ScoutLoop } from "@getmyprof/contracts";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { PlayIcon, PlusIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { cadence, normalize, ScheduleEditor } from "~/components/ScheduleEditor";
 import { ScopeEditor } from "~/components/ScopeEditor";
+import { Choice } from "~/components/Table";
 import { Button } from "~/components/ui/button";
+import { Checkbox } from "~/components/ui/checkbox";
+import { Input } from "~/components/ui/input";
+import { Textarea } from "~/components/ui/textarea";
+import { Toggle, ToggleGroup } from "~/components/ui/toggle-group";
 import { ago, usd } from "~/lib/format";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
@@ -40,6 +45,19 @@ const RULES: [keyof AutoRules, string][] = [
   ["officialSource", "official source"],
   ["fit4", "fit 4+"],
 ];
+const AUTONOMY = ["propose", "auto"] as const;
+const REPORT_TO = ["fresh", "same"] as const;
+const REPORT_LABEL = { fresh: "a fresh thread each run", same: "one thread for every run" };
+
+/** One labelled row of the loop editor; controls carry their own aria-label. */
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-muted-foreground text-xs">{label}</span>
+      {children}
+    </div>
+  );
+}
 
 /** Recurring hunts. Each run is a thread that settles itself once its changes are reviewed. */
 function Loops() {
@@ -191,103 +209,98 @@ function Loops() {
           </table>
         </div>
       </section>
-      <aside className="flex flex-col gap-3 overflow-y-auto border-l p-4 text-sm">
-        <input
+      <aside className="flex flex-col gap-3 border-t p-4 text-sm md:overflow-y-auto md:border-t-0 md:border-l">
+        <Input
+          size="sm"
           value={draft.name}
           onChange={(e) => setDraft({ ...draft, name: e.target.value })}
           placeholder="Loop name"
           aria-label="Loop name"
-          className="bg-transparent font-semibold text-sm outline-none placeholder:text-placeholder"
         />
-        <textarea
+        <Textarea
+          size="sm"
           value={draft.instructions}
           onChange={(e) => setDraft({ ...draft, instructions: e.target.value })}
           rows={6}
           placeholder="What it should do each run, in plain words"
           aria-label="Instructions"
-          className="resize-none rounded-xl border border-input bg-popover px-3 py-2.5 text-[12.5px] leading-relaxed outline-none placeholder:text-placeholder"
         />
-        <ScheduleEditor
-          value={draft.schedule}
-          hookToken={loops.find((l) => l.id === draft.id)?.hookToken ?? null}
-          onChange={(schedule) => setDraft({ ...draft, schedule })}
-        />
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <select
-            value={draft.reportTo}
-            aria-label="Report to"
-            onChange={(e) =>
-              setDraft({ ...draft, reportTo: e.target.value === "same" ? "same" : "fresh" })
-            }
-            className="h-7 rounded-lg border border-input bg-background px-2"
-          >
-            <option value="fresh">a fresh thread each run</option>
-            <option value="same">one thread for every run</option>
-          </select>
-          <label className="flex items-center gap-1.5 text-muted-foreground">
-            budget $
-            <input
+        <Field label="When">
+          <ScheduleEditor
+            value={draft.schedule}
+            hookToken={loops.find((l) => l.id === draft.id)?.hookToken ?? null}
+            onChange={(schedule) => setDraft({ ...draft, schedule })}
+          />
+        </Field>
+        <div className="flex flex-wrap items-end gap-3">
+          <Field label="Report to">
+            <Choice
+              label="Report to"
+              value={draft.reportTo}
+              options={REPORT_TO}
+              labels={REPORT_LABEL}
+              onChange={(reportTo) => setDraft({ ...draft, reportTo })}
+            />
+          </Field>
+          <Field label="Budget $">
+            <Input
+              size="compact"
               type="number"
               step="0.1"
               min="0"
               value={draft.budgetUsd}
               aria-label="Budget"
               onChange={(e) => setDraft({ ...draft, budgetUsd: Number(e.target.value) })}
-              className="h-7 w-14 rounded-lg border border-input bg-transparent px-2 text-foreground"
+              className="w-20"
             />
-          </label>
+          </Field>
         </div>
-        <ScopeEditor value={draft.scope} onChange={(scope) => setDraft({ ...draft, scope })} />
-        <div className="flex flex-col gap-1.5 text-xs">
-          <div
-            className="inline-flex w-fit rounded-lg border p-0.5"
-            role="radiogroup"
-            aria-label="Autonomy"
-          >
-            {(["propose", "auto"] as const).map((a) => (
-              <button
-                key={a}
-                type="button"
-                role="radio"
-                aria-checked={draft.autonomy === a}
-                onClick={() => setDraft({ ...draft, autonomy: a })}
-                className={cn(
-                  "h-6 rounded-md px-2.5 transition-colors",
-                  draft.autonomy === a
-                    ? "bg-accent text-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {a === "propose" ? "Propose only" : "Auto-accept rules"}
-              </button>
-            ))}
+        <Field label="Schools">
+          <ScopeEditor value={draft.scope} onChange={(scope) => setDraft({ ...draft, scope })} />
+        </Field>
+        <Field label="Changes">
+          <div className="flex flex-col gap-1.5 text-xs">
+            <ToggleGroup
+              aria-label="Autonomy"
+              value={[draft.autonomy]}
+              onValueChange={(v) => {
+                const autonomy = AUTONOMY.find((a) => a === v[0]);
+                if (autonomy) setDraft({ ...draft, autonomy });
+              }}
+            >
+              <Toggle value="propose" size="xs">
+                Propose only
+              </Toggle>
+              <Toggle value="auto" size="xs">
+                Auto-accept rules
+              </Toggle>
+            </ToggleGroup>
+            {draft.autonomy === "auto" ? (
+              <>
+                <div className="flex flex-wrap gap-3">
+                  {RULES.map(([k, label]) => (
+                    <label key={k} className="flex items-center gap-1.5 text-secondary-label">
+                      <Checkbox
+                        aria-label={label}
+                        checked={draft.rules[k]}
+                        onCheckedChange={(checked) =>
+                          setDraft({ ...draft, rules: { ...draft.rules, [k]: checked } })
+                        }
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+                <span className="text-muted-foreground">
+                  A change that passes every rule ticked goes straight to the sheet; the rest wait
+                  in Review.
+                </span>
+              </>
+            ) : (
+              <span className="text-muted-foreground">Every change waits for you in Review.</span>
+            )}
           </div>
-          {draft.autonomy === "auto" ? (
-            <>
-              <div className="flex flex-wrap gap-3">
-                {RULES.map(([k, label]) => (
-                  <label key={k} className="flex items-center gap-1.5 text-secondary-label">
-                    <input
-                      type="checkbox"
-                      checked={draft.rules[k]}
-                      onChange={(e) =>
-                        setDraft({ ...draft, rules: { ...draft.rules, [k]: e.target.checked } })
-                      }
-                      className="size-3.5 accent-foreground"
-                    />
-                    {label}
-                  </label>
-                ))}
-              </div>
-              <span className="text-muted-foreground">
-                A change that passes every rule ticked goes straight to the sheet; the rest wait in
-                Review.
-              </span>
-            </>
-          ) : (
-            <span className="text-muted-foreground">Every change waits for you in Review.</span>
-          )}
-        </div>
+        </Field>
         <div className="flex gap-1.5">
           <Button
             size="xs"

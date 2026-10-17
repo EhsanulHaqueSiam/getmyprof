@@ -21,6 +21,7 @@ import {
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Kbd } from "~/components/ui/kbd";
+import { Textarea } from "~/components/ui/textarea";
 import { duration, plural, usd } from "~/lib/format";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
@@ -149,12 +150,11 @@ function QueuedMessage({
     <div className="flex animate-fade-up flex-col items-end gap-1" data-testid="queued">
       {editing ? (
         <div className="flex w-[86%] flex-col gap-1.5">
-          <textarea
+          <Textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
             aria-label="Edit queued message"
             rows={3}
-            className="resize-none rounded-2xl border bg-accent px-3.5 py-2.5 text-sm outline-none"
           />
           <div className="flex justify-end gap-1">
             <Button size="xs" variant="ghost-muted" onClick={() => setEditing(false)}>

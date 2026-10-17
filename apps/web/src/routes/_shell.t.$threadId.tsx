@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { GitBranchIcon, PanelLeftIcon, PanelRightIcon } from "lucide-react";
+import { GitBranchIcon, PanelRightIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ApprovalCard, Transcript } from "~/components/Chat";
 import { Composer } from "~/components/Composer";
@@ -7,6 +7,7 @@ import { Results } from "~/components/Results";
 import { type PanelTab, ThreadPanel } from "~/components/ThreadPanel";
 import { Button } from "~/components/ui/button";
 import { Kbd } from "~/components/ui/kbd";
+import { Toggle, ToggleGroup } from "~/components/ui/toggle-group";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "~/components/ui/tooltip";
 import { usd } from "~/lib/format";
 import { cn } from "~/lib/utils";
@@ -22,8 +23,6 @@ function ThreadPage() {
   const navigate = useNavigate();
   const view = useStore((s) => s.views[threadId]);
   const loadView = useStore((s) => s.loadView);
-  const sidebarOpen = useStore((s) => s.sidebarOpen);
-  const toggleSidebar = useStore((s) => s.toggleSidebar);
   const perThread = useStore((s) => s.app?.settings.budget.perThread ?? 0.5);
   // What this thread left elsewhere: drafts waiting in the Pipeline, finds waiting in To file.
   const drafts = useStore(
@@ -154,17 +153,6 @@ function ThreadPage() {
   return (
     <div className="flex min-w-0 flex-1 flex-col">
       <header className="flex h-12 shrink-0 items-center gap-2.5 pr-2.5 pl-4">
-        {!sidebarOpen ? (
-          <Button
-            variant="ghost-muted"
-            size="icon-sm"
-            className="max-md:hidden"
-            aria-label="Show sidebar"
-            onClick={toggleSidebar}
-          >
-            <PanelLeftIcon />
-          </Button>
-        ) : null}
         {renaming ? (
           <input
             // biome-style autofocus: renaming starts typing at once.
@@ -185,31 +173,21 @@ function ThreadPage() {
             </button>
           </h1>
         )}
-        <div className="inline-flex shrink-0 rounded-lg border p-0.5 text-xs" role="tablist">
-          {(["chat", "results"] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              role="tab"
-              aria-selected={mode === m}
-              onClick={() => setMode(m)}
-              className={cn(
-                "h-6 rounded-md px-2.5 transition-colors",
-                mode === m
-                  ? "bg-accent text-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {m === "chat" ? "Chat" : "Results"}
-              {m === "results" ? (
-                <span className="ml-1.5 text-muted-foreground tabular-nums">
-                  {view.thread.rows}
-                </span>
-              ) : null}
-            </button>
-          ))}
-        </div>
-        <span className="ml-auto font-mono text-muted-foreground text-xs">
+        <ToggleGroup
+          value={[mode]}
+          onValueChange={(v) => setMode(v[0] === "results" ? "results" : "chat")}
+          aria-label="View"
+          className="shrink-0"
+        >
+          <Toggle value="chat" size="xs">
+            Chat
+          </Toggle>
+          <Toggle value="results" size="xs">
+            Results
+            <span className="text-muted-foreground tabular-nums">{view.thread.rows}</span>
+          </Toggle>
+        </ToggleGroup>
+        <span className="ml-auto whitespace-nowrap font-mono text-muted-foreground text-xs max-sm:hidden">
           {usd(view.thread.spendUsd) === "free" ? "$0" : usd(view.thread.spendUsd)} / $
           {perThread.toFixed(2)}
         </span>

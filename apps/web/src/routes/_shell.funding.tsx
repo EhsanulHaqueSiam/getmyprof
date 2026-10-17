@@ -2,6 +2,8 @@ import { type Award, AwardSource, type Position, PositionSource } from "@getmypr
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ExternalLinkIcon, MessageSquareIcon, PlusIcon, SearchIcon } from "lucide-react";
 import { useState } from "react";
+
+const TABS = ["awards", "positions", "programs", "fellowships"] as const;
 import {
   BOARD_NOTE,
   FellowshipsTable,
@@ -11,6 +13,8 @@ import {
 } from "~/components/FundingLists";
 import { PositionDetail, PositionsTable } from "~/components/FundingPositions";
 import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { Toggle, ToggleGroup } from "~/components/ui/toggle-group";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
@@ -41,7 +45,7 @@ function Funding() {
   const [picked, setPicked] = useState<Award | null>(null);
   // null means "the hunt's places decide"; the server picks the same default.
   const [chosen, setChosen] = useState<AwardSource[] | null>(null);
-  const [tab, setTab] = useState<"awards" | "positions" | "programs" | "fellowships">("awards");
+  const [tab, setTab] = useState<(typeof TABS)[number]>("awards");
   const [positions, setPositions] = useState<Position[] | null>(null);
   const [pickedPosition, setPickedPosition] = useState<Position | null>(null);
   const [boards, setBoards] = useState<PositionSource[] | null>(null);
@@ -123,25 +127,20 @@ function Funding() {
       <section className="flex min-w-0 flex-col">
         <header className="flex min-h-12 shrink-0 flex-wrap items-center gap-2.5 px-4 py-2">
           <h1 className="font-semibold text-sm">Funding</h1>
-          <div className="inline-flex rounded-lg border p-0.5 text-xs" role="tablist">
-            {(["awards", "positions", "programs", "fellowships"] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                role="tab"
-                aria-selected={tab === t}
-                onClick={() => setTab(t)}
-                className={cn(
-                  "h-6 rounded-md px-2.5 capitalize transition-colors",
-                  tab === t
-                    ? "bg-accent text-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
+          <ToggleGroup
+            value={[tab]}
+            onValueChange={(v) => {
+              const next = TABS.find((t) => t === v[0]);
+              if (next) setTab(next);
+            }}
+            aria-label="Funding view"
+          >
+            {TABS.map((t) => (
+              <Toggle key={t} value={t} size="xs" className="capitalize">
                 {t}
-              </button>
+              </Toggle>
             ))}
-          </div>
+          </ToggleGroup>
           {tab === "awards" ? (
             <Picks
               options={AwardSource.options}
@@ -176,20 +175,24 @@ function Funding() {
           className="mx-4 mb-3 flex items-center gap-2 rounded-2xl border border-input bg-popover py-1.5 pr-1.5 pl-3.5 text-sm"
         >
           <SearchIcon className="size-3.5 text-muted-foreground" />
-          <input
+          <Input
+            unstyled
+            size="compact"
+            className="min-w-0 flex-1"
             value={terms}
             onChange={(e) => setTerms(e.target.value)}
             placeholder="Topics, comma separated"
             aria-label="Topics"
-            className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-placeholder"
           />
           <span className="text-muted-foreground">/</span>
-          <input
+          <Input
+            unstyled
+            size="compact"
+            className="min-w-0 flex-1"
             value={schools}
             onChange={(e) => setSchools(e.target.value)}
             placeholder={tab === "awards" ? "Schools (default: your sheet)" : "Schools (optional)"}
             aria-label="Schools"
-            className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-placeholder"
           />
           <Button size="xs" type="submit" disabled={busy || !terms.trim()}>
             {busy ? "Searching" : "Search"}
@@ -335,7 +338,7 @@ function Funding() {
           </div>
         ) : null}
       </section>
-      <aside className="flex flex-col gap-3 overflow-y-auto border-l p-4">
+      <aside className="flex flex-col gap-3 border-t p-4 md:overflow-y-auto md:border-t-0 md:border-l">
         {tab === "positions" ? (
           pickedPosition ? (
             <PositionDetail

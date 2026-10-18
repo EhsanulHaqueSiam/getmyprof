@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { pick } from "./pick";
+import { pick } from "./pick.js";
 
 // Threads and loops, on the state app.spec.ts leaves: its hunt's professors in the sheet, treg
 // connected, an offer accepted. The "after" project runs it once app.spec.ts has finished.

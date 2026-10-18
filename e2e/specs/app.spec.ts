@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { pick } from "./pick";
+import { pick } from "./pick.js";
 
 // One journey through v1 against the fake agent (GETMYPROF_AGENT=fake, fresh GETMYPROF_HOME).
 // The fake runs the real hunt tools on fixture data, so proposals, approvals, spend and

@@ -11,6 +11,8 @@ import { useNavigate } from "@tanstack/react-router";
 import { CopyIcon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
+import { Checkbox } from "~/components/ui/checkbox";
+import { Input } from "~/components/ui/input";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
@@ -102,7 +104,8 @@ export function ApplyHelp({
   return (
     <div className="flex flex-col gap-2" data-testid="apply-help">
       <div className="flex flex-wrap items-center gap-1.5">
-        <input
+        <Input
+          size="sm"
           defaultValue={app.portal}
           placeholder="the portal's link, e.g. https://apply.school.edu"
           aria-label="Portal link"
@@ -113,7 +116,7 @@ export function ApplyHelp({
               value: { ...app, portal: e.target.value.trim() },
             })
           }
-          className="h-6.5 min-w-0 flex-1 rounded-md border border-input bg-transparent px-2 outline-none placeholder:text-placeholder"
+          className="min-w-0 flex-1"
         />
         {desktop ? (
           <>
@@ -145,13 +148,11 @@ export function ApplyHelp({
               const yours = a && "yours" in a ? a.yours : null;
               return (
                 <div key={f.key} className="contents" data-testid="portal-field">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     aria-label={`Fill ${f.label}`}
-                    className="size-3.5 accent-foreground"
                     disabled={!!yours}
                     checked={picked.has(f.key)}
-                    onChange={() =>
+                    onCheckedChange={() =>
                       setPicked((p) => {
                         const next = new Set(p);
                         if (next.has(f.key)) next.delete(f.key);
@@ -167,7 +168,8 @@ export function ApplyHelp({
                   {yours ? (
                     <span className="text-muted-foreground">{yours}</span>
                   ) : (
-                    <input
+                    <Input
+                      size="compact"
                       value={valueOf(f)}
                       aria-label={`Answer for ${f.label}`}
                       onChange={(e) => {
@@ -177,7 +179,7 @@ export function ApplyHelp({
                       placeholder={
                         f.options.length ? f.options.slice(0, 4).join(" · ") : "no answer yet"
                       }
-                      className="h-6 min-w-0 rounded-md border border-input bg-transparent px-2 outline-none placeholder:text-placeholder"
+                      className="min-w-0"
                     />
                   )}
                   <span

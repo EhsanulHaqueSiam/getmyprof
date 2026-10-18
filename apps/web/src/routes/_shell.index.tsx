@@ -118,12 +118,13 @@ function NewThread() {
               key={s.title}
               type="button"
               onClick={() => void start(s.prompt, s.title)}
-              className="grid h-10 grid-cols-[20px_170px_minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-2.5 text-left text-sm transition-colors hover:bg-accent [&>svg]:size-4 [&>svg]:text-muted-foreground"
+              className="grid h-10 grid-cols-[20px_minmax(0,1fr)] items-center gap-3 rounded-xl px-2.5 text-left text-sm transition-colors hover:bg-accent sm:grid-cols-[20px_170px_minmax(0,1fr)_auto] [&>svg]:size-4 [&>svg]:text-muted-foreground"
             >
               {s.icon}
               <span>{s.title}</span>
-              <span className="truncate text-muted-foreground">{s.detail}</span>
-              <Kbd className="bg-transparent">{i + 1}</Kbd>
+              {/* The phone keeps the title and drops the hint and the number key. */}
+              <span className="truncate text-muted-foreground max-sm:hidden">{s.detail}</span>
+              <Kbd className="bg-transparent max-sm:hidden">{i + 1}</Kbd>
             </button>
           ))}
         </div>

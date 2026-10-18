@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { CountryLines } from "~/components/CountryLines";
 import { Chip, ListEditor, Row } from "~/components/FormParts";
 import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { Toggle, ToggleGroup } from "~/components/ui/toggle-group";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
 
@@ -45,6 +47,8 @@ export const LOOP_NAMES = [
   "Deadline watch",
   "Professor watch",
 ];
+
+const FUNDING_FLOORS = ["full", "tuition"] as const satisfies HuntPrefs["fundingFloor"][];
 
 type Budget = { perThread: number; perLoopRun: number; perDay: number; askOver: number };
 
@@ -163,18 +167,18 @@ export function HuntStep({
       </Row>
       <Row label="Intake">
         <div className="flex items-center gap-2">
-          <input
+          <Input
+            className="w-32"
             value={prefs.intake}
             onChange={(e) => set("intake", e.target.value)}
             aria-label="Intake"
-            className="h-7 w-32 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none"
           />
           <span className="text-muted-foreground text-xs">then</span>
-          <input
+          <Input
+            className="w-32"
             value={prefs.fallbackIntake}
             onChange={(e) => set("fallbackIntake", e.target.value)}
             aria-label="Fallback intake"
-            className="h-7 w-32 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none"
           />
         </div>
       </Row>
@@ -219,17 +223,18 @@ export function HuntStep({
         />
       </Row>
       <Row label="Funding floor">
-        <div className="flex flex-wrap gap-1.5">
-          <Chip on={prefs.fundingFloor === "full"} onClick={() => set("fundingFloor", "full")}>
-            Full: tuition and stipend, every year
-          </Chip>
-          <Chip
-            on={prefs.fundingFloor === "tuition"}
-            onClick={() => set("fundingFloor", "tuition")}
-          >
-            Tuition only is fine
-          </Chip>
-        </div>
+        <ToggleGroup
+          size="xs"
+          value={[prefs.fundingFloor]}
+          onValueChange={(v) => {
+            const next = FUNDING_FLOORS.find((f) => f === v[0]);
+            if (next) set("fundingFloor", next);
+          }}
+          aria-label="Funding floor"
+        >
+          <Toggle value="full">Full: tuition and stipend, every year</Toggle>
+          <Toggle value="tuition">Tuition only is fine</Toggle>
+        </ToggleGroup>
       </Row>
       <Row label="English tests">
         <Chip
@@ -276,13 +281,13 @@ export function HuntStep({
         <div className="flex items-center gap-2 text-muted-foreground text-xs">
           {(["reach", "match", "safety"] as const).map((k) => (
             <label key={k} className="flex items-center gap-1.5">
-              <input
+              <Input
                 type="number"
                 min="0"
+                className="w-14"
                 value={prefs.sweep[k]}
                 onChange={(e) => set("sweep", { ...prefs.sweep, [k]: Number(e.target.value) })}
                 aria-label={`${k} schools per sweep`}
-                className="h-7 w-14 rounded-lg border border-input bg-transparent px-2 text-foreground text-sm outline-none"
               />
               {k}
             </label>
@@ -362,14 +367,14 @@ export function BudgetStep(props: {
           ).map(([k, label]) => (
             <label key={k} className="flex items-center gap-1.5 text-muted-foreground">
               $
-              <input
+              <Input
                 type="number"
                 step="0.01"
                 min="0"
+                className="w-16"
                 value={budget[k]}
                 onChange={(e) => setBudget((b) => ({ ...b, [k]: Number(e.target.value) }))}
                 aria-label={label}
-                className="h-7 w-16 rounded-lg border border-input bg-transparent px-2 text-foreground outline-none"
               />
               {label}
             </label>

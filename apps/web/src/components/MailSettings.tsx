@@ -2,7 +2,7 @@ import type { MailConnect, MailProvider } from "@getmyprof/contracts";
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
-import { Chip } from "~/components/FormParts";
+import { Toggle, ToggleGroup } from "~/components/ui/toggle-group";
 import { since } from "~/lib/format";
 import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
@@ -271,22 +271,33 @@ export function MailSettings() {
 
   return (
     <div className="flex max-w-md flex-col gap-2">
-      <div className="flex flex-wrap gap-1.5">
+      <ToggleGroup
+        size="xs"
+        value={[preset]}
+        onValueChange={(v) => {
+          const next = ORDER.find((k) => k === v[0]);
+          if (next) setPreset(next);
+        }}
+        aria-label="Mail provider"
+      >
         {ORDER.map((k) => (
-          <Chip key={k} on={preset === k} onClick={() => setPreset(k)}>
+          <Toggle key={k} value={k}>
             {PRESETS[k].label}
-          </Chip>
+          </Toggle>
         ))}
-      </div>
+      </ToggleGroup>
       {provider && preset !== "outlook" ? (
-        <div className="flex flex-wrap gap-1.5">
-          <Chip on={!signIn} onClick={() => setSignIn(false)}>
-            App password
-          </Chip>
-          <Chip on={signIn} onClick={() => setSignIn(true)}>
-            Sign in with {PROVIDER_LABEL[provider]}
-          </Chip>
-        </div>
+        <ToggleGroup
+          size="xs"
+          value={[signIn ? "signin" : "password"]}
+          onValueChange={(v) => {
+            if (v[0]) setSignIn(v[0] === "signin");
+          }}
+          aria-label="How to connect"
+        >
+          <Toggle value="password">App password</Toggle>
+          <Toggle value="signin">Sign in with {PROVIDER_LABEL[provider]}</Toggle>
+        </ToggleGroup>
       ) : null}
       {signingIn ? (
         <SignInForm

@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { PlusIcon, Trash2Icon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
 import { download } from "~/lib/files";
 import { interviewIcs } from "~/lib/vault";
 import { call } from "~/rpc/client";
@@ -122,25 +123,27 @@ export function Interviews({
           setAt("");
         }}
       >
-        <input
+        <Input
+          size="compact"
           value={who}
           onChange={(e) => setWho(e.target.value)}
           list={`named-${app.id}`}
           placeholder="Interview with"
           aria-label="Interview with"
-          className="h-6.5 w-36 rounded-md border border-input bg-transparent px-2 outline-none placeholder:text-placeholder"
+          className="w-36"
         />
         <datalist id={`named-${app.id}`}>
           {named.map((n) => (
             <option key={n} value={n} />
           ))}
         </datalist>
-        <input
+        <Input
+          size="compact"
           type="datetime-local"
           value={at}
           onChange={(e) => setAt(e.target.value)}
           aria-label="Interview time"
-          className="h-6.5 rounded-md border border-input bg-background px-1.5 text-foreground outline-none"
+          className="w-auto"
         />
         <Button type="submit" size="icon-xs" variant="ghost-muted" aria-label="Add interview">
           <PlusIcon />

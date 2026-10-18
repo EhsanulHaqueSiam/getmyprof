@@ -3,6 +3,7 @@ import { Trash2Icon, UploadIcon } from "lucide-react";
 import { useState } from "react";
 import { Choice, Table, Td } from "~/components/Table";
 import { Button } from "~/components/ui/button";
+import { Toggle, ToggleGroup } from "~/components/ui/toggle-group";
 import { guessKind, toBase64 } from "~/lib/files";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
@@ -98,23 +99,20 @@ export function VaultFacts() {
     <div className="flex min-h-0 flex-1 flex-col">
       <header className="flex min-h-12 shrink-0 flex-wrap items-center gap-3 px-4 py-2">
         <h1 className="font-semibold text-sm">Facts</h1>
-        <div className="flex gap-0.5">
+        <ToggleGroup
+          aria-label="Kind"
+          value={[tab]}
+          onValueChange={(v) => {
+            const next = TABS.find((t) => t === v[0]);
+            if (next) setTab(next);
+          }}
+        >
           {TABS.map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => setTab(t)}
-              className={cn(
-                "h-7 rounded-lg px-2.5 text-xs transition-colors",
-                tab === t
-                  ? "bg-accent text-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
+            <Toggle key={t} value={t} size="xs">
               {TAB_LABEL[t]}
-            </button>
+            </Toggle>
           ))}
-        </div>
+        </ToggleGroup>
         {fromHq ? (
           <span className="ml-auto text-muted-foreground text-xs">
             From hq, read-only. Edit them in hq.

@@ -1,10 +1,13 @@
 import type { Schedule } from "@getmyprof/contracts";
 import { useState } from "react";
+import { Choice } from "~/components/Table";
 import { Button } from "~/components/ui/button";
-import { cn } from "~/lib/utils";
+import { Input } from "~/components/ui/input";
+import { Toggle, ToggleGroup } from "~/components/ui/toggle-group";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const control = "h-7 rounded-lg border border-input bg-background px-2";
+const KINDS = ["at", "every", "webhook"] as const;
+const KIND_LABEL = { at: "at a time", every: "every N hours", webhook: "when called (webhook)" };
 
 /** The older daily and weekly forms, shown as "at a time on these weekdays". */
 export const normalize = (s: Schedule): Schedule =>
@@ -47,74 +50,65 @@ export function ScheduleEditor({
   return (
     <div className="flex flex-col gap-2 text-xs">
       <div className="flex flex-wrap items-center gap-2">
-        <select
-          value={s.kind}
-          aria-label="Schedule"
-          onChange={(e) =>
+        <Choice
+          label="Schedule"
+          // normalize folds daily and weekly into "at", so the picker only knows these three.
+          value={KINDS.find((k) => k === s.kind) ?? "at"}
+          options={KINDS}
+          labels={KIND_LABEL}
+          onChange={(kind) =>
             onChange(
-              e.target.value === "every"
+              kind === "every"
                 ? { kind: "every", hours: 6 }
-                : e.target.value === "webhook"
+                : kind === "webhook"
                   ? { kind: "webhook" }
                   : { kind: "at", at: "08:00", weekdays: [] },
             )
           }
-          className={control}
-        >
-          <option value="at">at a time</option>
-          <option value="every">every N hours</option>
-          <option value="webhook">when called (webhook)</option>
-        </select>
+        />
         {s.kind === "every" ? (
           <label className="flex items-center gap-1.5 text-muted-foreground">
             every
-            <input
+            <Input
+              size="compact"
               type="number"
               min="0.25"
               step="0.25"
               value={s.hours}
               aria-label="Hours"
               onChange={(e) => onChange({ kind: "every", hours: Number(e.target.value) || 1 })}
-              className={cn(control, "w-16 bg-transparent text-foreground")}
+              className="w-16"
             />
             hours
           </label>
         ) : null}
         {s.kind === "at" ? (
           <>
-            <input
+            <Input
+              size="compact"
               type="time"
               value={s.at}
               aria-label="Time"
               onChange={(e) => onChange({ ...s, at: e.target.value })}
-              className={cn(control, "bg-transparent")}
+              className="w-auto"
             />
-            <span className="flex gap-0.5" role="group" aria-label="Weekdays">
-              {DAYS.map((d, i) => {
-                const on = s.weekdays.includes(i);
-                return (
-                  <button
-                    key={d}
-                    type="button"
-                    aria-pressed={on}
-                    onClick={() =>
-                      onChange({
-                        ...s,
-                        weekdays: on ? s.weekdays.filter((x) => x !== i) : [...s.weekdays, i],
-                      })
-                    }
-                    className={cn(
-                      "h-7 w-9 rounded-lg text-xs transition-colors",
-                      on
-                        ? "bg-accent text-foreground"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {d}
-                  </button>
-                );
-              })}
-            </span>
+            <ToggleGroup
+              multiple
+              aria-label="Weekdays"
+              value={DAYS.filter((_, i) => s.weekdays.includes(i))}
+              onValueChange={(picked) =>
+                onChange({
+                  ...s,
+                  weekdays: DAYS.flatMap((d, i) => (picked.includes(d) ? [i] : [])),
+                })
+              }
+            >
+              {DAYS.map((d) => (
+                <Toggle key={d} value={d} size="xs">
+                  {d}
+                </Toggle>
+              ))}
+            </ToggleGroup>
             <span className="text-muted-foreground">
               {s.weekdays.length ? "" : "no day picked: every day"}
             </span>

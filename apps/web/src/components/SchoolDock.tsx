@@ -64,7 +64,10 @@ export function SchoolDock({
   const toDraft = picked.flatMap((r) => r.professors.map((p) => p.key));
 
   return (
-    <aside className="flex min-w-0 flex-col border-l" data-testid="schools-dock">
+    <aside
+      className="flex min-w-0 flex-col border-t md:border-t-0 md:border-l"
+      data-testid="schools-dock"
+    >
       <div className="flex h-12 items-center gap-2 px-4 text-sm">
         <span className="font-semibold">Agent</span>
         <span className="flex items-center gap-1 text-muted-foreground text-xs">

@@ -4,6 +4,7 @@ import { Trash2Icon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Choice } from "~/components/Table";
 import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
 import { cn } from "~/lib/utils";
 import { daysLeft, due, leftAfterRent } from "~/lib/vault";
 import { call } from "~/rpc/client";
@@ -14,8 +15,6 @@ const money = (n: number | null, currency: string) =>
   n == null ? "?" : `${SYMBOL[currency] ?? `${currency} `}${Math.round(n).toLocaleString("en-US")}`;
 
 const save = (value: Offer) => void call("vault.save", { kind: "offer", value });
-const input =
-  "h-6.5 w-full rounded-md border border-input bg-transparent px-1.5 text-foreground text-xs outline-none placeholder:text-placeholder";
 
 /** A text cell that saves on blur. */
 function Text({
@@ -30,12 +29,13 @@ function Text({
   className?: string;
 }) {
   return (
-    <input
+    <Input
+      size="compact"
       defaultValue={value}
       aria-label={label}
       placeholder="?"
       onBlur={(e) => e.target.value !== value && onSave(e.target.value)}
-      className={cn(input, className)}
+      className={className}
     />
   );
 }
@@ -53,7 +53,8 @@ function Num({
   className?: string;
 }) {
   return (
-    <input
+    <Input
+      size="compact"
       type="number"
       min="0"
       defaultValue={value ?? ""}
@@ -63,7 +64,7 @@ function Num({
         const next = e.target.value === "" ? null : Number(e.target.value);
         if (next !== value) onSave(next);
       }}
-      className={cn(input, className)}
+      className={className}
     />
   );
 }
@@ -301,12 +302,12 @@ export function VaultOffers() {
                       o.respondBy && daysLeft(o.respondBy) <= 7 && "text-warning-foreground",
                     )}
                   >
-                    <input
+                    <Input
+                      size="compact"
                       type="date"
                       defaultValue={o.respondBy ?? ""}
                       aria-label={of("Respond by", i)}
                       onBlur={(e) => save({ ...o, respondBy: e.target.value || null })}
-                      className={input}
                     />
                     {o.respondBy ? <div className="mt-0.5 text-2xs">{due(o.respondBy)}</div> : null}
                   </Cell>

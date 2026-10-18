@@ -270,7 +270,7 @@ export function Composer({
           compact ? "pb-1" : "pb-1.5",
         )}
       />
-      <div className="flex items-center gap-0.5 px-2 pt-1 pb-2 text-muted-foreground text-xs">
+      <div className="flex flex-wrap items-center gap-0.5 px-2 pt-1 pb-2 text-muted-foreground text-xs *:whitespace-nowrap">
         <label
           className="flex size-6.5 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-accent hover:text-foreground"
           title="Attach files (they're kept in the Vault)"
@@ -329,7 +329,7 @@ export function Composer({
           </>
         ) : null}
         {working ? (
-          <span className="ml-auto mr-2 hidden items-center gap-1 sm:flex">
+          <span className="ml-auto mr-2 hidden items-center gap-1 lg:flex">
             <Kbd className="bg-transparent">↵</Kbd> queue · <Kbd className="bg-transparent">⌘↵</Kbd>{" "}
             steer
           </span>

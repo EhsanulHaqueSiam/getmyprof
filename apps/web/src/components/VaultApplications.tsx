@@ -18,6 +18,8 @@ import { Chip } from "~/components/FormParts";
 import { Interviews } from "~/components/Interviews";
 import { Choice } from "~/components/Table";
 import { Button } from "~/components/ui/button";
+import { Checkbox } from "~/components/ui/checkbox";
+import { Input } from "~/components/ui/input";
 import { plural } from "~/lib/format";
 import { cn } from "~/lib/utils";
 import { daysLeft, due } from "~/lib/vault";
@@ -62,10 +64,10 @@ function Recommenders({ app, program }: { app: Application; program: Program | u
         <div
           key={`${r.email}-${r.name}`}
           data-testid="recommender"
-          className="flex flex-wrap items-center gap-2 md:grid md:grid-cols-[9rem_11rem_auto_auto_auto_auto]"
+          className="flex flex-wrap items-center gap-2"
         >
-          <span className="truncate text-foreground">{r.name}</span>
-          <span className="truncate text-muted-foreground">{r.email}</span>
+          <span className="w-36 truncate text-foreground">{r.name}</span>
+          <span className="w-44 truncate text-muted-foreground">{r.email}</span>
           <Choice
             label={`Status of ${r.name}`}
             value={r.status}
@@ -121,19 +123,21 @@ function Recommenders({ app, program }: { app: Application; program: Program | u
           setEmail("");
         }}
       >
-        <input
+        <Input
+          size="sm"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Recommender"
           aria-label="Recommender name"
-          className="h-6.5 w-36 rounded-md border border-input bg-transparent px-2 outline-none placeholder:text-placeholder"
+          className="w-36"
         />
-        <input
+        <Input
+          size="sm"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="email"
           aria-label="Recommender email"
-          className="h-6.5 w-44 rounded-md border border-input bg-transparent px-2 outline-none placeholder:text-placeholder"
+          className="w-44"
         />
         <Button type="submit" size="icon-xs" variant="ghost-muted" aria-label="Add recommender">
           <PlusIcon />
@@ -207,11 +211,9 @@ function ApplicationView({
           />
           {/* Apply here only if the fee is waived: until then, its fee stays out of the budget. */}
           <label className="flex items-center gap-1.5">
-            <input
-              type="checkbox"
-              className="size-3.5 accent-foreground"
+            <Checkbox
               checked={app.onlyIfWaived}
-              onChange={() => save({ ...app, onlyIfWaived: !app.onlyIfWaived })}
+              onCheckedChange={() => save({ ...app, onlyIfWaived: !app.onlyIfWaived })}
             />
             Only if waived
           </label>
@@ -251,17 +253,10 @@ function ApplicationView({
             const doc = docs.find((x) => x.id === d.docId);
             return (
               <label key={d.name} className="flex items-center gap-1.5">
-                <input
-                  type="checkbox"
-                  className="size-3.5 accent-foreground"
+                <Checkbox
                   checked={d.done}
-                  onChange={() =>
-                    save({
-                      ...app,
-                      documents: app.documents.map((x, j) =>
-                        j === i ? { ...x, done: !x.done } : x,
-                      ),
-                    })
+                  onCheckedChange={(done) =>
+                    save({ ...app, documents: app.documents.with(i, { ...d, done }) })
                   }
                 />
                 <span className={d.done ? "text-muted-foreground line-through" : "text-foreground"}>
@@ -287,16 +282,18 @@ function ApplicationView({
       </Row>
       <Row label="Portal">
         <div className="flex flex-wrap items-center gap-2">
-          <input
+          <Input
+            size="sm"
             defaultValue={app.portalStatus}
             placeholder="portal status, e.g. 2 of 3 letters in"
             aria-label="Portal status"
             onBlur={(e) =>
               e.target.value !== app.portalStatus && save({ ...app, portalStatus: e.target.value })
             }
-            className="h-6.5 flex-1 rounded-md border border-input bg-transparent px-2 outline-none placeholder:text-placeholder"
+            className="flex-1"
           />
-          <input
+          <Input
+            size="sm"
             defaultValue={app.applicationId}
             placeholder="application ID"
             aria-label="Application ID"
@@ -304,7 +301,7 @@ function ApplicationView({
               e.target.value !== app.applicationId &&
               save({ ...app, applicationId: e.target.value.trim() })
             }
-            className="h-6.5 w-36 rounded-md border border-input bg-transparent px-2 outline-none placeholder:text-placeholder"
+            className="w-36"
           />
         </div>
       </Row>

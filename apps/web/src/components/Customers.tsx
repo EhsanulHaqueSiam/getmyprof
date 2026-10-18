@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Chip } from "~/components/FormParts";
 import { featureLabel, inNewTab } from "~/components/TregSettings";
 import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
 import { download } from "~/lib/files";
 import { plural, usd } from "~/lib/format";
 import { cn } from "~/lib/utils";
@@ -29,7 +30,8 @@ export function Dollars({
   return (
     <span className="flex items-center gap-1 text-muted-foreground text-xs">
       $
-      <input
+      <Input
+        size="sm"
         type="number"
         min="0.01"
         step="0.01"
@@ -43,7 +45,7 @@ export function Dollars({
           } else e.target.value = value == null ? "" : String(value);
         }}
         onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-        className="h-6.5 w-16 rounded-md border border-input bg-transparent px-1.5 text-foreground outline-none placeholder:text-placeholder"
+        className="w-20"
       />
     </span>
   );
@@ -133,17 +135,19 @@ export function AddCustomer({
         if (valid) onAdd(id, Number(limit) > 0 ? Number(limit) : null);
       }}
     >
-      <input
+      <Input
+        size="sm"
         autoFocus
         value={id}
         onChange={(e) => setId(e.target.value.trim())}
         placeholder="customer id, e.g. maya"
         aria-label="Customer id"
-        className="h-6.5 w-44 rounded-md border border-input bg-transparent px-1.5 text-foreground outline-none placeholder:text-placeholder"
+        className="w-44"
       />
       <span className="flex items-center gap-1 text-muted-foreground">
         $
-        <input
+        <Input
+          size="sm"
           type="number"
           min="0.01"
           step="0.01"
@@ -151,7 +155,7 @@ export function AddCustomer({
           onChange={(e) => setLimit(e.target.value)}
           placeholder="default"
           aria-label="Their limit a day"
-          className="h-6.5 w-18 rounded-md border border-input bg-transparent px-1.5 text-foreground outline-none placeholder:text-placeholder"
+          className="w-20"
         />
         a day
       </span>

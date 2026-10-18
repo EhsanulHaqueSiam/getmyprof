@@ -21,13 +21,17 @@ import {
 } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
+import { Checkbox } from "~/components/ui/checkbox";
 import { Input } from "~/components/ui/input";
+import { Toggle, ToggleGroup } from "~/components/ui/toggle-group";
 import { Composer } from "~/components/Composer";
 import { COLUMNS, dimmed, haystack, TIER_LABEL, tone } from "~/lib/columns";
 import { plural, usd } from "~/lib/format";
 import { cn } from "~/lib/utils";
 import { call } from "~/rpc/client";
 import { useStore } from "~/state/store";
+
+const DETAILS = ["brief", "std", "deep"] as const;
 
 const OP_ICON: Record<RowOp, ReactNode> = {
   email: <MailIcon />,
@@ -101,29 +105,20 @@ export function Results({
     <div className="flex min-h-0 flex-1">
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-2 px-4 pb-2.5">
-          <div
-            className="inline-flex rounded-lg border p-0.5"
-            role="radiogroup"
+          <ToggleGroup
+            value={[detail]}
+            onValueChange={(v) => {
+              const next = DETAILS.find((d) => d === v[0]);
+              if (next) void call("threads.setDetail", { id: threadId, detail: next });
+            }}
             aria-label="Detail"
           >
-            {(["brief", "std", "deep"] as const).map((d) => (
-              <button
-                key={d}
-                type="button"
-                role="radio"
-                aria-checked={detail === d}
-                onClick={() => void call("threads.setDetail", { id: threadId, detail: d })}
-                className={cn(
-                  "h-6 rounded-md px-2.5 text-xs transition-colors",
-                  detail === d
-                    ? "bg-accent text-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
+            {DETAILS.map((d) => (
+              <Toggle key={d} value={d} size="xs">
                 {{ brief: "Brief", std: "Standard", deep: "Deep" }[d]}
-              </button>
+              </Toggle>
             ))}
-          </div>
+          </ToggleGroup>
           <div className="w-52">
             <Input
               size="compact"
@@ -146,13 +141,12 @@ export function Results({
             <thead>
               <tr>
                 <th className="sticky top-0 z-10 w-8 border-b border-input bg-background px-2">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     aria-label="Select all rows"
-                    className="size-3.5 accent-foreground"
                     checked={rows.length > 0 && rows.every((r) => selected.has(r.key))}
-                    onChange={(e) =>
-                      setSelected(new Set(e.target.checked ? rows.map((r) => r.key) : []))
+                    indeterminate={keys.length > 0 && !rows.every((r) => selected.has(r.key))}
+                    onCheckedChange={(checked) =>
+                      setSelected(new Set(checked ? rows.map((r) => r.key) : []))
                     }
                   />
                 </th>
@@ -186,12 +180,10 @@ export function Results({
                   )}
                 >
                   <td className="border-b px-2">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       aria-label={`Select ${r.name}`}
                       checked={selected.has(r.key)}
-                      onChange={() => toggle(r.key)}
-                      className="size-3.5 accent-foreground"
+                      onCheckedChange={() => toggle(r.key)}
                     />
                   </td>
                   {cols.map((c) => {

@@ -4,7 +4,9 @@ import { SparklesIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { SchoolDock } from "~/components/SchoolDock";
 import { Button } from "~/components/ui/button";
+import { Checkbox } from "~/components/ui/checkbox";
 import { Input } from "~/components/ui/input";
+import { Toggle, ToggleGroup } from "~/components/ui/toggle-group";
 import { plural } from "~/lib/format";
 import {
   afterRent,
@@ -68,25 +70,20 @@ function Schools() {
       <section className="flex min-h-0 min-w-0 flex-col">
         <header className="flex min-h-12 shrink-0 flex-wrap items-center gap-2.5 px-4 py-2">
           <h1 className="font-semibold text-sm">Schools</h1>
-          <div className="inline-flex rounded-lg border p-0.5" role="radiogroup" aria-label="Tier">
-            {[null, ...TIERS].map((t) => (
-              <button
-                key={t ?? "all"}
-                type="button"
-                role="radio"
-                aria-checked={tier === t}
-                onClick={() => setTier(t)}
-                className={cn(
-                  "h-6 rounded-md px-2.5 text-xs capitalize transition-colors",
-                  tier === t
-                    ? "bg-accent text-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {t ?? "All"}
-              </button>
+          <ToggleGroup
+            value={[tier ?? "all"]}
+            onValueChange={(v) => setTier(TIERS.find((t) => t === v[0]) ?? null)}
+            aria-label="Tier"
+          >
+            <Toggle value="all" size="xs">
+              All
+            </Toggle>
+            {TIERS.map((t) => (
+              <Toggle key={t} value={t} size="xs" className="capitalize">
+                {t}
+              </Toggle>
             ))}
-          </div>
+          </ToggleGroup>
           <div className="w-52">
             <Input
               size="compact"
@@ -228,13 +225,7 @@ function Row({
       )}
     >
       <td className="border-b px-2" onClick={(e) => e.stopPropagation()}>
-        <input
-          type="checkbox"
-          aria-label={`Select ${s.name}`}
-          checked={checked}
-          onChange={onCheck}
-          className="size-3.5 accent-foreground"
-        />
+        <Checkbox aria-label={`Select ${s.name}`} checked={checked} onCheckedChange={onCheck} />
       </td>
       <td className={cn(cell, "max-w-[230px] font-medium text-foreground")} title={s.name}>
         {professors[0] ? (

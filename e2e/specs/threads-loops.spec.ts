@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { pick } from "./pick.js";
 
 // Threads and loops, on the state app.spec.ts leaves: its hunt's professors in the sheet, treg
 // connected, an offer accepted. The "after" project runs it once app.spec.ts has finished.
@@ -29,7 +30,7 @@ test("scoped threads: Ask about a professor answers from the record, @ adds a sc
     "true",
   );
   await expect(page.getByTestId("scope-chip")).toContainText("Lybarger");
-  await page.getByRole("tab", { name: "Professor" }).click();
+  await page.getByRole("button", { name: "Professor", exact: true }).click();
   await expect(page.getByTestId("professor-tab")).toContainText("Kevin Lybarger");
 
   // @ picks a school from the sheet and it joins the chip.
@@ -45,7 +46,7 @@ test("scoped threads: Ask about a professor answers from the record, @ adds a sc
 
   // Filter the hunt's Results down to one row.
   await page.getByRole("link", { name: "Find professors", exact: true }).click();
-  await page.getByRole("tab", { name: /Results/ }).click();
+  await page.getByRole("button", { name: /^Results/ }).click();
   await page.getByLabel("Filter rows").fill("Lybarger");
   await expect(page.getByTestId("result-row")).toHaveCount(1);
 
@@ -67,7 +68,7 @@ test("loops: scope, auto-accept rules, and Always under $x here; the table shows
     .fill("Sweep George Mason for professors who fund students.");
   await page.getByLabel("Add a school").fill("George Mason University");
   await page.getByLabel("Add a school").press("Enter");
-  await page.getByRole("radio", { name: "Auto-accept rules" }).click();
+  await page.getByRole("button", { name: "Auto-accept rules" }).click();
   await expect(page.getByRole("checkbox", { name: "verified email" })).toBeChecked();
   await page.getByRole("button", { name: "Save" }).click();
   await page.getByRole("button", { name: "Run now" }).click();
@@ -84,8 +85,8 @@ test("loops: scope, auto-accept rules, and Always under $x here; the table shows
   await expect(row).not.toContainText("never");
   // An earlier test accepted an offer, so the hunt is over; the loop still keeps its settings.
   await row.click();
-  await expect(page.getByRole("radio", { name: "Auto-accept rules" })).toHaveAttribute(
-    "aria-checked",
+  await expect(page.getByRole("button", { name: "Auto-accept rules" })).toHaveAttribute(
+    "aria-pressed",
     "true",
   );
 });
@@ -99,7 +100,7 @@ test("funding and professor pages: Add PI, tabs, every fact with its source, fin
   const award = page.getByRole("row", { name: /Anastasopoulos/ });
   await award.getByRole("button", { name: "Add PI" }).click();
   await expect(award).toContainText("yes");
-  await page.getByRole("tab", { name: "programs" }).click();
+  await page.getByRole("button", { name: "programs", exact: true }).click();
   await expect(page.getByTestId("program-row").first()).toBeVisible();
 
   // The added PI has the award as a grant, linked to its page.
@@ -116,7 +117,7 @@ test("funding and professor pages: Add PI, tabs, every fact with its source, fin
 
   // The finder filters by tier and runs a row action in a thread of its own.
   await page.goto("/professors");
-  await page.getByLabel("Money tier").selectOption("2");
+  await pick(page, "Money tier", "Tier 2 strong");
   await page.getByLabel("Select Kevin Lybarger").check();
   await page.getByRole("button", { name: "Check money" }).click();
   await expect(
@@ -219,7 +220,9 @@ test("keyboard: Enter allows, j moves, r rejects, shift-A accepts all; ⌘K goes
   );
   await page.getByLabel("Command").press("Enter");
   await expect(page).toHaveURL(/\/professors\?school=/);
-  await expect(page.getByLabel("School")).toHaveValue("University of Illinois Chicago");
+  await expect(page.getByRole("combobox", { name: "School" })).toHaveText(
+    "University of Illinois Chicago",
+  );
 });
 
 test("phone: the sidebar opens over the page and closes on the way somewhere", async ({ page }) => {

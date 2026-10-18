@@ -1,6 +1,7 @@
 import type { ScopeItem } from "@getmyprof/contracts";
 import { XIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Input } from "~/components/ui/input";
 import { call } from "~/rpc/client";
 
 /** The schools a loop works on: chips, and a box that suggests the sheet's schools. */
@@ -43,7 +44,8 @@ export function ScopeEditor({
           </span>
         ))}
       </div>
-      <input
+      <Input
+        size="compact"
         list="loop-schools"
         value={text}
         aria-label="Add a school"
@@ -55,7 +57,6 @@ export function ScopeEditor({
             add();
           }
         }}
-        className="h-7 rounded-lg border border-input bg-transparent px-2 text-foreground outline-none placeholder:text-placeholder"
       />
       <datalist id="loop-schools">
         {schools.map((u) => (

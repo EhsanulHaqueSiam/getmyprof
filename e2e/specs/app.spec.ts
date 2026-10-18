@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { pick } from "./pick.js";
 
 // One journey through v1 against the fake agent (GETMYPROF_AGENT=fake, fresh GETMYPROF_HOME).
 // The fake runs the real hunt tools on fixture data, so proposals, approvals, spend and
@@ -58,7 +59,7 @@ test("results: a row action fills cells, and accepting clears the blue", async (
   // Settled threads hide in the collapsed Settled shelf; open it to reach the thread.
   await page.getByRole("button", { name: /Settled/ }).click();
   await page.getByRole("link", { name: "Find professors" }).click();
-  await page.getByRole("tab", { name: /Results/ }).click();
+  await page.getByRole("button", { name: /^Results/ }).click();
   await expect(page.getByTestId("result-row")).toHaveCount(3);
   await expect(page.getByRole("columnheader", { name: /Money tier/ })).toBeVisible();
   await expect(page.getByText("2 strong").first()).toBeVisible();
@@ -92,7 +93,7 @@ test("professors, funding and loops show the hunt's data", async ({ page }) => {
   await page.getByRole("main").getByRole("button", { name: "Search", exact: true }).click();
   await expect(page.getByText("Antonios Anastasopoulos").first()).toBeVisible();
   // Advertised positions: the posting's contact goes into the sheet in one click.
-  await page.getByRole("tab", { name: "positions" }).click();
+  await page.getByRole("button", { name: "positions", exact: true }).click();
   await page.getByRole("button", { name: "jobs.ac.uk" }).click();
   await page.getByLabel("Topics").fill("language models");
   await page.getByRole("main").getByRole("button", { name: "Search", exact: true }).click();
@@ -129,10 +130,10 @@ test("outreach: drafts wait for approval, a sent email's reply comes back as you
   await page.goto("/");
   await page.getByRole("button", { name: /Settled/ }).click();
   await page.getByRole("link", { name: "Find professors" }).click();
-  await page.getByRole("tab", { name: /Results/ }).click();
+  await page.getByRole("button", { name: /^Results/ }).click();
   await page.getByLabel("Select all rows").check();
   await page.getByRole("button", { name: /Draft first emails/ }).click();
-  await page.getByRole("tab", { name: "Chat" }).click();
+  await page.getByRole("button", { name: "Chat", exact: true }).click();
   await expect(page.getByText("Skipped 1 apply-only")).toBeVisible();
 
   await page.goto("/pipeline");
@@ -187,7 +188,7 @@ test("taking students: their page's words land dated, and a professor not taking
   // Outreach left the thread with drafts in Pipeline, so it is in the main list, not Settled.
   await page.goto("/");
   await page.getByRole("link", { name: "Find professors" }).click();
-  await page.getByRole("tab", { name: /Results/ }).click();
+  await page.getByRole("button", { name: /^Results/ }).click();
   await page.getByLabel("Select Mohan Zalake").check();
   await page.getByRole("button", { name: /Taking students\?/ }).click();
   const row = page.getByTestId("result-row").filter({ hasText: "Mohan Zalake" });
@@ -199,7 +200,7 @@ test("taking students: their page's words land dated, and a professor not taking
 
   await page.getByLabel("Select Mohan Zalake").check();
   await page.getByRole("button", { name: /Draft first emails/ }).click();
-  await page.getByRole("tab", { name: "Chat" }).click();
+  await page.getByRole("button", { name: "Chat", exact: true }).click();
   await expect(page.getByText(/Mohan Zalake: Not drafted: not taking students/)).toBeVisible();
 });
 
@@ -250,7 +251,7 @@ test("vault: the agent's finds wait in To file, and submitting an application dr
   await expect(app.getByTestId("chance-lines")).toContainText("Kevin Lybarger replied: taking");
   await expect(app.getByTestId("chance-lines")).toContainText("needs IELTS 6.5, none taken");
 
-  await app.getByLabel("Application status").selectOption("submitted");
+  await pick(app, "Application status", "submitted");
   // The agent drafts the note; it waits behind Lybarger's earlier answer in his sequence.
   await page.goto("/pipeline");
   await page.getByTestId("turn-yours").getByText("Kevin Lybarger").click();
@@ -297,7 +298,7 @@ test("after applying: an interview gets a prep pack and a thank-you, and offers 
   await app.getByLabel("Interview with").fill("Kevin Lybarger");
   await app.getByLabel("Interview time").fill("2026-12-10T09:30");
   await app.getByRole("button", { name: "Add interview" }).click();
-  await expect(app.getByLabel("Application status")).toHaveValue("interview");
+  await expect(app.getByRole("combobox", { name: "Application status" })).toHaveText("interview");
 
   await app.getByRole("button", { name: "Write prep pack" }).click();
   await expect(page.getByText(/Saved in the Writer/)).toBeVisible();
@@ -338,8 +339,8 @@ test("loops: a webhook run fills its placeholders, and every run goes back to on
   await page.getByRole("button", { name: "New loop" }).click();
   await page.getByLabel("Loop name").fill("Award watch");
   await page.getByLabel("Instructions").fill("Vet {{body.pi}} at {{body.org}}.");
-  await page.getByLabel("Schedule").selectOption("webhook");
-  await page.getByLabel("Report to").selectOption("same");
+  await pick(page, "Schedule", "when called (webhook)");
+  await pick(page, "Report to", "one thread for every run");
   await page.getByRole("button", { name: "Save" }).click();
   const url = await page.getByTestId("hook-url").textContent();
   const path = new URL(url ?? "").pathname;
@@ -424,7 +425,7 @@ test("the end of the journey: a thank-you to a recommender, and visa steps once 
   await expect(page.getByText(/Saved in the Writer/)).toBeVisible();
 
   await page.goto("/vault?section=offers");
-  await page.getByLabel("Status, offer 1").selectOption("accepted");
+  await pick(page, "Status, offer 1", "accepted");
   await page.getByRole("button", { name: "Write visa steps" }).click();
   await expect(page.getByText(/Saved in the Writer/)).toBeVisible();
 

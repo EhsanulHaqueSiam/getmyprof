@@ -1,10 +1,10 @@
 import type { Applicant } from "@getmyprof/contracts";
 import { Chip, ListEditor, Row } from "~/components/FormParts";
+import { Choice } from "~/components/Table";
 import { Button } from "~/components/ui/button";
-import { cn } from "~/lib/utils";
+import { Input } from "~/components/ui/input";
 
 const TESTS = ["IELTS", "TOEFL", "Duolingo", "PTE", "GRE"];
-const input = "h-7 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none";
 
 /** First run, step 2: who the applicant is, for eligibility. Citizenship decides who may pay them. */
 export function EligibilityFields({
@@ -26,11 +26,12 @@ export function EligibilityFields({
         />
       </Row>
       <Row label="Living in">
-        <input
+        <Input
+          size="sm"
           value={applicant.residence}
           onChange={(e) => patch({ residence: e.target.value })}
           aria-label="Living in"
-          className={cn(input, "w-48")}
+          className="w-48"
         />
       </Row>
       <Row label="Bachelor's length">
@@ -47,20 +48,22 @@ export function EligibilityFields({
         </div>
       </Row>
       <Row label="GPA">
-        <input
+        <Input
+          size="sm"
           value={applicant.gpa}
           onChange={(e) => patch({ gpa: e.target.value })}
           placeholder="3.8"
           aria-label="GPA"
-          className={cn(input, "w-24")}
+          className="w-24"
         />
         <span className="mx-1.5 text-muted-foreground text-xs">on a scale of</span>
-        <input
+        <Input
+          size="sm"
           value={applicant.gpaScale}
           onChange={(e) => patch({ gpaScale: e.target.value })}
           placeholder="4.00"
           aria-label="GPA scale"
-          className={cn(input, "w-20")}
+          className="w-20"
         />
       </Row>
       <Row label="Tests">
@@ -71,35 +74,33 @@ export function EligibilityFields({
             return (
               // oxlint-disable-next-line react/no-array-index-key -- test rows have no identity; they are only ever appended
               <div key={i} className="flex flex-wrap items-center gap-1.5">
-                <select
+                <Choice
+                  label="Test"
                   value={t.name}
-                  onChange={(e) => setTest({ name: e.target.value })}
-                  aria-label="Test"
-                  className={cn(input, "bg-background")}
-                >
-                  {TESTS.map((n) => (
-                    <option key={n}>{n}</option>
-                  ))}
-                </select>
+                  options={TESTS}
+                  onChange={(name) => setTest({ name })}
+                />
                 {(["taken", "booked", "planned"] as const).map((s) => (
                   <Chip key={s} on={t.status === s} onClick={() => setTest({ status: s })}>
                     {s}
                   </Chip>
                 ))}
-                <input
+                <Input
+                  size="sm"
                   type="date"
                   value={t.date}
                   onChange={(e) => setTest({ date: e.target.value })}
                   aria-label="Test date"
-                  className={input}
+                  className="w-auto"
                 />
                 {t.status === "taken" ? (
-                  <input
+                  <Input
+                    size="sm"
                     value={t.score}
                     onChange={(e) => setTest({ score: e.target.value })}
                     placeholder="score"
                     aria-label="Score"
-                    className={cn(input, "w-20")}
+                    className="w-20"
                   />
                 ) : null}
               </div>
@@ -135,24 +136,26 @@ export function EligibilityFields({
           </Chip>
           <label className="flex items-center gap-1.5">
             fee budget $
-            <input
+            <Input
+              size="sm"
               type="number"
               min="0"
               value={applicant.feeBudgetUsd ?? ""}
               onChange={(e) => patch({ feeBudgetUsd: num(e.target.value) })}
               aria-label="Fee budget"
-              className={cn(input, "w-20 text-foreground")}
+              className="w-20"
             />
           </label>
           <label className="flex items-center gap-1.5">
             min stipend $
-            <input
+            <Input
+              size="sm"
               type="number"
               min="0"
               value={applicant.minStipendUsd ?? ""}
               onChange={(e) => patch({ minStipendUsd: num(e.target.value) })}
               aria-label="Minimum stipend"
-              className={cn(input, "w-24 text-foreground")}
+              className="w-24"
             />
           </label>
         </div>
